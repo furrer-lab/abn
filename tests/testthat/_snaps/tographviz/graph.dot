@@ -1,0 +1,13 @@
+digraph dag { 
+
+"Outdoor"[shape=box];
+"Sex"[shape=diamond];
+"GroupSize"[shape=oval];
+"Age"[shape=circle];
+
+
+
+"Outdoor"->"GroupSize";
+"Age"->"Sex";
+
+}

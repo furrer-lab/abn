@@ -1,0 +1,12 @@
+
+#! /bin/sh
+for f in ./config.*; do
+rm -f $f
+done
+if [ -e src/Makevars ]; then
+rm -f src/Makevars
+fi
+rm -f model.bug R/model.bug
+rm -f graph.pdf R/graph.pdf
+exit 0
+ 

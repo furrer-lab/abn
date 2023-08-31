@@ -1,0 +1,130 @@
+###########################################################################
+# Parameter distributions are given as discrete across
+# a fine grid since these are non-conjugate models e.g. parameters
+# may not conform to a standard probability distribution
+#
+##########################################################################
+#  DAG Definition. rows are children, cols are parents
+# PC PT MS HS TAIL Abscess Pyaemia EPcat PDcat plbinary
+#  0,  1,  0,  0,    0,       0,       0,     0,     0,        0, # PC | PT
+#  0,  0,  0,  0,    0,       0,       0,     0,     0,        0, # PT
+#  0,  0,  0,  1,    0,       0,       0,     0,     0,        0, # MS | HS
+#  0,  0,  0,  0,    0,       0,       0,     1,     0,        0, # HS | EPcat
+#  0,  0,  0,  0,    0,       0,       0,     0,     1,        0, # TAIL | PDcat
+#  0,  0,  0,  0,    0,       0,       0,     0,     0,        0, # Abscess
+#  0,  0,  0,  0,    1,       0,       0,     0,     0,        0, # Pyaemia | TAIL
+#  0,  0,  0,  0,    0,       0,       0,     0,     0,        1, # EPcat | plbinary
+#  0,  0,  1,  0,    0,       0,       0,     1,     0,        1, # PDcat | MS, EPcat, plbinary
+#  1,  1,  0,  0,    0,       1,       0,     0,     0,        0  # plbinary | PC, PT, Abscess
+
+model {    
+
+       # BINARY NODES
+
+       #- NODE PC | PT -------------------------------------------------------------
+       PC  ~ dbern(p1); #binary response 
+       logit(p1)<- PC.b0 + PC.b1*PT;# logistic regression
+       ### empirical densities from abn fitabn()
+       PC.M0 ~ dcat(PC.p[     ,2]);  #PC.p[,2] is the vector of density values= f(x)
+       PC.b0 <-     PC.p[PC.M0,1];   #PC.p[,1] is the vector of x values
+       PC.M1 ~ dcat(PC.p[     ,4]);  #PC.p[,4] is the vector of density values= f(x)
+       PC.b1 <-     PC.p[PC.M1,3];   #PC.p[,3] is the vector of x values
+       #-----------------------------------------------------------------------
+
+       #- NODE PT  -------------------------------------------------------------
+       PT  ~ dbern(p2); #binary response 
+       logit(p2)<- PT.b0;# logistic regression
+       ### empirical densities from abn fitabn()
+       PT.M0 ~ dcat(PT.p[     ,2]);     #PT.p[,2] is the vector of density values= f(x)
+       PT.b0 <-     PT.p[PT.M0,1];      #PT.p[,1] is the vector of x values
+       #-----------------------------------------------------------------------
+
+       #- NODE  MS | HS ---------------------------------------------------------------
+       MS  ~ dbern(p3); #binary response 
+       logit(p3)<- MS.b0 + MS.b1*HS;# logistic regression
+       ### empirical densities from abn fitabn()
+       MS.M0 ~ dcat(MS.p[     ,2]);   #MS.p[,2] is the vector of density values= f(x)
+       MS.b0 <-     MS.p[MS.M0,1];    #MS.p[,1] is the vector of x values
+       MS.M1 ~ dcat(MS.p[     ,4]);   #MS.p[,4] is the vector of density values= f(x)
+       MS.b1 <-     MS.p[MS.M1,3];    #MS.p[,3] is the vector of x values
+       #-------------------------------------------------------------------------------
+        
+       #- NODE HS | EPcat -------------------------------------------------------------
+       HS ~ dbern(p4); #binary response 
+       logit(p4)<- HS.b0 + HS.b1*EPcat;# logistic regression
+       ### empirical densities from abn fitabn()
+       HS.M0 ~ dcat(HS.p[     ,2]);    #HS.p[,2] is the vector of density values= f(x)
+       HS.b0 <-     HS.p[HS.M0,1];     #HS.p[,1] is the vector of x values
+       HS.M1 ~ dcat(HS.p[     ,4]);    #HS.p[,4] is the vector of density values= f(x)
+       HS.b1 <-     HS.p[HS.M1,3];     #HS.p[,3] is the vector of x values
+       #-------------------------------------------------------------------------------
+      
+       #- NODE TAIL | PDcat -----------------------------------------------------------
+       TAIL  ~ dbern(p5); #binary response 
+       logit(p5)<- TAIL.b0 + TAIL.b1*PDcat;# logistic regression
+       ### empirical densities from abn fitabn()
+       TAIL.M0 ~ dcat(TAIL.p[     ,2]);     #TAIL.p[,2] is the vector of density values= f(x)
+       TAIL.b0 <-     TAIL.p[TAIL.M0,1];    #TAIL.p[,1] is the vector of x values
+       TAIL.M1 ~ dcat(TAIL.p[     ,4]);     #TAIL.p[,4] is the vector of density values= f(x)
+       TAIL.b1 <-     TAIL.p[TAIL.M1,3];    #TAIL.p[,3] is the vector of x values
+       #-------------------------------------------------------------------------------
+ 
+       #- NODE Abscess -------------------------------------------------------------
+       Abscess  ~ dbern(p6); #binary response 
+       logit(p6)<- Abscess.b0;# logistic regression
+       ### empirical densities from abn fitabn()
+       Abscess.M0 ~ dcat(Abscess.p[     ,2]);  #Abscess.p[,2] is the vector of density values= f(x)
+       Abscess.b0 <- Abscess.p[Abscess.M0,1];   #Abscess.p[,1] is the vector of x values
+       #-----------------------------------------------------------------------------
+
+       #- NODE Pyaemia | TAIL -------------------------------------------------------
+       Pyaemia  ~ dbern(p7); #binary response 
+       logit(p7)<- Pyaemia.b0 + Pyaemia.b1*TAIL;# logistic regression
+       ### empirical densities from abn fitabn()
+       Pyaemia.M0 ~ dcat(Pyaemia.p[     ,2]);   #Pyaemia.p[,2] is the vector of density values= f(x)
+       Pyaemia.b0 <-     Pyaemia.p[Pyaemia.M0,1];    #Pyaemia.p[,1] is the vector of x values
+       Pyaemia.M1 ~ dcat(Pyaemia.p[     ,4]);   #Pyaemia.p[,4] is the vector of density values= f(x)
+       Pyaemia.b1 <-     Pyaemia.p[Pyaemia.M1,3];    #Pyaemia.p[,3] is the vector of x values
+       #-----------------------------------------------------------------------------
+        
+       #- NODE EPcat | plbinary -----------------------------------------------------
+       EPcat  ~ dbern(p8); #binary response 
+       logit(p8)<- EPcat.b0 + EPcat.b1*plbinary;# logistic regression
+       ### empirical densities from abn fitabn()
+       EPcat.M0 ~ dcat(EPcat.p[     ,2]);    #EPcat.p[,2] is the vector of density values= f(x)
+       EPcat.b0 <-     EPcat.p[EPcat.M0,1];  #EPcat.p[,1] is the vector of x values
+       EPcat.M1 ~ dcat(EPcat.p[     ,4]);    #EPcat.p[,4] is the vector of density values= f(x)
+       EPcat.b1 <-     EPcat.p[EPcat.M1,3];  #EPcat.p[,3] is the vector of x values
+       #-----------------------------------------------------------------------------
+
+       #- NODE PDcat | MS, EPcat, plbinary ------------------------------------------
+       PDcat  ~ dbern(p9); #binary response 
+       logit(p9)<- PDcat.b0 + PDcat.b1*MS + PDcat.b2*EPcat + PDcat.b3*plbinary; # logistic regression
+       ### empirical densities from abn fitabn()
+       PDcat.M0 ~ dcat(PDcat.p[     ,2]); #PDcat.p[,2] is the vector of density values= f(x)
+       PDcat.b0 <-     PDcat.p[PDcat.M0,1];  #PDcat.p[,1] is the vector of x values
+       PDcat.M1 ~ dcat(PDcat.p[     ,4]); #PDcat.p[,4] is the vector of density values= f(x)
+       PDcat.b1 <-     PDcat.p[PDcat.M1,3];  #PDcat.p[,3] is the vector of x values
+       PDcat.M2 ~ dcat(PDcat.p[     ,6]); #PDcat.p[,6] is the vector of density values= f(x)
+       PDcat.b2 <-     PDcat.p[PDcat.M2,5];  #PDcat.p[,5] is the vector of x values
+       PDcat.M3 ~ dcat(PDcat.p[     ,8]); #PDcat.p[,8] is the vector of density values= f(x)
+       PDcat.b3 <-     PDcat.p[PDcat.M3,7];  #PDcat.p[,7] is the vector of x values
+       #-----------------------------------------------------------------------------
+
+       #- NODE plbinary | PC, PT, Abscess  ----------------------------------------
+       plbinary ~ dbern(p10); #binary response 
+       logit(p10)<- plbinary.b0 + plbinary.b1*PC + plbinary.b2*PT + plbinary.b3*Abscess; # logistic regression
+       ### empirical densities from abn fitabn()
+       plbinary.M0 ~ dcat(plbinary.p[     ,2]); #plbinary.p[,2] is the vector of density values= f(x)
+       plbinary.b0 <-     plbinary.p[plbinary.M0,1];  #plbinary.p[,1] is the vector of x values
+       plbinary.M1 ~ dcat(plbinary.p[     ,4]); #plbinary.p[,4] is the vector of density values= f(x)
+       plbinary.b1 <-     plbinary.p[plbinary.M1,3];  #plbinary.p[,3] is the vector of x values
+       plbinary.M2 ~ dcat(plbinary.p[     ,6]); #plbinary.p[,6] is the vector of density values= f(x)
+       plbinary.b2 <-     plbinary.p[plbinary.M2,5];  #plbinary.p[,5] is the vector of x values
+       plbinary.M3 ~ dcat(plbinary.p[     ,8]); #plbinary.p[,8] is the vector of density values= f(x)
+       plbinary.b3 <-     plbinary.p[plbinary.M3,7];  #plbinary.p[,7] is the vector of x values
+       #-----------------------------------------------------------------------
+ 
+
+
+}

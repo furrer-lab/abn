@@ -1,0 +1,22 @@
+digraph dag { 
+
+"b1"[shape=box];
+"b2"[shape=box];
+"b3"[shape=box];
+"g1"[shape=circle];
+"b4"[shape=box];
+"p2"[shape=oval];
+"p4"[shape=oval];
+
+
+
+"b1"->"g1";
+"b2"->"b1";
+"b2"->"b3";
+"g1"->"p2";
+"b4"->"b1";
+"b4"->"b3";
+"b4"->"p4";
+"p4"->"g1";
+
+}
