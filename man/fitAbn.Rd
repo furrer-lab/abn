@@ -70,7 +70,7 @@ regressionLoop(
 )
 }
 \arguments{
-\item{object}{an object of class \code{abnLearned} produced by \code{\link{mostprobable}}, \code{\link{searchHeuristic}} or \code{\link{searchHillClimber}}.}
+\item{object}{an object of class \code{abnLearned} produced by \code{\link{mostProbable}}, \code{\link{searchHeuristic}} or \code{\link{searchHillClimber}}.}
 
 \item{dag}{a matrix or a formula statement (see details) defining the network structure, a directed acyclic graph (DAG), see details for format. Note that column names and row names must be set up.}
 

@@ -1,8 +1,3 @@
-fitabn <- function(...) {
-    .Deprecated("fitAbn", msg="'fitabn' is deprecated.\n Use 'fitAbn' instead but note that arguments have slightly changed.")
-    fitAbn(...)
-}
-
 #' Control the iterations in \code{\link{fitAbn}}
 #'
 #' Allow the user to set restrictions in the \code{\link{fitAbn}} for both the Bayesian and the MLE approach.
@@ -183,7 +178,7 @@ fit.control <-
 #'        debugging = FALSE,
 #'        ...)
 #'
-#' @param object an object of class \code{abnLearned} produced by \code{\link{mostprobable}}, \code{\link{searchHeuristic}} or \code{\link{searchHillClimber}}.
+#' @param object an object of class \code{abnLearned} produced by \code{\link{mostProbable}}, \code{\link{searchHeuristic}} or \code{\link{searchHillClimber}}.
 #' @param dag a matrix or a formula statement (see details) defining the network structure, a directed acyclic graph (DAG), see details for format. Note that column names and row names must be set up.
 #' @param data.df a data frame containing the data used for learning the network, binary variables must be declared as factors, and no missing values all allowed in any variable.
 #' @param data.dists a named list giving the distribution for each node in the network, see details.

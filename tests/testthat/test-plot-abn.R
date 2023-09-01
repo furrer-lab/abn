@@ -121,10 +121,6 @@ test_that("Plot from a formula works", {
   # renderGraph(tmp)
 })
 
-test_that("Plot form a matrix works", {
-  expect_warning( plotabn(dag = edge.strength, data.dist = dist), regexp = "is deprecated")
-})
-
 test_that("Plot from fitAbn() works", {
   mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
   mydists <- list(b1="binomial", b2="binomial", b3="binomial", g1="gaussian",

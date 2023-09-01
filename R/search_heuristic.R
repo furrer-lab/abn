@@ -29,9 +29,9 @@
 #' relatively rudimentary.
 #'
 #' The function \code{searchHeuristic} is different from the
-#' \code{\link{searchHillclimber}} in the sense that this function is fully
-#' written in R, whereas the \code{\link{searchHillclimber}} is written in C
-#' and thus expected to be faster. The function \code{\link{searchHillclimber}}
+#' \code{\link{searchHillClimber}} in the sense that this function is fully
+#' written in R, whereas the \code{\link{searchHillClimber}} is written in C
+#' and thus expected to be faster. The function \code{\link{searchHillClimber}}
 #' at each hill-climbing step consider every information from the pre-computed
 #' scores cache while the function \code{\link{searchHeuristic}} performs a local
 #' stepwise optimization. This function chooses a structural move (or edge move)

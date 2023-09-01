@@ -1,11 +1,6 @@
-buildscorecache <- function(...) {
-  .Deprecated("buildScoreCache")
-  buildScoreCache(...)
-}
-
 #' Control the iterations in \code{\link{buildScoreCache}}
 #'
-#' Allow the user to set restrictions in the \code{\link{buildscorecache}} for both the Bayesian and the MLE approach.
+#' Allow the user to set restrictions in the \code{\link{buildScoreCache}} for both the Bayesian and the MLE approach.
 #' Control function similar to \code{\link{fit.control}}.
 #'
 #' @param method a character that takes one of two values: "bayes" or "mle". Overrides \code{method} argument from \code{\link{buildScoreCache}}.

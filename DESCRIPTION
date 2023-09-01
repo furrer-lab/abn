@@ -1,6 +1,6 @@
 Package: abn
-Version: 3.0.0.9000
-Date: 2022-07-04
+Version: 3.0.0
+Date: 2022-09-01
 Title: Modelling Multivariate Data with Additive Bayesian Networks
 Authors@R: 
     c(person(given = "Matteo",
@@ -60,10 +60,10 @@ Description: Bayesian network analysis is a form of probabilistic graphical mode
 License: GPL (>= 2)
 LazyData: true
 URL: http://r-bayesian-networks.org
-BugReports: https://git.math.uzh.ch/reinhard.furrer/abn/-/issues
+BugReports: https://git.math.uzh.ch/mdeluc/abn/-/issues
 Config/testthat/edition: 3
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-08-29 08:22:08 UTC; root
+Packaged: 2023-09-01 09:18:39 UTC; root

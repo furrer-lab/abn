@@ -1,14 +1,3 @@
-plotabn <- function(...) {
-    .Deprecated("plotAbn", msg="'plotabn' is deprecated.\n Use 'plotAbn' instead but note that arguments have slightly changed.")
-    dots <- list(...)
-    if (!is.null(dots$dag.m)) {
-        dag <- dots$dag.m
-        dots$dag.m <- NULL
-        do.call('plotAbn', c(dag, dots))
-    } else  plotAbn(...)
-}
-
-
 #' Plot an ABN graphic
 #'
 #' Plot an ABN DAG using formula statement or a matrix in using Rgraphviz through the graphAM class.

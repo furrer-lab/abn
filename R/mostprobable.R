@@ -16,11 +16,6 @@
 ##    along with this program; if not, write to the Free Software
 ##    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ######################################################################
-mostprobable <- function(...) {
-    .Deprecated("mostProbable")#, msg="'mostprobable' is deprecated.\n Use 'mostProbable' instead but note that arguments have slightly changed.")
-    mostProbable(...)
-}
-
 #' Find most probable DAG structure
 #'
 #' Find most probable DAG structure using exact order based approach due to Koivisto and Sood, 2004.

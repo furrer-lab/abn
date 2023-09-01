@@ -1,8 +1,3 @@
-searchHillclimber <- function(...) {
-    .Deprecated("searchHillClimber", msg="'searchHillClimber' is deprecated.\n Use 'searchHillClimber' instead but note that arguments have slightly changed.")
-    searchHillClimber(...)
-}
-
 #' Find high scoring directed acyclic graphs using heuristic search.
 #'
 #' Find high scoring network (DAG) structures using a random re-starts greedy hill-climber heuristic search.
@@ -83,7 +78,7 @@ searchHillclimber <- function(...) {
 #' }
 #'
 #' @references Lewis, F. I., and McCormick, B. J. J. (2012). Revealing the complexity of health determinants in resource poor settings. \emph{American Journal Of Epidemiology}. DOI:10.1093/aje/KWS183).
-#' @export
+#' @export searchHillClimber
 searchHillClimber <- function(score.cache, score="mlik",
                               num.searches=1, seed=42, start.dag=NULL,
                               support.threshold=0.5, timing.on=TRUE, dag.retained=NULL,

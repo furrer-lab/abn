@@ -25,10 +25,14 @@ A comprehensive set of documented case studies, numerical accuracy/quality assur
 
 ## Installation
 
-You can install the development version of abn like so:
-
+You can install the latest release from CRAN with 
 ``` r
-install.packages("https://git.math.uzh.ch/mdeluc/devel-abn/-/archive/v3.0.0.9000/devel-abn-v3.0.0.9000.tar.gz", repo=NULL, type="source")
+install.packages("abn")
+```
+
+The recent development version can be installed from:
+``` r
+remotes::install_gitlab("https://git.math.uzh.ch/mdeluc/abn.git")
 ```
 
 ## Example

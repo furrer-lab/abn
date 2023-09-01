@@ -10,15 +10,15 @@ build.control(
   mean = 0,
   prec = 0.001,
   loggam.shape = 1,
-  loggam.inv.scale = 0.00005,
+  loggam.inv.scale = 5e-05,
   max.iters = 100,
-  epsabs = 0.0000001,
+  epsabs = 1e-07,
   error.verbose = FALSE,
   trace = 0L,
-  epsabs.inner = 0.000001,
+  epsabs.inner = 1e-06,
   max.iters.inner = 100,
-  finite.step.size = 0.0000001,
-  hessian.params = c(0.0001, 0.01),
+  finite.step.size = 1e-07,
+  hessian.params = c(1e-04, 0.01),
   max.iters.hessian = 10,
   max.hessian.error = 0.5,
   factor.brent = 100,
@@ -27,18 +27,18 @@ build.control(
   n.grid = 250,
   ncores = 0,
   max.irls = 100,
-  tol = 0.00000001,
-  tolPwrss = 0.0000001,
+  tol = 1e-08,
+  tolPwrss = 1e-07,
   check.rankX = "message+drop.cols",
   check.scaleX = "message+rescale",
   check.conv.grad = "message",
   check.conv.singular = "message",
   check.conv.hess = "message",
-  xtol_abs = 0.000001,
-  ftol_abs = 0.000001,
+  xtol_abs = 1e-06,
+  ftol_abs = 1e-06,
   trace.mblogit = FALSE,
   catcov.mblogit = "free",
-  epsilon = 0.000001,
+  epsilon = 1e-06,
   seed = 9062019L
 )
 }
@@ -117,7 +117,7 @@ build.control(
 Named list according the provided arguments.
 }
 \description{
-Allow the user to set restrictions in the \code{\link{buildscorecache}} for both the Bayesian and the MLE approach.
+Allow the user to set restrictions in the \code{\link{buildScoreCache}} for both the Bayesian and the MLE approach.
 Control function similar to \code{\link{fit.control}}.
 }
 \details{
