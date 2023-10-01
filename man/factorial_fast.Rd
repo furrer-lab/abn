@@ -2,11 +2,11 @@
 % Please edit documentation in R/RcppExports.R
 \name{factorial_fast}
 \alias{factorial_fast}
-\title{Fast Iterative Reweighed Least Square algorithm for Poissons}
+\title{Fast Factorial}
 \usage{
 factorial_fast(n)
 }
 \description{
-IRLS to estimate network score of Poisson nodes.
+Calculate the factorial in C##
 }
 \keyword{internal}

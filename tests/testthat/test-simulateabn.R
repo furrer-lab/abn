@@ -1,35 +1,37 @@
 test_that("Gaussian response Bugs model construction works", {
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(gauss_bugs(nodename = "a",
-                               parentnames = NULL,
-                               nodesintercept = c(0.318077),
-                               parentcoefs = NULL,
-                               std = c(0.05773503))),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(gauss_bugs(nodename = "a",
+                                 parentnames = NULL,
+                                 nodesintercept = c(0.318077),
+                                 parentcoefs = NULL,
+                                 std = c(0.05773503))),
 
-    # One parent nodes / predictor
-    expect_no_error(gauss_bugs(nodename = "a",
-                               parentnames = "b",
-                               nodesintercept = c(0.318077),
-                               parentcoefs = list("b"=c(b=0.3059395)),
-                               std = c(0.05773503))),
+      # One parent nodes / predictor
+      expect_no_error(gauss_bugs(nodename = "a",
+                                 parentnames = "b",
+                                 nodesintercept = c(0.318077),
+                                 parentcoefs = list("b"=c(b=0.3059395)),
+                                 std = c(0.05773503))),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(gauss_bugs(nodename = "a",
-                               parentnames = c("b", "c"),
-                               nodesintercept = c(0.318077),
-                               parentcoefs = list("b"=c(b=0.3059395),
-                                                  "c"=c(c=0.5555)),
-                               std = c(0.05773503))),
-    # Multinomial parent nodes / predictors
-    expect_no_error(gauss_bugs(nodename = "a",
-                               parentnames = c("b", "c"),
-                               nodesintercept = c(0.318077),
-                               parentcoefs = list("b"=c(b=0.3059395, b=0.66666, b=0.77777), # multinomial with three factor levels
-                                                  "c"=c(c=0.5555)),
-                               std = c(0.05773503))),
-    file = "/dev/null"
-  )
+      # Multiple parent nodes / predictors
+      expect_no_error(gauss_bugs(nodename = "a",
+                                 parentnames = c("b", "c"),
+                                 nodesintercept = c(0.318077),
+                                 parentcoefs = list("b"=c(b=0.3059395),
+                                                    "c"=c(c=0.5555)),
+                                 std = c(0.05773503))),
+      # Multinomial parent nodes / predictors
+      expect_no_error(gauss_bugs(nodename = "a",
+                                 parentnames = c("b", "c"),
+                                 nodesintercept = c(0.318077),
+                                 parentcoefs = list("b"=c(b=0.3059395, b=0.66666, b=0.77777), # multinomial with three factor levels
+                                                    "c"=c(c=0.5555)),
+                                 std = c(0.05773503))),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "a ~ dnorm(mu.a, precision.a) # Gaussian response
@@ -51,36 +53,38 @@ test_that("Gaussian response Bugs model construction with mixed-effects works", 
   sigma_alphaY <- 0.5
   betaX <- 4
   betaN <- 5
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(gauss_bugsGroup(nodename = "Y",
-                                    nodesintercept = muY,
-                                    parentnames = NULL,
-                                    parentcoefs = NULL,
-                                    sigma = sigmaY,
-                                    sigma_alpha = sigma_alphaY)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(gauss_bugsGroup(nodename = "Y",
+                                      nodesintercept = muY,
+                                      parentnames = NULL,
+                                      parentcoefs = NULL,
+                                      sigma = sigmaY,
+                                      sigma_alpha = sigma_alphaY)),
 
-    # One parent nodes / predictor
-    expect_no_error(gauss_bugsGroup(nodename = "Y",
-                                    nodesintercept = muY,
-                                    parentnames = c("X"),
-                                    parentcoefs = list("X"=c(X=betaX)),
-                                    sigma = sigmaY,
-                                    sigma_alpha = sigma_alphaY)),
+      # One parent nodes / predictor
+      expect_no_error(gauss_bugsGroup(nodename = "Y",
+                                      nodesintercept = muY,
+                                      parentnames = c("X"),
+                                      parentcoefs = list("X"=c(X=betaX)),
+                                      sigma = sigmaY,
+                                      sigma_alpha = sigma_alphaY)),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(gauss_bugsGroup(nodename = "Y",
-                                    nodesintercept = muY,
-                                    parentnames = c("X", "N"),
-                                    parentcoefs = list("X"=c(X=betaX),
-                                                       "N"=c(N=betaN)),
-                                    sigma = sigmaY,
-                                    sigma_alpha = sigma_alphaY)),
+      # Multiple parent nodes / predictors
+      expect_no_error(gauss_bugsGroup(nodename = "Y",
+                                      nodesintercept = muY,
+                                      parentnames = c("X", "N"),
+                                      parentcoefs = list("X"=c(X=betaX),
+                                                         "N"=c(N=betaN)),
+                                      sigma = sigmaY,
+                                      sigma_alpha = sigma_alphaY)),
 
-    # Multinomial parent nodes / predictors
-    # expect_no_error(),
-    file = "/dev/null"
-  )
+      # Multinomial parent nodes / predictors
+      # expect_no_error(),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "Y <- mu_Y + 4*X + 5*N + alpha_Y + e_Y
@@ -105,27 +109,29 @@ sigma_alpha_Y <- 0.5")
 })
 
 test_that("Binomial response Bugs model construction works", {
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(bern_bugs(nodename = "a",
-                              parentnames = NULL,
-                              nodesintercept = c(0.318077),
-                              parentcoefs = NULL)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(bern_bugs(nodename = "a",
+                                parentnames = NULL,
+                                nodesintercept = c(0.318077),
+                                parentcoefs = NULL)),
 
-    # One parent nodes / predictor
-    expect_no_error(bern_bugs(nodename = "a",
-                              parentnames = "b",
-                              nodesintercept = c(0.318077),
-                              parentcoefs = list("b"=c(b=0.3059395)))),
+      # One parent nodes / predictor
+      expect_no_error(bern_bugs(nodename = "a",
+                                parentnames = "b",
+                                nodesintercept = c(0.318077),
+                                parentcoefs = list("b"=c(b=0.3059395)))),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(bern_bugs(nodename = "a",
-                              parentnames = c("b", "c"),
-                              nodesintercept = c(0.318077),
-                              parentcoefs = list("b"=c(b=0.3059395),
-                                                 "c"=c(c=0.5555)))),
-    file = "/dev/null"
-  )
+      # Multiple parent nodes / predictors
+      expect_no_error(bern_bugs(nodename = "a",
+                                parentnames = c("b", "c"),
+                                nodesintercept = c(0.318077),
+                                parentcoefs = list("b"=c(b=0.3059395),
+                                                   "c"=c(c=0.5555)))),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "a ~ dbern(p.a) # Bernoulli response
@@ -144,33 +150,35 @@ test_that("Binomial response Bugs model construction with mixed-effects works", 
   sigma_alphaY <- 0.5
   betaX <- 4
   betaN <- 5
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(bern_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = NULL,
-                                   parentcoefs = NULL,
-                                   sigma_alpha = sigma_alphaY)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(bern_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = NULL,
+                                     parentcoefs = NULL,
+                                     sigma_alpha = sigma_alphaY)),
 
-    # One parent nodes / predictor
-    expect_no_error(bern_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = c("X"),
-                                   parentcoefs = list("X"=c(X=betaX)),
-                                   sigma_alpha = sigma_alphaY)),
+      # One parent nodes / predictor
+      expect_no_error(bern_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = c("X"),
+                                     parentcoefs = list("X"=c(X=betaX)),
+                                     sigma_alpha = sigma_alphaY)),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(bern_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = c("X", "N"),
-                                   parentcoefs = list("X"=c(X=betaX),
-                                                      "N"=c(N=betaN)),
-                                   sigma_alpha = sigma_alphaY)),
+      # Multiple parent nodes / predictors
+      expect_no_error(bern_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = c("X", "N"),
+                                     parentcoefs = list("X"=c(X=betaX),
+                                                        "N"=c(N=betaN)),
+                                     sigma_alpha = sigma_alphaY)),
 
-    # Multinomial parent nodes / predictors
-    # expect_no_error(),
-    file = "/dev/null"
-  )
+      # Multinomial parent nodes / predictors
+      # expect_no_error(),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "Y ~ dbern(p_Y)
@@ -191,30 +199,32 @@ sigma_alpha_Y <- 0.5")
 })
 
 test_that("Categorical response Bugs model construction works", {
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(categorical_bugs(nodename = "b",
-                                     nodesCatIdx = c(2, 3, 4),
-                                     parentnames = NULL,
-                                     nodesintercepts = c(2.188650, 3.133928, 3.138531),
-                                     parentcoefs = NULL)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(categorical_bugs(nodename = "b",
+                                       nodesCatIdx = c(2, 3, 4),
+                                       parentnames = NULL,
+                                       nodesintercepts = c(2.188650, 3.133928, 3.138531),
+                                       parentcoefs = NULL)),
 
-    # One parent nodes / predictor
-    expect_no_error(categorical_bugs(nodename = "b",
-                                     nodesCatIdx = c(2, 3, 4),
-                                     parentnames = "a",
-                                     nodesintercepts = c(2.188650, 3.133928, 3.138531),
-                                     parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104)))),
+      # One parent nodes / predictor
+      expect_no_error(categorical_bugs(nodename = "b",
+                                       nodesCatIdx = c(2, 3, 4),
+                                       parentnames = "a",
+                                       nodesintercepts = c(2.188650, 3.133928, 3.138531),
+                                       parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104)))),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(categorical_bugs(nodename = "b",
-                                     nodesCatIdx = c(2, 3, 4),
-                                     parentnames = c("a", "c"),
-                                     nodesintercepts = c(2.188650, 3.133928, 3.138531),
-                                     parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104),
-                                                        "c"=c(c=0.5555, c=0.6666, c=0.7777)))),
-    file = "/dev/null"
-  )
+      # Multiple parent nodes / predictors
+      expect_no_error(categorical_bugs(nodename = "b",
+                                       nodesCatIdx = c(2, 3, 4),
+                                       parentnames = c("a", "c"),
+                                       nodesintercepts = c(2.188650, 3.133928, 3.138531),
+                                       parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104),
+                                                          "c"=c(c=0.5555, c=0.6666, c=0.7777)))),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "b ~ dcat(p.b) # Categorical response
@@ -246,39 +256,41 @@ test_that("Categorical response Bugs model construction with mixed-effects works
   diag(sigma_alpha) <- 0.5
   sigma_alpha2 <- matrix(0, ncol = 8, nrow = 8) # var-covariance for two predictors
   diag(sigma_alpha2) <- 0.5
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(categorical_bugsGroup(nodename = nodename,
-                                          nodesCatIdx = nodesCatIdx,
-                                          nodesintercepts = nodesintercepts,
-                                          parentnames = NULL,
-                                          parentcoefs = NULL,
-                                          sigma = sigma,
-                                          sigma_alpha = sigma_alpha)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(categorical_bugsGroup(nodename = nodename,
+                                            nodesCatIdx = nodesCatIdx,
+                                            nodesintercepts = nodesintercepts,
+                                            parentnames = NULL,
+                                            parentcoefs = NULL,
+                                            sigma = sigma,
+                                            sigma_alpha = sigma_alpha)),
 
-    # One parent nodes / predictor
-    expect_no_error(categorical_bugsGroup(nodename = nodename,
-                                          nodesCatIdx = nodesCatIdx,
-                                          nodesintercepts = nodesintercepts,
-                                          parentnames = parentnames,
-                                          parentcoefs = parentcoefs,
-                                          sigma = sigma,
-                                          sigma_alpha = sigma_alpha)),
+      # One parent nodes / predictor
+      expect_no_error(categorical_bugsGroup(nodename = nodename,
+                                            nodesCatIdx = nodesCatIdx,
+                                            nodesintercepts = nodesintercepts,
+                                            parentnames = parentnames,
+                                            parentcoefs = parentcoefs,
+                                            sigma = sigma,
+                                            sigma_alpha = sigma_alpha)),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(categorical_bugsGroup(nodename = nodename,
-                                          nodesCatIdx = nodesCatIdx,
-                                          nodesintercepts = nodesintercepts,
-                                          parentnames = c("X1", "X2"),
-                                          parentcoefs =  data.frame(X1 = c(4,5,6),
-                                                                    X2 = c(4,5,6)),
-                                          sigma = sigma,
-                                          sigma_alpha = sigma_alpha2)),
+      # Multiple parent nodes / predictors
+      expect_no_error(categorical_bugsGroup(nodename = nodename,
+                                            nodesCatIdx = nodesCatIdx,
+                                            nodesintercepts = nodesintercepts,
+                                            parentnames = c("X1", "X2"),
+                                            parentcoefs =  data.frame(X1 = c(4,5,6),
+                                                                      X2 = c(4,5,6)),
+                                            sigma = sigma,
+                                            sigma_alpha = sigma_alpha2)),
 
-    # Multinomial parent nodes / predictors
-    # expect_no_error(),
-    file = "/dev/null"
-  )
+      # Multinomial parent nodes / predictors
+      # expect_no_error(),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "Y ~ dcat(p_Y)
@@ -323,27 +335,29 @@ sigma_alpha_Y[4, 4] <- 0.5")
 })
 
 test_that("Poisson response Bugs model construction works", {
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(pois_bugs(nodename = "a",
-                              parentnames = NULL,
-                              nodesintercept = c(0.318077),
-                              parentcoefs = NULL)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(pois_bugs(nodename = "a",
+                                parentnames = NULL,
+                                nodesintercept = c(0.318077),
+                                parentcoefs = NULL)),
 
-    # One parent nodes / predictor
-    expect_no_error(pois_bugs(nodename = "a",
-                              parentnames = "b",
-                              nodesintercept = c(0.318077),
-                              parentcoefs = list("b"=c(b=0.3059395)))),
+      # One parent nodes / predictor
+      expect_no_error(pois_bugs(nodename = "a",
+                                parentnames = "b",
+                                nodesintercept = c(0.318077),
+                                parentcoefs = list("b"=c(b=0.3059395)))),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(pois_bugs(nodename = "a",
-                              parentnames = c("b", "c"),
-                              nodesintercept = c(0.318077),
-                              parentcoefs = list("b"=c(b=0.3059395),
-                                                 "c"=c(c=0.5555)))),
-    file = "/dev/null"
-  )
+      # Multiple parent nodes / predictors
+      expect_no_error(pois_bugs(nodename = "a",
+                                parentnames = c("b", "c"),
+                                nodesintercept = c(0.318077),
+                                parentcoefs = list("b"=c(b=0.3059395),
+                                                   "c"=c(c=0.5555)))),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "a ~ dpois(lambda.a) # Poisson response
@@ -362,33 +376,35 @@ test_that("Poisson response Bugs model construction with mixed-effects works", {
   sigma_alphaY <- 0.5
   betaX <- 4
   betaN <- 5
-  capture.output(
-    # No parent nodes / no predictors
-    expect_no_error(pois_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = NULL,
-                                   parentcoefs = NULL,
-                                   sigma_alpha = sigma_alphaY)),
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      # No parent nodes / no predictors
+      expect_no_error(pois_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = NULL,
+                                     parentcoefs = NULL,
+                                     sigma_alpha = sigma_alphaY)),
 
-    # One parent nodes / predictor
-    expect_no_error(pois_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = c("X"),
-                                   parentcoefs = list("X"=c(X=betaX)),
-                                   sigma_alpha = sigma_alphaY)),
+      # One parent nodes / predictor
+      expect_no_error(pois_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = c("X"),
+                                     parentcoefs = list("X"=c(X=betaX)),
+                                     sigma_alpha = sigma_alphaY)),
 
-    # Multiple parent nodes / predictors
-    expect_no_error(pois_bugsGroup(nodename = "Y",
-                                   nodesintercept = muY,
-                                   parentnames = c("X", "N"),
-                                   parentcoefs = list("X"=c(X=betaX),
-                                                      "N"=c(N=betaN)),
-                                   sigma_alpha = sigma_alphaY)),
+      # Multiple parent nodes / predictors
+      expect_no_error(pois_bugsGroup(nodename = "Y",
+                                     nodesintercept = muY,
+                                     parentnames = c("X", "N"),
+                                     parentcoefs = list("X"=c(X=betaX),
+                                                        "N"=c(N=betaN)),
+                                     sigma_alpha = sigma_alphaY)),
 
-    # Multinomial parent nodes / predictors
-    # expect_no_error(),
-    file = "/dev/null"
-  )
+      # Multinomial parent nodes / predictors
+      # expect_no_error(),
+      file = "/dev/null"
+    )
+  }
 
   outstring <- c(
     "Y ~ dpois(lambda_Y)
@@ -427,13 +443,15 @@ test_that("makebugs() works", {
                              nrow= 1, byrow = T, dimnames = list(c(NULL),
                                                                  c("d|intercept", "c"))))
   mymse <- c("a"=0,"b"=1,"c"=2,"d"=3)
-  capture.output(
-    expect_no_error({
-      makebugs(dag = mydag,
-               data.dists = mydists,
-               coefs = mycoefs,
-               std = mymse)}),
-    file = "/dev/null")
+  if(.Platform$OS.type == "unix") {
+    capture.output(
+      expect_no_error({
+        makebugs(dag = mydag,
+                 data.dists = mydists,
+                 coefs = mycoefs,
+                 std = mymse)}),
+      file = "/dev/null")
+  }
 
 
   outstring <- c(
@@ -538,248 +556,354 @@ sigma_alpha_Age <- 0.22154
 test_that("simulateAbn() catches wrong arguments", {
   # Make a proper abnFit object
   ## without group.var
-  capture.output({
-    df <- FCV[, c(12:15)]
-    mydists <- list(Outdoor="binomial",
-                    Sex="multinomial",
-                    GroupSize="poisson",
-                    Age="gaussian")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      df <- FCV[, c(12:15)]
+      mydists <- list(Outdoor="binomial",
+                      Sex="multinomial",
+                      GroupSize="poisson",
+                      Age="gaussian")
 
-    ## buildScoreCache -> mostProbable() -> fitAbn()
-    suppressWarnings({
-      mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                     adj.vars = NULL, cor.vars = NULL,
-                                     dag.banned = NULL, dag.retained = NULL,
-                                     max.parents = 1,
-                                     which.nodes = NULL, defn.res = NULL)
-    }) # ignore non-convergence warnings
-    expect_no_error({
-      mp.dag.mle <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
-    })
-    expect_no_error({
-      myres.mle <- fitAbn(object = mp.dag.mle, method = "mle")
-    })
-  },
-  file = "/dev/null"
-  )
+      ## buildScoreCache -> mostProbable() -> fitAbn()
+      suppressWarnings({
+        mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                       adj.vars = NULL, cor.vars = NULL,
+                                       dag.banned = NULL, dag.retained = NULL,
+                                       max.parents = 1,
+                                       which.nodes = NULL, defn.res = NULL)
+      }) # ignore non-convergence warnings
+      expect_no_error({
+        mp.dag.mle <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
+      })
+      expect_no_error({
+        myres.mle <- fitAbn(object = mp.dag.mle, method = "mle")
+      })
+    },
+    file = "/dev/null"
+    )
 
-  # The actual tests
-  capture.output(
-    expect_no_error({
+    # The actual tests
+    capture.output(
+      expect_no_error({
+        simulateAbn(object = myres.mle,
+                    run.simulation = TRUE,
+                    bugsfile = NULL,
+                    verbose = FALSE)
+      }),
+      file = "/dev/null")
+    expect_error({
+      simulateAbn(object = myres.mle,
+                  run.simulation = "TRUE",
+                  bugsfile = NULL,
+                  verbose = FALSE)
+    })
+    expect_error({
+      simulateAbn(object = myres.mle,
+                  run.simulation = TRUE,
+                  bugsfile = 1,
+                  verbose = FALSE)
+    })
+    expect_error({
       simulateAbn(object = myres.mle,
                   run.simulation = TRUE,
                   bugsfile = NULL,
+                  verbose = "FALSE")
+    })
+    expect_error({
+      simulateAbn(object = unclass(myres.mle),
+                  run.simulation = TRUE,
+                  bugsfile = NULL,
                   verbose = FALSE)
-    }),
-    file = "/dev/null")
-  expect_error({
-    simulateAbn(object = myres.mle,
-                run.simulation = "TRUE",
-                bugsfile = NULL,
-                verbose = FALSE)
-  })
-  expect_error({
-    simulateAbn(object = myres.mle,
-                run.simulation = TRUE,
-                bugsfile = 1,
-                verbose = FALSE)
-  })
-  expect_error({
-    simulateAbn(object = myres.mle,
-                run.simulation = TRUE,
-                bugsfile = NULL,
-                verbose = "FALSE")
-  })
-  expect_error({
-    simulateAbn(object = unclass(myres.mle),
-                run.simulation = TRUE,
-                bugsfile = NULL,
-                verbose = FALSE)
-  })
-  expect_error({
-    simulateAbn(object = NULL,
-                run.simulation = TRUE,
-                bugsfile = NULL,
-                verbose = FALSE)
-  })
+    })
+    expect_error({
+      simulateAbn(object = NULL,
+                  run.simulation = TRUE,
+                  bugsfile = NULL,
+                  verbose = FALSE)
+    })
+  }
 })
 
-test_that("simulateAbn() simulation works", {
+test_that("simulateAbn() simulation works with method 'mle'", {
   # Make a proper abnFit object
   ## without group.var
-  capture.output({
-    df <- FCV[, c(12:15)]
-    mydists <- list(Outdoor="binomial",
-                    Sex="multinomial",
-                    GroupSize="poisson",
-                    Age="gaussian")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      df <- FCV[, c(12:15)]
+      mydists <- list(Outdoor="binomial",
+                      Sex="multinomial",
+                      GroupSize="poisson",
+                      Age="gaussian")
 
-    ## buildScoreCache -> mostProbable() -> fitAbn()
+      ## buildScoreCache -> mostProbable() -> fitAbn()
+      suppressWarnings({
+        mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                       adj.vars = NULL, cor.vars = NULL,
+                                       dag.banned = NULL, dag.retained = NULL,
+                                       max.parents = 1,
+                                       which.nodes = NULL, defn.res = NULL)
+      }) # ignore non-convergence warnings
+      expect_no_error({
+        mp.dag.mle <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
+      })
+      expect_no_error({
+        myres.mle <- fitAbn(object = mp.dag.mle, method = "mle", centre = FALSE)
+      })
+    },
+    file = "/dev/null"
+    )
+
+    expect_no_error({
+      myres.sim <- simulateAbn(object = myres.mle,
+                               run.simulation = TRUE,
+                               bugsfile = NULL,
+                               n.chains = 10L,
+                               n.adapt = 1000L,
+                               n.thin = 100L,
+                               n.iter = 10000L,
+                               seed = 42L,
+                               verbose = FALSE)
+    })
+
+    act <- as.numeric(round(prop.table(table(myres.sim$Outdoor)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.05)
+    act <- as.numeric(round(prop.table(table(myres.sim$Sex)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.05)
+
+    ## with group.var
     suppressWarnings({
-      mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                     adj.vars = NULL, cor.vars = NULL,
-                                     dag.banned = NULL, dag.retained = NULL,
-                                     max.parents = 1,
-                                     which.nodes = NULL, defn.res = NULL)
-    }) # ignore non-convergence warnings
+      suppressMessages({
+        capture.output({
+          df <- FCV[, c(11:15)]
+          mydists <- list(Pedigree="binomial",
+                          Outdoor="binomial",
+                          Sex="multinomial",
+                          GroupSize="poisson",
+                          Age="gaussian")
+          mydists <- mydists[-1] # remove grouping variable from distribution list
+          retaindag <- matrix(0, nrow = length(mydists), ncol = length(mydists), dimnames = list(names(mydists), names(mydists)))
+          retaindag[3, 1] <- retaindag[4,3] <- retaindag[2,4] <- 1
+          mycache.mle.grp <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                             group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
+                                             dag.banned = NULL, dag.retained = retaindag,
+                                             max.parents = 3,
+                                             which.nodes = NULL, defn.res = NULL)
+          mp.dag.mle.grp <- mostProbable(score.cache = mycache.mle.grp, verbose = FALSE)
+          expect_no_error({
+            myres.mle.grp <- fitAbn(object = mp.dag.mle.grp, method = "mle", group.var = "Pedigree")
+          })
+          expect_no_error({
+            mysim.grp <- simulateAbn(object = myres.mle.grp,
+                                     run.simulation = TRUE,
+                                     bugsfile = NULL,
+                                     verbose = FALSE,
+                                     debug = FALSE)
+          })
+        },
+        file = "/dev/null"
+        )
+      })
+    })
+    act <- as.numeric(round(prop.table(table(mysim.grp$Outdoor)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.1) # quite high tolerance because the actual data has no grouping...
+
+    # Correct number of categories simulated for categorical/multinomial variables?
+    act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
+    expect_equal(length(act), length(expected))
+  }
+})
+
+test_that("simulateAbn() simulation works with method 'bayes'", {
+  # Make a proper abnFit object
+  ## without group.var
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      df <- FCV[, c(12, 14:15)]
+      mydists <- list(Outdoor="binomial",
+                      # Sex="multinomial",
+                      GroupSize="poisson",
+                      Age="gaussian")
+
+      ## buildScoreCache -> mostProbable() -> fitAbn()
+      suppressWarnings({
+        mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                       adj.vars = NULL, cor.vars = NULL,
+                                       dag.banned = NULL, dag.retained = NULL,
+                                       max.parents = 1,
+                                       which.nodes = NULL, defn.res = NULL)
+      }) # ignore non-convergence warnings
+      expect_no_error({
+        mp.dag.bayes <- mostProbable(score.cache = mycache.bayes, verbose = FALSE)
+      })
+      expect_no_error({
+        myres.bayes <- fitAbn(object = mp.dag.bayes, method = "bayes", centre = FALSE)
+      })
+    },
+    file = "/dev/null"
+    )
+
     expect_no_error({
-      mp.dag.mle <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
+      myres.sim <- simulateAbn(object = myres.bayes,
+                               run.simulation = TRUE,
+                               bugsfile = NULL,
+                               n.chains = 10L,
+                               n.adapt = 1000L,
+                               n.thin = 100L,
+                               n.iter = 10000L,
+                               seed = 42L,
+                               verbose = FALSE)
     })
-    expect_no_error({
-      myres.mle <- fitAbn(object = mp.dag.mle, method = "mle", centre = FALSE)
+
+    act <- as.numeric(round(prop.table(table(myres.sim$Outdoor)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.05)
+    act <- as.numeric(round(prop.table(table(myres.sim$Sex)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.05)
+
+    skip("simulateAbn() with method 'bayes' is not tested with 'group.var'.")
+    ## with group.var
+    suppressWarnings({
+      suppressMessages({
+        capture.output({
+          df <- FCV[, c(11:15)]
+          mydists <- list(Pedigree="binomial",
+                          Outdoor="binomial",
+                          Sex="multinomial",
+                          GroupSize="poisson",
+                          Age="gaussian")
+          mydists <- mydists[-1] # remove grouping variable from distribution list
+          retaindag <- matrix(0, nrow = length(mydists), ncol = length(mydists), dimnames = list(names(mydists), names(mydists)))
+          retaindag[3, 1] <- retaindag[4,3] <- retaindag[2,4] <- 1
+          mycache.mle.grp <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                             group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
+                                             dag.banned = NULL, dag.retained = retaindag,
+                                             max.parents = 3,
+                                             which.nodes = NULL, defn.res = NULL)
+          mp.dag.mle.grp <- mostProbable(score.cache = mycache.mle.grp, verbose = FALSE)
+          expect_no_error({
+            myres.mle.grp <- fitAbn(object = mp.dag.mle.grp, method = "bayes", group.var = "Pedigree")
+          })
+          expect_no_error({
+            mysim.grp <- simulateAbn(object = myres.mle.grp,
+                                     run.simulation = TRUE,
+                                     bugsfile = NULL,
+                                     verbose = FALSE,
+                                     debug = FALSE)
+          })
+        },
+        file = "/dev/null"
+        )
+      })
     })
-  },
-  file = "/dev/null"
-  )
+    act <- as.numeric(round(prop.table(table(mysim.grp$Outdoor)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
+    expect_equal(act[order(act)],
+                 expected[order(expected)],
+                 tolerance = 0.1) # quite high tolerance because the actual data has no grouping...
 
-  expect_no_error({
-    myres.sim <- simulateAbn(object = myres.mle,
-                             run.simulation = TRUE,
-                             bugsfile = NULL,
-                             n.chains = 10L,
-                             n.adapt = 1000L,
-                             n.thin = 100L,
-                             n.iter = 10000L,
-                             seed = 42L,
-                             verbose = FALSE)
-  })
-
-  act <- as.numeric(round(prop.table(table(myres.sim$Outdoor)), 2))
-  expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
-  expect_equal(act[order(act)],
-               expected[order(expected)],
-               tolerance = 0.05)
-  act <- as.numeric(round(prop.table(table(myres.sim$Sex)), 2))
-  expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
-  expect_equal(act[order(act)],
-               expected[order(expected)],
-               tolerance = 0.05)
-
-  ## with group.var
-  suppressWarnings({
-    suppressMessages({
-      capture.output({
-        df <- FCV[, c(11:15)]
-        mydists <- list(Pedigree="binomial",
-                        Outdoor="binomial",
-                        Sex="multinomial",
-                        GroupSize="poisson",
-                        Age="gaussian")
-        mydists <- mydists[-1] # remove grouping variable from distribution list
-        retaindag <- matrix(0, nrow = length(mydists), ncol = length(mydists), dimnames = list(names(mydists), names(mydists)))
-        retaindag[3, 1] <- retaindag[4,3] <- retaindag[2,4] <- 1
-        mycache.mle.grp <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                           group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
-                                           dag.banned = NULL, dag.retained = retaindag,
-                                           max.parents = 3,
-                                           which.nodes = NULL, defn.res = NULL)
-        mp.dag.mle.grp <- mostProbable(score.cache = mycache.mle.grp, verbose = FALSE)
-        expect_no_error({
-          myres.mle.grp <- fitAbn(object = mp.dag.mle.grp, method = "mle", group.var = "Pedigree")
-        })
-        expect_no_error({
-          mysim.grp <- simulateAbn(object = myres.mle.grp,
-                                   run.simulation = TRUE,
-                                   bugsfile = NULL,
-                                   verbose = FALSE,
-                                   debug = FALSE)
-        })
-      },
-      file = "/dev/null"
-      )
-    })
-  })
-  act <- as.numeric(round(prop.table(table(mysim.grp$Outdoor)), 2))
-  expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
-  expect_equal(act[order(act)],
-               expected[order(expected)],
-               tolerance = 0.1) # quite high tolerance because the actual data has no grouping...
-
-  # Correct number of categories simulated for categorical/multinomial variables?
-  act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
-  expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
-  expect_equal(length(act), length(expected))
+    # Correct number of categories simulated for categorical/multinomial variables?
+    act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
+    expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
+    expect_equal(length(act), length(expected))
+  }
 })
 
 test_that("simulateAbn() works with grouping in real data.",{
   suppressMessages({
     suppressWarnings({
-      capture.output({
-        df <- adg
-        df[,1:5] <- lapply(df[,1:5], factor)
-        df[,9] <- factor(df[,9])
-        mydists <- list(AR = "binomial",
-                        pneumS = "binomial",
-                        female = "binomial",
-                        livdam = "binomial",
-                        eggs = "binomial",
-                        wormCount = "poisson",
-                        age = "gaussian",
-                        adg = "gaussian")
-        # farm = "multinomial")
-        #ban/retain matrices
-        myretain <- matrix(0, length(mydists), length(mydists))
-        colnames(myretain) <- rownames(myretain) <- names(mydists)
+      if(.Platform$OS.type == "unix") {
+        capture.output({
+          df <- adg
+          df[,1:5] <- lapply(df[,1:5], factor)
+          df[,9] <- factor(df[,9])
+          mydists <- list(AR = "binomial",
+                          pneumS = "binomial",
+                          female = "binomial",
+                          livdam = "binomial",
+                          eggs = "binomial",
+                          wormCount = "poisson",
+                          age = "gaussian",
+                          adg = "gaussian")
+          # farm = "multinomial")
+          #ban/retain matrices
+          myretain <- matrix(0, length(mydists), length(mydists))
+          colnames(myretain) <- rownames(myretain) <- names(mydists)
 
-        mybanned <- matrix(0, length(mydists), length(mydists))
-        colnames(mybanned) <- rownames(mybanned) <- names(mydists)
+          mybanned <- matrix(0, length(mydists), length(mydists))
+          colnames(mybanned) <- rownames(mybanned) <- names(mydists)
 
-        mybanned[3,-3] <- 1
+          mybanned[3,-3] <- 1
 
-        ###
-        # max parent search
-        ###
-        max.par <- length(mydists)-1 # maximal possible parent values
-        all.fits <- list()
-        for (i in 1:max.par) {
-          mycache <- buildScoreCache(data.df = df,
-                                     data.dists = mydists,
-                                     dag.banned = mybanned,
-                                     dag.retained = myretain,
-                                     max.parents = i,
-                                     group.var = "farm",
-                                     method = "mle")
-          mydag <- mostProbable(score.cache = mycache)
-          fabn <- fitAbn(object = mydag, method = "mle")
-          cat(paste("network score for", i, "parents =", fabn$mlik, "\n\n"))
-          all.fits[i] <- list(fabn)
-        }
-        allmlik <- lapply(X = all.fits, FUN = function(x){sum(x$mlik)})
-        # plot(unlist(allmlik), xlab = "number of max. parents", ylab = "mlik")
-        first.maxpar <- min(which(unlist(allmlik) == max(unlist(allmlik))))
+          ###
+          # max parent search
+          ###
+          max.par <- length(mydists)-1 # maximal possible parent values
+          all.fits <- list()
+          for (i in 1:max.par) {
+            mycache <- buildScoreCache(data.df = df,
+                                       data.dists = mydists,
+                                       dag.banned = mybanned,
+                                       dag.retained = myretain,
+                                       max.parents = i,
+                                       group.var = "farm",
+                                       method = "mle")
+            mydag <- mostProbable(score.cache = mycache)
+            fabn <- fitAbn(object = mydag, method = "mle")
+            cat(paste("network score for", i, "parents =", fabn$mlik, "\n\n"))
+            all.fits[i] <- list(fabn)
+          }
+          allmlik <- lapply(X = all.fits, FUN = function(x){sum(x$mlik)})
+          # plot(unlist(allmlik), xlab = "number of max. parents", ylab = "mlik")
+          first.maxpar <- min(which(unlist(allmlik) == max(unlist(allmlik))))
 
-        ###
-        # extract best fit
-        ###
-        best.fit <- all.fits[[first.maxpar]]
-        # plotAbn(best.fit)
+          ###
+          # extract best fit
+          ###
+          best.fit <- all.fits[[first.maxpar]]
+          # plotAbn(best.fit)
 
-        ###
-        # simulate new data based on estimated parameters from GLMM
-        ###
-        mysim <- simulateAbn(best.fit,
-                             verbose = FALSE)
+          ###
+          # simulate new data based on estimated parameters from GLMM
+          ###
+          mysim <- simulateAbn(best.fit,
+                               verbose = FALSE)
 
-        act <- as.numeric(round(prop.table(table(mysim$livdam)), 2))
-        expected <- as.numeric(round(prop.table(table(df$livdam)), 2))
-        expect_equal(act[order(act)],
-                     expected[order(expected)],
-                     tolerance = 0.001)
+          act <- as.numeric(round(prop.table(table(mysim$livdam)), 2))
+          expected <- as.numeric(round(prop.table(table(df$livdam)), 2))
+          expect_equal(act[order(act)],
+                       expected[order(expected)],
+                       tolerance = 0.001)
 
-        act <- as.numeric(round(prop.table(table(mysim$eggs)), 2))
-        expected <- as.numeric(round(prop.table(table(df$eggs)), 2))
-        expect_equal(act[order(act)],
-                     expected[order(expected)],
-                     tolerance = 0.05)
+          act <- as.numeric(round(prop.table(table(mysim$eggs)), 2))
+          expected <- as.numeric(round(prop.table(table(df$eggs)), 2))
+          expect_equal(act[order(act)],
+                       expected[order(expected)],
+                       tolerance = 0.05)
 
-        act <- as.numeric(round(prop.table(table(mysim$pneumS)), 2))
-        expected <- as.numeric(round(prop.table(table(df$pneumS)), 2))
-        expect_equal(act[order(act)],
-                     expected[order(expected)],
-                     tolerance = 0.07) # quite high tolerance because the actual data has no grouping...
-      },
-      file = "/dev/null"
-      )
+          act <- as.numeric(round(prop.table(table(mysim$pneumS)), 2))
+          expected <- as.numeric(round(prop.table(table(df$pneumS)), 2))
+          expect_equal(act[order(act)],
+                       expected[order(expected)],
+                       tolerance = 0.07) # quite high tolerance because the actual data has no grouping...
+        },
+        file = "/dev/null"
+        )
+      }
     })
   })
 })

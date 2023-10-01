@@ -35,6 +35,7 @@ The parameter \code{prior.choice} determines the prior used within each node for
 Note that the network score (log marginal likelihood) of the most probable DAG is not returned as it can easily be computed using \code{\link{fitAbn}}, see examples below.
 }
 \examples{
+\dontrun{
 ##############################
 ## Example 1
 ##############################
@@ -71,7 +72,6 @@ true.dag["g3",c("g1","b2")] <- 1
 
 fitAbn(dag=true.dag, data.df=mydat, data.dists=mydists)$mlik
 
-\dontrun{
   #################################################################
   ## Example 2 - models with random effects
   #################################################################

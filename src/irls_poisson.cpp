@@ -5,8 +5,8 @@
 
 using namespace Rcpp;
 using namespace R;
-//' @title Iterative Reweighed Least Square algorithm for Poissons
-//' @description IRLS to estimate network score of Poisson nodes.
+//' @title Factorial
+//' @description Calculate the factorial in C##
 //' @keywords internal
 //' @export
 // [[Rcpp::export]]
@@ -16,6 +16,10 @@ double factorial(double n)
 }
 
 
+//' @title Iterative Reweighed Least Square algorithm for Poissons
+//' @description IRLS to estimate network score of Poisson nodes.
+//' @keywords internal
+//' @export
 // [[Rcpp::export]]
 
 Rcpp::List irls_poisson_cpp(arma::mat A, arma::vec b, double maxit, double tol)

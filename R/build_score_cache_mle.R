@@ -52,7 +52,6 @@ forLoopContent <-
       stop("Cannot build model formula. Unknown predictor names of parent nodes in 'parents.name'.")
     }
 
-
     # Main part: Depending on child's distribution, call the appropriate modelling function
     switch (as.character(child.dist),
             gaussian = {
@@ -331,12 +330,12 @@ buildScoreCache.mle <-
            defn.res = NULL,
            dry.run = FALSE,
            verbose = FALSE,
+           debugging = FALSE,
            force.method = NULL,
            group.var = NULL,
            grouped.vars = NULL,
            group.ids = NULL,
            control = build.control(method = "mle")) {
-
 
     set.seed(control[["seed"]])
 
@@ -563,24 +562,48 @@ buildScoreCache.mle <-
     out <- list()
     rows <- length(mycache[["children"]])
 
-    # Prepare multithreading
-    ncores <- control[["ncores"]]
+    ##-----------------------------
+    ##start loop for the regression
+    ##-----------------------------
+    if(verbose){cat("Start estimation loop.")}
+    if(debugging){
+      res <- matrix(nrow = rows, ncol = 4) # each score in one column
+      for (i in 1:rows){
+        # for each child ~ parents fit regression model
+        res[i, ] <- forLoopContent(row.num = i,
+                                   mycache = mycache,
+                                   data.dists = data.dists,
+                                   data.df.multi = data.df.multi,
+                                   adj.vars = adj.vars,
+                                   data.df = data.df,
+                                   data.df.lvl = data.df.lvl,
+                                   group.var = group.var,
+                                   group.ids = group.ids,
+                                   control = control,
+                                   n = nvars,
+                                   verbose = verbose)
+      }
+    } else {
+      # no debugging
 
-    if (ncores > 1) {
-      if (verbose){
-        path <- path.expand(paste0(getwd(), "/build_score_cache_mle.out"))
-        message(paste("Writing cluster output to: ", path))
-        if(file.exists(path)){
-          file.remove(path)
-          message(paste("File exists and will be overwritten:", path))
+      # Prepare multithreading
+      ncores <- control[["ncores"]]
+
+      if (ncores > 1) {
+        if (verbose){
+          path <- path.expand(paste0(getwd(), "/build_score_cache_mle.out"))
+          message(paste("Writing cluster output to: ", path))
+          if(file.exists(path)){
+            file.remove(path)
+            message(paste("File exists and will be overwritten:", path))
+          }
+
+          cl <- makeCluster(ncores, outfile=path)
+        } else {
+          cl <- makeCluster(ncores) # no redirection
         }
 
-        cl <- makeCluster(ncores, outfile=path)
-      } else {
-        cl <- makeCluster(ncores) # no redirection
-      }
-
-      registerDoParallel(cl)
+        registerDoParallel(cl)
 
         # NOTE for development: Make sure the recent package version is installed in the .libPath() available to the nodes.
         res <- foreach(row.num = 1:rows,
@@ -604,7 +627,7 @@ buildScoreCache.mle <-
         # clean up multithreading
         stopCluster(cl)
 
-    } else {
+      } else {
         res <- foreach(row.num = 1:rows,
                        .combine='rbind',
                        .export = 'forLoopContent',
@@ -622,6 +645,7 @@ buildScoreCache.mle <-
                                         n = nvars,
                                         verbose = verbose)
                        }
+      }
     }
 
     out[["children"]] <- mycache[["children"]]

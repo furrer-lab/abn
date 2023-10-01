@@ -26,19 +26,17 @@ categorical_bugsGroup(
 \arguments{
 \item{nodename}{character string of response variable name.}
 
-\item{nodesCatIdx}{integer vector of length $|K-1|$ and starting at $k+1$ (see Examples).}
+\item{nodesCatIdx}{integer vector of length \eqn{|K-1|} and starting at \eqn{k+1} (see Examples).}
 
 \item{parentnames}{single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.}
 
-\item{nodesintercepts}{numeric vector with the intercept value for each category (see Details).}
+\item{nodesintercepts}{overall mean of response. Parameter from fixed-effects intercept.}
 
 \item{parentcoefs}{overall slope for each predictor (parent node) variable (fixed-effects).}
 
 \item{sigma}{within-group variance. Parameter from random-effects residual.}
 
 \item{sigma_alpha}{between-group variance-covariance matrix. Parameters from random-effects intercept.}
-
-\item{nodesintercept}{overall mean of response. Parameter from fixed-effects intercept.}
 }
 \value{
 Bugs model returned as stdout.

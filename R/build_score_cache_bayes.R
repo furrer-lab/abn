@@ -132,7 +132,7 @@ buildScoreCache.bayes <-
                                        as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                        as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                        as.integer(grouped.vars-1), ## int.vector of variables which are mixed model nodes -1 for C
-                                       group.ids,  ## group memberships - note indexed from 1
+                                       as.integer(group.ids),  ## group memberships - note indexed from 1
                                        as.double(control[["epsabs.inner"]]),
                                        as.integer(control[["max.iters.inner"]]),
                                        as.double(control[["finite.step.size"]]),
@@ -181,7 +181,7 @@ buildScoreCache.bayes <-
                                            as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                            as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                            as.integer(grouped.vars-1),  ## int.vector of variables which are mixed model nodes -1 for C
-                                           group.ids,                 ## group memberships - note indexed from 1
+                                           as.integer(group.ids),                 ## group memberships - note indexed from 1
                                            as.double(control[["epsabs.inner"]]),
                                            as.integer(control[["max.iters.inner"]]),
                                            as.double(control[["finite.step.size"]]),
@@ -254,7 +254,7 @@ buildScoreCache.bayes <-
                                        as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                        as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                        as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                       group.ids,## group memberships - note indexed from 1
+                                       as.integer(group.ids),## group memberships - note indexed from 1
                                        as.double(control[["epsabs.inner"]]),
                                        as.integer(control[["max.iters.inner"]]),
                                        as.double(control[["finite.step.size"]]),
@@ -298,7 +298,7 @@ buildScoreCache.bayes <-
                                        as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                        as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                        as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                       group.ids,## group memberships - note indexed from 1
+                                       as.integer(group.ids),## group memberships - note indexed from 1
                                        as.double(control[["epsabs.inner"]]),
                                        as.integer(control[["max.iters.inner"]]),
                                        as.double(control[["finite.step.size"]]),

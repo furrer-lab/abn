@@ -41,10 +41,17 @@
 #' ## README.md in the directory `bootstrapping_example/`:
 #' # edit(file=paste0( path.package('abn'),'/bootstrapping_example/README.md'))
 #' @keywords internal
-#' @import Rcpp RcppArmadillo
+#' @importFrom Rcpp evalCpp
+#' @exportPattern "^[[:alpha:]]+"
 #' @useDynLib abn, .registration=TRUE
 "_PACKAGE"
 
 ## usethis namespace: start
 ## usethis namespace: end
+NULL
+
+#' @title Documentation of C Functions
+#' @description This is mainly to circumvent issues in R CMD check.
+#' @name Cfunctions
+#' @aliases buildcachematrix checkforcycles fit_single_node fitabn_marginals mostprobable_C searchhill
 NULL

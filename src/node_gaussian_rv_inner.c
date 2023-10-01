@@ -299,6 +299,9 @@ double g_inner_gaus( gsl_vector *beta, const datamatrix *designdata, int groupid
  struct fnparams gparams;/** for passing to the gsl zero finding functions */
  /*double epsilon=0;*//** the variable we want to find the root of **/
  gsl_vector *epsilon = gsl_vector_alloc (1);
+ gsl_vector_set (epsilon, 0, 1.0);
+// //  print out epsilon
+// Rprintf("epsilon=%f\n",gsl_vector_get(epsilon,0));
  gsl_vector *dgvalues = gsl_vector_alloc (1);
  gsl_matrix *hessgvalue = gsl_matrix_alloc (1,1);
  /*int iter=0;*/
@@ -522,15 +525,47 @@ int rv_g_inner_gaus (const gsl_vector *epsilonvec, void *params, double *gvalue)
 {
 
   double epsilon=gsl_vector_get(epsilonvec,0);
+  // // print out epsilon
+  // Rprintf("epsilon: %f\n", epsilon);
    const gsl_vector *Y = ((struct fnparams *) params)->Y;/** response variable **/
+  // //  print out Y
+  //  for(int i = 0; i < Y->size; i++){
+  //     Rprintf("Y: %f\n", gsl_vector_get(Y, i));
+  //   }
    const gsl_matrix *X = ((struct fnparams *) params)->X;/** design matrix INC epsilon col **/
+  // //  print out X
+  //   for(int i = 0; i < X->size1; i++){
+  //     for(int j = 0; j < X->size2; j++){
+  //       Rprintf("X: %f\n", gsl_matrix_get(X, i, j));
+  //     }
+  //   }
    const gsl_vector *beta = ((struct fnparams *) params)->beta;/** fixed covariate and precision terms **/
+  // //  print out beta
+  //   for(int i = 0; i < beta->size; i++){
+  //       Rprintf("beta: %f\n", gsl_vector_get(beta, i));
+  //     }
    gsl_vector *vectmp1 = ((struct fnparams *) params)->vectmp1;
+  // //  print out vectmp1
+  //   for(int i = 0; i < vectmp1->size; i++){
+  //       Rprintf("vectmp1: %f\n", gsl_vector_get(vectmp1, i));
+  //     }
    gsl_vector *vectmp1long = ((struct fnparams *) params)->vectmp1long;
+  // //  print out vectmp1long
+  //   for(int i = 0; i < vectmp1long->size; i++){
+  //       Rprintf("vectmp1long: %f\n", gsl_vector_get(vectmp1long, i));
+  //     }
    gsl_vector *vectmp2long = ((struct fnparams *) params)->vectmp2long;
+  // //  print out vectmp2long
+  //   for(int i = 0; i < vectmp2long->size; i++){
+  //       Rprintf("vectmp2long: %f\n", gsl_vector_get(vectmp2long, i));
+  //     }
 
    double tau_rv = gsl_vector_get(beta,beta->size-2);/** inc the precision terms - second last entries */
+  // //  print out tau_rv
+  //   Rprintf("tau_rv: %f\n", tau_rv);
    double tau_resid = gsl_vector_get(beta,beta->size-1);/** last entry - residual precision */
+  // //  print out tau_resid
+  //   Rprintf("tau_resid: %f\n", tau_resid);
    double n = (double)(Y->size);/** number of observations */
    int i;
 
@@ -571,8 +606,19 @@ int rv_g_inner_gaus (const gsl_vector *epsilonvec, void *params, double *gvalue)
    /*Rprintf("term2=%f epsilon=%f tau_resid=%f\n",term2,epsilon,tau_resid);*/
 
   *gvalue = (-1.0/n)*(term1 + term2);
+  // Rprintf("\n----\n");
+  // Rprintf("value of n %f \n", n);
+  // Rprintf("value of term1 %f \n", term1);
+  // Rprintf("value of term2 %f \n", term2);
+  // Rprintf("value of gvalue %f \n", gvalue);
    /*Rprintf("\n----value of term1 %f %f %f----\n",((storedbl1+storedbl2)*(-1/n)),term2,term3); */
-  if(gsl_isnan(*gvalue)){error("\n oops - got an NAN! in g_rv_g_inner_gaus-----\n");}
+  if(gsl_isnan(*gvalue)){
+    Rprintf("value of n %f \n", n);
+    Rprintf("value of term1 %f \n", term1);
+    Rprintf("value of term2 %f \n", term2);
+    Rprintf("value of gvalue %f \n", gvalue);
+    error("\n oops - got an NAN! in g_rv_g_inner_gaus-----\n");
+}
 
   return GSL_SUCCESS;
 }

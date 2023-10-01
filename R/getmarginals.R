@@ -736,49 +736,63 @@ return(res.list);
 
 }
 
-#############################################################################
-## attempt to find the next x evaluation point using spline extrapolation
-## traversing left from mode
-#############################################################################
- find.next.left.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
+#' Find next X evaluation Point
+#'
+#' Attempt to find the next x evaluation point using spline extrapolation traversing left from mode.
+#'
+#' @details
+#' if new x point is more than a factor max.fact.delta (e.g. 0.2) from last evaluated point then stop here
+#' \code{cat("evaluating node ",nodeid,": parameter:",paramid," at betafixed=",betafixed," with gvalue=",gvalue,"\n",sep="");}
+#' find the next x value left which differs from the max. gvalue by at least a factor of g.factor, searching in step sizes of
+#' x.delta subject to the constraint that if we move more than max.fact.delta*last.x then we evaluate here. Avoids big steps.
+#'
+#' @param mat.xy matrix
+#' @param g.max integer. See Details.
+#' @param g.factor integer. See Details.
+#' @param x.delta integer. See Details.
+#' @param max.fact.delta integer. See Details.
+#'
+#' @return integer
+#' @importFrom stats spline
+#' @export
+#' @keywords internal
+find.next.left.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
 
-   xleft <- min(mat.xy[,"x"]);## current left hand endpoint
-   orig.xleft <- xleft;
-   do <- TRUE;
-   while(do){
-     ## keep decreasing xleft until f(x) reduces to next point of evaluation
+  xleft <- min(mat.xy[,"x"]);## current left hand endpoint
+  orig.xleft <- xleft;
+  do <- TRUE;
+  while(do){
+    ## keep decreasing xleft until f(x) reduces to next point of evaluation
     x.out=xleft-abs(x.delta);## size of vertical grid to the left is abs(x.delta)
     if(abs(x.out-orig.xleft)>max.fact.delta*x.delta){do <- FALSE;} ## if current value of x is a distance further away than original value then stop here
     next.try <- spline(mat.xy[,"x"],mat.xy[,"f(x)"],xout=x.out);## get value of f(x) at x.factor of current xleft
     if(abs(next.try$y-g.max)>g.factor*g.max){## if current value of x gives a value for g=f(x) which is at least a min vertical distance from current then finish
-    return(next.try$x);}
+      return(next.try$x);}
 
     ## get to here need to keep moving left at the estimated value of g is not sufficiently different from the current one
     xleft <- next.try$x;## try a lower xleft
-            } ## end of while
+  } ## end of while
 
-   return(xleft);
-  }
-#############################################################################
-## attempt to find the next x evaluation point using spline extrapolation
-## traversing right from mode
-#############################################################################
- find.next.right.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
+  return(xleft);
+}
 
-   xright <- max(mat.xy[,"x"]);## current left hand endpoint
-   orig.xright <- xright;
-   do <- TRUE;
-   while(do){
-     ## keep increasing xright until f(x) reduces to next point of evaluation
+#' @describeIn find.next.left.x Attempt to find the next x evaluation point using spline extrapolation traversing right from mode.
+find.next.right.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
+
+  xright <- max(mat.xy[,"x"]);## current left hand endpoint
+  orig.xright <- xright;
+  do <- TRUE;
+  while(do){
+    ## keep increasing xright until f(x) reduces to next point of evaluation
     x.out=xright+abs(x.delta);## size of vertical grid to the left is abs(x.delta)
     if(abs(x.out-orig.xright)>max.fact.delta*x.delta){do <- FALSE;} ## if current value of x is a distance further away than original value then stop here
     next.try <- spline(mat.xy[,"x"],mat.xy[,"f(x)"],xout=x.out);## get value of f(x) at x.out
     if(abs(next.try$y-g.max)>g.factor*g.max){## if current value of x gives a value for g=f(x) which is at least a min vertical distance from current then finish
-    return(next.try$x);}
+      return(next.try$x);}
 
     ## get to here need to keep moving right at the estimated value of g is not sufficiently different from the current one
     xright <- next.try$x;## try a higher xright
-            } ## end of while
+  } ## end of while
 
-   return(xright);
-  }
+  return(xright);
+}

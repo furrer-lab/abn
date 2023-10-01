@@ -604,8 +604,8 @@ fitAbn <- function(object = NULL,
       group.ids <- object$group.ids
     } else {
       # we have really no grouping
-      grouped.vars <- 0L
-      group.ids <- 0L
+      grouped.vars <- rep(0L, nrow(data.df))
+      group.ids <- rep(0L, nrow(data.df))
     }
   } else {
     stop("I do not recognize the 'group.var' argument provided to fitAbn().")

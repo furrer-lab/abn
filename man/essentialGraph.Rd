@@ -19,6 +19,10 @@ A matrix giving the PDAG.
 }
 \description{
 Constructs different versions of the essential graph from a given DAG.
+External function that computes essential graph of a dag Minimal PDAG:
+The only directed edges are those who participate in v-structure Completed PDAG:
+very directed edge corresponds to a compelled edge, and every undirected
+edge corresponds to a reversible edge
 }
 \details{
 This function returns an essential graph from a DAG,

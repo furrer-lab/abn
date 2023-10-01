@@ -275,7 +275,7 @@ infoDag <- function(object, node.names = NULL) {
           colnames(dag) <- rownames(dag) <- node.names
       }
     } else if (grepl("~", as.character(dag)[1], fixed = TRUE)) {
-        dag <- formula.abn(f = dag, name = node.names)
+        dag <- formula_abn(f = dag, name = node.names)
         dag <- check.valid.dag(dag = dag, is.ban.matrix = FALSE, group.var = NULL)
     } else {
        stop("'object' must either be a matrix or a formula expression, or of class 'abnFit', 'abnLearned'.")
@@ -483,14 +483,13 @@ skewness <- function(x) {
     (sum((x - mean(x))^3)/n)/(sum((x - mean(x))^2)/n)^(3/2)
 }
 
-##-------------------------------------------------------------------------
-## External function that computes essential graph of a dag Minimal PDAG: The only directed edges are those who participate in v-structure Completed PDAG: very directed edge corresponds to a
-## compelled edge, and every undirected edge corresponds to a reversible edge
-##-------------------------------------------------------------------------
-
 #' Construct the essential graph
 #'
 #' Constructs different versions of the essential graph from a given DAG.
+#' External function that computes essential graph of a dag Minimal PDAG:
+#' The only directed edges are those who participate in v-structure Completed PDAG:
+#' very directed edge corresponds to a compelled edge, and every undirected
+#' edge corresponds to a reversible edge
 #'
 #' @usage essentialGraph(dag, node.names = NULL, PDAG = "minimal")
 #'
@@ -542,7 +541,7 @@ essentialGraph <- function(dag, node.names = NULL, PDAG = "minimal") {
 
     } else {
         if (grepl("~", as.character(dag)[1], fixed = TRUE)) {
-            dag <- formula.abn(f = dag, name = node.names)
+            dag <- formula_abn(f = dag, name = node.names)
         } else {
             stop("Dag specification must either be a matrix or a formula expression")
         }
@@ -634,6 +633,7 @@ essentialGraph <- function(dag, node.names = NULL, PDAG = "minimal") {
 #' @keywords utilities
 #' @importFrom stats glm predict.glm dbinom dnorm sigma dpois hatvalues
 #' @examples
+#' \dontrun{
 #' ## Use a subset of a built-in simulated data set
 #' mydat <- ex1.dag.data[,c("b1","g1","p1")]
 #'
@@ -650,6 +650,7 @@ essentialGraph <- function(dag, node.names = NULL, PDAG = "minimal") {
 #'
 #' ## Observations contribution per network node
 #' boxplot(out$bic)
+#' }
 scoreContribution <- function(object = NULL,
                               dag = NULL,
                               data.df = NULL,

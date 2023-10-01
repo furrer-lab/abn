@@ -1,6 +1,6 @@
 test_that("Parsing DAG as formula works", {
   expected_output <- matrix(c(0,0,0,0,0,0,0,1,0), nrow = 3, dimnames = list(LETTERS[1:3], LETTERS[1:3]))
-  expect_equal(formula.abn(~ A + B | C, name = c("A", "B", "C")), expected_output)
+  expect_equal(formula_abn(~ A + B | C, name = c("A", "B", "C")), expected_output)
 
 
   dist <- list(a="gaussian", b="gaussian", c="gaussian", d="gaussian", e="gaussian", f="gaussian")

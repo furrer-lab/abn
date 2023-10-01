@@ -1,4 +1,4 @@
-AC_INIT([abn],[3.0.0])
+AC_INIT([abn],[3.0.1])
 
 ## Use gsl-config to find arguments for compiler and linker flags
 ##

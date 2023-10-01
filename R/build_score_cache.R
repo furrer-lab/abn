@@ -192,6 +192,7 @@ build.control <-
 #' dry.run = FALSE,
 #' control = NULL,
 #' verbose = FALSE,
+#' debugging = FALSE,
 #' ...)
 #'
 #' @param data.df a data frame containing the data used for learning each node. Binary variables must be declared as factors.
@@ -209,6 +210,7 @@ build.control <-
 #' @param dry.run if TRUE then a list of the child nodes and parent combinations are returned but without estimation of node scores (log marginal likelihoods).
 #' @param control a list of control parameters. See \code{\link{build.control}} for the names of the settable control values and their effect.
 #' @param verbose if TRUE then provides some additional output.
+#' @param debugging if \code{TRUE} and \code{method = 'mle'} this enables to step into the for-loop.
 #' @param ... additional arguments passed for optimization.
 #'
 #' @details The function computes a cache of scores based on possible restrictions (maximum complexity, retained and banned arcs).
@@ -266,6 +268,7 @@ build.control <-
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' #################################################################
 #' ## Example 1
 #' #################################################################
@@ -301,7 +304,6 @@ build.control <-
 #'   difference <- res.c$mlik - res.inla$mlik
 #' }
 #'
-#' \dontrun{
 #' ## Comparison Bayes with MLE (unconstrained):
 #' res.mle <- buildScoreCache(data.df=mydat, data.dists=mydists,
 #'                            max.parents=3, method="mle")
@@ -368,6 +370,7 @@ buildScoreCache <- function(data.df = NULL,
                             dry.run = FALSE,
                             control = NULL,
                             verbose = FALSE,
+                            debugging = FALSE,
                             ...) {
 
   ## start tests
@@ -658,6 +661,7 @@ buildScoreCache <- function(data.df = NULL,
         defn.res = defn.res,
         dry.run = dry.run,
         verbose = verbose,
+        debugging = debugging,
         centre = centre,
         force.method = force.method,
         group.var = group.var,

@@ -120,7 +120,7 @@ validate_abnDag <- function( dag, data.df=NULL, returnDag=TRUE, ...) {
     if (is.null( name))
       stop( 'Improperly named object "data.df" for DAG specification')
 
-    dag <- formula.abn(f = dag, name = name)
+    dag <- formula_abn(f = dag, name = name)
   }   # proceed checking!!
 
   # case of matrix

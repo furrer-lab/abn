@@ -15,12 +15,14 @@ test_that("summary.abnDag() works.", {
 test_that("plot.abnDag() works.", {
   mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
 
-  capture.output({
-    expect_no_error({
-      plot(mydag)
-      })
-    },
-    file = "/dev/null")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      expect_no_error({
+        plot(mydag)
+        })
+      },
+      file = "/dev/null")
+  }
 })
 
 test_that("print.abnCache() works.", {
@@ -80,12 +82,14 @@ test_that("plot.abnHeuristic() works.", {
   heur.res <- searchHeuristic(score.cache = mycache, data.dists = mydists,
                               start.dag = "random", num.searches = 10,
                               max.steps = 50)
-  capture.output({
-    expect_no_error({
-      plot(heur.res)
-    })
-  },
-  file = "/dev/null")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      expect_no_error({
+        plot(heur.res)
+      })
+    },
+    file = "/dev/null")
+  }
 })
 
 test_that("print.abnHillClimber() works.", {
@@ -126,12 +130,15 @@ test_that("plot.abnHillClimber() works.", {
   # now peform 10 greedy searches
   heur.res <- searchHillClimber(score.cache=mycache,
                                 num.searches=10, timing.on=FALSE)
-  capture.output({
-    expect_no_error({
-      plot(heur.res$dag, new=TRUE)
-    })
-  },
-  file = "/dev/null")
+
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      expect_no_error({
+        plot(heur.res$dag, new=TRUE)
+      })
+    },
+    file = "/dev/null")
+  }
 })
 
 test_that("print.abnMostprobable() works.", {
@@ -192,12 +199,14 @@ test_that("plot.abnMostprobable() works.", {
   ## Find the globally best DAG:
   mp.dag <- mostProbable(score.cache=mycache, verbose = FALSE)
 
-  capture.output({
-    expect_no_error({
-      plot(mp.dag)
-    })
-  },
-  file = "/dev/null")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      expect_no_error({
+        plot(mp.dag)
+      })
+    },
+    file = "/dev/null")
+  }
 })
 
 test_that("print.abnFit() works.", {
@@ -402,10 +411,12 @@ test_that("plot.abnFit() works.", {
 
   myres <- fitAbn(object=mp.dag,create.graph=TRUE, verbose = FALSE)
 
-  capture.output({
-    expect_no_error({
-      plot(myres, new = TRUE)
-    })
-  },
-  file = "/dev/null")
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      expect_no_error({
+        plot(myres, new = TRUE)
+      })
+    },
+    file = "/dev/null")
+  }
 })

@@ -42,7 +42,7 @@ test_that("AbnDag class validates correctly", {
   expect_true(validate_abnDag(dag = abn_d, data.df = df, returnDag = FALSE))
   expect_true(validate_abnDag(dag =  ~A|B+A|C+A|D, data.df = df, returnDag = FALSE))
   expect_equal(validate_abnDag(dag =  ~A|B+A|C+A|D, data.df = df, returnDag = TRUE),
-               formula.abn(f = ~A|B+A|C+A|D, name = c("A", "B", "C", "D"))
+               formula_abn(f = ~A|B+A|C+A|D, name = c("A", "B", "C", "D"))
   )
   expect_equal(validabn_d, d)
 })

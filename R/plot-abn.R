@@ -133,7 +133,7 @@ plotAbn <- function(dag, data.dists=NULL, markov.blanket.node=NULL,
             dag <- check.valid.dag(dag=dag, is.ban.matrix=FALSE, group.var=NULL)
         } else {
             if (grepl("~", as.character(dag)[1], fixed=T)) {
-                dag <- formula.abn(f=dag, name=name)
+                dag <- formula_abn(f=dag, name=name)
                 ## run a series of checks on the DAG passed
                 dag <- check.valid.dag(dag=dag, is.ban.matrix=FALSE, group.var=NULL)
             }

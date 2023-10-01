@@ -61,14 +61,18 @@ abn.version <- function(what=c('abn','system')) {
   }
 }
 
+#' @title Prints start up message
+#' @examples
+#' library(abn)
+#' @keywords internal
 ".onAttach" <- function (lib, pkg) {
   packageStartupMessage(abn.version()$version.string," is loaded.\nTo cite the package 'abn' in publications call: citation('abn').")
 }
 
-##-------------------------------------------------------------------------
-## Internal function that call multiple times strsplit() and remove space
-##-------------------------------------------------------------------------
-
+#' @title Recursive string splitting
+#' @description Internal function that call multiple times strsplit() and remove space
+#' @keywords internal
+#' @export
 strsplits <- function(x, splits, ...) {
     for (split in splits) {
         x <- unlist(strsplit(x, split, ...))
@@ -77,12 +81,13 @@ strsplits <- function(x, splits, ...) {
     return(x[!x == ""])  # Remove empty values
 }
 
-##-------------------------------------------------------------------------
-## Internal function that produce a square matrix length(name) with {0,1} depending on f. f have to start with ~ terms are entries of name terms are separated by + term1 | term2 indicates
-## col(term1) row(term2) puts a 1 term1 | term2:term3: ... : is used as a sep . = all terms in name
-##-------------------------------------------------------------------------
-
-formula.abn <- function(f, name) {
+#' @title Formula to adjacency matrix
+#' @description Internal function that produce a square matrix length(name) with {0,1} depending on f.
+#' f have to start with ~ terms are entries of name terms are separated by + term1 | term2 indicates
+#' col(term1) row(term2) puts a 1 term1 | term2:term3: ... : is used as a sep . = all terms in name
+#' @keywords internal
+#' @export
+formula_abn <- function(f, name) {
 
     name_orignial <- name
 
@@ -333,7 +338,7 @@ check.valid.dag <- function(dag = NULL, data.df = NULL, is.ban.matrix = FALSE, g
           stop("If dag is provided as formula, data.df must be specified.")
         } else if(grepl("~", as.character(dag)[1], fixed = T)) {
           # if provided as formula, convert to matrix representation and do all the tests (e.g. acyclicity!)
-            dag <- formula.abn(f = dag, name = names(data.df))
+            dag <- formula_abn(f = dag, name = names(data.df))
         } else {
             stop("'dag' specification must either be a matrix or a formula expression.")
         }
@@ -865,7 +870,9 @@ get.var.types <- function(data.dists = NULL) {
   }
 }
 
-########################################## tidy up cache
+#' @title tidy up cache
+#' @keywords internal
+#' @export
 tidy.cache <- function(thecache) {
     if (!is.null(thecache[["error.indexes"]])) {
         error.combs <- thecache[["error.indexes"]]

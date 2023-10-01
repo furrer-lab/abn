@@ -24,7 +24,7 @@ bern_bugsGroup(nodename, nodesintercept, parentnames, parentcoefs, sigma_alpha)
 Bugs model returned as stdout.
 }
 \description{
-Bugs model for a Binomial response $X$ in a single trial:
+Bugs model for a Binomial response \eqn{X} in a single trial:
 \eqn{X \sim \mathcal{B}(n=1, p) = \mathcal{Bernoulli}(p)}.
 }
 \section{Functions}{

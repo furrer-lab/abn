@@ -86,7 +86,9 @@ test_that("buildScoreCache() checks work fine", {
       expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", group.var = NULL))
       expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", group.var = NULL))
 
-      expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
+      if(requireNamespace("INLA", quietly = TRUE)){
+        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
+      }
       expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group"))
 
       expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group1=group, group2=group), data.dists=dists[1:2], method = "bayes", group.var = c("group1", "group2"))) # only one grouping variable is implemented
@@ -95,11 +97,15 @@ test_that("buildScoreCache() checks work fine", {
       # check control argument
       expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
                                    control= list(max.mode.error=101)))
-      expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                      control= list(max.mode.error=100)))
+      if(requireNamespace("INLA", quietly = TRUE)){
+        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                        control= list(max.mode.error=100)))
+      }
       # increase convergence tolerances for GLMMs
-      expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                      control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
+      if(requireNamespace("INLA", quietly = TRUE)){
+        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                        control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
+      }
       expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group",
                                       control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
     })
@@ -278,9 +284,11 @@ test_that("buildScoreCache() is backward compatible", {
       # mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
       #                          cor.vars=c("b1","b2"),
       #                          max.parents=max.par, which.nodes=c(1));
-      mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
-                                 cor.vars=c("b1","b2"), method = "bayes",
-                                 max.parents=max.par);
+      if(requireNamespace("INLA", quietly = TRUE)){
+        mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
+                                   cor.vars=c("b1","b2"), method = "bayes",
+                                   max.parents=max.par);
+      }
       # mle ignores group.var
       mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
                                  cor.vars=c("b1","b2"), method = "mle",
@@ -315,44 +323,46 @@ test_that("buildScoreCache() works with all distributions", {
 
   # Simple no grouping
   suppressMessages({
-    capture.output({
-      expect_error({
-        mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+    if(.Platform$OS.type == "unix") {
+      capture.output({
+        expect_error({
+          mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                           group.var = NULL, adj.vars = NULL, cor.vars = NULL,
+                                           dag.banned = NULL, dag.retained = NULL,
+                                           max.parents = 1,
+                                           which.nodes = NULL, defn.res = NULL)
+        }, regexp = "not yet implemented") # Multinomial nodes are not yet implemented for method 'bayes'. Try with method='mle'.
+
+        expect_no_error({
+          mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
                                          group.var = NULL, adj.vars = NULL, cor.vars = NULL,
                                          dag.banned = NULL, dag.retained = NULL,
                                          max.parents = 1,
                                          which.nodes = NULL, defn.res = NULL)
-      }, regexp = "not yet implemented") # Multinomial nodes are not yet implemented for method 'bayes'. Try with method='mle'.
+        })
 
-      expect_no_error({
-        mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                       group.var = NULL, adj.vars = NULL, cor.vars = NULL,
-                                       dag.banned = NULL, dag.retained = NULL,
-                                       max.parents = 1,
-                                       which.nodes = NULL, defn.res = NULL)
-      })
+        # With grouping
+        mydists <- mydists[-1] # remove grouping variable from distribution list
+        expect_error({
+          mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                           group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
+                                           dag.banned = NULL, dag.retained = NULL,
+                                           max.parents = 1,
+                                           which.nodes = NULL, defn.res = NULL)
+        }, regexp = "not yet implemented") # Multinomial nodes are not yet implemented for method 'bayes'. Try with method='mle'.
 
-      # With grouping
-      mydists <- mydists[-1] # remove grouping variable from distribution list
-      expect_error({
-        mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
-                                         group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
-                                         dag.banned = NULL, dag.retained = NULL,
-                                         max.parents = 1,
-                                         which.nodes = NULL, defn.res = NULL)
-      }, regexp = "not yet implemented") # Multinomial nodes are not yet implemented for method 'bayes'. Try with method='mle'.
-
-      expect_no_error({
-        suppressWarnings({
-          mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                         group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
-                                         dag.banned = NULL, dag.retained = NULL,
-                                         max.parents = 1,
-                                         which.nodes = NULL, defn.res = NULL)
-        }) # ignore non-convergence warnings
-      })
-    },
-    file = "/dev/null")
+        expect_no_error({
+          suppressWarnings({
+            mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                           group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
+                                           dag.banned = NULL, dag.retained = NULL,
+                                           max.parents = 1,
+                                           which.nodes = NULL, defn.res = NULL)
+          }) # ignore non-convergence warnings
+        })
+      },
+      file = "/dev/null")
+    }
   })
 })
 
@@ -368,30 +378,32 @@ test_that("buildScoreCache() computes in parallel", {
   # Simple no grouping
   suppressWarnings({
     suppressMessages({
-      capture.output({
-        expect_error({
-          expect_warning({
+      if(.Platform$OS.type == "unix") {
+        capture.output({
+          expect_error({
             expect_warning({
-              mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
-                                               group.var = NULL, adj.vars = NULL, cor.vars = NULL,
-                                               dag.banned = NULL, dag.retained = NULL,
-                                               max.parents = 1,
-                                               which.nodes = NULL, defn.res = NULL,
-                                               control = list("ncores" = ncores))
-            }, regexp = "Control parameters provided that are not used with method bayes are ignored")
-          }, regexp = "Multithreading is currently only implemented for method")
-        }, regexp = "Multinomial nodes are not yet implemented for method")
+              expect_warning({
+                mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                                 group.var = NULL, adj.vars = NULL, cor.vars = NULL,
+                                                 dag.banned = NULL, dag.retained = NULL,
+                                                 max.parents = 1,
+                                                 which.nodes = NULL, defn.res = NULL,
+                                                 control = list("ncores" = ncores))
+              }, regexp = "Control parameters provided that are not used with method bayes are ignored")
+            }, regexp = "Multithreading is currently only implemented for method")
+          }, regexp = "Multinomial nodes are not yet implemented for method")
 
-        expect_no_error({
-          mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                         group.var = NULL, adj.vars = NULL, cor.vars = NULL,
-                                         dag.banned = NULL, dag.retained = NULL,
-                                         max.parents = 1,
-                                         which.nodes = NULL, defn.res = NULL,
-                                         control = list("ncores" = ncores))
-        })
-      },
-      file = "/dev/null")
+          expect_no_error({
+            mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                           group.var = NULL, adj.vars = NULL, cor.vars = NULL,
+                                           dag.banned = NULL, dag.retained = NULL,
+                                           max.parents = 1,
+                                           which.nodes = NULL, defn.res = NULL,
+                                           control = list("ncores" = ncores))
+          })
+        },
+        file = "/dev/null")
+      }
     })
   })
 })

@@ -86,7 +86,7 @@ fitAbn.bayes <- function(dag=NULL,
                                         as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                         as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                         as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                        group.ids,## group memberships - note indexed from 1
+                                        as.integer(group.ids),## group memberships - note indexed from 1
                                         as.double(control[["epsabs.inner"]]),
                                         as.integer(control[["max.iters.inner"]]),
                                         as.double(control[["finite.step.size"]]),
@@ -129,7 +129,7 @@ fitAbn.bayes <- function(dag=NULL,
                                             as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                             as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                             as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                            group.ids,## group memberships - note indexed from 1
+                                            as.integer(group.ids),## group memberships - note indexed from 1
                                             as.double(control[["epsabs.inner"]]),
                                             as.integer(control[["max.iters.inner"]]),
                                             as.double(control[["finite.step.size"]]),
@@ -197,7 +197,7 @@ fitAbn.bayes <- function(dag=NULL,
                                         as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                         as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                         as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                        group.ids,## group memberships - note indexed from 1
+                                        as.integer(group.ids),## group memberships - note indexed from 1
                                         as.double(control[["epsabs.inner"]]),
                                         as.integer(control[["max.iters.inner"]]),
                                         as.double(control[["finite.step.size"]]),
@@ -243,7 +243,7 @@ fitAbn.bayes <- function(dag=NULL,
                                         as.integer(control[["max.iters"]]),as.double(control[["epsabs"]]),
                                         as.integer(verbose),as.integer(control[["error.verbose"]]),as.integer(control[["trace"]]),
                                         as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C
-                                        group.ids,## group memberships - note indexed from 1
+                                        as.integer(group.ids),## group memberships - note indexed from 1
                                         as.double(control[["epsabs.inner"]]),
                                         as.integer(control[["max.iters.inner"]]),
                                         as.double(control[["finite.step.size"]]),
@@ -336,6 +336,8 @@ fitAbn.bayes <- function(dag=NULL,
     res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==2,"error - logscore is NA - model could not be fitted",res.list[["error.code.desc"]])
     res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==4,"warning: fin.diff hessian estimation terminated unusually ",res.list[["error.code.desc"]])
     res.list[["mlik"]] <- sum(unlist(res.list[1:dim(dag)[1]])) ## overall mlik
+    res.list[["mse"]] <- getMSEfromModes(mymodes, data.dists)
+    res.list[["coef"]] <- modes2coefs(mymodes)
 
     res.list[["used.INLA"]] <- INLA.marginals ## vector - TRUE if INLA used false otherwise
 
@@ -357,7 +359,7 @@ fitAbn.bayes <- function(dag=NULL,
                                      control[["mean"]],control[["prec"]],control[["loggam.shape"]],control[["loggam.inv.scale"]],
                                      control[["max.iters"]],control[["epsabs"]],verbose,control[["error.verbose"]],as.integer(control[["trace"]]),
                                      as.integer(grouped.vars-1),## int.vector of variables which are mixed model nodes -1 for C (changed from earlier fitabn)
-                                     group.ids,
+                                     as.integer(group.ids),
                                      control[["epsabs.inner"]],control[["max.iters.inner"]],control[["finite.step.size"]],control[["hessian.params"]],control[["max.iters.hessian"]],
                                      control[["min.pdf"]],control[["marginal.node"]],control[["marginal.param"]],control[["variate.vec"]],control[["n.grid"]],
                                      INLA.marginals,
@@ -420,9 +422,14 @@ fitAbn.bayes <- function(dag=NULL,
 
 }
 
-#####################################################
-## function to extract the mode from INLA output
-#####################################################
+#' function to extract the mode from INLA output
+#'
+#' @param list.fixed list of matrices of two cols x, y
+#' @param list.hyper list of hyperparameters
+#'
+#' @return vector
+#' @export
+#' @keywords internal
 getModeVector <- function(list.fixed,list.hyper){
 
     ## listfixed is a list of matrices of two cols x, y
@@ -456,9 +463,14 @@ getModeVector <- function(list.fixed,list.hyper){
 
 }
 
-#####################################################
-## function to extract the mode from INLA output
-#####################################################
+#' function to extract marginals from INLA output
+#'
+#' @param list.fixed list of matrices of two cols x, y
+#' @param list.hyper list of hyperparameters
+#'
+#' @return vector
+#' @export
+#' @keywords internal
 getMargsINLA <- function(list.fixed,list.hyper){
 
  ## listfixed is a list of matrices of two cols x, y
@@ -480,9 +492,16 @@ getMargsINLA <- function(list.fixed,list.hyper){
 return(margs)
 
 }
-#####################################################
-## function to get marginal across an equal grid
-#####################################################
+
+#' function to get marginal across an equal grid
+#'
+#' @param mylist list of matrices of two cols x, y
+#' @param n.grid grid size
+#' @param single NULL or TRUE if only a single node and parameter
+#'
+#' @return list
+#' @export
+#' @keywords internal
 eval.across.grid <- function(mylist,n.grid,single){
 
   if(is.null(single)){
@@ -510,12 +529,20 @@ eval.across.grid <- function(mylist,n.grid,single){
   }
   return(mylist)
 }
-##################################################################################
-## function to get std. are under marginal to exactly unity
-## it should be very close to unity but in some cases due to numerical accuracy
-## differences (since each point is a separate estimate) this might be a little adrift
-## turn this option off to see how reliable the original estimation is
-##################################################################################
+
+#' Standard Area Under the Marginal
+#'
+#' function to get std. are under marginal to exactly unity.
+#' It should be very close to unity but in some cases due to numerical accuracy
+#' differences (since each point is a separate estimate) this might be a little adrift
+#' turn this option off to see how reliable the original estimation is
+#'
+#' @param mylist list of matrices of two cols x, y
+#' @param single NULL or TRUE if only a single node and parameter
+#'
+#' @return list
+#' @export
+#' @keywords internal
 std.area.under.grid <- function(mylist,single){
 
   if(is.null(single)){
@@ -539,9 +566,18 @@ std.area.under.grid <- function(mylist,single){
 
   return(mylist)
 }
-#####################################################
-## function to quantiles
-#####################################################
+
+#' function to extract quantiles from INLA output
+#'
+#' function to get to extract quantiles
+#'
+#' @param mylist list of matrices of two cols x, y
+#' @param quantiles vector with the desired quantiles
+#' @param single NULL or TRUE if only a single node and parameter
+#'
+#' @return list
+#' @export
+#' @keywords internal
 get.quantiles <- function(mylist,quantiles, single){
 
   if(is.null(single)){
@@ -569,7 +605,9 @@ get.quantiles <- function(mylist,quantiles, single){
   return(mylist)
 }
 
-## helper function for get.quantiles above
+#' @describeIn get.quantiles helper function for get.quantiles
+#' @param outmat matrix where the first col has the desired quantiles. We want to estimate this and out in into the second col
+#' @param inmat is the actual x,f(x) matrix
 get.ind.quantiles <- function(outmat,inmat){
     ##outmat is a matrix where the first col has the desired quantiles
     ## we want to estimate this and out in into the second col
@@ -590,4 +628,57 @@ get.ind.quantiles <- function(outmat,inmat){
     class(outmat) <- c("abnFit")
 
     return(outmat)
+}
+
+#' Extract Standard Deviations from all Gaussian Nodes
+#'
+#' @param modes list of modes.
+#' @param dists list of distributions.
+#'
+#' @return named numeric vector. Names correspond to node name. Value to standard deviations.
+getMSEfromModes <- function(modes, dists){
+  modes_gaus <- unlist(unname(modes[unname(which(dists == "gaussian"))]), use.names = TRUE)
+  if (!is.null(modes_gaus)){
+    # if there is at least one gaussian node, extract the stddev
+    taus <- modes_gaus[stri_detect_fixed(str = names(modes_gaus), pattern = "precision")]
+    taus_names <- as.character(stringi::stri_split_fixed(str = names(taus), pattern = "|precision", omit_empty = TRUE, simplify = TRUE))
+    names(taus) <- taus_names
+    mses <- 1/taus # mse stores stddevs
+    return(mses)
+  } else {
+    # if there is no gaussian, return NULL
+    return(NULL)
+  }
+}
+
+#' Convert modes to fitAbn.mle$coefs structure
+#'
+#' @param modes list of modes.
+#'
+#' @return list of matrix arrays.
+modes2coefs <- function(modes){
+  newmodes <- modes
+  for (child in names(newmodes)){
+    childnames <- names(newmodes[[child]])
+    childnames <- stringi::stri_replace_all_fixed(str = childnames, pattern = "|(Intercept)", replacement = "|intercept")
+    for (childcoef in seq(1:length(childnames))) {
+      # iterate through all coefficients from current node
+      if (stringi::stri_detect_fixed(str = childnames[childcoef], pattern = "intercept", negate = TRUE)){
+        # Rename all but child|intercept
+        childnames[childcoef] <- stringi::stri_replace_all_fixed(str = childnames[childcoef], pattern = paste0(child, "|"), replacement = "")
+      }
+    }
+    names(newmodes[[child]]) <- childnames
+
+    # Remove Precision items from gaussians
+    for (childcoefi in seq(1:length(childnames))) {
+      if (stringi::stri_detect_fixed(str = childnames[childcoefi], pattern = "precision", negate = FALSE)){
+        newmodes[[child]] <- newmodes[[child]][-childcoefi]
+      }
+    }
+
+    # Convert to list of matrix arrays
+    newmodes[[child]] <- as.array(t(as.matrix(newmodes[[child]])))
+  }
+  return(newmodes)
 }

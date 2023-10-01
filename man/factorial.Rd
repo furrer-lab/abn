@@ -2,11 +2,11 @@
 % Please edit documentation in R/RcppExports.R
 \name{factorial}
 \alias{factorial}
-\title{Iterative Reweighed Least Square algorithm for Poissons}
+\title{Factorial}
 \usage{
 factorial(n)
 }
 \description{
-IRLS to estimate network score of Poisson nodes.
+Calculate the factorial in C##
 }
 \keyword{internal}

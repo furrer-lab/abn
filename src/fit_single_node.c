@@ -7,7 +7,7 @@
 #include <gsl/gsl_randist.h>
 #include <time.h>
 #include "structs.h"
-#include "utility.h" 
+#include "utility.h"
 #include "fit_single_node.h"
 #include "node_binomial.h"
 #include "node_gaussian.h"
@@ -20,7 +20,7 @@
 #define DEBUG_12
 
 /** ******************************************************************************************************************************************************/
-/** compute all the node scores to create a cache ********************************************************************************************************/                                         
+/** compute all the node scores to create a cache ********************************************************************************************************/
 /** ******************************************************************************************************************************************************/
 SEXP fit_single_node(SEXP R_obsdata, SEXP R_child, SEXP R_parents, SEXP R_numVars, SEXP R_vartype, SEXP R_maxparents,
 		     SEXP R_priors_mean, SEXP R_priors_sd,SEXP R_priors_gamshape,SEXP R_priors_gamscale,
@@ -29,7 +29,7 @@ SEXP fit_single_node(SEXP R_obsdata, SEXP R_child, SEXP R_parents, SEXP R_numVar
 		     SEXP R_finitestepsize, SEXP R_hparams, SEXP R_maxiters_hessian, SEXP R_ModesONLY,
 		     SEXP R_max_hessian_error,SEXP R_myfactor_brent, SEXP R_maxiters_hessian_brent, SEXP R_num_intervals_brent)
 {
-  
+
 /** ****************/
 /** declarations **/
 unsigned int i,k;
@@ -71,13 +71,23 @@ double h_guess=REAL(R_hparams)[0];
 double h_epsabs=REAL(R_hparams)[1];
 verbose=asInteger(R_verbose);
 errverbose=asInteger(R_errorverbose);
-trace=asInteger(R_trace); 
+trace=asInteger(R_trace);
 
+// If R_groupids is not a vector, then fail gracefully
+if (!isVector(R_groupids)) {
+  error("R_groupids is not a vector");
+} else if (LENGTH(R_groupids) != LENGTH(VECTOR_ELT(R_obsdata,0))) {
+  // If R_groupids is a vector, then check that it is of the correct length
+  error("R_groupids is not the same length as R_obsdata");
+} else {
+  // all is well
+  // Rprintf("R_groupids is a vector of the correct length\n");
+}
 /** end of argument parsing **/
 /** *******************************************************************************
 ***********************************************************************************
 STEP 0. - create R storage for sending results back                                */
-/** generic code to create a list comprising of vectors of type double 
+/** generic code to create a list comprising of vectors of type double
    - currently overkill but useful template **/
 
 PROTECT(listresults = allocVector(VECSXP, 1));
@@ -92,69 +102,71 @@ for(i=0;i<1;i++){
 
 /** create the observed data */
 make_data(R_obsdata,&data,R_groupids);
-/*printDATA(&data,1);*/
+// // print out data. 1: simply the data; 2: data and groupIDs
+// printDATA(&data,2);
 
 make_dag(&dag, numVars,(SEXP)NULL,1,R_vartype,&maxparents,R_groupedvars);/** create an empty network but with max.parents set **/
-/*printDAG(&dag,2);*/
+// print out DAG
+// printDAG(&dag,2);
 
 
-   
-   curnode=asInteger(R_child)-1;/** -1 since R indexes start at unity and not zero **/ 
-                           /** important NOTE: the nodecache is indexed in terms of i and NOT curnode e.g. it runs from 0,,,numVarsinCache-1 but the actual nodeid are in whichnodes */ 
-  
-/*index=0;*/                         
+
+   curnode=asInteger(R_child)-1;/** -1 since R indexes start at unity and not zero **/
+                           /** important NOTE: the nodecache is indexed in terms of i and NOT curnode e.g. it runs from 0,,,numVarsinCache-1 but the actual nodeid are in whichnodes */
+
+/*index=0;*/
          /** copy the parent combination in cache into dag  **/
 	 for(k=0;k<numVars;k++){dag.defn[curnode][k]=INTEGER(R_parents)[k];}
 /*Rprintf("child=%d\n",curnode+1);
 for(k=0;k<numVars;k++){Rprintf("|%d|",dag.defn[curnode][k]);}Rprintf("\n");*/
-	  	  
+
                          switch(dag.varType[curnode])  /** choose which type of node we have */
                          {
-			   
+
 			   case 1:{ /** binary/categorical node */
 			           if(dag.groupedVars[curnode]){/** have grouped binary variable so node is a glmm */
 				     calc_node_Score_binary_rv_R(&dag,&data,curnode,errverbose,trace, &designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs,
 								  storeModes,epsabs_inner,maxiters_inner,finitestepsize, verbose,
 								  h_guess,h_epsabs,maxiters_hessian,ModesONLY,
-								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);  
-				    } else {/** not grouped so node is a glm **/  
+								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+				    } else {/** not grouped so node is a glm **/
                                     calc_node_Score_binary(&dag,&data,curnode,errverbose, &designmatrix, priormean, priorsd,maxiters,epsabs,storeModes); }
                                     /** results are in dag->nodeScores and dag->modes (if storeModes=TRUE) */
 				    storeNodeResults(listresults,&dag,1,curnode,dag.varType[curnode]);
                                     break;
                                    }
-                         
+
                            case 2:{ /** gaussian node */
 			           if(dag.groupedVars[curnode]){/** have grouped binary variable so node is a glmm */
 				     calc_node_Score_gaus_rv_R(&dag,&data,curnode,errverbose,trace, &designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs,
 								  storeModes,epsabs_inner,maxiters_inner,finitestepsize, verbose,
 								  h_guess,h_epsabs,maxiters_hessian,ModesONLY,
-								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);  
-				    } else {/** not grouped so node is a glm **/  
+								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+				    } else {/** not grouped so node is a glm **/
                                     calc_node_Score_gaus(&dag,&data,curnode,errverbose, &designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs, storeModes);}
 				    storeNodeResults(listresults,&dag,1,curnode,dag.varType[curnode]);
                                     break;
                                    }
-			   
+
 			    case 3:{ /** poisson node */
 			            if(dag.groupedVars[curnode]){/** have grouped poisson variable so node is a glmm */
 				      calc_node_Score_pois_rv_R(&dag,&data,curnode,errverbose,trace, &designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs,
 								  storeModes,epsabs_inner,maxiters_inner,finitestepsize, verbose,
 								  h_guess,h_epsabs,maxiters_hessian,ModesONLY,
-								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);  
-				    } else {/** not grouped so node is a glm **/    
+								  max_hessian_error,myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+				    } else {/** not grouped so node is a glm **/
 				      calc_node_Score_pois(&dag,&data,curnode,errverbose, &designmatrix, priormean, priorsd,maxiters,epsabs, storeModes);}
 				    /** results are in dag->nodeScores and dag->modes (if storeModes=TRUE) */
 				    storeNodeResults(listresults,&dag,1,curnode,dag.varType[curnode]);
 				    break;
                                    }
-			        
-                           default: {Rprintf("dag.varType[i]=%d\n",dag.varType[curnode]);error("in default switch - should never get here!");}                                          
+
+                           default: {Rprintf("dag.varType[i]=%d\n",dag.varType[curnode]);error("in default switch - should never get here!");}
                          }
-                 
-                                                    
-                         R_CheckUserInterrupt();/** allow an interupt from R console */ 
-   
+
+
+                         R_CheckUserInterrupt();/** allow an interupt from R console */
+
 
 /*gsl_set_error_handler (NULL);*//** restore the error handler*/
 free_dag(&dag);/** free any memory not allocated using Ralloc() */
@@ -166,17 +178,17 @@ return(listresults);
 
 /** *************************************************************************************************/
 /** *************************************************************************************************/
-/** copy results from C into R SEXP *****************************************************************/ 
+/** copy results from C into R SEXP *****************************************************************/
 void storeNodeResults(SEXP results,network *dag,int storeModes, int nodeid, int vartype)
 {
   int i;
-/** format is results has one vector for each node of length numNodes+3, the format is 
-    vec= node score, then each of the parameter modes - including entries DBL_MAX if node not in model**/  
+/** format is results has one vector for each node of length numNodes+3, the format is
+    vec= node score, then each of the parameter modes - including entries DBL_MAX if node not in model**/
   REAL(VECTOR_ELT(results,0))[0]=dag->nodeScores[nodeid]; /** first entry is the mlik */
   REAL(VECTOR_ELT(results,0))[1]=dag->nodeScoresErrCode[nodeid];
   REAL(VECTOR_ELT(results,0))[2]=dag->hessianError[nodeid];
   /** next get all the parameters including intercept and extra term for gaussian precision parameter etc**/
   /** +4 = mlik+intercept+gauss precision + group precision**/
   for(i=1+2;i<dag->numNodes+2+4;i++){REAL(VECTOR_ELT(results,0))[i]=gsl_matrix_get(dag->modes,nodeid,i-1-2);}
-  
+
 }

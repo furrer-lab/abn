@@ -41,6 +41,7 @@ To do so one uses the \code{\link{glm}} and \code{\link{predict}} functions.
 This function is an attempt to perform diagnostic for an ABN analysis.
 }
 \examples{
+\dontrun{
 ## Use a subset of a built-in simulated data set
 mydat <- ex1.dag.data[,c("b1","g1","p1")]
 
@@ -57,5 +58,6 @@ out <- scoreContribution(object = mp.dag)
 
 ## Observations contribution per network node
 boxplot(out$bic)
+}
 }
 \keyword{utilities}

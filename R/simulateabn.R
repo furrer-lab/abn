@@ -83,7 +83,7 @@ gauss_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, 
 
 #' Bugs code for Bernoulli response
 #'
-#' Bugs model for a Binomial response $X$ in a single trial:
+#' Bugs model for a Binomial response \eqn{X} in a single trial:
 #' \eqn{X \sim \mathcal{B}(n=1, p) = \mathcal{Bernoulli}(p)}.
 #'
 #' @param nodename character string of response variable name.
@@ -153,7 +153,7 @@ bern_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, s
 #' Bugs code for Categorical response
 #'
 #' @param nodename character string of response variable name.
-#' @param nodesCatIdx integer vector of length $|K-1|$ and starting at $k+1$ (see Examples).
+#' @param nodesCatIdx integer vector of length \eqn{|K-1|} and starting at \eqn{k+1} (see Examples).
 #' @param parentnames single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.
 #' @param nodesintercepts numeric vector with the intercept value for each category (see Details).
 #' @param parentcoefs list named with parent node names of numeric vectors with coefficient values for each category (see Details).
@@ -206,7 +206,7 @@ categorical_bugs <- function(nodename, nodesCatIdx, parentnames, nodesintercepts
 }
 
 #' @describeIn categorical_bugs Bugs code for Categorical response with varying intercept
-#' @param nodesintercept overall mean of response. Parameter from fixed-effects intercept.
+#' @param nodesintercepts overall mean of response. Parameter from fixed-effects intercept.
 #' @param parentcoefs overall slope for each predictor (parent node) variable (fixed-effects).
 #' @param sigma within-group variance. Parameter from random-effects residual.
 #' @param sigma_alpha between-group variance-covariance matrix. Parameters from random-effects intercept.

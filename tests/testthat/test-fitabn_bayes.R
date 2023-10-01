@@ -17,5 +17,5 @@ test_that("Test fitAbn.bayes()", {
   expect_equal(unclass(myres.c.test)[[10]], myres.c[[10]])
   expect_equal(unclass(myres.c.test)[[11]], myres.c[[11]])
   expect_equal(unclass(myres.c.test)[[12]], myres.c[[12]])
-  expect_equal(unclass(myres.c.test)[[13]], myres.c[[13]])
+  expect_equal(unclass(myres.c.test)[[15]], myres.c[[13]]) # historical reasons. Can be updated in the future.
 })

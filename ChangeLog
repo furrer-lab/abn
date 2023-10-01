@@ -1,6 +1,11 @@
 ---------------------------
 -- ChangeLog - abn --
 ---------------------------
+
+2023-09-29 Matteo Delucchi (version 3.0.1)
+  * Patched memory access error in source code.
+  * Fixed reverse dependency to `mcmcabn()`.
+
 2023-09-01 Matteo Delucchi (version 3.0.0)
   * Implemented random-intercept model for `method="mle"` with argument `group.var`.
   * simulateAbn(): Fixed to run with all arguments. Enhancement: Simulates a hierarchical model if `group.var` is provided.

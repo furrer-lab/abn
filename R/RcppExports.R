@@ -73,26 +73,34 @@ irls_gaussian_cpp_fast <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_gaussian_cpp_fast`, A, b, maxit, tol)
 }
 
-#' @title Iterative Reweighed Least Square algorithm for Poissons
-#' @description IRLS to estimate network score of Poisson nodes.
+#' @title Factorial
+#' @description Calculate the factorial in C##
 #' @keywords internal
 #' @export
 factorial <- function(n) {
     .Call(`_abn_factorial`, n)
 }
 
+#' @title Iterative Reweighed Least Square algorithm for Poissons
+#' @description IRLS to estimate network score of Poisson nodes.
+#' @keywords internal
+#' @export
 irls_poisson_cpp <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_poisson_cpp`, A, b, maxit, tol)
 }
 
-#' @title Fast Iterative Reweighed Least Square algorithm for Poissons
-#' @description IRLS to estimate network score of Poisson nodes.
+#' @title Fast Factorial
+#' @description Calculate the factorial in C##
 #' @keywords internal
 #' @export
 factorial_fast <- function(n) {
     .Call(`_abn_factorial_fast`, n)
 }
 
+#' @title Fast Iterative Reweighed Least Square algorithm for Poissons
+#' @description IRLS to estimate network score of Poisson nodes.
+#' @keywords internal
+#' @export
 irls_poisson_cpp_fast <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_poisson_cpp_fast`, A, b, maxit, tol)
 }

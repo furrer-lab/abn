@@ -44,6 +44,7 @@
 #' @references Koivisto, M. V. (2004). Exact Structure Discovery in Bayesian Networks, Journal of Machine Learning Research, vol 5, 549-573.
 #'
 #' @examples
+#' \dontrun{
 #' ##############################
 #' ## Example 1
 #' ##############################
@@ -80,7 +81,6 @@
 #'
 #' fitAbn(dag=true.dag, data.df=mydat, data.dists=mydists)$mlik
 #'
-#' \dontrun{
 #'   #################################################################
 #'   ## Example 2 - models with random effects
 #'   #################################################################
