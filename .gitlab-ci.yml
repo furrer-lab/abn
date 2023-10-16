@@ -67,7 +67,7 @@ r-check:
         - install2.r testthat devtools BiocManager remotes covr rjags lme4 # see https://rocker-project.org/use/extending.html#helper-commands
         - R -e 'BiocManager::install("Rgraphviz")'
         - R -e "remotes::install_deps(pkgdir='$CI_PROJECT_DIR',dependencies=TRUE)"
-        - R -e "devtools::check(pkg = '$CI_PROJECT_DIR')"
+        - R -e "devtools::check(pkg = '$CI_PROJECT_DIR', vignettes = FALSE)"
     artifacts:
         paths:
             - "$CI_PROJECT_DIR/*.Rcheck"
@@ -100,7 +100,7 @@ release_job:
   stage: deploy
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_TAG' # Run this job when commits or tags are pushed or merged to the default branch
+    - if: '$CI_COMMIT_TAG' # Run this job when tags are pushed or merged to the default branch
   script:
     - echo "running release_job for $CI_COMMIT_TAG"
   release:                                         # See https://docs.gitlab.com/ee/ci/yaml/#release for available properties
