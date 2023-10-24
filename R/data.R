@@ -424,3 +424,34 @@
 #' @keywords datasets
 "var33"
 
+#' @title Toy Data Set for Examples in README
+#' @description
+#' 1000 observations with 5 variables: 2 continuous, 2 binary and 1 categorical.
+#' @usage g2b2c_data
+#' @format A data frame with five columns. Binary and categorical variables are factors.
+#' \itemize{
+#'   \item{G1}{gaussian}
+#'   \item{B1}{binomial}
+#'   \item{B2}{binomial}
+#'   \item{C}{categorical}
+#'   \item{G2}{gaussian}
+#' }
+#'
+#' @keywords datasets
+"g2b2c_data"
+
+#' @title Toy Data Set for Examples in README
+#' @description
+#' 10000 observations with 6 variables: 2 continuous, 1 binary, 1 count, 1 categorical and 1 grouping factor.
+#' @usage g2pbcgrp
+#' @format A data frame with six columns. Binary and categorical variables are factors.
+#' \itemize{
+#'   \item{G1}{gaussian}
+#'   \item{P}{poisson}
+#'   \item{B}{binomial}
+#'   \item{C}{categorical}
+#'   \item{G2}{gaussian}
+#' }
+#'
+#' @keywords datasets
+"g2pbcgrp"

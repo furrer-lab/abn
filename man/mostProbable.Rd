@@ -72,25 +72,25 @@ true.dag["g3",c("g1","b2")] <- 1
 
 fitAbn(dag=true.dag, data.df=mydat, data.dists=mydists)$mlik
 
-  #################################################################
-  ## Example 2 - models with random effects
-  #################################################################
+#################################################################
+## Example 2 - models with random effects
+#################################################################
 
-  ## This data comes with abn see ?ex3.dag.data
-  # mydat <- ex3.dag.data[,c(1:4,14)]
-  # mydists <- list(b1="binomial", b2="binomial", b3="binomial", b4="binomial")
+## This data comes with abn see ?ex3.dag.data
+mydat <- ex3.dag.data[,c(1:4,14)]
+mydists <- list(b1="binomial", b2="binomial", b3="binomial", b4="binomial")
 
-  ## This takes a few seconds and requires INLA:
-  # mycache.mixed <- buildScoreCache(data.df=mydat, data.dists=mydists,
-  #               group.var="group", cor.vars=c("b1","b2","b3","b4"),
-  #               max.parents=2, which.nodes=c(1:4))
+## This takes a few seconds and requires INLA:
+mycache.mixed <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 group.var="group",
+                                 max.parents=2)
 
-  ## Find the most probable DAG:
-  # mp.dag <- mostProbable(score.cache=mycache.mixed)
-
-  ## and get goodness of fit:
-  # fitAbn(object=mp.dag, data.df=mydat, data.dists=mydists,
-  #      group.var="group", cor.vars=c("b1","b2","b3","b4"))$mlik
+## Find the most probable DAG:
+mp.dag <- mostProbable(score.cache=mycache.mixed)
+## and get goodness of fit:
+fitAbn(object=mp.dag,
+       group.var="group")$mlik
 }
 }
 \references{

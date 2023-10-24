@@ -1,6 +1,6 @@
 Package: abn
-Version: 3.0.1
-Date: 2023-09-29
+Version: 3.0.2
+Date: 2023-10-23
 Title: Modelling Multivariate Data with Additive Bayesian Networks
 Authors@R: 
     c(person(given = "Matteo",
@@ -46,7 +46,7 @@ Imports: methods, rjags, nnet, lme4, graph, Rgraphviz, doParallel,
         foreach, mclogit, stringi, Rcpp
 LinkingTo: Rcpp, RcppArmadillo
 Suggests: INLA, knitr, R.rsp, testthat (>= 3.0.0), entropy, moments,
-        boot, brglm
+        boot, brglm, RhpcBLASctl
 VignetteBuilder: R.rsp
 Additional_repositories: https://inla.r-inla-download.org/R/stable/
 SystemRequirements: Gnu Scientific Library version >= 1.12
@@ -57,7 +57,7 @@ Description: Bayesian network analysis is a form of probabilistic graphical mode
  The core functionality is concerned with model selection - determining the most robust empirical model of data from interdependent variables. Laplace approximations are used to estimate goodness of fit metrics and model parameters, and wrappers are also included to the INLA package which can be obtained from <https://www.r-inla.org>. 
  The computing library JAGS <https://mcmc-jags.sourceforge.io> is used to simulate 'abn'-like data. 
  A comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation are available from the 'abn' website <http://r-bayesian-networks.org>.
-License: GPL (>= 2)
+License: GPL (>= 3)
 LazyData: true
 URL: http://r-bayesian-networks.org
 BugReports: https://git.math.uzh.ch/mdeluc/abn/-/issues
@@ -66,4 +66,4 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-10-07 14:15:20 UTC; root
+Packaged: 2023-10-24 10:01:08 UTC; root

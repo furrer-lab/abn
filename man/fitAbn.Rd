@@ -207,25 +207,32 @@ mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
 
 ## setup distribution list for each node
 mydists <- list(b1="binomial", b2="binomial", b3="binomial", g1="gaussian",
-               b4="binomial", p2="poisson", p4="poisson")
+                b4="binomial", p2="poisson", p4="poisson")
 
 ## Null model - all independent variables
 mydag.empty <- matrix(0, nrow=7, ncol=7)
 colnames(mydag.empty) <- rownames(mydag.empty) <- names(mydat)
 
 ## Now fit the model to calculate its goodness-of-fit
-myres <- fitAbn(dag=mydag.empty, data.df=mydat, data.dists=mydists)
+myres <- fitAbn(dag=mydag.empty,
+                data.df=mydat,
+                data.dists=mydists)
 
 ## Log-marginal likelihood goodness-of-fit for complete DAG
 print(myres$mlik)
 
-## fit  using the formula statement
-#  including the creation of the graph of the DAG via Rgraphviz
+## fitAbn accepts also the formula statement
 myres <- fitAbn(dag=~b1|b2+b2|p4:g1+g1|p2+b3|g1+b4|b1+p4|g1,
-                data.df=mydat, data.dists=mydists)
+                data.df=mydat,
+                data.dists=mydists)
 print(myres$mlik) ## a much weaker fit than full independence DAG
 
-plotAbn(dag=myres$abnDag$dag, data.dists=mydists, fitted.values=myres$modes)
+# Plot the DAG via Rgraphviz
+plotAbn(dag=myres)
+# or more explicitly
+plotAbn(dag=myres$abnDag$dag,
+        data.dists=mydists,
+        fitted.values=myres$modes)
 
 ## Or equivalentelly using the formula statement, with plotting
 ## Now repeat but include some dependencies first
@@ -240,115 +247,133 @@ plot(myresAlt)
 ## This function contains an MLE implementation accessible through a method parameter
 ## use built-in simulated data set
 ## -----------------------------------------------------------------------------------
-
 myres.mle <- fitAbn(dag=~b1|b2+b2|p4+g1+g1|p2+b3|g1+b4|b1+p4|g1,
-                    data.df=mydat, data.dists=mydists, method="mle")
+                    data.df=mydat,
+                    data.dists=mydists,
+                    method="mle")
 
 ## Print the output for mle first then for Bayes:
-print(myres.mle)
-print(myres)
-
+print(myres.mle); plot(myres.mle)
+print(myres); plot(myres)
 
 \dontrun{
-  ## A simple plot of some posterior densities the algorithm which chooses
-  ## density points is very simple any may be rather sparse so also recompute
-  ## the density over an equally spaced grid of 50 points between the two
-  ## end points which had at f=min.pdf
-  ## max.mode.error=0 foces to use the internal c code
-  myres.c <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
-                    compute.fixed=TRUE,
-                    control=list(max.mode.error=0))
+## This is a basic plot of some posterior densities. The algorithm used for selecting
+## density points is quite straightforward, but it might result in a sparse distribution.
+## Therefore, we also recompute the density over an evenly spaced grid
+of 50 points between the two endpoints that had a minimum PDF at f=min.pdf.
+## Setting max.mode.error=0 forces the use of the internal C code.
+myres.c <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
+                  compute.fixed=TRUE,
+                  control=list(max.mode.error=0))
 
-  print(names(myres.c$marginals)) ## gives all the different parameter names
+print(names(myres.c$marginals)) ## gives all the different parameter names
 
-  ## Repeat but use INLA for the numerics using max.mode.error=100
-  ## as using internal code is the default here rather than INLA
-  myres.inla <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
-                       compute.fixed=TRUE,
-                       control=list(max.mode.error=100))
+## Repeat but use INLA for the numerics using max.mode.error=100
+## as using internal code is the default here rather than INLA
+myres.inla <- fitAbn(dag=mydag,
+                     data.df=mydat,
+                     data.dists=mydists,
+                     compute.fixed=TRUE,
+                     control=list(max.mode.error=100))
 
-  ## Plot posterior densities
-  par(mfrow=c(2,2), mai=c(.7,.7,.2,.1))
-  plot(myres.c$marginals$b1[["b1|(Intercept)"]], type="l", xlab="b1|(Intercept)")
-  lines(myres.inla$marginals$b1[["b1|(Intercept)"]], col="blue")
-  plot(myres.c$marginals$b2[["b2|p4"]], type="l", xlab="b2|p4")
-  lines(myres.inla$marginals$b2[["b2|p4"]], col="blue")
-  plot(myres.c$marginals$g1[["g1|precision"]], type="l", xlab="g1|precision")
-    lines(myres.inla$marginals$g1[["g1|precision"]], col="blue")
-    plot(myres.c$marginals$b4[["b4|b1"]], type="l", xlab="b4|b1")
-    lines(myres.inla$marginals$b4[["b4|b1"]], col="blue")
+## Plot posterior densities
+par(mfrow=c(2,2), mai=c(.7,.7,.2,.1))
+plot(myres.c$marginals$b1[["b1|(Intercept)"]], type="l", xlab="b1|(Intercept)")
+lines(myres.inla$marginals$b1[["b1|(Intercept)"]], col="blue")
+plot(myres.c$marginals$b2[["b2|p4"]], type="l", xlab="b2|p4")
+lines(myres.inla$marginals$b2[["b2|p4"]], col="blue")
+plot(myres.c$marginals$g1[["g1|precision"]], type="l", xlab="g1|precision")
+lines(myres.inla$marginals$g1[["g1|precision"]], col="blue")
+plot(myres.c$marginals$b4[["b4|b1"]], type="l", xlab="b4|b1")
+lines(myres.inla$marginals$b4[["b4|b1"]], col="blue")
 
- ## An elementary mixed model example using built-in data specify DAG,
- ## only two variables using a subset of variables from ex3.dag.data
- ## both variables are assumed to need (separate) adjustment for the
- ## group variable, i.e., a binomial GLMM at each node
+## An elementary mixed model example using built-in data specify DAG,
+## only two variables using a subset of variables from ex3.dag.data
+## both variables are assumed to need (separate) adjustment for the
+## group variable, i.e., a binomial GLMM at each node
 
+mydists <- list(b1="binomial",b2="binomial")
 
- mydists <- list(b1="binomial",  b2="binomial")
+## Compute marginal likelihood - use internal code via max.mode.error=0
+## as using INLA is the default here.
+## Model where b1 <- b2
+myres.c <- fitAbn(dag=~b1|b2,
+                  data.df=ex3.dag.data[,c(1,2,14)],
+                  data.dists=mydists,
+                  group.var="group",
+                  cor.vars=c("b1","b2"),
+                  control=list(max.mode.error=0))
+print(myres.c) ## show all the output
 
- ## Compute marginal likelihood - use internal code via max.mode.error=0
- ## as using INLA is the default here.
- ## Model where b1 <- b2
- myres.c <- fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,
-                   group.var="group", cor.vars=c("b1","b2"),
-                   control=list(max.mode.error=0))
- print(myres.c) ## show all the output
+## compare mode for node b1 with glmer(), lme4::glmer is automatically attached.
 
- ## compare mode for node b1 with glmer(), lme4::glmer is automatically attached.
+## Now for marginals - INLA is strongly preferable for estimating marginals for nodes
+## with random effects as it is far faster, but may not be reliable
+## see http://r-bayesian-networks.org
 
- ## Now for marginals - INLA is strongly preferable for estimating marginals for nodes
- ## with random effects as it is far faster, but may not be reliable
- ## see http://r-bayesian-networks.org
+## INLA's estimates of the marginals, using high n.grid=500
+## as this makes the plots smoother - see below.
+myres.inla <- fitAbn(dag=~b1|b2,
+                     data.df=ex3.dag.data[,c(1,2,14)],
+                     data.dists=mydists,
+                     group.var="group",
+                     cor.vars=c("b1", "b2"),
+                     compute.fixed=TRUE,
+                     n.grid=500,
+                     control=list(max.mode.error=100,
+                                  max.hessian.error=10E-02))
 
- ## INLA's estimates of the marginals, using high n.grid=500
- ## as this makes the plots smoother - see below.
- ## myres.inla <- fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)],
- #                      data.dists=mydists,
- #                      group.var="group", cor.vars=c("b1", "b2"),
- #                      compute.fixed=TRUE, n.grid=500,
- #                      control=list(max.mode.error=100, max.hessian.error=10E-02))
+## this is NOT recommended - marginal density estimation using fitAbn in mixed models
+## is really just for diagnostic purposes, better to use fitAbn.inla() here
+## but here goes...be patient
+myres.c <- fitAbn(dag=~b1|b2,
+                  data.df=ex3.dag.data[,c(1,2,14)],
+                  data.dists=mydists,
+                  group.var="group",
+                  cor.vars=c("b1", "b2"),
+                  compute.fixed=TRUE,
+                  control=list(max.mode.error=0,
+                               max.hessian.error=10E-02))
 
- ## this is NOT recommended - marginal density estimation using fitAbn in mixed models
- ## is really just for diagnostic purposes, better to use fitAbn.inla() here
- ## but here goes...be patient
- # myres.c <- fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,
- #                   group.var="group", cor.vars=c("b1", "b2"), compute.fixed=TRUE,
- #                   control=list(max.mode.error=0, max.hessian.error=10E-02))
+## compare marginals between internal and INLA.
+par(mfrow=c(2,3))
+# 5 parameters - two intercepts, one slope, two group level precisions
+plot(myres.inla$marginals$b1[[1]], type="l", col="blue")
+lines(myres.c$marginals$b1[[1]], col="brown", lwd=2)
+plot(myres.inla$marginals$b1[[2]], type="l", col="blue")
+lines(myres.c$marginals$b1[[2]], col="brown", lwd=2)
+# the precision of group-level random effects
+plot(myres.inla$marginals$b1[[3]],type="l", col="blue", xlim=c(0,2))
+lines(myres.c$marginals$b1[[3]],col="brown",lwd=2)
+plot(myres.inla$marginals$b2[[1]],type="l", col="blue")
+lines(myres.c$marginals$b2[[1]],col="brown",lwd=2)
+plot(myres.inla$marginals$b2[[1]], type="l", col="blue")
+lines(myres.c$marginals$b2[[1]], col="brown", lwd=2)
+# the precision of group-level random effects
+plot(myres.inla$marginals$b2[[2]], type="l", col="blue", xlim=c(0,2))
+lines(myres.c$marginals$b2[[2]], col="brown", lwd=2)
 
- ## compare marginals between internal and INLA.
- # par(mfrow=c(2,3))
- ## 5 parameters - two intercepts, one slope, two group level precisions
- # plot(myres.inla$marginals$b1[[1]], type="l", col="blue")
- # lines(myres.c$marginals$b1[[1]], col="brown", lwd=2)
- # plot(myres.inla$marginals$b1[[2]], type="l", col="blue")
- # lines(myres.c$marginals$b1[[2]], col="brown", lwd=2)
- ## the precision of group-level random effects
- # plot(myres.inla$marginals$b1[[3]],type="l", col="blue", xlim=c(0,2))
- # lines(myres.c$marginals$b1[[3]],col="brown",lwd=2)
- # plot(myres.inla$marginals$b2[[1]],type="l", col="blue")
- # lines(myres.c$marginals$b2[[1]],col="brown",lwd=2)
- # plot(myres.inla$marginals$b2[[1]], type="l", col="blue")
- # lines(myres.c$marginals$b2[[1]], col="brown", lwd=2)
- ## the precision of group-level random effects
- # plot(myres.inla$marginals$b2[[2]], type="l", col="blue", xlim=c(0,2))
- # lines(myres.c$marginals$b2[[2]], col="brown", lwd=2)
+### these are very similar although not exactly identical
 
- ### these are very similar although not exactly identical
+## use internal code but only to compute a single parameter over a specified grid
+## This can be necessary if the simple auto grid finding functions does a poor job
+myres.c <- fitAbn(dag=~b1|b2,
+                  data.df=ex3.dag.data[,c(1,2,14)],
+                  data.dists=mydists,
+                  group.var="group",
+                  cor.vars=c("b1", "b2"),
+                  centre=FALSE,
+                  compute.fixed=TRUE,
+                  control=list(marginal.node=1,
+                               marginal.param=3,## precision term in node 1
+                               variate.vec=seq(0.05, 1.5, len=25),
+                               max.hessian.error=10E-02))
 
- ## use internal code but only to compute a single parameter over a specified grid
- ## This can be necessary if the simple auto grid finding functions does a poor job
-
- #myres.c <- fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,
- #                  group.var="group", cor.vars=c("b1", "b2"),
- #                  centre=FALSE, compute.fixed=TRUE,
- #                  control=list(marginal.node=1, marginal.param=3,## precision term in node 1
- #                  variate.vec=seq(0.05, 1.5, len=25), max.hessian.error=10E-02))
-
- #par(mfrow=c(1,2))
- #plot(myres.c$marginals[[1]], type="l", col="blue")## still fairly sparse
- ## An easy way is to use spline to fill in the density without recomputing other
- ## points provided the original grid is not too sparse.
- #plot(spline(myres.c$marginals[[1]], n=100), type="b", col="brown")
+par(mfrow=c(1,2))
+plot(myres.c$marginals$b1[[1]], type="l", col="blue")## still fairly sparse
+# An easy way is to use spline to fill in the density without recomputing other
+# points provided the original grid is not too sparse.
+plot(spline(myres.c$marginals$b1[[1]], n=100), type="b", col="brown")
 }
 
 }

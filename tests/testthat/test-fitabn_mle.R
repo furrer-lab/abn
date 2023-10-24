@@ -547,6 +547,7 @@ test_that("fitAbn's regressionLoop() works w/o group.var.", {
           expect_equal(res, res2)
 
           # Running on all child nodes (predictor) with foreach in multiple cores
+          skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4 (https://github.com/lme4/lme4/issues/627)
           expect_no_error({
             ncores <- 2
             cl <- makeCluster(ncores)
@@ -656,6 +657,7 @@ test_that("fitAbn's regressionLoop() works w/ group.var.", {
           expect_equal(res, res2)
 
           # Running on all child nodes (predictor) with foreach in multiple cores
+          skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4 (https://github.com/lme4/lme4/issues/627)
           expect_no_error({
             ncores <- 2
             cl <- makeCluster(ncores)

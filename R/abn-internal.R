@@ -38,7 +38,7 @@ abn.version <- function(what=c('abn','system')) {
   if (what %in% 'system') {
 
     list(R=R.version.string,
-         abn=substr(abn.version$version.string, 13, 32),
+         abn=substr(abn.version()$version.string, 13, 32),
          gsl=ifelse(R.version$os=="linux-gnu", system('gsl-config --version', intern = TRUE), "NA (?)"),
          JAGS=rjags::jags.version(),
          INLA=ifelse(requireNamespace("INLA", quietly = TRUE),

@@ -269,88 +269,115 @@ build.control <-
 #'
 #' @examples
 #' \dontrun{
-#' #################################################################
-#' ## Example 1
-#' #################################################################
+#' ##################################################################################################
+#' ## Example 1 - "mle" vs. "bayes" and the later with using the internal C routine compared to INLA
+#' ##################################################################################################
 #'
-#' ## Subset of the build-in dataset, see  ?ex0.dag.data
+#' # Subset of the build-in dataset, see  ?ex0.dag.data
 #' mydat <- ex0.dag.data[,c("b1","b2","g1","g2","b3","g3")] ## take a subset of cols
 #'
-#' ## setup distribution list for each node
+#' # setup distribution list for each node
 #' mydists <- list(b1="binomial", b2="binomial", g1="gaussian",
 #'                 g2="gaussian", b3="binomial", g3="gaussian")
 #'
 #' # Structural constraints
-#' # ban arc from b2 to b1
-#' # always retain arc from g2 to g1
-#'
-#' ## parent limits
+#' ## ban arc from b2 to b1
+#' ## always retain arc from g2 to g1
+#' ## parent limits - can be specified for each node separately
 #' max.par <- list("b1"=2, "b2"=2, "g1"=2, "g2"=2, "b3"=2, "g3"=2)
 #'
-#' ## now build the cache of pre-computed scores accordingly to the structural constraints
+#' # now build the cache of pre-computed scores accordingly to the structural constraints
+#' res.c <- buildScoreCache(data.df=mydat,
+#'                          data.dists=mydists,
+#'                          dag.banned= ~b1|b2,
+#'                          dag.retained= ~g1|g2,
+#'                          max.parents=max.par,
+#'                          method="bayes")
 #'
-#' res.c <- buildScoreCache(data.df=mydat, data.dists=mydists,
-#'                          dag.banned= ~b1|b2, dag.retained= ~g1|g2, max.parents=max.par)
 #'
-#'
-#' ## repeat but using R-INLA. The mlik's should be virtually identical.
-#' ## now build cache:
+#' # repeat but using R-INLA. The mlik's should be virtually identical.
+#' # Force using of INLA build.control(max.mode.error=100)
 #' if(requireNamespace("INLA", quietly = TRUE)){
-#'   res.inla <- buildScoreCache(data.df=mydat, data.dists=mydists,
-#'                               dag.banned= ~b1|b2, dag.retained= ~g1|g2, max.parents=max.par,
-#'                               control=list(max.mode.error=100))
+#'   res.inla <- buildScoreCache(data.df=mydat,
+#'                               data.dists=mydists,
+#'                               dag.banned= ~b1|b2, # ban arc from b2 to b1
+#'                               dag.retained= ~g1|g2, # always retain arc from g2 to g1
+#'                               max.parents=max.par,
+#'                               method="bayes",
+#'                               control=build.control(max.mode.error=100))
 #'
 #'   ## comparison - very similar
 #'   difference <- res.c$mlik - res.inla$mlik
+#'   summary(difference)
 #' }
 #'
-#' ## Comparison Bayes with MLE (unconstrained):
+#' # Comparison Bayes with MLE (unconstrained):
 #' res.mle <- buildScoreCache(data.df=mydat, data.dists=mydists,
 #'                            max.parents=3, method="mle")
 #' res.abn <- buildScoreCache(data.df=mydat, data.dists=mydists,
-#'                            max.parents=3, method="Bayes")
-#' ## of course different, but smame order:
+#'                            max.parents=3, method="bayes")
+#' # of course different, but same order:
 #' plot(-res.mle$bic, res.abn$mlik)
 #'
-#'   #################################################################
-#'   ## Example 2 - mle with several cores
-#'   ###################################################################
+#' #################################################################
+#' ## Example 2 - mle with several cores
+#' #################################################################
 #'
-#'   ## Many variables, few observations
-#'   mydat <- ex0.dag.data
-#'   mydists <- as.list(rep(c("binomial", "gaussian", "poisson"), each=10))
-#'   names(mydists) <- names(mydat)
+#' ## Many variables, few observations
+#' mydat <- ex0.dag.data
+#' mydists <- as.list(rep(c("binomial", "gaussian", "poisson"), each=10))
+#' names(mydists) <- names(mydat)
 #'
-#'   # system.time( {
-#'   # res.mle1 <- buildScoreCache(data.df=mydat, data.dists=mydists,
-#'   #                           max.parents=2, method="mle", ncores=2) })
-#'   # system.time( {
-#'   # res.mle2 <- buildScoreCache(data.df=mydat, data.dists=mydists,
-#'   #                           max.parents=2, method="mle") })
+#' system.time({
+#'   res.mle1 <- buildScoreCache(data.df=mydat,
+#'                               data.dists=mydists,
+#'                               max.parents=2,
+#'                               method="mle",
+#'                               control = build.control(method = "mle",
+#'                                                       ncores=1))})
+#' system.time({
+#'   res.mle2 <- buildScoreCache(data.df=mydat,
+#'                               data.dists=mydists,
+#'                               max.parents=2,
+#'                               method="mle",
+#'                               control = build.control(method = "mle",
+#'                                                       ncores=2))})
 #'
+#' #################################################################
+#' ## Example 3 - grouped data - random effects example e.g. glmm
+#' #################################################################
 #'
-#'   #################################################################
-#'   ## Example 3 - grouped data - random effects example e.g. glmm
-#'   ###################################################################
+#' ## this data comes with abn see ?ex3.dag.data
+#' mydat <- ex3.dag.data[,c("b1","b2","b3","b4","b5","b6","b7",
+#'                          "b8","b9","b10","b11","b12","b13", "group")]
 #'
-#'   mydat <- ex3.dag.data ## this data comes with abn see ?ex3.dag.data
+#' mydists <- list(b1="binomial", b2="binomial", b3="binomial",
+#'                 b4="binomial", b5="binomial", b6="binomial", b7="binomial",
+#'                 b8="binomial", b9="binomial", b10="binomial",b11="binomial",
+#'                 b12="binomial", b13="binomial" )
+#' max.par <- 2
 #'
-#'   mydists <- list(b1="binomial", b2="binomial", b3="binomial",
-#'                   b4="binomial", b5="binomial", b6="binomial", b7="binomial",
-#'                   b8="binomial", b9="binomial", b10="binomial",b11="binomial",
-#'                   b12="binomial", b13="binomial" )
-#'   max.par <- 2
+#' ## in this example INLA is used as default since these are glmm nodes
+#' ## when running this at node-parent combination 71 the default accuracy check on the
+#' ## INLA modes is exceeded (default is a max. of 10 percent difference from
+#' ## modes estimated using internal code) and a message is given that internal code
+#' ## will be used in place of INLA's results.
 #'
-#'   ## in this example INLA is used as default since these are glmm nodes
-#'   ## when running this at node-parent combination 71 the default accuracy check on the
-#'   ## INLA modes is exceeded (default is a max. of 10 percent difference from
-#'   ## modes estimated using internal code) and a message is given that internal code
-#'   ## will be used in place of INLA's results.
+#' mycache.bayes <- buildScoreCache(data.df=mydat,
+#'                                  data.dists=mydists,
+#'                                  group.var="group",
+#'                                  method = "bayes",
+#'                                  max.parents=max.par)
+#' dag.bayes <- mostProbable(score.cache=mycache.bayes)
+#' plot(dag.bayes)
 #'
-#'   # mycache <- buildScoreCache(data.df=mydat, data.dists=mydists, group.var="group",
-#'   #                         cor.vars=c("b1","b2","b3","b4","b5","b6","b7",
-#'   #                                    "b8","b9","b10","b11","b12","b13"),
-#'   #                         max.parents=max.par, which.nodes=c(1))
+#' mycache.mle <- buildScoreCache(data.df=mydat,
+#'                                data.dists=mydists,
+#'                                group.var="group",
+#'                                method = "mle",
+#'                                max.parents=max.par)
+#' dag.mle <- mostProbable(score.cache=mycache.mle)
+#' plot(dag.mle)
 #' }
 #'
 #' @keywords models

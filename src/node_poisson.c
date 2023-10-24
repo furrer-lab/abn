@@ -356,7 +356,7 @@ void calc_poisson_marginal(network *dag, datamatrix *obsdata, int nodeid,  int v
 
    gparams.inits_adj=0.1;  /* added RF 21042022, addressing valgrind issue */
 
-   
+
    /** generate initial estimates for the remaining variable - not the posterior variable **/
    generate_inits_n_pois(myBeta,&gparams);
 
@@ -717,7 +717,7 @@ int generate_inits_n_pois(gsl_vector *myBeta,struct fnparams *gparams){
        gsl_matrix *mattmp4 = gparams->mattmp4;/** p x p **/
        gsl_vector *vectmp1long = gparams->vectmp1long;/** scratch space **/
        gsl_permutation *perm = gparams->perm;
-       double adj=gparams->inits_adj;/** help with initial guess - an offset */
+       // double adj=gparams->inits_adj;/** help with initial guess - an offset */
 
      unsigned int i;
      int ss;
@@ -743,7 +743,7 @@ int generate_inits_n_pois(gsl_vector *myBeta,struct fnparams *gparams){
       for(i=0;i<Y->size;i++){gsl_vector_set(vectmp1long,i,log(gsl_vector_get(Y,i)+0.1));} /** NOTE -  +1.0 or 0.1 give different reliablity*/
     /*    for(i=0;i<vectmp1long->size;i++){gsl_vector_set(vectmp1long,i,log(gsl_vector_get(Y,i)+adj));} * NOTE -  +1.0 or 0.1 give different reliablity*/
 
-    
+
     gsl_blas_dgemv (CblasTrans, 1.0, X, vectmp1long, 0.0, vectmp1); /** X^T Y */
     gsl_blas_dgemv (CblasNoTrans, 1.0, mattmp4, vectmp1, 0.0, vectmp2);
              for(i=0;i<myBeta->size;i++){

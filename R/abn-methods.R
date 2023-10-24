@@ -213,7 +213,7 @@ plot.abnHillClimber <- function(x, new=TRUE, ...){
 print.abnMostprobable <- function(x, digits = 3L, ...){
 
   print(x$dag, digits = digits)
-  cat("Consensus DAG from 'mostprobable', can be use with 'fitabn'.\n")
+  cat("Consensus DAG from 'mostprobable', can be use with 'fitAbn'.\n")
   invisible(x)
 }
 

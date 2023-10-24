@@ -45,48 +45,51 @@
 #' ## On a typical linux system the following code constructs a nice
 #' ## looking pdf file 'graph.pdf'.
 #' \dontrun{
-#'   ## Subset of a build-in dataset
-#'   mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
+#' ## Subset of a build-in dataset
+#' mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
 #'
-#'   ## setup distribution list for each node
-#'   mydists <- list(b1="binomial", b2="binomial", b3="binomial",
-#'                   g1="gaussian", b4="binomial", p2="poisson",
-#'                   p4="poisson")
-#'   ## specify DAG model
-#'   mydag <- matrix(c(   0,1,0,0,1,0,0, #
-#'                        0,0,0,0,0,0,0, #
-#'                        0,1,0,0,1,0,0, #
-#'                        1,0,0,0,0,0,1, #
-#'                        0,0,0,0,0,0,0, #
-#'                        0,0,0,1,0,0,0, #
-#'                        0,0,0,0,1,0,0  #
-#'   ), byrow=TRUE, ncol=7)
+#' ## setup distribution list for each node
+#' mydists <- list(b1="binomial", b2="binomial", b3="binomial",
+#'                 g1="gaussian", b4="binomial", p2="poisson",
+#'                                 p4="poisson")
+#' ## specify DAG model
+#' mydag <- matrix(c(   0,1,0,0,1,0,0, #
+#'                      0,0,0,0,0,0,0, #
+#'                      0,1,0,0,1,0,0, #
+#'                      1,0,0,0,0,0,1, #
+#'                      0,0,0,0,0,0,0, #
+#'                      0,0,0,1,0,0,0, #
+#'                      0,0,0,0,1,0,0  #
+#' ), byrow=TRUE, ncol=7)
 #'
-#'   colnames(mydag) <- rownames(mydag) <- names(mydat)
+#' colnames(mydag) <- rownames(mydag) <- names(mydat)
 #'
-#'   ## create file for processing with graphviz
-#'   outfile <- paste(tempdir(), "graph.dot", sep="/")
-#'   toGraphviz(dag=mydag, data.df=mydat, data.dists=mydists, outfile=outfile)
-#'   ## and then process using graphviz tools e.g. on linux
-#'   # system(paste( "dot -Tpdf -o graph.pdf", outfile))
-#'   # system("evince graph.pdf")
+#' ## create file for processing with graphviz
+#' outfile <- paste(tempdir(), "graph.dot", sep="/")
+#' toGraphviz(dag=mydag, data.df=mydat, data.dists=mydists, outfile=outfile)
+#' ## and then process using graphviz tools e.g. on linux
+#' if(Sys.info()[["sysname"]] == "Linux" && interactive()) {
+#'   system(paste( "dot -Tpdf -o graph.pdf", outfile))
+#'   system("evince graph.pdf")
+#' }
+#' ## Example using data with a group variable  where b1<-b2
+#' mydag <- matrix(c(0,1, 0,0), byrow=TRUE, ncol=2)
 #'
-#'   ## Example using data with a group variable  where b1<-b2
-#'   mydag <- matrix(c(0,1, 0,0), byrow=TRUE, ncol=2)
+#' colnames(mydag) <- rownames(mydag) <- names(ex3.dag.data[,c(1,2)])
+#' ## specific distributions
+#' mydists <- list(b1="binomial", b2="binomial")
 #'
-#'   colnames(mydag) <- rownames(mydag) <- names(ex3.dag.data[,c(1,2)])
-#'   ## specific distributions
-#'   mydists <- list(b1="binomial", b2="binomial")
-#'
-#'   ## create file for processing with graphviz
-#'   outfile <- paste0(tempdir(), "/graph.dot")
-#'   toGraphviz(dag=mydag, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,
-#'              group.var="group",
-#'              outfile=outfile, directed=FALSE)
-#'   ## and then process using graphviz tools e.g. on linux:
-#'   # pdffile <- paste0(tempdir(), "/graph.pdf")"
-#'   # system(paste("dot -Tpdf -o ", pdffile, outfile))
-#'   # system(paste("evince ", pdffile, " &")   ## or some other viewer
+#' ## create file for processing with graphviz
+#' outfile <- paste0(tempdir(), "/graph.dot")
+#' toGraphviz(dag=mydag, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,
+#'            group.var="group",
+#'            outfile=outfile, directed=FALSE)
+#' ## and then process using graphviz tools e.g. on linux:
+#' if(Sys.info()[["sysname"]] == "Linux" && interactive()) {
+#'   pdffile <- paste0(tempdir(), "/graph.pdf")
+#'   system(paste("dot -Tpdf -o ", pdffile, outfile))
+#'   system(paste("evince ", pdffile, " &"))   ## or some other viewer
+#' }
 #' }
 toGraphviz <- function(dag, data.df=NULL, data.dists=NULL, group.var=NULL, outfile=NULL, directed=TRUE, verbose=FALSE){
   if (inherits(dag, "abnFit")){

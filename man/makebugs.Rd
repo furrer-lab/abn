@@ -22,6 +22,7 @@ Bugs model returned as stdout.
 Make BUGS model from fitted DAG
 }
 \examples{
+## Prepare data and arguments
 mydists <- list(a="gaussian",
                 b="multinomial",
                 c="binomial",
@@ -48,6 +49,9 @@ mycoefs <- list("a"=matrix(-6.883383e-17, byrow = TRUE,
                            dimnames = list(c(NULL),
                                       c("d|intercept", "c"))))
 mymse <- c("a"=0,"b"=1,"c"=2,"d"=3)
+## Make BUGS model
+makebugs(dag = mydag, data.dists = mydists, coefs = mycoefs, stderrors = mymse)
+
 }
 \seealso{
 \link{simulateAbn} \link{gauss_bugs} \link{bern_bugs} \link{categorical_bugs} \link{pois_bugs}

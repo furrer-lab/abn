@@ -367,6 +367,7 @@ test_that("buildScoreCache() works with all distributions", {
 })
 
 test_that("buildScoreCache() computes in parallel", {
+  skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4 (https://github.com/lme4/lme4/issues/627)
   df <- FCV[, c(11:15)]
   mydists <- list(Pedigree="binomial",
                   Outdoor="binomial",

@@ -9,4 +9,7 @@
 library(testthat)
 library(abn)
 
+require(RhpcBLASctl)
+omp_set_num_threads(2)
+
 test_check("abn")

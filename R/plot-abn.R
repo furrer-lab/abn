@@ -90,11 +90,22 @@
 #' names(edgelty) <- names( graph::edgeRenderInfo(tmp, "col"))
 #' graph::edgeRenderInfo(tmp) <- list(lty=edgelty)
 #' Rgraphviz::renderGraph(tmp)
-plotAbn <- function(dag, data.dists=NULL, markov.blanket.node=NULL,
-                    fitted.values=NULL, digits=2, edge.strength=NULL, edge.strength.lwd=5,
-                    edge.direction="pc", edge.color="black", edge.linetype="solid", edge.arrowsize=0.6, edge.fontsize=node.fontsize,
-                    node.fontsize=12, node.fillcolor=c("lightblue","brown3","chartreuse3"),
-                    node.fillcolor.list=NULL, node.shape=c("circle","box","ellipse","diamond"),
+plotAbn <- function(dag,
+                    data.dists=NULL,
+                    markov.blanket.node=NULL,
+                    fitted.values=NULL,
+                    digits=2,
+                    edge.strength=NULL,
+                    edge.strength.lwd=5,
+                    edge.direction="pc",
+                    edge.color="black",
+                    edge.linetype="solid",
+                    edge.arrowsize=0.6,
+                    edge.fontsize=node.fontsize,
+                    node.fontsize=12,
+                    node.fillcolor=c("lightblue","brown3","chartreuse3"),
+                    node.fillcolor.list=NULL,
+                    node.shape=c("circle","box","ellipse","diamond"),
                     plot=TRUE , ... )       {
 
     # Actually, the plot argument is wrong! i do not need the adjacency structure only. I need all but the plotting. i.e., all but the rendering of the graph.
@@ -179,26 +190,105 @@ plotAbn <- function(dag, data.dists=NULL, markov.blanket.node=NULL,
     }
 
     names.edges <- names(Rgraphviz::buildEdgeList(am.graph))
-
     ## =============== Fitted values ===============
     ## Plot the fitted values in abn as edges label
-#    print(names.edges)
     if (!is.null(fitted.values)) {
         space <- "   "
         edge.label <- c()
         for (i in 1:length(fitted.values)) {
-            if ((length(fitted.values[[i]]) > 1)& (data.dists[names(fitted.values)[i]] != "gaussian")) {
-                for (j in 1:(length(fitted.values[[i]]) - 1))
-                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][j + 1], digits=digits)))
-            } else if ((length(fitted.values[[i]]) > 2)& (data.dists[names(fitted.values)[i]] == "gaussian")){
-                for (j in 1:(length(fitted.values[[i]]) - 2))
-                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][j + 1], digits=digits)))
+            if ((length(fitted.values[[i]]) > 1)& !(data.dists[names(fitted.values)[i]] %in% c("gaussian", "multinomial"))) {
+              # If data distribution is binomial or poisson:
+              # get parent names
+              parent.names <- names(which(dag[i,] == 1))
+              # iterate over all parents
+              p <- 1
+              while (p <= length(parent.names)){
+                # If no parents, skip this.
+                # if parent is multinomial
+                if (data.dists[parent.names[p]] == "multinomial"){
+                  # get the number of categories of the parent
+                  ncat <- sum(stringi::stri_detect(str = colnames(fitted.values[[parent.names[p]]]), fixed = "intercept"))+1
+                  # iterate over all fitted.values[[i]] corresponding to the parent categories
+                  # extract the values of the respective categories
+                  fitted.values_cat <- fitted.values[[i]][stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0("^", parent.names[p]))]
+                  # extract the labels of the respective categories
+                  fitted.values_cat_labels <- colnames(fitted.values[[i]])[stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0("^", parent.names[p]))]
+                  # paste the labels and the values together
+                  parent_catlabels <- c()
+                  for (k in 1:length(fitted.values_cat)){
+                    parent_catlabels <- c(parent_catlabels, paste(fitted.values_cat_labels[k], signif(fitted.values_cat[k], digits = digits), sep = ": "))
+                  }
+                  parent_catlabels <- paste(stringi::stri_flatten(str = parent_catlabels, collapse = "\n"))
+                  # add it to the edge.label
+                  edge.label <- c(edge.label, paste(parent_catlabels))
+                } else if (data.dists[parent.names[p]] != "multinomial"){
+                  # if parent is not multinomial
+                  # Workaround because the output of "bayes" and "mle" differ a little
+                  if (!is.null(names(fitted.values[[i]]))) {
+                    # "bayes" output has names because it's an array
+                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][stringi::stri_detect(str = names(fitted.values[[i]]), regex = paste0(parent.names[p], "$"))], digits=digits)))
+                  } else {
+                    # "mle" output has colnames because it's a matrix
+                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0(parent.names[p], "$"))], digits=digits)))
+                  }
+                }
+                p <- p+1
+              }
+            } else if ((length(fitted.values[[i]]) > 1)& (data.dists[names(fitted.values)[i]] == "gaussian")){
+              # get parent names
+              parent.names <- names(which(dag[i,] == 1))
+              # iterate over all parents
+              p <- 1
+              while (p <= length(parent.names)){
+                # If no parents, skip this.
+                # if parent is multinomial
+                if (data.dists[parent.names[p]] == "multinomial"){
+                    # get the number of categories of the parent
+                    ncat <- sum(stringi::stri_detect(str = colnames(fitted.values[[parent.names[p]]]), fixed = "intercept"))+1
+                    # iterate over all fitted.values[[i]] corresponding to the parent categories
+                    # extract the values of the respective categories
+                    fitted.values_cat <- fitted.values[[i]][stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0("^", parent.names[p]))]
+                    # extract the labels of the respective categories
+                    fitted.values_cat_labels <- colnames(fitted.values[[i]])[stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0("^", parent.names[p]))]
+                    # paste the labels and the values together
+                    parent_catlabels <- c()
+                    for (k in 1:length(fitted.values_cat)){
+                      parent_catlabels <- c(parent_catlabels, paste(fitted.values_cat_labels[k], signif(fitted.values_cat[k], digits = digits), sep = ": "))
+                    }
+                    parent_catlabels <- paste(stringi::stri_flatten(str = parent_catlabels, collapse = "\n"))
+                    # add it to the edge.label
+                    edge.label <- c(edge.label, paste(parent_catlabels))
+                } else if (data.dists[parent.names[p]] != "multinomial"){
+                # if parent is not multinomial do as always
+                  # Workaround because the output of "bayes" and "mle" differ a little
+                  if (!is.null(names(fitted.values[[i]]))) {
+                    # "bayes" output has names because it's an array
+                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][stringi::stri_detect(str = names(fitted.values[[i]]), regex = paste0(parent.names[p], "$"))], digits=digits)))
+                  } else {
+                    # "mle" output has colnames because it's a matrix
+                    edge.label <- c(edge.label, paste(space, signif(fitted.values[[i]][stringi::stri_detect(str = colnames(fitted.values[[i]]), regex = paste0(parent.names[p], "$"))], digits=digits)))
+                  }
+                }
+                p <- p+1
+              }
+            } else if ((length(fitted.values[[i]]) > 1)& (data.dists[names(fitted.values)[i]] == "multinomial")){
+              # number of categories of node i
+              ncat <- sum(stringi::stri_detect(str = colnames(fitted.values[[i]]), fixed = "intercept"))+1
+                for (j in 1:(ncat-1)-1){
+                  # iterate over all parents of node i
+                  catlabels <- c()
+                  for (k in seq(ncat+j, length(fitted.values[[i]]), ncat-1)){
+                    # iterate over all categories of node i with respect to the parent j
+                    catlabels <- c(catlabels, paste(colnames(fitted.values[[i]])[k], signif(fitted.values[[i]][k], digits=digits), sep = ": "))
+                  }
+                  edge.label <- c(edge.label, paste(stringi::stri_flatten(str = catlabels, collapse = "\n")))
+                }
             }
         }
-    } else  edge.label <- rep(" ", length(names.edges))
+    } else {
+      edge.label <- rep(" ", length(names.edges))
+    }
     names(edge.label) <- names.edges
-
-
     ## =================== Arc Strength ===================
     ## Arc strength: plot the AS of the dag arcs
 #    if (is.matrix(edge.strength) & (edge.direction != "undirected")) {

@@ -1,4 +1,3 @@
-
 #! /bin/sh
 for f in ./config.*; do
 rm -f $f
@@ -6,7 +5,20 @@ done
 if [ -e src/Makevars ]; then
 rm -f src/Makevars
 fi
+if [ -e src/Makedeps ]; then
+rm -f src/Makedeps
+fi
+if [ -e autom4te.cache ]; then
+rm -rf autom4te.cache
+fi
+for f in src/*.o ]; do
+rm -f $f
+done
+for f in src/*.so ]; do
+rm -f $f
+done
+rm -f *~ */*~
 rm -f model.bug R/model.bug
 rm -f graph.pdf R/graph.pdf
+rm -f Rplots.pdf */Rplots.pdf */Rplots*.pdf
 exit 0
- 

@@ -41,8 +41,8 @@ visualizing the edge connections in a Bayesian Network learned from observationa
 }
 \details{
 This function returns multiple proxies for estimating the connection strength
-of the edges of a possibly discretized Bayesian network's dataset.
-The retuned connection strength measures are: the Raw Mutual Information
+of the edges of a possibly discretized Bayesian network's data set.
+The returned connection strength measures are: the Raw Mutual Information
 (\code{mi.raw}), the Percentage Mutual information (\code{mi.raw.pc}),
 the Raw Mutual Information computed via correlation (\code{mi.corr}),
 the link strength (\code{ls}), the percentage link strength (\code{ls.pc})

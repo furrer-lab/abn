@@ -2,6 +2,13 @@
 -- ChangeLog - abn --
 ---------------------------
 
+2023-10-23 Matteo Delucchi (version 3.0.2)
+  * Temporarily fixed tests on CRAN for multithreading.
+  * Replaced README.md file.
+  * Fixed bug in plotAbn() causing non-sensical edge labels.
+  * New CoC and Licence files.
+  * Updated examples in documentation.
+
 2023-09-29 Matteo Delucchi (version 3.0.1)
   * Patched memory access error in source code.
   * Fixed reverse dependency to `mcmcabn()`.
