@@ -22,23 +22,23 @@ if the DAG is given via a formula statement.}
 \item{checkDAG}{should the DAGs be tested for DAGs (default).}
 }
 \value{
-\itemize{
-\item{\code{TP}} {True Positive}
-\item{\code{TN}} {True Negative}
-\item{\code{FP}} {False Positive}
-\item{\code{FN}} {False Negative}
-\item{\code{CP}} {Condition Positive (ref)}
-\item{\code{CN}} {Condition Negative (ref)}
-\item{\code{PCP}} {Predicted Condition Positive (test)}
-\item{\code{PCN}} {Predicted Condition Negative (test)}
-\item{\code{True Positive Rate}} {\deqn{=\frac{\sum TP}{\sum CP}}{=\frac{\sum TP}{\sum CP}}}
-\item{\code{False Positive Rate}} {\deqn{=\frac{\sum FP}{\sum CN}}{=\frac{\sum FP}{\sum CN}}}
-\item{\code{Accuracy}} {\deqn{=\frac{\sum TP + \sum TN}{Total population}}{=\frac{\sum TP + \sum TN}{Total population}}}
-\item{\code{G-measure}} {\deqn{\sqrt {{\frac {TP}{TP+FP}}\cdot {\frac {TP}{TP+FN}}}}{\sqrt {{\frac {TP}{TP+FP}}\cdot {\frac {TP}{TP+FN}}}}}
-\item{\code{F1-Score}} {\deqn{\frac{2 \sum TP}{2 \sum TP + \sum FN + \sum FP}}{\frac{2 \sum TP}{2 \sum TP + \sum FN + \sum FP}}}
-\item{\code{Positive Predictive Value}} {\deqn{\frac{\sum TP}{\sum PCP}}{\frac{\sum TP}{\sum PCP}}}
-\item{\code{False Ommision Rate}} {\deqn{\frac{\sum FN}{\sum PCN}}{\frac{\sum FN}{\sum PCN}}}
-\item{\code{Hamming-Distance}} {Number of changes needed to match the matrices.}
+\describe{
+\item{\code{TP}}{True Positive}
+\item{\code{TN}}{True Negative}
+\item{\code{FP}}{False Positive}
+\item{\code{FN}}{False Negative}
+\item{\code{CP}}{Condition Positive (ref)}
+\item{\code{CN}}{Condition Negative (ref)}
+\item{\code{PCP}}{Predicted Condition Positive (test)}
+\item{\code{PCN}}{Predicted Condition Negative (test)}
+\item{\code{True Positive Rate}}{\deqn{=\frac{\sum TP}{\sum CP}}{=\frac{\sum TP}{\sum CP}}}
+\item{\code{False Positive Rate}}{\deqn{=\frac{\sum FP}{\sum CN}}{=\frac{\sum FP}{\sum CN}}}
+\item{\code{Accuracy}}{\deqn{=\frac{\sum TP + \sum TN}{Total population}}{=\frac{\sum TP + \sum TN}{Total population}}}
+\item{\code{G-measure}}{\deqn{\sqrt {{\frac {TP}{TP+FP}}\cdot {\frac {TP}{TP+FN}}}}{\sqrt {{\frac {TP}{TP+FP}}\cdot {\frac {TP}{TP+FN}}}}}
+\item{\code{F1-Score}}{\deqn{\frac{2 \sum TP}{2 \sum TP + \sum FN + \sum FP}}{\frac{2 \sum TP}{2 \sum TP + \sum FN + \sum FP}}}
+\item{\code{Positive Predictive Value}}{\deqn{\frac{\sum TP}{\sum PCP}}{\frac{\sum TP}{\sum PCP}}}
+\item{\code{False Ommision Rate}}{\deqn{\frac{\sum FN}{\sum PCN}}{\frac{\sum FN}{\sum PCN}}}
+\item{\code{Hamming-Distance}}{Number of changes needed to match the matrices.}
 }
 }
 \description{

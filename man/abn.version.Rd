@@ -11,14 +11,14 @@ abn.version(what = c("abn", "system"))
 }
 \value{
 \code{abn.version(what = "system")} is a list with character-string components
-\itemize{
+\describe{
 \item{R}{\code{R.version.string}}
 \item{abn}{essentially \code{abn.version$version.string}}
 \item{GSL, JAGS, INLA}{version numbers thereof}
 }
 
 \code{abn.version(what = "abn")} is a list with character-string components
-\itemize{
+\describe{
 \item{status}{the status of the version (e.g., \code{"beta"})}
 \item{major}{the major version number}
 \item{minor}{the minor version number}

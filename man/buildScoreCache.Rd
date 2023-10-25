@@ -137,21 +137,21 @@ buildScoreCache.mle(
 }
 \value{
 A named list of class \code{abnCache}.
-\itemize{
-\item{\code{children}} {a vector of the child node indexes (from 1) corresponding to the columns in data.df (ignoring any grouping variable)}
-\item{\code{node.defn}} {a matrix giving the parent combination}
-\item{\code{mlik}} {log marginal likelihood value for each node combination. If the model cannot be fitted then NA is returned. }
-\item{\code{error.code}} {if non-zero then either the root finding algorithm (glm nodes) or the maximisation algorithm (glmm nodes) terminated in an unusual way suggesting a possible unreliable result, or else the finite difference hessian estimation produced and error or warning (glmm nodes). NULL if \code{method="mle"}.}
-\item{\code{error.code.desc}} {a textual description of the \code{error.code}. NULL if \code{method="mle"}}
-\item{\code{hessian.accuracy}} {An estimate of the error in the final mlik value for each parent combination - this is the absolute difference between two different adaptive finite difference rules where each computes the mlik value. NULL if \code{method="mle"}}
-\item{\code{data.df}} {a version of the original data (for internal use only in other functions such as \code{\link{mostProbable}}).}
-\item{\code{data.dists}} {the named list of nodes distributions (for internal use only in other functions such as \code{\link{mostProbable}}).}
-\item{\code{max.parents}} {the maximum number of parents (for internal use only in other functions such as \code{\link{mostProbable}}).}
-\item{\code{dag.retained}} {the matrix encoding the retained arcs (for internal use only in other functions such as \code{\link{searchHeuristic}}).}
-\item{\code{dag.banned}} {the matrix encoding the banned arcs (for internal use only in other functions such as \code{\link{searchHeuristic}}).}
-\item{\code{aic}} {aic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
-\item{\code{bic}} {bic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
-\item{\code{mdl}} {mdl value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
+\describe{
+\item{\code{children}}{a vector of the child node indexes (from 1) corresponding to the columns in data.df (ignoring any grouping variable)}
+\item{\code{node.defn}}{a matrix giving the parent combination}
+\item{\code{mlik}}{log marginal likelihood value for each node combination. If the model cannot be fitted then NA is returned. }
+\item{\code{error.code}}{if non-zero then either the root finding algorithm (glm nodes) or the maximisation algorithm (glmm nodes) terminated in an unusual way suggesting a possible unreliable result, or else the finite difference hessian estimation produced and error or warning (glmm nodes). NULL if \code{method="mle"}.}
+\item{\code{error.code.desc}}{a textual description of the \code{error.code}. NULL if \code{method="mle"}}
+\item{\code{hessian.accuracy}}{An estimate of the error in the final mlik value for each parent combination - this is the absolute difference between two different adaptive finite difference rules where each computes the mlik value. NULL if \code{method="mle"}}
+\item{\code{data.df}}{a version of the original data (for internal use only in other functions such as \code{\link{mostProbable}}).}
+\item{\code{data.dists}}{the named list of nodes distributions (for internal use only in other functions such as \code{\link{mostProbable}}).}
+\item{\code{max.parents}}{the maximum number of parents (for internal use only in other functions such as \code{\link{mostProbable}}).}
+\item{\code{dag.retained}}{the matrix encoding the retained arcs (for internal use only in other functions such as \code{\link{searchHeuristic}}).}
+\item{\code{dag.banned}}{the matrix encoding the banned arcs (for internal use only in other functions such as \code{\link{searchHeuristic}}).}
+\item{\code{aic}}{aic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
+\item{\code{bic}}{bic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
+\item{\code{mdl}}{mdl value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
 }
 
 list

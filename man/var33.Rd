@@ -8,7 +8,7 @@
 A data frame with a mixture of discrete variables each of which is
 set as a factor and continuous variables.
 Joint distribution structure used to generate the data.
-\itemize{
+\describe{
 \item{v1}{Binary, independent. }
 \item{v2}{Gaussian, conditionally dependent upon v1. }
 \item{v3}{Binary, independent. }

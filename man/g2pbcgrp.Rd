@@ -6,12 +6,13 @@
 \title{Toy Data Set for Examples in README}
 \format{
 A data frame with six columns. Binary and categorical variables are factors.
-\itemize{
+\describe{
 \item{G1}{gaussian}
 \item{P}{poisson}
 \item{B}{binomial}
 \item{C}{categorical}
 \item{G2}{gaussian}
+\item{group}{categorical}
 }
 }
 \usage{

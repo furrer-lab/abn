@@ -10,7 +10,7 @@ The relevant formulas are given below (note these do not give parameter
 estimates just the form of the relationships, e.g. logit()=1 means a logit
 link function and comprises of only an intercept term).
 
-\itemize{
+\describe{
 \item{b1}{binary, logit()=1 }
 \item{b2}{binary, logit()=1 }
 \item{b3}{binary, logit()=1 }

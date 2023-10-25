@@ -6,7 +6,7 @@
 \title{Dataset related to diseases present in `finishing pigs', animals about to enter the human food chain at an abattoir.}
 \format{
 A data frame with a mixture of 10 discrete variables, each of which is set as a factor, and a grouping variable.
-\itemize{
+\describe{
 \item{PC}{Binary.}
 \item{PT}{Binary. }
 \item{MS}{Binary.}

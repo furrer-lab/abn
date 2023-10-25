@@ -7,7 +7,7 @@
 formula_abn(f, name)
 }
 \description{
-Internal function that produce a square matrix length(name) with {0,1} depending on f.
+Internal function that produce a square matrix length(name) with \eqn{0,1} depending on f.
 f have to start with ~ terms are entries of name terms are separated by + term1 | term2 indicates
 col(term1) row(term2) puts a 1 term1 | term2:term3: ... : is used as a sep . = all terms in name
 }

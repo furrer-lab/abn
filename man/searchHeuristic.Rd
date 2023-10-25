@@ -35,7 +35,7 @@ searchHeuristic(score.cache, score = "mlik",
 }
 \value{
 An object of class \code{abnHeuristic} (which extends the class \code{abnLearnd}) and contains list with entires:
-\itemize{
+\describe{
 \item{dags}{a list of DAGs}
 \item{scores}{a vector giving the network score for the locally optimal network for each search}
 \item{detailed.score}{a vector giving the evolution of the network score for the all the random restarts}

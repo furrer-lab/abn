@@ -6,7 +6,7 @@
 \title{Valdiation data set for use with abn library examples}
 \format{
 A data frame with eight columns. Binary variables are factors
-\itemize{
+\describe{
 \item{p1}{count}
 \item{g1}{continuous}
 \item{g2}{continuous}

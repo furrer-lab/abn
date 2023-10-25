@@ -9,7 +9,7 @@ A data frame, binary variables are factors.
 The relevant formulas are given below (note these do not give parameter
 estimates just the form of the relationships, e.g. logit()=1
 means a logit link function and comprises of only an intercept term).
-\itemize{
+\describe{
 \item{b1}{binary,logit()=1+g1+b2+b3+p3+b4+g4+b5}
 \item{g1}{gaussian,identity()=1}
 \item{p1}{poisson,log()=1+g6}

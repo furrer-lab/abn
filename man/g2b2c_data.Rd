@@ -6,7 +6,7 @@
 \title{Toy Data Set for Examples in README}
 \format{
 A data frame with five columns. Binary and categorical variables are factors.
-\itemize{
+\describe{
 \item{G1}{gaussian}
 \item{B1}{binomial}
 \item{B2}{binomial}

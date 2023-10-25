@@ -6,7 +6,7 @@
 \title{Valdiation data set for use with abn library examples}
 \format{
 A data frame, binary variables are factors
-\itemize{
+\describe{
 \item{b1}{binary}
 \item{b2}{binary}
 \item{group}{factor, defines sampling groups}

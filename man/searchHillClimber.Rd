@@ -32,7 +32,7 @@ select the structure. Currently \code{'mlik'} only.}
 }
 \value{
 A list with entries:
-\itemize{
+\describe{
 \item{init.score}{a vector giving network score for initial network from which the search commenced}
 \item{final.score}{a vector giving the network score for the locally optimal network}
 \item{init.dag}{list of matrices, initial DAGs}

@@ -6,7 +6,7 @@
 \title{Dataset related to average daily growth performance and abattoir findings in pigs commercial production.}
 \format{
 An adapted data frame of the original dataset which  consists of 341 observations of 8 variables and a grouping variable (farm).
-\itemize{
+\describe{
 \item{AR}{presence of atrophic rhinitis.}
 \item{pneumS}{presence of moderate to severe pneumonia.}
 \item{female}{sex of the pig (1=female, 0=castrated). }

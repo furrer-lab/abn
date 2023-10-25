@@ -6,7 +6,7 @@
 \title{Dataset related to Feline calicivirus infection among cats in Switzerland.}
 \format{
 An adapted data frame of the original dataset, which consists of 300 observations of 15 variables.
-\itemize{
+\describe{
 \item{FCV}{Feline Calici Virus status (0/1).}
 \item{FHV_1}{Feline Herpes Virus 1 status (0/1). }
 \item{C_felis}{C-felis and Chlamydia felis status (0/1).}

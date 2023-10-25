@@ -4,7 +4,7 @@
 #' The case study dataset is about growth performance and abattoir findings in pigs commercial production in a selected set of 15 Canadian farms collected in March 1987.
 #' @format
 #' An adapted data frame of the original dataset which  consists of 341 observations of 8 variables and a grouping variable (farm).
-#' \itemize{
+#' \describe{
 #'   \item{AR}{presence of atrophic rhinitis.}
 #'   \item{pneumS}{presence of moderate to severe pneumonia.}
 #'   \item{female}{sex of the pig (1=female, 0=castrated). }
@@ -38,7 +38,7 @@
 #' estimates just the form of the relationships, e.g. logit()=1 means a logit
 #' link function and comprises of only an intercept term).
 #'
-#' \itemize{
+#' \describe{
 #'   \item{b1}{binary, logit()=1 }
 #'   \item{b2}{binary, logit()=1 }
 #'   \item{b3}{binary, logit()=1 }
@@ -121,7 +121,7 @@
 #' estimates just the form of the relationships, like in glm(),
 #' e.g. logit()=1+p1 means a logit link function and comprises of an
 #' intercept term and a term involving p1).
-#' \itemize{
+#' \describe{
 #'   \item{b1}{binary, logit()=1 }
 #'   \item{p1}{poisson, log()=1 }
 #'   \item{g1}{gaussian, identity()=1 }
@@ -160,7 +160,7 @@
 #' The relevant formulas are given below (note these do not give parameter
 #' estimates just the form of the relationships, e.g. logit()=1
 #' means a logit link function and comprises of only an intercept term).
-#' \itemize{
+#' \describe{
 #'   \item{b1}{binary,logit()=1+g1+b2+b3+p3+b4+g4+b5}
 #'   \item{g1}{gaussian,identity()=1}
 #'   \item{p1}{poisson,log()=1+g6}
@@ -251,7 +251,7 @@
 #' 800 observations across with 8 variables, 1 count, 2 binary and 4 continuous, and 1 grouping variable. Real (anonymised) data of unknown structure.
 #' @usage ex6.dag.data
 #' @format A data frame with eight columns. Binary variables are factors
-#' \itemize{
+#' \describe{
 #'   \item{p1}{count}
 #'   \item{g1}{continuous}
 #'   \item{g2}{continuous}
@@ -271,7 +271,7 @@
 #' Real (anonymised) data of unknown structure.
 #' @usage ex7.dag.data
 #' @format A data frame, binary variables are factors
-#' \itemize{
+#' \describe{
 #'   \item{b1}{binary}
 #'   \item{b2}{binary}
 #'   \item{group}{factor, defines sampling groups}
@@ -293,7 +293,7 @@
 #' The data were collected between September 2012 and April 2013.
 #' @usage FCV
 #' @format An adapted data frame of the original dataset, which consists of 300 observations of 15 variables.
-#' \itemize{
+#' \describe{
 #'  \item{FCV}{Feline Calici Virus status (0/1).}
 #'  \item{FHV_1}{Feline Herpes Virus 1 status (0/1). }
 #'  \item{C_felis}{C-felis and Chlamydia felis status (0/1).}
@@ -324,7 +324,7 @@
 #' Further description of the data set is present on the vignette.
 #' @usage pigs.vienna
 #' @format A data frame with a mixture of 10 discrete variables, each of which is set as a factor, and a grouping variable.
-#' \itemize{
+#' \describe{
 #'  \item{PC}{Binary.}
 #'  \item{PT}{Binary. }
 #'  \item{MS}{Binary.}
@@ -358,7 +358,7 @@
 #' @format A data frame with a mixture of discrete variables each of which is
 #' set as a factor and continuous variables.
 #' Joint distribution structure used to generate the data.
-#' \itemize{
+#' \describe{
 #'  \item{v1}{Binary, independent. }
 #'  \item{v2}{Gaussian, conditionally dependent upon v1. }
 #'  \item{v3}{Binary, independent. }
@@ -429,7 +429,7 @@
 #' 1000 observations with 5 variables: 2 continuous, 2 binary and 1 categorical.
 #' @usage g2b2c_data
 #' @format A data frame with five columns. Binary and categorical variables are factors.
-#' \itemize{
+#' \describe{
 #'   \item{G1}{gaussian}
 #'   \item{B1}{binomial}
 #'   \item{B2}{binomial}
@@ -445,12 +445,13 @@
 #' 10000 observations with 6 variables: 2 continuous, 1 binary, 1 count, 1 categorical and 1 grouping factor.
 #' @usage g2pbcgrp
 #' @format A data frame with six columns. Binary and categorical variables are factors.
-#' \itemize{
+#' \describe{
 #'   \item{G1}{gaussian}
 #'   \item{P}{poisson}
 #'   \item{B}{binomial}
 #'   \item{C}{categorical}
 #'   \item{G2}{gaussian}
+#'   \item{group}{categorical}
 #' }
 #'
 #' @keywords datasets

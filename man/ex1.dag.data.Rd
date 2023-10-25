@@ -10,7 +10,7 @@ The relevant formulas are given below (note these do not give parameter
 estimates just the form of the relationships, like in glm(),
 e.g. logit()=1+p1 means a logit link function and comprises of an
 intercept term and a term involving p1).
-\itemize{
+\describe{
 \item{b1}{binary, logit()=1 }
 \item{p1}{poisson, log()=1 }
 \item{g1}{gaussian, identity()=1 }
