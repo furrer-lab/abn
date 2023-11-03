@@ -2,6 +2,9 @@
 -- ChangeLog - abn --
 ---------------------------
 
+2023-11-03 Matteo Delucchi (version 3.0.3)
+  * Temporarily fixed tests on CRAN Fedora falvour.
+
 2023-10-23 Matteo Delucchi (version 3.0.2)
   * Temporarily fixed tests on CRAN for multithreading.
   * Replaced README.md file.

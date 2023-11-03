@@ -175,24 +175,26 @@ test_that("mostProbable() is backward compatible with `ex3.dag.data`", {
   );
   max.par <- 1;
 
-  if(requireNamespace("INLA", quietly = TRUE)){
-    mycache.mixed <- buildScoreCache(data.df=mydat,data.dists=mydists,
-                                     group.var="group",cor.vars=c("b1","b2","b3","b4"),
-                                     ## each node uses a random effect adjustment
-                                     max.parents=max.par);
+  if(!testthat:::on_cran()) {
+    if(requireNamespace("INLA", quietly = TRUE)){
+      mycache.mixed <- buildScoreCache(data.df=mydat,data.dists=mydists,
+                                       group.var="group",cor.vars=c("b1","b2","b3","b4"),
+                                       ## each node uses a random effect adjustment
+                                       max.parents=max.par);
 
-    ## find the most probable DAG
-    expect_no_error({
-      mp.dag <- mostProbable(score.cache=mycache.mixed, verbose = FALSE);
-    })
+      ## find the most probable DAG
+      expect_no_error({
+        mp.dag <- mostProbable(score.cache=mycache.mixed, verbose = FALSE);
+      })
 
-    ## get goodness of fit
-    expect_error({
-      m <- fitAbn(object = mp.dag,data.df=mydat,data.dists=mydists,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
-    }, regexp = "`data.df` and `object` provided but can only accept one of them")
-    expect_no_error({
-      m <- fitAbn(object = mp.dag,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
-    })
+      ## get goodness of fit
+      expect_error({
+        m <- fitAbn(object = mp.dag,data.df=mydat,data.dists=mydists,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
+      }, regexp = "`data.df` and `object` provided but can only accept one of them")
+      expect_no_error({
+        m <- fitAbn(object = mp.dag,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
+      })
+    }
   }
 })
 

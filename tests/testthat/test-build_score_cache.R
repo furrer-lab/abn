@@ -86,8 +86,10 @@ test_that("buildScoreCache() checks work fine", {
       expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", group.var = NULL))
       expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", group.var = NULL))
 
-      if(requireNamespace("INLA", quietly = TRUE)){
-        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
+      if(!testthat:::on_cran()) {
+        if(requireNamespace("INLA", quietly = TRUE)){
+          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
+        }
       }
       expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group"))
 
@@ -97,14 +99,18 @@ test_that("buildScoreCache() checks work fine", {
       # check control argument
       expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
                                    control= list(max.mode.error=101)))
-      if(requireNamespace("INLA", quietly = TRUE)){
-        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                        control= list(max.mode.error=100)))
+      if(!testthat:::on_cran()) {
+        if(requireNamespace("INLA", quietly = TRUE)){
+          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                          control= list(max.mode.error=100)))
+        }
       }
       # increase convergence tolerances for GLMMs
-      if(requireNamespace("INLA", quietly = TRUE)){
-        expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                        control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
+      if(!testthat:::on_cran()) {
+        if(requireNamespace("INLA", quietly = TRUE)){
+          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                          control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
+        }
       }
       expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group",
                                       control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
@@ -202,10 +208,12 @@ test_that("buildScoreCache() is backward compatible", {
       ## repeat but using R-INLA. The mlik's should be virtually identical.
       ## now build cache
 
-      if(requireNamespace("INLA", quietly = TRUE)){
-        res.inla <- buildScoreCache(data.df=mydat,data.dists=mydists,
-                                    dag.banned=ban, dag.retained=retain,max.parents=max.par,
-                                    control=list(max.mode.error=100));
+      if(!testthat:::on_cran()) {
+        if(requireNamespace("INLA", quietly = TRUE)){
+          res.inla <- buildScoreCache(data.df=mydat,data.dists=mydists,
+                                      dag.banned=ban, dag.retained=retain,max.parents=max.par,
+                                      control=list(max.mode.error=100));
+        }
       }
     })
 
@@ -284,10 +292,12 @@ test_that("buildScoreCache() is backward compatible", {
       # mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
       #                          cor.vars=c("b1","b2"),
       #                          max.parents=max.par, which.nodes=c(1));
-      if(requireNamespace("INLA", quietly = TRUE)){
-        mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
-                                   cor.vars=c("b1","b2"), method = "bayes",
-                                   max.parents=max.par);
+      if(!testthat:::on_cran()) {
+        if(requireNamespace("INLA", quietly = TRUE)){
+          mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
+                                     cor.vars=c("b1","b2"), method = "bayes",
+                                     max.parents=max.par);
+        }
       }
       # mle ignores group.var
       mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",

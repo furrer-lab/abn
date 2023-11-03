@@ -4,7 +4,7 @@
 <!-- badges: start -->
 [![pipeline status](https://git.math.uzh.ch/mdeluc/abn/badges/main/pipeline.svg?key_text=R-CMD-check&key_width=90)](https://git.math.uzh.ch/mdeluc/abn/-/commits/main)
 [![coverage report](https://git.math.uzh.ch/mdeluc/abn/badges/main/coverage.svg)](https://git.math.uzh.ch/mdeluc/abn/-/commits/main)
-[![Latest Release](https://git.math.uzh.ch/mdeluc/abn/-/badges/release.svg)](https://git.math.uzh.ch/mdeluc/abn/-/releases)
+[![Latest Release](https://git.math.uzh.ch/mdeluc/abn/-/badges/release.svg)](https://git.math.uzh.ch/mdeluc/abn/-/commits/main)
 ![cran](https://www.r-pkg.org/badges/version-ago/abn) 
 ![downloads](https://cranlogs.r-pkg.org/badges/grand-total/abn) 
 ![LICENCE](https://img.shields.io/cran/l/abn)

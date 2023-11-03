@@ -1,6 +1,6 @@
 Package: abn
-Version: 3.0.2
-Date: 2023-10-23
+Version: 3.0.3
+Date: 2023-11-03
 Title: Modelling Multivariate Data with Additive Bayesian Networks
 Authors@R: 
     c(person(given = "Matteo",
@@ -66,4 +66,4 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.2.2
 Encoding: UTF-8
 NeedsCompilation: yes
-Packaged: 2023-10-25 07:17:53 UTC; root
+Packaged: 2023-11-03 07:54:19 UTC; matteo

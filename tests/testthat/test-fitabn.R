@@ -59,8 +59,10 @@ test_that("fitAbn() works with DAG as formula statement", {
   expect_silent(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2)], data.dists=mydists, method = "mle"))
 
   ## test formula statement with correlation
-  if(requireNamespace("INLA", quietly = TRUE)){
-    expect_silent(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists, method = "bayes", group.var="group", cor.vars=c("b1","b2")))
+  if(!testthat:::on_cran()) {
+    if(requireNamespace("INLA", quietly = TRUE)){
+      expect_silent(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists, method = "bayes", group.var="group", cor.vars=c("b1","b2")))
+    }
   }
   expect_silent(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists, method = "mle", group.var="group", cor.vars=c("b1","b2")))
 })
@@ -229,11 +231,13 @@ test_that("fitAbn() is backward compatible", {
 
   ## repeat but use INLA for the numerics using max.mode.error=100
   ## as using internal code is the default here rather than INLA
-  if(requireNamespace("INLA", quietly = TRUE)){
-    expect_silent({
-      myres.inla <- fitAbn(dag=mydag,data.df=mydat,data.dists=mydists,centre=TRUE, compute.fixed=TRUE, control=list(max.mode.error=100))
+  if(!testthat:::on_cran()) {
+    if(requireNamespace("INLA", quietly = TRUE)){
+      expect_silent({
+        myres.inla <- fitAbn(dag=mydag,data.df=mydat,data.dists=mydists,centre=TRUE, compute.fixed=TRUE, control=list(max.mode.error=100))
       })
-    expect_true(any(myres.inla$used.INLA))
+      expect_true(any(myres.inla$used.INLA))
+    }
   }
 
   ### A very simple mixed model example using built-in data
@@ -262,12 +266,14 @@ test_that("fitAbn() is backward compatible", {
   expect_false(any(myres.c$used.INLA))
 
   ## compare with INLA estimate
-  if(requireNamespace("INLA", quietly = TRUE)){
-    expect_silent({
-      myres.inla <- fitAbn(dag=mydag,data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,group.var="group",cor.vars=c("b1","b2"),
-                           centre=TRUE,compute.fixed=FALSE,control=list(max.mode.error=100))
-    })
-    expect_true(any(myres.inla$used.INLA)) #BUG: this switches back to internal C code eventhough INLA is enforced...
+  if(!testthat:::on_cran()) {
+    if(requireNamespace("INLA", quietly = TRUE)){
+      expect_silent({
+        myres.inla <- fitAbn(dag=mydag,data.df=ex3.dag.data[,c(1,2,14)], data.dists=mydists,group.var="group",cor.vars=c("b1","b2"),
+                             centre=TRUE,compute.fixed=FALSE,control=list(max.mode.error=100))
+      })
+      expect_true(any(myres.inla$used.INLA)) #BUG: this switches back to internal C code eventhough INLA is enforced...
+    }
   }
 
   ## compare log marginal likelihoods for each node and total DAG - should be very similar

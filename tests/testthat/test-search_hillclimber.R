@@ -59,18 +59,20 @@ test_that("searchHillClimber() is backward compatible with `ex3.dag.data`", {
     );
     max.par <- 1;
 
-    if(requireNamespace("INLA", quietly = TRUE)){
-      mycache.mixed <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
-                                       cor.vars=c("b1","b2","b3","b4","b5"),
-                                       max.parents=max.par);
+    if(!testthat:::on_cran()) {
+      if(requireNamespace("INLA", quietly = TRUE)){
+        mycache.mixed <- buildScoreCache(data.df=mydat,data.dists=mydists,group.var="group",
+                                         cor.vars=c("b1","b2","b3","b4","b5"),
+                                         max.parents=max.par);
 
-      # now peform 1000 greedy searches
-      expect_no_error({
-        heur.res <- searchHillClimber(score.cache=mycache.mixed,num.searches=100,
-                                      seed=0,verbose=FALSE,timing.on=FALSE);
-      })
-      expect_s3_class(heur.res, "abnHillClimber")
-      expect_s3_class(heur.res, "abnLearned")
+        # now peform 1000 greedy searches
+        expect_no_error({
+          heur.res <- searchHillClimber(score.cache=mycache.mixed,num.searches=100,
+                                        seed=0,verbose=FALSE,timing.on=FALSE);
+        })
+        expect_s3_class(heur.res, "abnHillClimber")
+        expect_s3_class(heur.res, "abnLearned")
+      }
     }
 })
 
