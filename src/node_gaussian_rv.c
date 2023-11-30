@@ -326,12 +326,14 @@ Rprintf("############ Warning - Priors turned off - use only for checking mlik v
    
    } /** end of error being too large **/
  
-   if(dag->hessianError[nodeid]==DBL_MAX){/** in this case nelder mead could not estimate the hessian error so abort as something is probably
-                                               very wrong here */
-                                          error("");}/** use the R tryCatch rather than the switch for status below **/
-      /*Rprintf("GVALUE=%e nodeid=%d\n",gvalue,nodeid+1);*/
-       /*finitestepsize=1E-04;
-       h_guess=finitestepsize;
+  if(dag->hessianError[nodeid]==DBL_MAX){
+    /** in this case nelder mead could not estimate the hessian error so abort as something is probably
+       very wrong here */
+    error("Hessian error estimation failed.");
+  }
+  /*Rprintf("GVALUE=%e nodeid=%d\n",gvalue,nodeid+1);*/
+  /*finitestepsize=1E-04;
+  h_guess=finitestepsize;
 */
        switch(status){  /** choose which type of node we have */
                      case GSL_SUCCESS:{    
@@ -457,8 +459,14 @@ const gsl_vector *priormean = designdata->priormean;
   tau_resid=gsl_vector_get(betaincTau,betaincTau->size-1);/** extract the tau-precision from *beta - last entry */
   /*Rprintf("g_outer_resid tau=%f\n",tau_resid);*/
   
-  if(tau_rv<0.0){Rprintf("tau_rv negative =%e in g_outer_gaus!\n",tau_rv);error("");}
-  if(tau_resid<0.0){Rprintf("tau_resid negative=%e in g_outer_gaus!\n",tau_resid);error("");}
+  if(tau_rv<0.0){
+    Rprintf("tau_rv negative =%e in g_outer_gaus!\n",tau_rv);
+    error("tau_rv negativ in g_outer_gaus!\n");
+    }
+  if(tau_resid<0.0){
+    Rprintf("tau_resid negative=%e in g_outer_gaus!\n",tau_resid);
+    error("tau_resid negative in g_outer_gaus!");
+    }
   
   /** beta are the parameters values at which the function is to be evaluated **/
        /** gvalue is the return value - a single double */
@@ -581,8 +589,14 @@ int rv_hessg_outer_gaus( gsl_vector* beta, void* params, gsl_matrix* hessgvalues
   F.function = &g_outer_gaus_single;
   F.params = gparams;
   
- if(gsl_vector_get(beta,beta->size-1)<0.0){Rprintf("negative tau_rv in hess %e\n",gsl_vector_get(beta,beta->size-1));error("");}
- if(gsl_vector_get(beta,beta->size-2)<0.0){Rprintf("negative tau_resid in hess %e\n",gsl_vector_get(beta,beta->size-2));error("");}
+ if(gsl_vector_get(beta,beta->size-1)<0.0){
+  Rprintf("negative tau_rv in hess %e\n",gsl_vector_get(beta,beta->size-1));
+  error("negative tau_rv in hess");
+  }
+ if(gsl_vector_get(beta,beta->size-2)<0.0){
+  Rprintf("negative tau_resid in hess %e\n",gsl_vector_get(beta,beta->size-2));
+  error("negative tau_resid in hess");
+  }
  
   /** diagnonal terms d^2f/dx^2 - finite differences - difference between two */
   for(i=0;i<hessgvalues->size1;i++){

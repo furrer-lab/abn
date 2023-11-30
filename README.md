@@ -76,7 +76,7 @@ The argument `group.var` specifies the discrete variable that defines the group 
 
 For example, studying student test scores across different schools, a varying intercept model would allow for the possibility that average test scores (the intercept) might be higher in one school than another due to factors specific to each school. This can be modeled in `abn` with setting the argument `group.var` to the variable containing the school names. The model is then fitted as varying intercept model, where the intercept is allowed to vary across schools but the slope is assumed to be the same for all schools.
 
-Under the frequentist paradigm (`method = "mle"`), `abn` relies on the `lme4` package to fit generalized linear mixed models (GLMMs) for Binomial, Poisson, and Gaussian distributed variables. For multinomial distributed variables, `abn` fits a multinomial baseline category logit model with random effects using the `mclogit` package. Currently only one layer clustering is supported (e.g. for `method = "mle"` this corresponds to a random intercept model)`.
+Under the frequentist paradigm (`method = "mle"`), `abn` relies on the `lme4` package to fit generalized linear mixed models (GLMMs) for Binomial, Poisson, and Gaussian distributed variables. For multinomial distributed variables, `abn` fits a multinomial baseline category logit model with random effects using the `mclogit` package. Currently only one layer clustering is supported (e.g. for `method = "mle"` this corresponds to a random intercept model).
 
 With a Bayesian approach (`method = "bayes"`), `abn` relies on its own implementation of the Laplace approximation and the package `INLA` to fit a single level hierarchical model for Binomial, Poisson, and Gaussian distributed variables. Multinomial distributed variables in general (see Section [Data Types](#data-types)) are not yet implemented with `method = "bayes"`.
 
@@ -136,11 +136,12 @@ print(myfit)
 ### Example 2: Restrict Model Search Space
 
 Based on [example 1](#example-1-basic-usage) we may know that the arc G1->G2 is not possible and that the arc from C -> G2 must be present.
-This "expert knowledge" can be included in the model by banning the arc from b2 to b1 and retaining the arc from g2 to g1.
-The ratain and ban matrices are specified as an adjacency matrix of 0 and 1 entries, where 1 indicates that the arc is banned or retained, respectively. 
+This "expert knowledge" can be included in the model by banning the arc from G1 to G2 and retaining the arc from C to G2.
+
+The retain and ban matrices are specified as an adjacency matrix of 0 and 1 entries, where 1 indicates that the arc is banned or retained, respectively. 
 Row and column names must match the variable names in the data set. 
 The corresponding column is a parent of the variable in the row.
-Each column represent the parents and the rows the children.
+Each column represent the parents and the row the child. E.g. the first row of the ban matrix indicates that G1 is banned as a parent of G2.
 
 Further we may want to restrict the maximum number of parents per node to 2.
 
@@ -221,6 +222,7 @@ print(fit)
 
 Under a Bayesian approach, `abn` automatically switches to the Integrated Nested Laplace Approximation from the [INLA package](https://www.r-inla.org) if the internal Laplace approximation fails to converge. 
 However, we can also force the use of INLA by setting the argument `control=list(max.mode.error=100)`.
+
 The following example shows that the results are very similar and it also shows how to constrain arcs as formula objects and how to specify different parent limits for each node separately.
 
 ``` r

@@ -444,7 +444,10 @@ const gsl_vector *priormean = designdata->priormean;
   tau=gsl_vector_get(betaincTau,n_betas);/** extract the tau-precision from *beta - last entry */
   /*if(tau<0){Rprintf("negative tau in g_outer\n");return(DBL_MAX);}*/
   
-  if(tau<0.0){Rprintf("tau negative in g_outer!\n");error("");}
+  if(tau<0.0){
+    Rprintf("tau negative in g_outer!\n");
+    error("tau negative in g_outer!\n");
+    }
   
   /** beta are the parameters values at which the function is to be evaluated **/
        /** gvalue is the return value - a single double */
@@ -585,7 +588,10 @@ int rv_hessg_pois_outer_marg( gsl_vector* betashort, void* params, gsl_matrix* h
   
   
   gparams->betaincTau=betaincTau;
-  if(gsl_vector_get(betaincTau,betaincTau->size-1)<0.0){Rprintf("negative tau in pois hess marg %e\n",gsl_vector_get(betaincTau,betaincTau->size-1));error("");}
+  if(gsl_vector_get(betaincTau,betaincTau->size-1)<0.0){
+    Rprintf("negative tau in pois hess marg %e\n",gsl_vector_get(betaincTau,betaincTau->size-1));
+    error("negative tau in pois hess marg\n");
+    }
   /*Rprintf("get betaincTau");
   for(i=0;i<gparams->betaincTau->size;i++){Rprintf("%f ",gsl_vector_get(gparams->betaincTau,i));}Rprintf("\n");
   Rprintf("fixed is %d at %f\n",betaindex,betafixed);

@@ -329,11 +329,10 @@ Rprintf("############ Warning - Priors turned off - use only for checking mlik v
    
    } /** end of error being too large **/
  
-   if(dag->hessianError[nodeid]==DBL_MAX){/** in this case nelder mead could not estimate the hessian error so abort as something is probably
-                                               very wrong here */
-                                          error("");}/** use the R tryCatch rather than the switch for status below **/
-                                          
-
+  if (dag->hessianError[nodeid] == DBL_MAX) {
+    /** in this case nelder mead could not estimate the hessian error so abort as something is probably very wrong here */
+    error("Error: Hessian error estimation failed.");
+  }
        switch(status){  /** choose which type of node we have */
                      case GSL_SUCCESS:{    
 		                     /** successful finite diff so now do final computation with the optimal step size **/
@@ -458,8 +457,10 @@ const gsl_vector *priormean = designdata->priormean;
   tau=gsl_vector_get(betaincTau,n_betas);/** extract the tau-precision from *beta - last entry */
   /*Rprintf("g_outer_ tau=%f\n",tau);*/
  
-  if(tau<0.0){Rprintf("tau negative in g_outer!\n");error("");}
-  
+  if(tau < 0.0) {
+    Rprintf("tau negative in g_outer!\n");
+    error("tau negative in g_outer!\n");
+  }
   /** beta are the parameters values at which the function is to be evaluated **/
        /** gvalue is the return value - a single double */
        /** STOP - NEED TO copy betaincTau into shorter beta since last entry is tau = precision */
@@ -572,8 +573,10 @@ int rv_hessg_outer( gsl_vector* beta, void* params, gsl_matrix* hessgvalues,doub
   F.function = &g_outer_single;
   F.params = gparams;
   
- if(gsl_vector_get(beta,beta->size-1)<0.0){Rprintf("negative tau in hess %e\n",gsl_vector_get(beta,beta->size-1));error("");}
- 
+if (gsl_vector_get(beta, beta->size - 1) < 0.0) {
+  Rprintf("negative tau in hess %e\n", gsl_vector_get(beta, beta->size - 1));
+  error("negative tau in hess");
+}
   /** diagnonal terms d^2f/dx^2 - finite differences - difference between two */
   for(i=0;i<hessgvalues->size1;i++){
    for(j=0;j<hessgvalues->size2;j++){

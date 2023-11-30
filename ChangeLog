@@ -2,6 +2,10 @@
 -- ChangeLog - abn --
 ---------------------------
 
+2023-11-03 Matteo Delucchi (version 3.0.4)
+  * Fixed format issues in source code that caused significant warnings with GCC and clang.
+  * Temporary workaround to install the correct versions of INLA dependencies. This will be hopefully fixed in the next release of INLA.
+
 2023-11-03 Matteo Delucchi (version 3.0.3)
   * Temporarily fixed tests on CRAN Fedora falvour.
 

@@ -39,7 +39,6 @@ calc.node.inla.glmm <-
     group.var <-
       names(data.df.loc)[length(names(data.df.loc))]
     ## group variable is always the last column
-
     ## 1. get the formula part of the call - create a string of this
     if (length(which(dag.m.loc[child.loc,-child.loc] == 1)) == 0) {
       ## independent node
@@ -168,7 +167,6 @@ calc.node.inla.glmm <-
 
     ## 7. now run the actual command - parse and eval - is parsed in current scope and so data.df exists here
     eval(parse(text = full.command))
-
 
     if (inherits(r, what = "try-error")) {
       warning(r)

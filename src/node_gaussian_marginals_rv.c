@@ -453,9 +453,15 @@ const gsl_vector *priormean = designdata->priormean;
   /*Rprintf("g_outer_rv tau=%f\n",tau_rv);*/
   tau_resid=gsl_vector_get(betaincTau,betaincTau->size-1);/** extract the tau-precision from *beta - last entry */
   /*Rprintf("g_outer_resid tau=%f\n",tau_resid);*/
-  
-  if(tau_rv<0.0){Rprintf("tau_rv negative in g_outer_gaus!\n");error("");}
-  if(tau_resid<0.0){Rprintf("tau_resid negative in g_outer_gaus!\n");error("");}
+
+  if(tau_rv < 0.0) {
+    Rprintf("tau_rv negative in g_outer_gaus!\n");
+    error("tau_rv negative in g_outer_gaus!");
+  }
+  if(tau_resid < 0.0) {
+    Rprintf("tau_resid negative in g_outer_gaus!\n");
+    error("tau_resid negative in g_outer_gaus!\n");
+  }
   
   /** beta are the parameters values at which the function is to be evaluated **/
        /** gvalue is the return value - a single double */

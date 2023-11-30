@@ -443,9 +443,12 @@ double g_outer_marg_R (int Rn, double *betashortDBL, void *params) /** double g_
   tau=gsl_vector_get(betaincTau,n_betas);/** extract the tau-precision from *beta - last entry */
   /*if(tau<0){Rprintf("negative tau in g_outer\n");return(DBL_MAX);}*/
   
-  if(tau<0.0){Rprintf("tau negative in g_outer!\n");error("");}
+  if(tau < 0.0) {
+    Rprintf("tau negative in g_outer!\n");
+    error("tau negative in g_outer!\n");
+  }
   
-  /** beta are the parameters values at which the function is to be evaluated **/
+  /** beta are the parameter values at which the function is to be evaluated **/
        /** gvalue is the return value - a single double */
        /** STOP - NEED TO copy betaincTau into shorter beta since last entry is tau = precision */
        for(i=0;i<n_betas;i++){gsl_vector_set(beta,i,gsl_vector_get(betaincTau,i));/*Rprintf("passed beta=%f\n",gsl_vector_get(beta,i));*/
@@ -586,11 +589,13 @@ int rv_hessg_outer_marg( gsl_vector* betashort, void* params, gsl_matrix* hessgv
   
   
   gparams->betaincTau=betaincTau;
-  if(gsl_vector_get(betaincTau,betaincTau->size-1)<0.0){Rprintf("negative tau in hess marg %e\n",gsl_vector_get(betaincTau,betaincTau->size-1));error("");}
-  /*Rprintf("get betaincTau");
+  if(gsl_vector_get(betaincTau,betaincTau->size-1)<0.0){
+    Rprintf("negative tau in hess marg %e\n",gsl_vector_get(betaincTau,betaincTau->size-1));
+    error("negative tau in hess marg");
+    }
   for(i=0;i<gparams->betaincTau->size;i++){Rprintf("%f ",gsl_vector_get(gparams->betaincTau,i));}Rprintf("\n");
   Rprintf("fixed is %d at %f\n",betaindex,betafixed);
-  */
+  
   F.function = &g_outer_single;
   F.params = gparams;
   

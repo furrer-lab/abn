@@ -605,20 +605,20 @@ int rv_g_inner_gaus (const gsl_vector *epsilonvec, void *params, double *gvalue)
 
    /*Rprintf("term2=%f epsilon=%f tau_resid=%f\n",term2,epsilon,tau_resid);*/
 
-  *gvalue = (-1.0/n)*(term1 + term2);
-  // Rprintf("\n----\n");
-  // Rprintf("value of n %f \n", n);
-  // Rprintf("value of term1 %f \n", term1);
-  // Rprintf("value of term2 %f \n", term2);
-  // Rprintf("value of gvalue %f \n", gvalue);
-   /*Rprintf("\n----value of term1 %f %f %f----\n",((storedbl1+storedbl2)*(-1/n)),term2,term3); */
-  if(gsl_isnan(*gvalue)){
-    Rprintf("value of n %f \n", n);
-    Rprintf("value of term1 %f \n", term1);
-    Rprintf("value of term2 %f \n", term2);
-    Rprintf("value of gvalue %f \n", gvalue);
-    error("\n oops - got an NAN! in g_rv_g_inner_gaus-----\n");
-}
+    *gvalue = (-1.0/n)*(term1 + term2);
+    // Rprintf("\n----\n");
+    // Rprintf("value of n %f \n", n);
+    // Rprintf("value of term1 %f \n", term1);
+    // Rprintf("value of term2 %f \n", term2);
+    // Rprintf("value of gvalue %f \n", *gvalue);
+     /*Rprintf("\n----value of term1 %f %f %f----\n",((storedbl1+storedbl2)*(-1/n)),term2,term3); */
+    if(gsl_isnan(*gvalue)){
+      Rprintf("value of n %f \n", n);
+      Rprintf("value of term1 %f \n", term1);
+      Rprintf("value of term2 %f \n", term2);
+      Rprintf("value of gvalue %f \n", *gvalue);
+      error("\n oops - got an NAN! in g_rv_g_inner_gaus-----\n");
+  }
 
   return GSL_SUCCESS;
 }

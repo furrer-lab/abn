@@ -436,9 +436,11 @@ int rv_hessg_inner (const gsl_vector *epsilonvec, void *params,gsl_matrix *hessg
            tmp2=-2*log(1+exp(tmp1))-log(n);   
             gsl_vector_set(vectmp2long,i,exp(tmp1+tmp2 ));
 	    
-	  if(gsl_isnan(gsl_vector_get(vectmp2long,i))){error("got nan in hessian tmp2=%f\n");
-	     gsl_vector_set(vectmp2long,i,0.0);/** set to zero since term is then 1/massivenumber */
-	  }
+if(gsl_isnan(gsl_vector_get(vectmp2long,i))){
+  // error("got nan in hessian tmp2=%f\n", (float)gsl_vector_get(vectmp2long,i));
+  error("got nan in hessian\n");
+  gsl_vector_set(vectmp2long,i,0.0);/** set to zero since term is then 1/massivenumber */
+}
                                       }   
    /*for(i=0;i<vectmp2long->size;i++){Rprintf(">%f\n",gsl_vector_get(vectmp2long,i));}*/
   
