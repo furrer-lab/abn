@@ -1,2 +1,0 @@
-PKG_CPPFLAGS = -I$(LIB_GSL)/include
-PKG_LIBS = -L$(LIB_GSL)/lib -lgsl -lgslcblas $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
