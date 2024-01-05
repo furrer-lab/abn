@@ -1,0 +1,18 @@
+Package: abn
+Type: Package
+Title: Modelling Multivariate Data with Additive Bayesian Networks
+Version: 4.0.0-rc
+Date: 2024-01-05
+Author: 
+        Matteo Delucchi [aut, cre] (<https://orcid.org/0000-0002-9327-1496>), 
+        Reinhard Furrer [aut] (<https://orcid.org/0000-0002-6319-2332>), 
+        Gilles Kratzer [aut] (<https://orcid.org/0000-0002-5929-8935>), 
+        Fraser Iain Lewis [aut] (<https://orcid.org/0000-0003-4580-2712>), 
+        Marta Pittavino [ctb] (<https://orcid.org/0000-0002-1232-1034>),
+        Kalina Cherneva [ctb]
+Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
+Description: One paragraph description of what the package does as one or more full sentences.
+BugReports: https://github.com/furrer-lab/abn/issues
+License: GPL (>= 2)
+Imports: Rcpp (>= 1.0.11)
+LinkingTo: Rcpp
