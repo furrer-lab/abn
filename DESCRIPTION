@@ -13,6 +13,6 @@ Author:
 Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
 Description: One paragraph description of what the package does as one or more full sentences.
 BugReports: https://github.com/furrer-lab/abn/issues
-License: GPL (>= 2)
+License: GPL (>= 3)
 Imports: Rcpp (>= 1.0.11)
 LinkingTo: Rcpp
