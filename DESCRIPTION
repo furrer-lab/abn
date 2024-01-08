@@ -1,7 +1,7 @@
 Package: abn
 Type: Package
 Title: Modelling Multivariate Data with Additive Bayesian Networks
-Version: 4.0.0-rc
+Version: 4.0.0.9000
 Date: 2024-01-05
 Author: 
         Matteo Delucchi [aut, cre] (<https://orcid.org/0000-0002-9327-1496>), 
