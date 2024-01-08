@@ -1,1 +1,6 @@
-^\.gitlab-ci\.yml$
+^renv$
+^renv\.lock$
+^LICENSE\.md$
+^.*\.Rproj$
+^\.Rproj\.user$
+^cran-comments\.md$
