@@ -9,6 +9,17 @@
     ]
   },
   "Packages": {
+    "Rcpp": {
+      "Package": "Rcpp",
+      "Version": "1.0.11",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "methods",
+        "utils"
+      ],
+      "Hash": "ae6cbbe1492f4de79c45fce06f967ce8"
+    },
     "renv": {
       "Package": "renv",
       "Version": "0.17.3",
