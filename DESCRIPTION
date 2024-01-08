@@ -11,16 +11,17 @@ Author:
         Marta Pittavino [ctb] (<https://orcid.org/0000-0002-1232-1034>),
         Kalina Cherneva [ctb]
 Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
-Description: Bayesian network analysis is a form of probabilistic graphical models which derives from empirical data a directed acyclic graph, DAG, describing the dependency structure between random variables. 
-An additive Bayesian network model consists of a form of a DAG where each node comprises a generalized linear model, GLM. 
-Additive Bayesian network models are equivalent to Bayesian multivariate regression using graphical modelling, they generalises the usual multivariable regression, GLM, to multiple dependent variables.
-The package `abn` provides routines to help determine optimal Bayesian network models for a given data set, where these models are used to identify statistical dependencies in messy, complex data.
-The additive formulation of these models is equivalent to multivariate generalised linear modelling (including mixed models with iid random effects).
-The usual term to describe this model selection process is structure discovery.
-The core functionality is concerned with model selection - determining the most robust empirical model of data from interdependent variables. 
-Laplace approximations are used to estimate goodness of fit metrics and model parameters, and wrappers are also included to the INLA package which can be obtained from <https://www.r-inla.org>. 
-The computing library JAGS <https://mcmc-jags.sourceforge.io> is used to simulate `abn`-like data. 
-A comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation are available from the 'abn' website <http://r-bayesian-networks.org>.
+Description: 
+    Bayesian network analysis is a form of probabilistic graphical models which derives from empirical data a directed acyclic graph, DAG, describing the dependency structure between random variables. 
+    An additive Bayesian network model consists of a form of a DAG where each node comprises a generalized linear model, GLM. 
+    Additive Bayesian network models are equivalent to Bayesian multivariate regression using graphical modelling, they generalises the usual multivariable regression, GLM, to multiple dependent variables.
+    The package `abn` provides routines to help determine optimal Bayesian network models for a given data set, where these models are used to identify statistical dependencies in messy, complex data.
+    The additive formulation of these models is equivalent to multivariate generalised linear modelling (including mixed models with iid random effects).
+    The usual term to describe this model selection process is structure discovery.
+    The core functionality is concerned with model selection - determining the most robust empirical model of data from interdependent variables. 
+    Laplace approximations are used to estimate goodness of fit metrics and model parameters, and wrappers are also included to the INLA package which can be obtained from <https://www.r-inla.org>. 
+    The computing library JAGS <https://mcmc-jags.sourceforge.io> is used to simulate `abn`-like data. 
+    A comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation are available from the 'abn' website <http://r-bayesian-networks.org>.
 BugReports: https://github.com/furrer-lab/abn/issues
 License: GPL (>= 3)
 Imports: Rcpp (>= 1.0.11)
