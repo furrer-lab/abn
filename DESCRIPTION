@@ -16,3 +16,16 @@ BugReports: https://github.com/furrer-lab/abn/issues
 License: GPL (>= 3)
 Imports: Rcpp (>= 1.0.11)
 LinkingTo: Rcpp
+Authors@R: c(
+    person("Matteo", "Delucchi", , "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9327-1496")),
+    person("Reinhard", "Furrer", role = c("aut", "cph"),
+           comment = c(ORCID = "0000-0002-6319-2332")),
+    person("Gilles", "Kratzer", role = c("aut", "cph"),
+           comment = c(ORCID = "0000-0002-5929-8935")),
+    person(c("Fraser", "Iain"), "Lewis", role = c("aut", "cph"),
+           comment = c(ORCID = "0000-0003-4580-2712")),
+    person("Marta", "Pittavino", role = "ctb",
+           comment = c(ORCID = "0000-0002-1232-1034")),
+    person("Kalina", "Cherneva", role = "ctb")
+  )
