@@ -39,3 +39,5 @@ Authors@R: c(
            comment = c(ORCID = "0000-0002-1232-1034")),
     person("Kalina", "Cherneva", role = "ctb")
   )
+RoxygenNote: 7.3.0
+Encoding: UTF-8
