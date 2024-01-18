@@ -1,0 +1,19 @@
+[
+    {
+        "file": "/home/matteo/rrr/abn-public/abn/src/rcpp_hello_world.cpp",
+        "file_last_write": 1705577371.0,
+        "definitions": [
+            {
+                "usr": "c:@F@rcpp_hello_world#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "rcpp_hello_world",
+                "file": "/home/matteo/rrr/abn-public/abn/src/rcpp_hello_world.cpp",
+                "line": 6,
+                "column": 6,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    }
+]

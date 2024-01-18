@@ -94,9 +94,19 @@ test_that("fitAbn() runs in parallel", {
   colnames(d) <- rownames(d) <- names(dist)
 
   # test method="bayes"
-  expect_warning({
+  expect_no_error({
     fitAbn(dag=d, data.df=df, data.dists=dist, method="bayes", control = list(ncores = 1))
-  }, regexp = "Multithreading is currently only implemented for method='mle'")
+  })
+  expect_no_error({
+    fitAbn(dag=d, data.df=df, data.dists=dist, method="bayes", control = list(ncores = 0))
+  })
+  expect_error({
+    fitAbn(dag=d, data.df=df, data.dists=dist, method="bayes", control = list(ncores = -2))
+  }, regexp = "Argument 'ncores'")
+  skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4
+  expect_no_error({
+    fitAbn(dag=d, data.df=df, data.dists=dist, method="bayes", control = list(ncores = 2))
+  })
 
   # test method="mle"
   expect_no_error({

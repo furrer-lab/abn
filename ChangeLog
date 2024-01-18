@@ -2,6 +2,11 @@
 -- ChangeLog - abn --
 ---------------------------
 
+2024-01-18 Matteo Delucchi (version 3.0.5)
+  * Parallelization of `buildScoreCache(method='bayes')` and `fitAbn(method='bayes')` with `foreach()`.
+  * Controlling the number of cores used by INLA. Before it was always using all available cores.
+  * Fixed bug in test of `simulateAbn()` that was failing on CRAN.
+
 2023-11-03 Matteo Delucchi (version 3.0.4)
   * Fixed format issues in source code that caused significant warnings with GCC and clang.
   * Temporary workaround to install the correct versions of INLA dependencies. This will be hopefully fixed in the next release of INLA.

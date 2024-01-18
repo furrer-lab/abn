@@ -378,6 +378,54 @@ test_that("buildScoreCache() works with all distributions", {
 
 test_that("buildScoreCache() computes in parallel", {
   skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4 (https://github.com/lme4/lme4/issues/627)
+  df <- FCV[, -c(13)]
+  mydists <- list(FCV = "binomial",
+                  FHV_1 = "binomial",
+                  C_felis = "binomial",
+                  M_felis = "binomial",
+                  B_bronchiseptica = "binomial",
+                  FeLV = "binomial",
+                  FIV = "binomial",
+                  Gingivostomatitis = "binomial",
+                  URTD = "binomial",
+                  Vaccinated = "binomial",
+                  Pedigree="binomial",
+                  Outdoor="binomial",
+                  GroupSize="poisson",
+                  Age="gaussian")
+  ncores <- 2
+
+  # Simple no grouping
+  suppressWarnings({
+    suppressMessages({
+      if(.Platform$OS.type == "unix") {
+        capture.output({
+          expect_no_error({
+            mycache.bayes <- buildScoreCache(data.df = df, data.dists = mydists, method = "bayes",
+                                             group.var = NULL, adj.vars = NULL, cor.vars = NULL,
+                                             dag.banned = NULL, dag.retained = NULL,
+                                             max.parents = 1,
+                                             which.nodes = NULL, defn.res = NULL,
+                                             control = list("ncores" = ncores))
+          })
+
+          expect_no_error({
+            mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
+                                           group.var = NULL, adj.vars = NULL, cor.vars = NULL,
+                                           dag.banned = NULL, dag.retained = NULL,
+                                           max.parents = 1,
+                                           which.nodes = NULL, defn.res = NULL,
+                                           control = list("ncores" = ncores))
+          })
+        },
+        file = "/dev/null")
+      }
+    })
+  })
+})
+
+test_that("buildScoreCache() works with all distributions and parallel", {
+  skip_on_cran() # workaround to not overconsume threads on CRAN. This is related to an issue reported for lme4 (https://github.com/lme4/lme4/issues/627)
   df <- FCV[, c(11:15)]
   mydists <- list(Pedigree="binomial",
                   Outdoor="binomial",
@@ -418,3 +466,4 @@ test_that("buildScoreCache() computes in parallel", {
     })
   })
 })
+

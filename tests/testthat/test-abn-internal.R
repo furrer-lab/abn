@@ -155,45 +155,18 @@ test_that("check.valid.buildControls() works properly", {
       check.valid.buildControls(control = list(seed = -1), method = method, verbose = verbose)
     }, regexp = "must be a non-negative integer")
 
-    if (method == "mle") {
-      expect_error({
-        check.valid.buildControls(control = list(ncores = -10), method = method, verbose = verbose)
-      })
-      expect_message({
-        check.valid.buildControls(control = list(ncores = 1e6), method = method, verbose = verbose)
-      }, regexp = "Running in parallel with")
-      expect_message({
-        check.valid.buildControls(control = list(ncores = 0), method = method, verbose = verbose)
-      }, regexp = "Running in single core mode")
-      expect_message({
-        check.valid.buildControls(control = list(ncores = -1), method = method, verbose = verbose)
-      })
-    } else {
-      expect_warning({
-        expect_warning({
-          check.valid.buildControls(control = list(ncores = -10), method = method, verbose = verbose)
-        })
-      })
-      expect_warning({
-        expect_warning({
-          check.valid.buildControls(control = list(ncores = 1e6), method = method, verbose = verbose)
-        })
-      })
-      expect_no_error({
-        expect_warning({
-          expect_warning({
-            check.valid.buildControls(control = list(ncores = 0), method = method, verbose = verbose)
-          })
-        })
-      })
-      expect_no_error({
-        expect_warning({
-          expect_warning({
-            check.valid.buildControls(control = list(ncores = -1), method = method, verbose = verbose)
-          })
-        })
-      })
-    }
+    expect_error({
+      check.valid.buildControls(control = list(ncores = -10), method = method, verbose = verbose)
+    })
+    expect_message({
+      check.valid.buildControls(control = list(ncores = 1e6), method = method, verbose = verbose)
+    }, regexp = "Running in parallel with")
+    expect_message({
+      check.valid.buildControls(control = list(ncores = 0), method = method, verbose = verbose)
+    }, regexp = "Running in single core mode")
+    expect_message({
+      check.valid.buildControls(control = list(ncores = -1), method = method, verbose = verbose)
+    })
 
     expect_error({
       suppressWarnings(check.valid.buildControls(control = list(max.mode.error = -10), method = method, verbose = verbose))
@@ -244,37 +217,18 @@ test_that("check.valid.fitControls() works properly", {
       check.valid.fitControls(control = list(seed = -1), method = method, verbose = verbose)
     }, regexp = "must be a non-negative integer")
 
-    if (method == "mle") {
-      expect_error({
-        check.valid.fitControls(control = list(ncores = -10), method = method, verbose = verbose)
-      })
-      expect_message({
-        check.valid.fitControls(control = list(ncores = 1e6), method = method, verbose = verbose)
-      }, regexp = "Running in parallel with")
-      expect_message({
-        check.valid.fitControls(control = list(ncores = 0), method = method, verbose = verbose)
-      }, regexp = "Running in single core mode")
-      expect_message({
-        check.valid.fitControls(control = list(ncores = -1), method = method, verbose = verbose)
-      })
-    } else {
-      expect_warning({
-        check.valid.fitControls(control = list(ncores = -10), method = method, verbose = verbose)
-      })
-      expect_warning({
-        check.valid.fitControls(control = list(ncores = 1e6), method = method, verbose = verbose)
-      })
-      expect_no_error({
-        expect_warning({
-          check.valid.fitControls(control = list(ncores = 0), method = method, verbose = verbose)
-        })
-      })
-      expect_no_error({
-        expect_warning({
-          check.valid.fitControls(control = list(ncores = -1), method = method, verbose = verbose)
-        })
-      })
-    }
+    expect_error({
+      check.valid.fitControls(control = list(ncores = -10), method = method, verbose = verbose)
+    })
+    expect_message({
+      check.valid.fitControls(control = list(ncores = 1e6), method = method, verbose = verbose)
+    }, regexp = "Running in parallel with")
+    expect_message({
+      check.valid.fitControls(control = list(ncores = 0), method = method, verbose = verbose)
+    }, regexp = "Running in single core mode")
+    expect_message({
+      check.valid.fitControls(control = list(ncores = -1), method = method, verbose = verbose)
+    })
 
     expect_error({
       suppressWarnings(check.valid.fitControls(control = list(max.mode.error = -10), method = method, verbose = verbose))

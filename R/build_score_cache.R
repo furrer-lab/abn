@@ -104,7 +104,7 @@ build.control <-
             maxiters.hessian.brent = 100,
             num.intervals.brent = 100,
             n.grid = 250,
-            ncores = 0,
+            ncores = 1,
             max.irls = 100,
             tol = 1e-8,
             tolPwrss = 1e-7,
@@ -141,6 +141,7 @@ build.control <-
           maxiters.hessian.brent = maxiters.hessian.brent,
           num.intervals.brent = num.intervals.brent,
           n.grid = n.grid,
+          ncores = ncores,
           seed = seed
         )
     } else if (method == "mle") {
@@ -672,7 +673,8 @@ buildScoreCache <- function(data.df = NULL,
         mylist = mylist,
         grouped.vars = grouped.vars,
         group.ids = group.ids,
-        control = ctrl
+        control = ctrl,
+        debugging = debugging
       )
   } else if (method == "mle") {
     out <-

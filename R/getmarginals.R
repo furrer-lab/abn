@@ -55,7 +55,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),
                             as.double(max.hessian.error),
                             as.double(factor.brent),
@@ -114,7 +114,6 @@ if( !is.null(marginal.node)) {## in single node case
           row <- 1;
           mymat <- matrix(data=c(variate.x,rep(NA,3)),ncol=2,byrow=TRUE);colnames(mymat) <- c("x","f(x)");## storage for three rows
           for(betafixed in variate.x){## for each of the three initial points mode +/- one other
-
           marg.res <- .Call("fitabn_marginals",data.df,as.integer(dag.m),as.integer(dim(data.df)[2]),
                             as.integer(var.types),as.integer(max.parents),
                             as.double(mean),as.double(1/sqrt(prec)),as.double(loggam.shape),as.double(1/loggam.inv.scale),
@@ -131,7 +130,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -140,7 +139,7 @@ if( !is.null(marginal.node)) {## in single node case
               );
               #cat("betafixed=",betafixed," gvalue=",marg.res,"\n");
               mymat[row,] <- c(betafixed,marg.res);row <- row+1;
-              }
+          }
               #cat("original points\n");print(mymat);
               gvalue <- mymat[,2];## f(x) values
               big.ok <- small.ok <- FALSE;
@@ -178,7 +177,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -225,7 +224,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -272,7 +271,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -319,7 +318,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -365,7 +364,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -411,7 +410,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -457,7 +456,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -503,7 +502,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -550,7 +549,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -598,7 +597,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -646,7 +645,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),
@@ -695,7 +694,7 @@ if( !is.null(marginal.node)) {## in single node case
                             as.integer(paramid-1),## C index from 0
                             as.double(res.list$modes[[nodeid]]), ## relevant mode estimates
                             as.double(betafixed), ## value to be evaluated e.g. want f(x) given x - betafixed is x
-                            as.double(res.list[[names(res.list$modes)[nodeid]]]),## mlik for the node
+                            as.double(res.list[["mliknode"]][nodeid]),## mlik for the node
                             as.integer(max.iters.hessian),as.double(max.hessian.error),
                             as.double(factor.brent),
                             as.integer(maxiters.hessian.brent),

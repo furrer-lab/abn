@@ -675,7 +675,9 @@ fitAbn <- function(object = NULL,
                         mylist = mylist,
                         grouped.vars = grouped.vars,
                         group.ids = group.ids,
-                        force.method = force.method)
+                        force.method = force.method,
+                        verbose = verbose,
+                        debugging = debugging)
   } else if (method == "mle") {
     out <- fitAbn.mle(dag,
                       data.df = data.df,

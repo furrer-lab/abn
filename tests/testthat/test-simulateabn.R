@@ -486,6 +486,9 @@ log(lambda.d) <- 3.33 + 4.44*c # logistic regression
 })
 
 test_that("makebugsGroup() works",{
+  # Skip on CRAN because of the scientific notation in the output string which is not platform independent.
+  skip_on_cran()
+
   # load("tests/testthat/testdata/makebugsGauss_data.Rdata")
   load("testdata/makebugsGauss_data.Rdata")
 

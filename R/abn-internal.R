@@ -660,26 +660,22 @@ check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE
       stop("'max.mode.error' is a % and must be [0,100]!")
     }
   }
+
   # check ncores
   if (!is.null(ctrl.new[["ncores"]])) {
-    if (method != "mle") {
-      warning("Multithreading is currently only implemented for method='mle'. I'm ignoring 'ncores' and continue with a single core.")
+    # Prepare multithreading
+    if (ctrl.new[["ncores"]] == -1) {
+      # all but one
+      ctrl.new[["ncores"]] <-  parallel::detectCores() - 1   # if ncores==0 (here or set), single threaded.
+      if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
+    } else if (ctrl.new[["ncores"]] > 1) {
+      ctrl.new[["ncores"]] <- min(ctrl.new[["ncores"]], parallel::detectCores())  # restrict in case of overoptimisitic setting.
+      if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
+    } else if (ctrl.new[["ncores"]] == 1 | ctrl.new[["ncores"]] == 0) {
       ctrl.new[["ncores"]] <- 1
+      if(verbose){message("Running in single core mode.")}
     } else {
-      # Prepare multithreading
-      if (ctrl.new[["ncores"]] == -1) {
-        # all but one
-        ctrl.new[["ncores"]] <-  parallel::detectCores() - 1   # if ncores==0 (here or set), single threaded.
-        if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
-      } else if (ctrl.new[["ncores"]] > 1) {
-        ctrl.new[["ncores"]] <- min(ctrl.new[["ncores"]], parallel::detectCores())  # restrict in case of overoptimisitic setting.
-        if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
-      } else if (ctrl.new[["ncores"]] == 1 | ctrl.new[["ncores"]] == 0) {
-        ctrl.new[["ncores"]] <- 1
-        if(verbose){message("Running in single core mode.")}
-      } else {
-        stop(paste("Argument 'ncores' from build.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
-      }
+      stop(paste("Argument 'ncores' from build.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
     }
   }
   # check seed
@@ -795,24 +791,19 @@ check.valid.fitControls <- function(control, method = "bayes", verbose = FALSE) 
   }
   # check ncores
   if (!is.null(ctrl.new[["ncores"]])) {
-    if (method != "mle") {
-      warning("Multithreading is currently only implemented for method='mle'. I'm ignoring 'ncores' and continue with a single core.")
+    # Prepare multithreading
+    if (ctrl.new[["ncores"]] == -1) {
+      # all but one
+      ctrl.new[["ncores"]] <-  parallel::detectCores() - 1   # if ncores==0 (here or set), single threaded.
+      if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
+    } else if (ctrl.new[["ncores"]] > 1) {
+      ctrl.new[["ncores"]] <- min(ctrl.new[["ncores"]], parallel::detectCores())  # restrict in case of overoptimisitic setting.
+      if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
+    } else if (ctrl.new[["ncores"]] == 1 | ctrl.new[["ncores"]] == 0) {
       ctrl.new[["ncores"]] <- 1
+      if(verbose){message("Running in single core mode.")}
     } else {
-      # Prepare multithreading
-      if (ctrl.new[["ncores"]] == -1) {
-        # all but one
-        ctrl.new[["ncores"]] <-  parallel::detectCores() - 1   # if ncores==0 (here or set), single threaded.
-        if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
-      } else if (ctrl.new[["ncores"]] > 1) {
-        ctrl.new[["ncores"]] <- min(ctrl.new[["ncores"]], parallel::detectCores())  # restrict in case of overoptimisitic setting.
-        if(verbose){message("Running in parallel with ", ctrl.new[["ncores"]], " cores.")}
-      } else if (ctrl.new[["ncores"]] == 1 | ctrl.new[["ncores"]] == 0) {
-        ctrl.new[["ncores"]] <- 1
-        if(verbose){message("Running in single core mode.")}
-      } else {
-        stop(paste("Argument 'ncores' from fit.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
-      }
+      stop(paste("Argument 'ncores' from fit.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
     }
   }
   # check seed

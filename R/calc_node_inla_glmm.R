@@ -16,24 +16,41 @@
 #' @param loggam.shape.loc the shape parameter in the Gamma distribution prior for the precision in a Gaussian node. INLA argument \code{control.family=list(hyper = list(prec = list(prior="loggamma",param=c(loggam.shape, loggam.inv.scale))))}.
 #' @param loggam.inv.scale.loc the inverse scale parameter in the Gamma distribution prior for the precision in a Gaussian node. INLA argument \code{control.family=list(hyper = list(prec = list(prior="loggamma",param=c(loggam.shape, loggam.inv.scale))))}.
 #' @param verbose.loc FALSE to not print additional output.
+#' @param nthreads number of threads to use for INLA. Default is \code{control[["ncores"]]} which is the number of cores specified in \code{control} and defaults to 1.
 #'
 #' @return If INLA failed, FALSE or an error is returned. Otherwise, the direct output from INLA is returned.
 #' @family Bayes
 calc.node.inla.glmm <-
-  function(child.loc,
-           dag.m.loc,
-           data.df.loc,
-           data.dists.loc,
-           ntrials.loc,
-           exposure.loc,
-           compute.fixed.loc,
-           mean.intercept.loc,
-           prec.intercept.loc,
-           mean.loc,
-           prec.loc,
-           loggam.shape.loc,
-           loggam.inv.scale.loc,
-           verbose.loc) {
+  function(child.loc = NULL,
+           dag.m.loc = NULL,
+           data.df.loc = NULL,
+           data.dists.loc = NULL,
+           ntrials.loc = NULL,
+           exposure.loc = NULL,
+           compute.fixed.loc = NULL,
+           mean.intercept.loc = NULL,
+           prec.intercept.loc = NULL,
+           mean.loc = NULL,
+           prec.loc = NULL,
+           loggam.shape.loc = NULL,
+           loggam.inv.scale.loc = NULL,
+           verbose.loc = FALSE,
+           nthreads = NULL) {
+
+    if (nthreads == 1) {
+      INLA::inla.setOption("num.threads", "1:1")
+    } else if (nthreads > 1) {
+      # inlathreads <- paste0(nthreads, ":1")
+      # INLA::inla.setOption("num.threads", inlathreads)
+      if (verbose.loc) {
+        message("Nested parallelism detected. Limiting INLA (inner loop) to 1 thread to prevent unexpected behaviour.\n")
+      }
+      INLA::inla.setOption("num.threads", "1:1")
+    } else if (nthreads < 1) {
+      stop("invalid number of threads for INLA")
+    }
+    if (verbose.loc) {message("INLA threads (outer:inner) set to ", INLA::inla.getOption("num.threads"), "\n")}
+
     #print(data.df.loc);
     #print(group.var);
     group.var <-

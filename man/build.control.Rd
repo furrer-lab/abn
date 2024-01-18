@@ -25,7 +25,7 @@ build.control(
   maxiters.hessian.brent = 100,
   num.intervals.brent = 100,
   n.grid = 250,
-  ncores = 0,
+  ncores = 1,
   max.irls = 100,
   tol = 1e-08,
   tolPwrss = 1e-07,

@@ -4,6 +4,7 @@
 \name{buildScoreCache}
 \alias{buildScoreCache}
 \alias{buildScoreCache.bayes}
+\alias{forLoopContentBayes}
 \alias{forLoopContent}
 \alias{buildScoreCache.mle}
 \title{Build a cache of goodness of fit metrics for each node in a DAG, possibly subject to user-defined restrictions}
@@ -43,6 +44,22 @@ buildScoreCache.bayes(
   grouped.vars = NULL,
   group.ids = NULL,
   control = build.control(method = "bayes"),
+  verbose = FALSE,
+  debugging = FALSE
+)
+
+forLoopContentBayes(
+  row.no = NULL,
+  children = NULL,
+  node.defn = NULL,
+  dag.m = NULL,
+  force.method = NULL,
+  data.df = NULL,
+  data.dists = NULL,
+  var.types = NULL,
+  control = NULL,
+  grouped.vars = NULL,
+  group.ids = NULL,
   verbose = FALSE
 )
 
@@ -125,6 +142,16 @@ buildScoreCache.mle(
 
 \item{group.ids}{result returned from \code{\link{check.valid.groups}}.}
 
+\item{row.no}{The row number of the child-parent combination to be processed.}
+
+\item{children}{vector of child node integers.}
+
+\item{node.defn}{child-parent combination table.}
+
+\item{dag.m}{Empty adjacency matrix.}
+
+\item{var.types}{vector of numeric encoding of distribution types. See \code{get.var.types(data.dists)}}
+
 \item{row.num}{number of child-node (mostly corresponds to child node index e.g. in dag).}
 
 \item{mycache}{prepared cache.}
@@ -152,6 +179,18 @@ A named list of class \code{abnCache}.
 \item{\code{aic}}{aic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
 \item{\code{bic}}{bic value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
 \item{\code{mdl}}{mdl value for each node combination. If the model cannot be fitted then NaN is returned. NULL if \code{method="bayes"}.}
+}
+
+Named vector of results from one child-parent combination subject to the \code{row.no}.
+The names are:
+\describe{
+\item{childParentCombNo}{The row number of the child-parent combination in the \code{node.defn} table.
+This must be the same as the row number in \code{node.defn}:
+careful if \code{buildScoreCache.bayes()} is run in parallel!}
+\item{mlik}{The marginal log-likelihood of the child-parent combination.}
+\item{error.code}{The error code returned by \code{inla()}.}
+\item{hessian.accuracy}{The accuracy of the Hessian matrix returned by \code{inla()}.}
+\item{used.INLA}{A logical value indicating whether \code{inla()} was used to fit the model.}
 }
 
 list
@@ -191,6 +230,8 @@ The numerical routines used here are identical to those in \code{\link{fitAbn}} 
 \section{Functions}{
 \itemize{
 \item \code{buildScoreCache.bayes()}: Fit a given DAG to data with method="bayes".
+
+\item \code{forLoopContentBayes()}: Internal function called by \code{buildScoreCache.bayes()}.
 
 \item \code{forLoopContent()}: Internal function called by \code{buildScoreCache.mle()}.
 
@@ -343,4 +384,5 @@ Other Bayes:
 \keyword{calc.node.inla.glmm}
 \keyword{fitAbn.bayes}
 \keyword{fitAbn.mle}
+\keyword{internal}
 \keyword{models}

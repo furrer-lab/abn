@@ -35,7 +35,8 @@ fitAbn.bayes(
   grouped.vars = NULL,
   group.ids = NULL,
   force.method = NULL,
-  verbose = FALSE
+  verbose = FALSE,
+  debugging = FALSE
 )
 
 fitAbn.mle(
