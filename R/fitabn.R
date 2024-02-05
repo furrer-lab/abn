@@ -273,6 +273,7 @@ fit.control <-
 #' @family fitAbn
 #' @export
 #' @examples
+#' \dontrun{
 #' ## Built-in dataset with a subset of cols
 #' mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
 #'
@@ -327,7 +328,6 @@ fit.control <-
 #' print(myres.mle); plot(myres.mle)
 #' print(myres); plot(myres)
 #'
-#' \dontrun{
 #' ## This is a basic plot of some posterior densities. The algorithm used for selecting
 #' ## density points is quite straightforward, but it might result in a sparse distribution.
 #' ## Therefore, we also recompute the density over an evenly spaced grid

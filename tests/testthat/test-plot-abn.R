@@ -122,6 +122,8 @@ test_that("Plot from a formula works", {
 })
 
 test_that("Plot from fitAbn() works", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
   mydists <- list(b1="binomial", b2="binomial", b3="binomial", g1="gaussian",
                   b4="binomial", p2="poisson", p4="poisson")

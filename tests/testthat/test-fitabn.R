@@ -23,6 +23,8 @@ test_that("fit.control() works fine", {
 })
 
 test_that("fitAbn() wrapper of 'mle' and 'bayes' works", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # Gaussian
   df <- airquality[complete.cases(airquality), ]
 
@@ -51,6 +53,8 @@ test_that("fitAbn() wrapper of 'mle' and 'bayes' works", {
 })
 
 test_that("fitAbn() works with DAG as formula statement", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # using 'ex3.dag.data'
   mydists <- list(b1="binomial",  b2="binomial")
 
@@ -68,6 +72,8 @@ test_that("fitAbn() works with DAG as formula statement", {
 })
 
 test_that("fitAbn() catches wrong arguments.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # using 'ex3.dag.data'
   mydists <- list(b1="binomial",  b2="binomial")
 
@@ -85,6 +91,8 @@ test_that("fitAbn() catches wrong arguments.", {
 })
 
 test_that("fitAbn() runs in parallel", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # Prepare some data
   df <- airquality[complete.cases(airquality), ]
   dist <- list(Ozone="gaussian", Solar.R="gaussian", Wind="gaussian", Temp="gaussian", Month="gaussian", Day="gaussian")
@@ -125,6 +133,8 @@ test_that("fitAbn() runs in parallel", {
 })
 
 test_that("fitAbn() works with control arguments", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   mydists <- list(b1="binomial",  b2="binomial")
 
   # Supplying control arguments as direct arguments is deprecated. They should be passed in a list of 'control=list(max.mode.error=0)'
@@ -173,6 +183,8 @@ test_that("fitAbn() works with control arguments", {
 })
 
 test_that("fitAbn() is backward compatible", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## use built-in simulated data set
 
   mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")];## take a subset of cols

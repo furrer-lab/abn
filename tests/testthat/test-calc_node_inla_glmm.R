@@ -1,4 +1,6 @@
 test_that("calc.node.inla.glmm() works", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # We can use the same data as for calc.node.inla.glm() for this rough test.
   load(file = "testdata/calc.node.inla.glm_1.RData")
   # load(file = 'tests/testthat/testdata/calc.node.inla.glm_1.RData')

@@ -1,4 +1,6 @@
 test_that("Test fitAbn.bayes()", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
 
   load(file="testdata/fitabn_ex0.Rdata")
   # load(file='tests/testthat/testdata/fitabn_ex0.Rdata')

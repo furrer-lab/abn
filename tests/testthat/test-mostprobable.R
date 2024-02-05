@@ -8,6 +8,8 @@ test_that("Test mostProbable() works", {
 })
 
 test_that("mostProbable() is backward compatible with `ex0.dag.data`", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## use built-in simulated data set
   mydat <- ex0.dag.data[,c("b1","b2","g1","g2","p1","p2")];
   ## take a subset of cols
@@ -73,6 +75,8 @@ test_that("mostProbable() is backward compatible with `ex0.dag.data`", {
 })
 
 test_that("mostProbable() is backward compatible with `ex1.dag.data`", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## Second example ############
   mydat <- ex1.dag.data;## this data comes with abn see ?ex1.dag.data
 
