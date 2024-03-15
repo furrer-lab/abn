@@ -89,3 +89,4 @@ ex0.dag.data <- data.frame(b1=sample(tmp, size=datasize, replace=TRUE),
 }
 }
 \keyword{datasets}
+\keyword{internal}

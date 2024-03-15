@@ -33,6 +33,7 @@ fit.control(
   marginal.param = NULL,
   variate.vec = NULL,
   ncores = 1,
+  cluster.type = "FORK",
   max.irls = 100,
   tol = 1e-11,
   tolPwrss = 1e-07,
@@ -106,6 +107,8 @@ fit.control(
 
 \item{ncores}{The number of cores to parallelize to, see \sQuote{Details}. If >0, the number of CPU cores to be used. -1 for all available -1 core. Only for \code{method="mle"}.}
 
+\item{cluster.type}{The type of cluster to be used, see \code{?parallel::makeCluster}. \code{abn} then defaults to \code{"PSOCK"} on Windows and \code{"FORK"} on Unix-like systems. With "FORK" the child process are started with \code{rscript_args = "--no-environ"} to avoid loading the whole workspace into each child.}
+
 \item{max.irls}{total number of iterations for estimating network scores using an Iterative Reweighed Least Square algorithm. Is this DEPRECATED?}
 
 \item{tol}{real number giving the minimal tolerance expected to terminate the Iterative Reweighed Least Square algorithm to estimate network score. Passed to \code{irls_binomial_cpp_fast_br} and \code{irls_poisson_cpp_fast}.}
@@ -153,6 +156,7 @@ ctrlmle <- abn::fit.control(method = "mle",
                        ftol_abs = 1e-6,
                        epsilon = 1e-6,
                        ncores = 2,
+                       cluster.type = "PSOCK",
                        seed = 9062019L)
 ctrlbayes <- abn::fit.control(method = "bayes",
                          mean = 0,
@@ -181,6 +185,7 @@ ctrlbayes <- abn::fit.control(method = "bayes",
                          marginal.param = NULL,
                          variate.vec = NULL,
                          ncores = 1,
+                         cluster.type = NULL,
                          seed = 9062019L)
 
 }

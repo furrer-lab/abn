@@ -26,3 +26,4 @@ list with data.df, indexes of variables to which the grouping should be applied 
 \description{
 Simple check on the grouping variable
 }
+\keyword{internal}

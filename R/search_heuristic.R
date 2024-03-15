@@ -382,14 +382,14 @@ searchHeuristic <- function(score.cache, score="mlik",
                  }), score=score, score.cache=score.cache, num.searches=num.searches, max.steps=max.steps,algorithm=algo
             )
 
-            class(out) <- c("abnHeuristic", "mle")
+            class(out) <- c("abnHeuristic")
 
             return(out)
     } else {
         out <- list(dags=out.dags, scores=out.scores, detailed.score=out.detailed,
                     score=score, score.cache=score.cache, num.searches=num.searches,
                     max.steps=max.steps,algorithm=algo)
-        class(out) <- c("abnHeuristic", "bayes")
+        class(out) <- c("abnHeuristic")
         return(out)
     }
 

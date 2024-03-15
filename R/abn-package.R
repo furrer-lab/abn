@@ -54,4 +54,5 @@ NULL
 #' @description This is mainly to circumvent issues in R CMD check.
 #' @name Cfunctions
 #' @aliases buildcachematrix checkforcycles fit_single_node fitabn_marginals mostprobable_C searchhill
+#' @keywords internal
 NULL

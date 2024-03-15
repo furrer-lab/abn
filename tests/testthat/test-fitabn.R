@@ -138,7 +138,7 @@ test_that("fitAbn() works with control arguments", {
   mydists <- list(b1="binomial",  b2="binomial")
 
   # Supplying control arguments as direct arguments is deprecated. They should be passed in a list of 'control=list(max.mode.error=0)'
-  expect_no_error(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2)], data.dists=mydists, max.mode.error=0))
+  expect_warning(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2)], data.dists=mydists, max.mode.error=0))
   expect_no_error(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2)], data.dists=mydists, method = "bayes", control=list(max.mode.error=0)))
   expect_warning(fitAbn(dag=~b1|b2, data.df=ex3.dag.data[,c(1,2)], data.dists=mydists, method = "mle", control=list(max.mode.error=0)))
 
@@ -175,9 +175,13 @@ test_that("fitAbn() works with control arguments", {
   mydag["b4","b1"] <- 1; # b4 <- b1
   mydag["p4","g1"] <- 1; # p4 <- g1
 
-  expect_no_error(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists,centre=TRUE, compute.fixed=TRUE,n.grid=100))
+  expect_no_error(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists,centre=TRUE, compute.fixed=TRUE, control=list(n.grid=100)))
   expect_no_error(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "bayes", centre=TRUE, compute.fixed=TRUE, control=list(n.grid=100)))
-  expect_warning(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "mle", centre=TRUE, compute.fixed=TRUE, control=list(n.grid=100)))
+
+  expect_error(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "mle", centre=TRUE, compute.fixed=TRUE, control=list(n.grid=100)))
+  expect_warning(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "mle", centre=TRUE, compute.fixed=FALSE, control=list(n.grid=100)))
+  expect_warning(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "mle", centre=TRUE, control=list(n.grid=100)))
+  expect_no_error(fitAbn(dag=mydag,data.df=mydat,data.dists=mydists, method = "mle", centre=TRUE))
 
   # TODO: make this tests more explicit.
 })

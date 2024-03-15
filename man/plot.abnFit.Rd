@@ -4,12 +4,10 @@
 \alias{plot.abnFit}
 \title{Plot objects of class \code{abnFit}}
 \usage{
-\method{plot}{abnFit}(x, which = "abnFit", ...)
+\method{plot}{abnFit}(x, ...)
 }
 \arguments{
 \item{x}{Object of class \code{abnFit}}
-
-\item{which}{defaults to "abnFit".}
 
 \item{...}{additional parameters. Not used at the moment.}
 }

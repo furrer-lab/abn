@@ -103,9 +103,14 @@ fitAbn.bayes <- function(dag=NULL,
           message(paste("File exists and will be overwritten:", path))
         }
 
-        cl <- makeCluster(ncores, outfile = path)
+        cl <- makeCluster(ncores,
+                          type = control[["cluster.type"]],
+                          rscript_args = "--no-environ", # only available for "FORK"
+                          outfile = path)
       } else {
-        cl <- makeCluster(ncores)
+        cl <- makeCluster(ncores,
+                          rscript_args = "--no-environ", # only available for "FORK"
+                          type = control[["cluster.type"]])
       }
       registerDoParallel(cl)
       out <- foreach(i = 1:dim(dag)[1],
@@ -129,6 +134,8 @@ fitAbn.bayes <- function(dag=NULL,
                                               hessian.accuracy = hessian.accuracy,
                                               mymargs = mymargs)
                      }
+      # clean up multi-threading
+      stopCluster(cl)
     } else {
       out <- foreach(i = 1:dim(dag)[1],
                      .inorder = TRUE,

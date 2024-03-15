@@ -66,3 +66,4 @@ colnames(ex2.true.dag) <- rownames(ex2.true.dag) <- c("b1","g1","p1","b2",
                                                       "g6","p6")
 }
 \keyword{datasets}
+\keyword{internal}

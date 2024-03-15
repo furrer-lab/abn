@@ -12,3 +12,4 @@
 \description{
 This is mainly to circumvent issues in R CMD check.
 }
+\keyword{internal}

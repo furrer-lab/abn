@@ -73,6 +73,8 @@ test_that("searchHillClimber() is backward compatible with `ex3.dag.data`", {
         expect_s3_class(heur.res, "abnHillClimber")
         expect_s3_class(heur.res, "abnLearned")
       }
+    } else {
+      skip("INLA is not tested on CRAN")
     }
 })
 

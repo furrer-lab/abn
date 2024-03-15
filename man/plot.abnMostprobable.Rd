@@ -4,12 +4,10 @@
 \alias{plot.abnMostprobable}
 \title{Plot objects of class \code{abnMostprobable}}
 \usage{
-\method{plot}{abnMostprobable}(x, new = TRUE, ...)
+\method{plot}{abnMostprobable}(x, ...)
 }
 \arguments{
 \item{x}{Object of class \code{abnMostprobable}}
-
-\item{new}{defaults to \code{TRUE} for opening a new plot.}
 
 \item{...}{additional parameters. Not used at the moment.}
 }

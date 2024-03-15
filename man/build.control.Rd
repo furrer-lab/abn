@@ -26,6 +26,7 @@ build.control(
   num.intervals.brent = 100,
   n.grid = 250,
   ncores = 1,
+  cluster.type = "FORK",
   max.irls = 100,
   tol = 1e-08,
   tolPwrss = 1e-07,
@@ -85,6 +86,8 @@ build.control(
 
 \item{ncores}{The number of cores to parallelize to, see \sQuote{Details}. If >0, the number of CPU cores to be used. -1 for all available -1 core. Only for \code{method="mle"}.}
 
+\item{cluster.type}{The type of cluster to be used, see \code{?parallel::makeCluster}. \code{abn} then defaults to \code{"PSOCK"} on Windows and \code{"FORK"} on Unix-like systems. With "FORK" the child process are started with \code{rscript_args = "--no-environ"} to avoid loading the whole workspace into each child.}
+
 \item{max.irls}{total number of iterations for estimating network scores using an Iterative Reweighed Least Square algorithm. Is this DEPRECATED?}
 
 \item{tol}{real number giving the minimal tolerance expected to terminate the Iterative Reweighed Least Square algorithm to estimate network score. Passed to \code{irls_binomial_cpp_fast_br} and \code{irls_poisson_cpp_fast}.}
@@ -126,6 +129,7 @@ Parallelization over all children is possible via the function \code{foreach} of
 \examples{
 ctrlmle <- abn::build.control(method = "mle",
                         ncores = 0,
+                        cluster.type = "PSOCK",
                         max.irls = 100,
                         tol = 10^-11,
                         tolPwrss = 1e-7,

@@ -1,0 +1,14 @@
+---
+title: "abn v2.2"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{abn v2.2}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<!--- <iframe src="abn_v2.2.pdf"/> -->
+
+[abn v2.2](abn_v2.2.pdf){target="_blank"}
+
+<!-- Thanks to https://github.com/r-lib/pkgdown/issues/781#issuecomment-792208432 -->

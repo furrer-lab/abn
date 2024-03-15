@@ -492,7 +492,8 @@ test_that("makebugsGroup() works",{
   # load("tests/testthat/testdata/makebugsGauss_data.Rdata")
   load("testdata/makebugsGauss_data.Rdata")
 
-  expectedOut <- c(
+  # expected output for makebugsGroup with scientific notation
+  expectedOut1 <- c(
     "model{
 Outdoor ~ dbern(p_Outdoor)
 logit(p_Outdoor) <- mu_Outdoor + alpha_Outdoor
@@ -542,18 +543,75 @@ tau_alpha_Age <- inverse(sigma_alpha_Age)
 sigma_alpha_Age <- 0.22154
 }")
 
-  expect_output({
-    makebugsGroup(dag = dag,
-                  data.dists = data.dists,
-                  stderrors = mse,
-                  group.var = group.var,
-                  mu = mu,
-                  betas = betas,
-                  sigma = sigm,
-                  sigma_alpha = sigm_alpha)},
-    regexp = expectedOut,
-    fixed = TRUE,
-    width = 150)
+  # expected output for makebugsGroup with partial scientific notation
+  expectedOut2 <- c(
+    "model{
+Outdoor ~ dbern(p_Outdoor)
+logit(p_Outdoor) <- mu_Outdoor + alpha_Outdoor
+mu_Outdoor <- -0.1231088
+alpha_Outdoor ~ dnorm(mu_alpha_Outdoor, tau_alpha_Outdoor)
+mu_alpha_Outdoor <- 0
+tau_alpha_Outdoor <- inverse(sigma_alpha_Outdoor)
+sigma_alpha_Outdoor <- 1.045681
+Sex ~ dcat(p_Sex)
+p_Sex[1] <- phi_Sex[1]/sum(phi_Sex)
+log(phi_Sex[1]) <- 0 + alpha_Sex[1]
+p_Sex[2] <- phi_Sex[2]/sum(phi_Sex)
+log(phi_Sex[2]) <- 0.9706316 + 1.28692758032913*Age + alpha_Sex[1]
+p_Sex[3] <- phi_Sex[3]/sum(phi_Sex)
+log(phi_Sex[3]) <- -0.05845993 + 0.28240627414296*Age + alpha_Sex[2]
+p_Sex[4] <- phi_Sex[4]/sum(phi_Sex)
+log(phi_Sex[4]) <- 0.3357361 + 1.57473104113221*Age + alpha_Sex[3]
+alpha_Sex ~ dmnorm.vcov(mu_alpha_Sex, sigma_alpha_Sex)
+mu_alpha_Sex[1] <- 0
+sigma_alpha_Sex[1, 1] <- 0.00005933619
+sigma_alpha_Sex[1, 2] <- 1e-50
+sigma_alpha_Sex[1, 3] <- 0.0000000432787
+mu_alpha_Sex[2] <- 0
+sigma_alpha_Sex[2, 1] <- 1e-50
+sigma_alpha_Sex[2, 2] <- 0.00005834134
+sigma_alpha_Sex[2, 3] <- 1e-50
+mu_alpha_Sex[3] <- 0
+sigma_alpha_Sex[3, 1] <- 0.0000000432787
+sigma_alpha_Sex[3, 2] <- 1e-50
+sigma_alpha_Sex[3, 3] <- 0.0000637651
+GroupSize ~ dpois(lambda_GroupSize)
+log(lambda_GroupSize) <- mu_GroupSize + -0.282436260957026*Outdoor + alpha_GroupSize
+mu_GroupSize <- 1.251637
+alpha_GroupSize ~ dnorm(mu_alpha_GroupSize, tau_alpha_GroupSize)
+mu_alpha_GroupSize <- 0
+tau_alpha_GroupSize <- inverse(sigma_alpha_GroupSize)
+sigma_alpha_GroupSize <- 1e-50
+Age <- mu_Age + -0.00454841753065188*GroupSize + alpha_Age + e_Age
+mu_Age <- -0.04832546
+e_Age ~ dnorm(mu_e_Age, tau_Age)
+mu_e_Age <- 0
+tau_Age <- inverse(sigma_Age)
+sigma_Age <- 0.9912502
+alpha_Age ~ dnorm(mu_alpha_Age, tau_alpha_Age)
+mu_alpha_Age <- 0
+tau_alpha_Age <- inverse(sigma_alpha_Age)
+sigma_alpha_Age <- 0.22154
+}")
+
+  # Run the function and capture the output to compare it to the expected output
+  result <- capture.output(makebugsGroup(dag = dag,
+                                         data.dists = data.dists,
+                                         stderrors = mse,
+                                         group.var = group.var,
+                                         mu = mu,
+                                         betas = betas,
+                                         sigma = sigm,
+                                         sigma_alpha = sigm_alpha)
+  )
+  result <- stringi::stri_flatten(result)
+
+  # Split the strings into lines to match the capture.output() output
+  expectedOut1_split_flat <- stringi::stri_flatten(strsplit(expectedOut1, "\n")[[1]])
+  expectedOut2_split_flat <- stringi::stri_flatten(strsplit(expectedOut2, "\n")[[1]])
+
+  # Check if the result is equal to one of the expected outputs
+  expect_true(any(sapply(list(expectedOut1_split_flat, expectedOut2_split_flat), function(x) identical(result, x))))
 })
 
 test_that("simulateAbn() catches wrong arguments", {

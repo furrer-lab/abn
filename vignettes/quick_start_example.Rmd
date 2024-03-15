@@ -1,0 +1,153 @@
+---
+title: "Quick Start Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Quick Start Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(abn)
+```
+
+This vignette covers the whole process of Bayesian network structure learning to parameter estimation and data simulation.
+# Find the best fitting graphical structure using an exact search algorithm
+
+## Basic workflow with the `abn` package
+
+The package `abn` is a collection of functions for modelling of additive Bayesian networks. 
+It contains routines to score Bayesian Networks based on Bayesian (default) or information-theoretic formulation of generalized linear models. 
+Depending on the type of data, the package supports a possible mixture of continuous, discrete, and count data. 
+The following table shows which of distribution types are supported by for each method of estimation:
+
+| Distribution type | `method = "bayes"` | `method = "mle"` |
+| :---------------- | :----------------: | :--------------: |
+| Gaussian          |         ✅         |  ✅ |   
+| Binomial          |         ✅         |  ✅ |
+| Poisson           |         ✅         |  ✅ |
+| Multinomial       |         ❌         |  ✅ |
+
+Structure learning of additive Bayesian networks with `abn` is a three-step process.
+Based on a set of model specifications (data, maximal number of possible parent nodes, restricted or enforced arcs, etc.), `abn` calculates in a first step the score of the data given the model (`buildScoreCache()`). This list of scores is then used to estimate the most probable Bayesian network structure ("structure learning") and to infer the network structure in a third step (`fitAbn()`). 
+Four structure-learning algorithms have been implemented in `abn`: the hill-climbing algorithm, the "exact search" algorithm, the simulated annealing algorithm and tabu search algorithm.
+With the network structure inferred, the package provides routines to estimate the parameters of the network and to simulate data from the fitted additive Bayesian network model.
+
+The following example shows how to find the best fitting graphical structure using an exact search algorithm.
+
+## Model specification
+### Load the example dataset `ex1.dag.data`
+
+This artificial data set comes with `abn` and contains 10000 observations of 10 variables. 
+The variables are a mixture of continuous (`gaussian`), binary (`binomial`), and count (`poisson`) data. 
+The data set is a simulated data set from a known network structure.
+
+```{r}
+mydat <- ex1.dag.data
+str(mydat)
+```
+
+### Set up distribution list for each node
+
+`abn` requires a list of the type of distribution for each node in the data set.
+
+```{r}
+mydists <- list(b1="binomial", 
+                p1="poisson", 
+                g1="gaussian", 
+                b2="binomial", 
+                p2="poisson", 
+                b3="binomial", 
+                g2="gaussian", 
+                b4="binomial", 
+                b5="binomial", 
+                g3="gaussian") 
+```
+
+### Set the parent limits node-wise
+
+The `max.par` argument sets the maximum number of parent nodes for each node in the data set.
+It can be set to a single value for all nodes or to a list with the node names as keys and the maximum number of parent nodes as values.
+This is a crucial parameter to speed up the model estimation in `abn` as it limits the number of possible combinations.
+
+```{r}
+# max.par <- list("b1"=1,"p1"=2,"g1"=3,"b2"=4,"p2"=1,"b3"=2,"g2"=3,"b4"=4,"b5"=1,"g3"=2) # set different max parents for each node
+max.par <- 4 # set the same max parents for all nodes
+```
+
+## Build the score cache
+
+The score cache is a list of scores for each possible parent combination for each node in the data set.
+It is used to learn the structure of the Bayesian network in the next step.
+
+```{r}
+mycache <- buildScoreCache(data.df = mydat, 
+                           data.dists = mydists,
+                           method = "bayes", # the default method is "bayes"
+                           max.parents = max.par)
+```
+
+The minimal number of input arguments for `buildScoreCache()` is the data set and the distribution list.
+By default, the function uses the Bayesian score which is based on the posterior probability of the model given the data. 
+To use the Log-Likelihood score, Akaike Information Criterion (AIC) or Bayesian Information Criterion (BIC) instead, the `method` argument can be set to `"mle"`.
+
+The function `buildScoreCache()` also accepts a list of banned and retained arcs, which can be used to enforce or restrict the presence of certain arcs in the network structure.
+This can be useful if prior knowledge about the network structure is available, e.g. from expert knowledge or from previous analyses it is known that certain arcs must be present or have to be absent.
+
+The `max.parents` argument sets the maximum number of parent nodes for each node in the data set and together with the `dag.banned` and `dag.retained` arguments, it restricts the model search space and can speed up the model estimation in `abn`.
+
+## Structure learning
+
+The next step is to find the best fitting graphical structure of the Bayesian network.
+In this example, we use the exact search algorithm to find the most probable Bayesian network structure given the score cache from the previous step.
+We supply the score cache as `abnCache` object from the previous step to the structure learning function.
+
+```{r}
+mp.dag <- mostProbable(score.cache = mycache)
+```
+
+The `mostProbable()` function returns an object of class `abnLearned` which contains the most probable Bayesian network structure and the score of the model given the data.
+
+### Plot the best fitting graphical structure
+
+The best fitting graphical structure can be plotted using the `plotAbn()` function.
+
+```{r}
+plot(mp.dag)
+```
+
+The `plot()` function requires the `Rgraphviz` package to be installed.
+
+## Estimate the parameters of the network
+
+The parameters of the network can be estimated using the `fitAbn()` function.
+
+```{r}
+myfit <- fitAbn(object = mp.dag)
+```
+
+The `fitAbn()` function returns an object of class `abnFit` which contains the estimated parameters of the network.
+
+```{r}
+summary(myfit)
+plot(myfit)
+```
+
+## Simulate data from the fitted model
+
+The `simulateAbn()` function can be used to simulate data from the fitted model.
+
+```{r}
+simdat <- simulateAbn(object = myfit, 
+                      n.iter = 10000L)
+summary(simdat)
+```
+

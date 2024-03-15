@@ -47,3 +47,4 @@ colnames(ex1.true.dag) <- rownames(ex1.true.dag) <-
   c("b1","p1","g1","b2","p2","b3","g2","b4","b5","g3")
 }
 \keyword{datasets}
+\keyword{internal}

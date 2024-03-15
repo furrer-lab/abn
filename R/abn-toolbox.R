@@ -257,7 +257,7 @@ compareEG <- function(ref, test){
 #' colnames(dag) <- rownames(dag) <- names(dist)
 #'
 #' infoDag(dag)
-#' plot(createAbnDag(dag))
+#' plot(createAbnDag(dag = dag, data.dists = dist))
 #' @keywords utilities
 infoDag <- function(object, node.names = NULL) {
 

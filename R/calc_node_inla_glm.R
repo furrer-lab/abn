@@ -16,10 +16,11 @@
 #' @param loggam.shape.loc the shape parameter in the Gamma distribution prior for the precision in a Gaussian node. INLA argument \code{control.family=list(hyper = list(prec = list(prior="loggamma",param=c(loggam.shape, loggam.inv.scale))))}.
 #' @param loggam.inv.scale.loc the inverse scale parameter in the Gamma distribution prior for the precision in a Gaussian node. INLA argument \code{control.family=list(hyper = list(prec = list(prior="loggamma",param=c(loggam.shape, loggam.inv.scale))))}.
 #' @param verbose.loc FALSE to not print additional output.
-#' @param nthreads number of threads to use for INLA. Default is \code{control[["ncores"]]} which is the number of cores specified in \code{control} and defaults to 1.
+#' @param nthreads number of threads to use for INLA. Default is \code{fit.control[["ncores"]]} or \code{build.control[["ncores"]]} which is the number of cores specified in \code{control} and defaults to 1.
 #'
 #' @return If INLA failed, FALSE or an error is returned. Otherwise, the direct output from INLA is returned.
 #' @family Bayes
+#' @keywords internal
 calc.node.inla.glm <-
   function(child.loc = NULL,
            dag.m.loc = NULL,

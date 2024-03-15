@@ -51,7 +51,7 @@ calc.node.inla.glmm(
 
 \item{verbose.loc}{FALSE to not print additional output.}
 
-\item{nthreads}{number of threads to use for INLA. Default is \code{control[["ncores"]]} which is the number of cores specified in \code{control} and defaults to 1.}
+\item{nthreads}{number of threads to use for INLA. Default is \code{fit.control[["ncores"]]} or \code{build.control[["ncores"]]} which is the number of cores specified in \code{control} and defaults to 1.}
 }
 \value{
 If INLA failed, FALSE or an error is returned. Otherwise, the direct output from INLA is returned.
@@ -67,3 +67,4 @@ Other Bayes:
 \code{\link{getmarginals}()}
 }
 \concept{Bayes}
+\keyword{internal}

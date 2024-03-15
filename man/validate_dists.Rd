@@ -20,3 +20,4 @@ either TRUE/FALSE or list of variable distributions as provided as input.
 The distribution names must match \verb{inla() family=''}.
 Similar to \code{get.var.types()}, mainly different in output.
 }
+\keyword{internal}

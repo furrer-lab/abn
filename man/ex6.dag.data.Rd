@@ -24,3 +24,4 @@ ex6.dag.data
 800 observations across with 8 variables, 1 count, 2 binary and 4 continuous, and 1 grouping variable. Real (anonymised) data of unknown structure.
 }
 \keyword{datasets}
+\keyword{internal}

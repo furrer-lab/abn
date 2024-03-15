@@ -116,3 +116,4 @@ Other Bayes:
 \code{\link{fitAbn}()}
 }
 \concept{Bayes}
+\keyword{internal}

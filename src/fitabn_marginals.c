@@ -7,7 +7,7 @@
 #include <gsl/gsl_randist.h>
 #include <time.h>
 #include "structs.h"
-#include "utility.h" 
+#include "utility.h"
 #include "fitabn_marginals.h"
 #include "node_binomial_marginals_rv.h"
 #include "node_gaussian_marginals_rv.h"
@@ -19,7 +19,7 @@
 
 #define DEBUG_12
 
-                                         
+
 SEXP fitabn_marginals(SEXP R_obsdata, SEXP R_dag,SEXP R_numVars, SEXP R_vartype, SEXP R_maxparents,SEXP R_priors_mean, SEXP R_priors_sd,SEXP R_priors_gamshape,SEXP R_priors_gamscale,
 		      SEXP R_maxiters, SEXP R_epsabs, SEXP R_verbose, SEXP R_errorverbose, SEXP R_trace,
 		      SEXP R_groupedvars, SEXP R_groupids, SEXP R_epsabs_inner,SEXP R_maxiters_inner,
@@ -78,8 +78,9 @@ trace=asInteger(R_trace);
 /** *******************************************************************************
 ***********************************************************************************
 STEP 0. - create R storage for sending results back                                */
-/** generic code to create a list comprising of vectors of type double 
+/** generic code to create a list comprising of vectors of type double
    - currently overkill but useful template **/
+// Rprintf("fitabn_marginals: step 0\n");
 #ifdef JUNK
 PROTECT(listresults = allocVector(VECSXP, 2));
 for(i=0;i<2;i++){
@@ -87,22 +88,25 @@ for(i=0;i<2;i++){
 				SET_VECTOR_ELT(listresults, i, tmplistentry);
                                 UNPROTECT(1);
 				}
-#endif	
+#endif
 
-							
 /** *******************************************************************************
 ***********************************************************************************
  STEP 1. convert data.frame in R into C data structure for us with BGM functions */
 
 
-
+// Rprintf("fitabn_marginals: step 1\n");
+// Rprintf("fitabn_marginals: step 1.1\n");
 make_dag(&dag, numVars,R_dag,0,R_vartype,&maxparents,R_groupedvars);/** user supplied DAG **/
-  /*printDAG(&dag,2);*/
+// printDAG(&dag,2);
+// Rprintf("fitabn_marginals: step 1.2\n");
 make_data(R_obsdata,&data,R_groupids);
+
+// Rprintf("fitabn_marginals: step 1.3\n");
 #ifdef JUNK
 /** An R MATRIX it is single dimension and just needs to be unrolled */
 posterior=gsl_matrix_alloc(numvariates,2);
-for(j=0;j<2;j++){for(i=0;i<numvariates;i++){gsl_matrix_set(posterior,i,j,REAL(R_posterior)[i+j*numvariates]);}} 
+for(j=0;j<2;j++){for(i=0;i<numvariates;i++){gsl_matrix_set(posterior,i,j,REAL(R_posterior)[i+j*numvariates]);}}
 #endif
 /*gsl_set_error_handler_off();*//*Rprintf("Warning: turning off GSL Error handler\n"); */
 
@@ -110,11 +114,12 @@ for(j=0;j<2;j++){for(i=0;i<numvariates;i++){gsl_matrix_set(posterior,i,j,REAL(R_
 		   priormean,priorsd,priorgamshape,priorgamscale,
 		   maxiters,epsabs,verbose,errverbose,listresults,1,epsabs_inner,maxiters_inner,finitestepsize,
 		   h_lowerend, h_upperend, h_guess, h_epsabs);*/
-	  
-PROTECT(posterior=NEW_NUMERIC(1));				
+
+// Rprintf("fitabn_marginals: step 1.4\n");
+PROTECT(posterior=NEW_NUMERIC(1));
 calc_parameter_marginal(&dag,&data,&designmatrix,
 		   priormean,priorsd,priorgamshape,priorgamscale,
-			maxiters,epsabs,verbose,errverbose, trace, 
+			maxiters,epsabs,verbose,errverbose, trace,
 		   denom_modes,childid,paramid,
 			/*pdfminval, pdfstepsize,*/
 			epsabs_inner,maxiters_inner,finitestepsize, h_guess, h_epsabs,maxiters_hessian,betafixed, mlik,REAL(posterior),
@@ -127,6 +132,7 @@ calc_parameter_marginal(&dag,&data,&designmatrix,
 /** Roll back into an R MATRIX */
 /*for(j=0;j<2;j++){for(i=0;i<numvariates;i++){REAL(VECTOR_ELT(listresults,j))[i]=gsl_matrix_get(posterior,i,j);}} */
 
+// Rprintf("fitabn_marginals: step 1.5\n");
 #ifdef JUNK
 gsl_matrix_free(posterior);
 
@@ -151,14 +157,14 @@ return(posterior);
 /** ***************************************************************************************************/
 void calc_parameter_marginal(network *dag,datamatrix *obsdata, datamatrix *designmatrix,
 				const double priormean, const double priorsd, const double priorgamshape, const double priorgamscale,
-                                const int maxiters, const double epsabs, int verbose, const int errverbose, int trace, 
-			      double *denom_modes, int childid, int paramid,  
+                                const int maxiters, const double epsabs, int verbose, const int errverbose, int trace,
+			      double *denom_modes, int childid, int paramid,
 			     double epsabs_inner, int maxiters_inner, double finitestepsize,
 			     double h_guess, double h_epsabs,int maxiters_hessian,
 			     double betafixed, double mlik, double *posterior,
 			     double max_hessian_error,double myfactor_brent, int maxiters_hessian_brent, double num_intervals_brent)
 {
-  
+
                          switch(dag->varType[childid])  /** choose which type of node we have */
                          {
                            case 1:{ /** binary/categorical node */
@@ -167,60 +173,60 @@ void calc_parameter_marginal(network *dag,datamatrix *obsdata, datamatrix *desig
 								epsabs_inner,maxiters_inner,finitestepsize,verbose,
 								h_guess,h_epsabs,maxiters_hessian,
 								denom_modes, paramid, betafixed,mlik, posterior,
-								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent); 
-			       
-				    } else {/** not grouped so node is a glm **/  
+								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+
+				    } else {/** not grouped so node is a glm **/
                                       calc_binary_marginal(dag,obsdata,childid,errverbose, designmatrix, priormean, priorsd,maxiters,epsabs,denom_modes,paramid,betafixed, mlik, posterior
-							 ); 
+							 );
 				    /** results are in dag->nodeScores and dag->modes (if storeModes=TRUE) */
 				    }
-				    
-                                    
-				    
-                                    /*if(verbose){Rprintf("Binary node=%d score=%f\n", i,REAL(results)[i]);}*/                                                                                        
+
+
+
+                                    /*if(verbose){Rprintf("Binary node=%d score=%f\n", i,REAL(results)[i]);}*/
                                     break;
                                    }
-                        
+
                            case 2:{ /** gaussian node */
 			            if(dag->groupedVars[childid]){/** have grouped binary variable so node is a glmm */
 			              calc_gaussian_marginal_rv_R(dag,obsdata,childid,errverbose, trace, designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs,
 								epsabs_inner,maxiters_inner,finitestepsize,verbose,
 								h_guess,h_epsabs,maxiters_hessian,
 								denom_modes, paramid, betafixed,mlik, posterior,
-								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent); 
-			   
-			            } else {/** not grouped so node is a glm **/  
+								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+
+			            } else {/** not grouped so node is a glm **/
                                     calc_gaussian_marginal(dag,obsdata,childid,errverbose, designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,
 						       epsabs,denom_modes,paramid,betafixed, mlik, posterior);
-				    }		 
+				    }
                                     /*if(verbose){Rprintf("Gaussian node=%d score=%f\n",i,REAL(results)[i]);}*/
                                     break;
                                    }
-                                   
-                                   
+
+
                             case 3:{ /** poisson node */
 			             if(dag->groupedVars[childid]){/** have grouped binary variable so node is a glmm */
 				       calc_poisson_marginal_rv_R(dag,obsdata,childid,errverbose, trace, designmatrix, priormean, priorsd,priorgamshape,priorgamscale,maxiters,epsabs,
 								epsabs_inner,maxiters_inner,finitestepsize,verbose,
 								h_guess,h_epsabs,maxiters_hessian,
 								denom_modes, paramid, betafixed,mlik, posterior,
-								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent);   
-				     } else {   
+								max_hessian_error, myfactor_brent, maxiters_hessian_brent, num_intervals_brent);
+				     } else {
                                     calc_poisson_marginal(dag,obsdata,childid,errverbose, designmatrix, priormean, priorsd,maxiters,epsabs,denom_modes,paramid,betafixed, mlik, posterior
-							 ); 
+							 );
 				     }
-                                    /*if(verbose){Rprintf("Binary node=%d score=%f\n", i,REAL(results)[i]);}*/                                                                                        
+                                    /*if(verbose){Rprintf("Binary node=%d score=%f\n", i,REAL(results)[i]);}*/
                                     break;
                                    }
-                                   
-                           default: {error("in default switch - should never get here!");}                                          
-                         }                                     
-                         R_CheckUserInterrupt();/** allow an interupt from R console */ 
+
+                           default: {error("in default switch - should never get here!");}
+                         }
+                         R_CheckUserInterrupt();/** allow an interupt from R console */
                          /*if(verbose){Rprintf("individual node score=%f\n",indnodescore);}*/
                         /* lognetworkscore+=indnodescore;*/
- /*}*/      /*}*/ 
-                    
+ /*}*/      /*}*/
+
  /*dag->networkScore=lognetworkscore;*/
- 
-            
+
+
  }

@@ -47,7 +47,7 @@
 #' @return A rendered graph, if \code{plot=TRUE}. The \code{graphAM} object is returned invisibly.
 #'
 #' @seealso \code{\link[graph]{graphAM-class}}, \code{\link[graph]{edgeRenderInfo}}
-#' @keywords models hplot
+#' @keywords internal
 #' @export
 #' @importFrom Rgraphviz renderGraph layoutGraph
 #' @importFrom graph edgeRenderInfo edgeRenderInfo<-

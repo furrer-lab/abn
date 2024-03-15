@@ -49,7 +49,7 @@ dist <- list(a="gaussian", b="gaussian", c="gaussian", d="gaussian")
 colnames(dag) <- rownames(dag) <- names(dist)
 
 infoDag(dag)
-plot(createAbnDag(dag))
+plot(createAbnDag(dag = dag, data.dists = dist))
 }
 \references{
 West, D. B. (2001). Introduction to graph theory. Vol. 2. Upper Saddle River: Prentice Hall.

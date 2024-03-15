@@ -190,12 +190,12 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP buildcachematrix(void *, void *, void *, void *, void *);
-RcppExport SEXP checkforcycles(void *, void *);
-RcppExport SEXP fit_single_node(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP fitabn_marginals(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
-RcppExport SEXP mostprobable_C(void *, void *, void *, void *, void *, void *);
-RcppExport SEXP searchhill(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
+RcppExport SEXP buildcachematrix(SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP checkforcycles(SEXP, SEXP);
+RcppExport SEXP fit_single_node(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP fitabn_marginals(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP mostprobable_C(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+RcppExport SEXP searchhill(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 static const R_CallMethodDef CallEntries[] = {
     {"_abn_logit_cpp", (DL_FUNC) &_abn_logit_cpp, 1},

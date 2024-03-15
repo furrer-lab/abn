@@ -27,3 +27,4 @@ dag as named square matrix
 \description{
 Set of simple commonsense validity checks on the directed acyclic graph definition matrix
 }
+\keyword{internal}

@@ -13,6 +13,7 @@
 #' @param iter.max same as \code{max.iters} in \code{\link{fit.control}}. Total number of iterations allowed when estimating the modes in Laplace approximation. Passed to .Call("fit_single_node", ...).
 #' @family Bayes
 #' @importFrom stats sd spline
+#' @keywords internal
 getmarginals <- function(res.list,
                        data.df,dag.m,var.types,max.parents,
                        mean,prec,loggam.shape,loggam.inv.scale,

@@ -1,0 +1,63 @@
+---
+title: "Bayesian Network Structure Learning"
+output: rmarkdown::html_vignette
+bibliography: vignettes_bibliography.bib
+vignette: >
+  %\VignetteIndexEntry{Bayesian Network Structure Learning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(abn)
+```
+
+With this vignette we aim to provide a basic introduction to the structure learning of Bayesian networks with the `abn` package.
+
+# Structure Learning of Bayesian Networks
+
+The structure learning of Bayesian networks is the process of estimating the (in-)dependencies between the variables of the network that results in a directed acyclic graph (DAG) where the nodes represent the variables and the edges represent the dependencies between the variables. 
+Structure learning of Bayesian networks is a challenging problem and there are several algorithms to solve it (see @koller_probabilistic_2009 for a comprehensive review). 
+
+The `abn` package currently offers four distinct algorithms for Bayesian network structure learning:
+
+- `mostProbable()`: This exact order-based structure learning algorithm identifies the most probable posterior DAG following the method of @koivisto_exact_2004. For details see the help page of `mostProbable()`.
+
+- `searchHillClimber()`:  The Hill-climber algorithm is a single move algorithm. 
+At each step, an arc is attempted to be added. 
+The new score is computed and compared to the previous network's score.
+It deviates slightly from the original method proposed by @heckerman_learning_1995 by utilizing a full cache of all possible local combinations as provided by `buildScoreCache()`.
+The algorithm considers all potential single swaps in the DAG at each step, selecting the swap that maximizes the goodness of fit.
+While multiple arc changes are considered at each step, arc reversal requires two steps. 
+This implementation (in `C`), which is more intuitive with a pre-computed cache of local scores, is optimized for the `abn` workflow.
+For details see the help page of `searchHillClimber()`.
+
+- `searchHeuristic()`: This function is a flexible implementation of multiple greedy heuristic algorithms, particularly well adapted to the `abn` framework.
+It targets multi-random restarts heuristic algorithms and allows the user to select the number of searches and the maximum number of steps within each search.
+The function implements three algorithms selected with the parameter `algo`: `hc`, `tabu`, or `sa`.
+
+  - `algo=hc`: This alternative implementation of the greedy hill-climbing approach that is fully written in R, unlike `searchHillClimber()` and `mostProbable()` which are written in `C`.
+It performs a local stepwise optimization, choosing a structural move and computing the score's change.
+This function is closer to the MCMCMC algorithm from @madigan_bayesian_1995 and @paolo_giudici_improving_2003 with a single edge move.
+
+  - `algo=tabu`: The same algorithm as `hc` is used, but a list of banned moves is computed.
+The parameter `tabu.memory` controls the length of the tabu list.
+This forces the algorithm to escape the local maximum by choosing some not already used moves.
+
+  - `algo=sa`: This variant of the heuristic search algorithm is based on simulated annealing described by @metropolis_equation_1953.
+Some accepted moves could result in a decrease of the network score.
+The acceptance rate can be monitored with the parameter `temperature`.
+
+For more information, refer to the help page `searchHeuristic()`.
+
+# References
+
+<div id="refs"></div>

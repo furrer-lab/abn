@@ -17,3 +17,4 @@ ex3.dag.data
 1000 observations across with 13 binary variables and one grouping variable. Real (anonymised) data of unknown structure.
 }
 \keyword{datasets}
+\keyword{internal}

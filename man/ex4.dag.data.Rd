@@ -16,3 +16,4 @@ ex4.dag.data
 2000 observations across with 10 binary variables and one grouping variable. Real (anonymised) data of unknown structure.
 }
 \keyword{datasets}
+\keyword{internal}

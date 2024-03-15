@@ -4,12 +4,10 @@
 \alias{plot.abnDag}
 \title{Plots DAG from an object of class \code{abnDag}}
 \usage{
-\method{plot}{abnDag}(x, new = TRUE, ...)
+\method{plot}{abnDag}(x, ...)
 }
 \arguments{
 \item{x}{Object of class \code{abnDag}}
-
-\item{new}{defaults to \code{TRUE} for opening a new plot.}
 
 \item{...}{additional parameters. Not used at the moment.}
 }
@@ -20,7 +18,9 @@
 Plots DAG from an object of class \code{abnDag}
 }
 \examples{
-mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
+mydag <- createAbnDag(dag = ~a+b|a,
+                      data.df = data.frame("a"=1, "b"=1),
+                      data.dists = list(a="binomial", b="gaussian"))
 plot(mydag)
 }
 \concept{DAG}

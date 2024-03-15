@@ -239,6 +239,48 @@ The numerical routines used here are identical to those in \code{\link{fitAbn}} 
 
 }}
 \examples{
+## Simple example
+# Generate data
+N <- 1e6
+mydists <- list(a="gaussian",
+                b="gaussian",
+                c="gaussian")
+a <- rnorm(n = N, mean = 0, sd = 1)
+b <- 1 + 2*rnorm(n = N, mean = 5, sd = 1)
+c <- 2 + 1*a + 2*b + rnorm(n = N, mean = 2, sd = 1)
+mydf <- data.frame("a" = scale(a),
+                   "b" = scale(b),
+                   "c" = scale(c))
+
+# ABN with MLE
+mycache.mle <- buildScoreCache(data.df = mydf,
+                               data.dists = mydists,
+                               method = "mle",
+                            max.parents = 2)
+dag.mle <- mostProbable(score.cache = mycache.mle,
+                        max.parents = 2)
+myfit.mle <- fitAbn(object = dag.mle,
+                    method = "mle",
+                    max.parents = 2)
+plot(myfit.mle)
+
+# ABN with Bayes
+mycache.bayes <- buildScoreCache(data.df = mydf,
+                                 data.dists = mydists,
+                                 method = "bayes",
+                                 max.parents = 2)
+dag.bayes <- mostProbable(score.cache = mycache.bayes,
+                          max.parents = 2)
+myfit.bayes <- fitAbn(object = dag.bayes,
+                      method = "bayes",
+                      max.parents = 2)
+plot(myfit.bayes)
+
+# Compare MLE and Bayes with lm
+mymod.lm <- lm(c ~ a + b, data = mydf)
+summary(mymod.lm)
+
+
 \dontrun{
 ##################################################################################################
 ## Example 1 - "mle" vs. "bayes" and the later with using the internal C routine compared to INLA

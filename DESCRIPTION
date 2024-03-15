@@ -1,70 +1,88 @@
 Package: abn
-Version: 3.0.5
-Date: 2024-02-05
 Title: Modelling Multivariate Data with Additive Bayesian Networks
-Authors@R: 
-    c(person(given = "Matteo",
-             family = "Delucchi",
-             role = c("aut", "cre"),
-             email = "matteo.delucchi@math.uzh.ch",
-             comment = c(ORCID = "0000-0002-9327-1496")),
-      person(given = "Reinhard",
-             family = "Furrer",
-             role = c("aut"),
-             email = "reinhard.furrer@math.uzh.ch",
-             comment = c(ORCID = "0000-0002-6319-2332")),
-      person(given = "Gilles",
-             family = "Kratzer",
-             role = "aut",
-             email = "gilles.kratzer@gmail.com",
-             comment = c(ORCID = "0000-0002-5929-8935")),
-      person(given = "Fraser Iain",
-             family = "Lewis",
-             role = "aut",
-             email = "fraser.iain.lewis@gmail.com",
-	           comment = c(ORCID = "0000-0003-4580-2712")),
-      person(given = "Marta",
-             family = "Pittavino",
-             role = "ctb",
-             email = "marta.pittavino@math.uzh.ch",
-             comment = c(ORCID = "0000-0002-1232-1034")),
-      person(given = "Kalina", 
-             family = "Cherneva",
-             role = "ctb",
-             email = "kalinacherneva@gmail.com")
-	     )
-Author: 
-        Matteo Delucchi [aut, cre] (<https://orcid.org/0000-0002-9327-1496>), 
-        Reinhard Furrer [aut] (<https://orcid.org/0000-0002-6319-2332>), 
-        Gilles Kratzer [aut] (<https://orcid.org/0000-0002-5929-8935>), 
-        Fraser Iain Lewis [aut] (<https://orcid.org/0000-0003-4580-2712>), 
-        Marta Pittavino [ctb] (<https://orcid.org/0000-0002-1232-1034>),
-        Kalina Cherneva [ctb]
+Version: 3.0.6.9000
+Date: 2024-03-15
+Authors@R: c(
+    person("Matteo", "Delucchi", , "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-9327-1496")),
+    person("Reinhard", "Furrer", , "reinhard.furrer@math.uzh.ch", role = "aut",
+           comment = c(ORCID = "0000-0002-6319-2332")),
+    person("Gilles", "Kratzer", , "gilles.kratzer@gmail.com", role = "aut",
+           comment = c(ORCID = "0000-0002-5929-8935")),
+    person("Fraser Iain", "Lewis", , "fraser.iain.lewis@gmail.com", role = "aut",
+           comment = c(ORCID = "0000-0003-4580-2712")),
+    person("Marta", "Pittavino", , "marta.pittavino@math.uzh.ch", role = "ctb",
+           comment = c(ORCID = "0000-0002-1232-1034")),
+    person("Kalina", "Cherneva", , "kalinacherneva@gmail.com", role = "ctb")
+  )
+Author: Matteo Delucchi [aut, cre]
+    (<https://orcid.org/0000-0002-9327-1496>), Reinhard Furrer [aut]
+    (<https://orcid.org/0000-0002-6319-2332>), Gilles Kratzer [aut]
+    (<https://orcid.org/0000-0002-5929-8935>), Fraser Iain Lewis [aut]
+    (<https://orcid.org/0000-0003-4580-2712>), Marta Pittavino [ctb]
+    (<https://orcid.org/0000-0002-1232-1034>), Kalina Cherneva [ctb]
 Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
-Depends: R (>= 4.0.0)
-Imports: methods, rjags, nnet, lme4, graph, Rgraphviz, doParallel,
-        foreach, mclogit, stringi, Rcpp
-LinkingTo: Rcpp, RcppArmadillo
-Suggests: INLA, knitr, R.rsp, testthat (>= 3.0.0), entropy, moments,
-        boot, brglm, RhpcBLASctl, Matrix (>= 1.6.3), MatrixModels (>=
-        0.5.3)
-VignetteBuilder: R.rsp
-Additional_repositories: https://inla.r-inla-download.org/R/stable/
-SystemRequirements: Gnu Scientific Library version >= 1.12
-Description: Bayesian network analysis is a form of probabilistic graphical models which derives from empirical data a directed acyclic graph, DAG, describing the dependency structure between random variables. 
- An additive Bayesian network model consists of a form of a DAG where each node comprises a generalized linear model, GLM. Additive Bayesian network models are equivalent to Bayesian multivariate regression using graphical modelling, they generalises the usual multivariable regression, GLM, to multiple dependent variables. 
- 'abn' provides routines to help determine optimal Bayesian network models for a given data set, where these models are used to identify statistical dependencies in messy, complex data. The additive formulation of these models is equivalent to multivariate generalised linear modelling (including mixed models with iid random effects). 
- The usual term to describe this model selection process is structure discovery. 
- The core functionality is concerned with model selection - determining the most robust empirical model of data from interdependent variables. Laplace approximations are used to estimate goodness of fit metrics and model parameters, and wrappers are also included to the INLA package which can be obtained from <https://www.r-inla.org>. 
- The computing library JAGS <https://mcmc-jags.sourceforge.io> is used to simulate 'abn'-like data. 
- A comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation are available from the 'abn' website <http://r-bayesian-networks.org>.
+Description: The `abn` R package is a powerful tool for Bayesian network
+    analysis, a probabilistic graphical model that derives from empirical
+    data a directed acyclic graph (DAG). This DAG describes the dependency
+    structure between random variables. The R package `abn` provides
+    routines to help determine optimal Bayesian network models for a given
+    data set. These models are used to identify statistical dependencies
+    in messy, complex data. Their additive formulation is equivalent to
+    multivariate generalised linear modelling, including mixed models with
+    independent and identically distributed (iid) random effects. The core
+    functionality of the `abn` package revolves around model selection,
+    also known as structure discovery. It supports both exact and
+    heuristic structure learning algorithms and does not restrict the data
+    distribution of parent-child combinations, providing flexibility in
+    model creation and analysis. The `abn` package uses Laplace
+    approximations for metric estimation and includes wrappers to the INLA
+    package. It also employs JAGS for data simulation purposes. For more
+    resources and information, visit the `abn` website.
 License: GPL (>= 3)
-LazyData: true
 URL: http://r-bayesian-networks.org
-BugReports: https://git.math.uzh.ch/mdeluc/abn/-/issues
+BugReports: https://github.com/furrer-lab/abn/issues
+Depends: 
+    R (>= 4.0.0)
+Imports: 
+    doParallel,
+    foreach,
+    graph,
+    lme4,
+    mclogit,
+    methods,
+    nnet,
+    Rcpp,
+    Rgraphviz,
+    rjags,
+    stringi
+Suggests: 
+    bookdown,
+    boot,
+    brglm,
+    devtools (>= 2.4.5),
+    entropy,
+    ggplot2,
+    gridExtra,
+    INLA,
+    knitr,
+    Matrix (>= 1.6.3),
+    MatrixModels (>= 0.5.3),
+    microbenchmark,
+    moments,
+    R.rsp,
+    RhpcBLASctl,
+    rmarkdown,
+    testthat (>= 3.0.0)
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
+VignetteBuilder: 
+    knitr
+Additional_repositories: https://inla.r-inla-download.org/R/stable/
 Config/testthat/edition: 3
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.2
 Encoding: UTF-8
-NeedsCompilation: yes
-Packaged: 2024-02-05 12:20:38 UTC; matteo
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+SystemRequirements: Gnu Scientific Library version >= 1.12

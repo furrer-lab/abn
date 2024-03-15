@@ -33,8 +33,13 @@ If the dag is specified with a formula, either \code{data.df} or \code{data.dist
 If the dag is specified with an unnamed matrix and both \code{data.df} and \code{data.dists} are missing,  lower-case letters of the Roman alphabet are used for the node names.
 }
 \examples{
-createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
-plot(createAbnDag(dag = matrix(c(0,1,0,0), 2, 2)))
+dagFromFormula <- createAbnDag(dag = ~a+b|a,
+                              data.df = data.frame("a"=1, "b"=1),
+                              data.dists = list(a="binomial", b="gaussian"))
+dagFromMatrix <- createAbnDag(dag = matrix(c(0,1,0,0), 2, 2),
+                              data.df = data.frame("a"=1, "b"=1),
+                              data.dists = list(a="binomial", b="gaussian"))
+plot(dagFromMatrix)
 
 }
 \concept{DAG}

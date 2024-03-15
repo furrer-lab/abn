@@ -44,3 +44,4 @@ abn.version()$version.string
 \seealso{
 \code{\link[base]{R.version}}
 }
+\keyword{internal}

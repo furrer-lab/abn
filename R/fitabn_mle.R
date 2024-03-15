@@ -105,9 +105,16 @@ fitAbn.mle <- function(dag = NULL,
           message(paste("File exists and will be overwritten:", path))
         }
 
-        cl <- makeCluster(ncores, outfile=path)
+        cl <- makeCluster(ncores,
+                          type = control[["cluster.type"]],
+                          rscript_args = "--no-environ", # only available for "FORK"
+                          outfile=path)
       } else {
-        cl <- makeCluster(ncores) # no redirection
+        # no redirection
+        cl <- makeCluster(ncores,
+                          type = control[["cluster.type"]],
+                          rscript_args = "--no-environ" # only available for "FORK"
+                          )
       }
       registerDoParallel(cl)
 
@@ -228,6 +235,7 @@ fitAbn.mle <- function(dag = NULL,
 #' @importFrom stats coefficients coef residuals df.residual vcov AIC BIC sd model.matrix as.formula lm glm logLik
 #' @importFrom methods is
 #' @return list
+#' @keywords internal
 regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds to child node index e.g. in dag)
                            dag = NULL,
                            data.df = NULL,
@@ -455,7 +463,6 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                 stop("'catcov.mblogit' == 'single' is not yet implemented.")
                 fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single")
                 # manipulate VarCov to bring in correct shape
-                # TODO
               } else {
                 stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
               }
@@ -605,7 +612,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       }
     } else if(is.null(fit)){
       # no convergence, return very low score
-      stop("TODO: Catch fit is NULL.")
+      stop("fit is NULL. I don't yet know how to handle this case.")
     } else {
       stop("Unknown state of fit. I should never end up here.")
     }

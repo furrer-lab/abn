@@ -1,0 +1,125 @@
+---
+title: "Model Specification: Build a Cache of Scores"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Model Specification: Build a Cache of Scores}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(abn)
+```
+
+This vignette provides an overview of the model specification process in the `abn` package.
+
+# Background
+
+In a first step, the `abn` package calculates a cache of scores of the data given each possible model.
+This cache is then used to estimate the Bayesian network structure ("structure learning") and to estimate the parameters of the model ("parameter learning").
+The cache of scores is calculated using the `buildScoreCache()` function, which is the focus of this vignette.
+
+In `abn` we distinguish between two approaches: the Bayesian and the information-theoretic score. 
+Only under a frequentist framework, the package supports all possible mixtures of continuous, discrete, and count data (see also `vignette("01_quick_start_example.Rmd")`).
+Settings that are specific to the modelling approach are set with the `control` argument of the `buildScoreCache()` function.
+
+We will illustrate the model specification process using a simple example data set and the `buildScoreCache()` function.
+
+# Estimate the maximum number of parent nodes
+
+The maximum number of parent nodes for each node in the data set is a crucial parameter to speed up the model estimation in `abn`.
+It limits the number of possible combinations and thus the search space for the model estimation.
+Instead of a wild guess, the maximum number of parent nodes can be set to a reasonable value based on prior knowledge or to the value that maximizes the score of the model given the data.
+
+In the later case, we can estimate the model's score for different maximum numbers of parent nodes and choose the maximum number of parent nodes that maximizes the score of the model given the data.
+
+```{r}
+# Load only a subset of the example data for illustration
+mydat <- ex1.dag.data[, c("b1", "p1", "g1", "b2", "p2", "b3", "g2")]
+mydists <- list(b1="binomial", 
+                p1="poisson", 
+                g1="gaussian", 
+                b2="binomial", 
+                p2="poisson", 
+                b3="binomial",
+                g2="gaussian")
+
+# Estimate model score for different maximum numbers of parent nodes
+num.vars <- ncol(mydat) # number of variables
+max.pars <- 1:(num.vars-1) # vector of possible maximum number of parent nodes
+
+npars_scores <- data.frame(max.pars = max.pars, score = rep(NA, length(max.pars))) # data frame to store scores
+
+# loop over maximum number of parent nodes
+for (i in max.pars) {
+  mycache <- buildScoreCache(data.df = mydat, 
+                             data.dists = mydists,
+                             method = "bayes", 
+                             max.parents = i)
+  mp.dag <- mostProbable(mycache)
+  myfit <- fitAbn(mp.dag)
+  
+  npars_scores[i, "score"] <- myfit$mlik # store score
+}
+
+# Plot the scores for different maximum numbers of parent nodes
+library(ggplot2)
+ggplot(npars_scores, aes(x = max.pars, y = score)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Maximum number of parent nodes", y = "Model score") +
+  # set x-axis labels to integers
+  scale_x_continuous(breaks = seq(0, num.vars, 1))
+```
+
+We can see that the model score increases with the maximum number of parent nodes up to a certain point and then remains constant.
+This typical pattern indicates that the maximum number of parent nodes has been reached at the point where the score remains constant.
+
+The value of `max.parents` can be set to a single value equal for all nodes or to a list with the node names as keys and the maximum number of parent nodes as values as shown in `vignette("01_quick_start_example.Rmd")`.
+
+# Include prior domain knowledge
+
+The `abn` package allows to include prior domain knowledge in the model estimation process by defining edges and their directions as fixed or forbidden.
+
+Arcs that we are certain about can be provided with `dag.retained`, while arcs that we are certain about not being present can be defined with `dag.banned`.
+The `dag.retained` and `dag.banned` arguments can be set to an adjacency matrix with the node names as row- and column names.
+An edge from node `i` to node `j` is indicated by a `1` in the `i`-th row and `j`-th column of the matrix, while a `0` indicates no edge.
+
+```{r}
+# Load the example data
+mydat <- ex1.dag.data
+mydists <- list(b1="binomial", 
+                p1="poisson", 
+                g1="gaussian", 
+                b2="binomial", 
+                p2="poisson", 
+                b3="binomial", 
+                g2="gaussian", 
+                b4="binomial", 
+                b5="binomial", 
+                g3="gaussian")
+
+# Define edges and their directions as fixed or forbidden
+dag.banned <- matrix(0, nrow = 10, ncol = 10, dimnames = list(names(mydat), names(mydat)))
+
+# Define edges and their directions as forbidden
+dag.banned["b1", "b2"] <- 1
+dag.banned["b1", "b3"] <- 1
+dag.banned["b1", "b4"] <- 1
+
+# Display the matrix
+dag.banned
+
+# Plot the forbidden edges
+plotAbn(dag = dag.banned, data.dists = mydists)
+```
+
+The plot shows the forbidden edges defined in the `dag.banned` matrix.

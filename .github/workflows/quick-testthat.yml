@@ -1,0 +1,86 @@
+# See https://github.com/r-lib/actions/tree/master/examples#readme for
+# example workflows available for the R community.
+
+name: Quick build and test
+
+on:
+  push:
+    branches:
+      - "**"           # include all branches
+      - "!main"        # then exclude only
+      - "!master"      # those two
+      - 150-strip-down-to-essentials # for temporary testing
+  pull_request:
+    branches-ignore:   # do not run on pull
+      - main           # requests on default
+      - master
+
+env:
+  BUILD_LOC: "./build"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build-install-test:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-22.04
+    name: Testing ${{ matrix.os }} (${{ matrix.compiler}}-${{ matrix.r-version }})
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image-source }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+    strategy:
+      fail-fast: false
+      matrix:
+        image-source: ["ghcr.io/furrer-lab/r-containers"]  # This is only here since container.image ignores env
+        r-version: ['release', 'devel', 'patched']  # ['3.6.3', '4.1.1']
+        os: ['debian', 'fedora']
+        compiler: ['gcc', 'clang']
+        exclude:
+          - os: 'fedora'
+            r-version: 'release'
+          - os: 'fedora'
+            r-version: 'patched'
+          - r-version: 'patched'
+            compiler: 'clang'
+          - r-version: 'release'
+            compiler: 'clang'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create build location
+        run: |
+            mkdir ${{ env.BUILD_LOC }}
+        shell: bash
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Build the package
+        run: |
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+        shell: Rscript {0}
+      - name: Install it
+        run: |
+            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+        shell: Rscript {0}
+      - name: Testthat!
+        run: |
+            # since on a test failure devtools::test does not exit with
+            # non-zero state we test explicitly for failed tests and exit
+            # accordingly
+            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q(status=1)}
+        shell: Rscript {0}

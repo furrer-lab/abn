@@ -112,5 +112,4 @@ Rgraphviz::renderGraph(tmp)
 \seealso{
 \code{\link[graph]{graphAM-class}}, \code{\link[graph]{edgeRenderInfo}}
 }
-\keyword{hplot}
-\keyword{models}
+\keyword{internal}

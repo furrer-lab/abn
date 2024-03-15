@@ -1,0 +1,2963 @@
+---
+title: "Quality Assurance"
+output:
+  bookdown::html_document2:
+    base_format: rmarkdown::html_vignette
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 8
+    toc: true
+    toc_depth: 2
+pkgdown:
+  as_is: true
+      
+vignette: >
+  %\VignetteIndexEntry{Quality Assurance}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+# Set environment variable to check if we are running R CMD check
+is_check <-
+  ("CheckExEnv" %in% search()) ||
+  any(c("_R_CHECK_TIMINGS_", "_R_CHECK_LICENSE_") %in% names(Sys.getenv()))
+
+# Consider to save files with highest compression level available
+compressionLevel <- "xz"
+
+# Set number of CPUs for fitAbn and buildScoreCache
+NCPUS <- 10
+NCPUS.C <- 100 # GLMM with abn internal C is safe to run on many cores. INLA isn't
+
+knitr::opts_chunk$set(
+  eval = !is_check, # don't evaluate chunks during R CMD check
+  collapse = TRUE,
+  comment = "#>",
+  fig.dpi = 96
+)
+
+library(abn)
+library(ggplot2)
+library(INLA)
+library(lme4)
+```
+
+
+```{r, include = FALSE}
+plot_diffs <- function(perc){
+  par(mfrow=c(1,1));
+  par(mar=c(8.8,8,3.1,3.1));
+  par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+  par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+  plot(perc,type="n",xlab="",ylab="",axes=F,main="");
+  mtext("Node-Parent Combination",1,line=3.5,cex=1.5);
+  title("");
+  points(perc,pch=21,col="blue",bg="green");
+  par(las=3);
+  mtext("% Difference in mlik ",2,line=5.5,cex=2.0);
+  par(las=1);
+  axis(1,padj=0.4,cex.axis=1.25); 
+  axis(2);
+  box()
+}
+ggplot_diffs <- function(perc){
+  df <- data.frame(perc=perc)
+  p <- ggplot(df,aes(x=1:nrow(df),y=perc)) +
+    geom_point() +
+    geom_hline(yintercept=0) +
+    theme_bw() +
+    xlab("Node-Parent Combination") + 
+    ylab("% Difference in mlik")
+  return(p)
+}
+
+plot_err_diffs <- function(perc, hessian_acc){
+  par(mfrow=c(1,1));
+  par(mar=c(8.8,8,3.1,3.1));
+  par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+  par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+  plot(hessian_acc,perc,type="n",xlab="",ylab="",axes=F,main="",log="x");
+  mtext("Approximate local error in mlik",1,line=3.5,cex=1.5);title("");
+  points(hessian_acc,perc,pch=21,col="blue",bg="green");
+  par(las=3);
+  mtext("% Difference in mlik ",2,line=5.5,cex=2.0);par(las=1);
+  axis(1,padj=0.4,cex.axis=1.25); axis(2);box();
+  #abline(h=1,lty=1,col="grey");
+}
+ggplot_err_diffs <- function(perc, hessian_acc){
+  df <- data.frame(perc=perc, hessian_acc=hessian_acc)
+  p <- ggplot(df,aes(x=hessian_acc,y=perc)) +
+    geom_point() +
+    geom_hline(yintercept=0) +
+    theme_bw() +
+    scale_x_log10() +
+    xlab("Approximate local error in mlik") +
+    ylab("% Difference in mlik")
+  return(p)
+}
+```
+
+# Introduction
+
+In this section, we introduce ten case studies that serve to validate the robustness and accuracy of the numerical methods implemented in the [`abn`](https://CRAN.R-project.org/package=abn) package. 
+Each case study uses real data, sourced from various research studies in medicine and biology, both published and unpublished. 
+All variable names have been anonymized for privacy.
+
+To streamline the process, [`abn`](https://CRAN.R-project.org/package=abn) incorporates wrappers for [INLA](http://www.r-inla.org/) for model fitting. 
+However, [`abn`](https://CRAN.R-project.org/package=abn) also includes its own internal numerical routines. 
+As demonstrated in the case studies below, [INLA](http://www.r-inla.org/) may not perform optimally for some datasets and models, making an alternative approach necessary for structure discovery. 
+This balance between using established tools and developing our own solutions ensures that [`abn`](https://CRAN.R-project.org/package=abn) remains a versatile and reliable tool for your data analysis needs.
+
+The primary objective of [`abn`](https://CRAN.R-project.org/package=abn) is structure discovery, i.e., identifying the best Directed Acyclic Graphs (DAGs) among a multitude of possible DAG structures. 
+To achieve this, it’s essential to estimate a reliable goodness of fit metric for each candidate DAG. 
+We use the log marginal likelihood (mlik), a standard metric in Bayesian network literature, estimated via Laplace approximations.
+
+A key feature of the [`abn`](https://CRAN.R-project.org/package=abn) library is its ability to provide robust model comparison of DAGs composed of nodes parameterized as generalized linear models (glm) or generalized linear mixed models (glmm). 
+Based on the results from the following case studies, the default setting in [`abn`](https://CRAN.R-project.org/package=abn) is to use internal [`abn`](https://CRAN.R-project.org/package=abn) code for glm nodes. 
+For glmm nodes, the default is to use [INLA](http://www.r-inla.org/), as it is significantly faster than the internal code, but if [INLA](http://www.r-inla.org/)’s results appear unreliable, the internal code is used instead.
+
+In the following case studies, we compare mlik values and parameter estimates between the internal [`abn`](https://CRAN.R-project.org/package=abn) code and those from [INLA](http://www.r-inla.org/). 
+We also use established (non-Bayesian) model fitting routines in R, such as `glm()` and `glmer()`, from the `lme4` package. 
+The point estimates (modes) from `glm()` and `glmer()` serve as gold standard estimates of the modes used in the Laplace approximation for the Bayesian models with highly diffuse priors (i.e., the default priors in [`abn`](https://CRAN.R-project.org/package=abn) (see also [Kratzer et al. 2023](https://doi.org/10.18637/jss.v105.i08)).
+
+# QA Case Studies for Generalized Linear Model (GLM) Nodes
+
+## Gaussian, Binary and Poisson Variables
+
+```{r}
+# Generate cache of network scores
+#####
+# Internal C code
+#####
+mydat<-ex2.dag.data;## this data comes with abn see ?ex2.dag.data
+
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              g1="gaussian",
+              p1="poisson",
+              b2="binomial",
+              g2="gaussian",
+              p2="poisson",
+              b3="binomial",
+              g3="gaussian",
+              p3="poisson",
+              b4="binomial",
+              g4="gaussian",
+              p4="poisson",
+              b5="binomial",
+              g5="gaussian",
+              p5="poisson",
+              b6="binomial",
+              g6="gaussian",
+              p6="poisson"
+             );
+
+## set parent limits and banlists etc. 
+max.par<-2;## 2 parent max for all nodes
+
+## no explicit ban or retain restrictions 
+setwd(normalizePath(".."))
+mycache.c<-buildScoreCache(data.df=mydat,
+                           data.dists=mydists,
+                           max.parents=max.par,
+                           control=build.control(max.mode.error=0, ## only use internal C code
+                                                 ncores = NCPUS)) 
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c, file = "../inst/extdata/mycache.c1.rds", compress = compressionLevel)
+# saveRDS(object = mycache.c, file = "./inst/extdata/mycache.c1.rds", compress = compressionLevel)
+
+#####
+# INLA
+#####
+mydat<-ex2.dag.data;## this data comes with abn see ?ex2.dag.data
+
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              g1="gaussian",
+              p1="poisson",
+              b2="binomial",
+              g2="gaussian",
+              p2="poisson",
+              b3="binomial",
+              g3="gaussian",
+              p3="poisson",
+              b4="binomial",
+              g4="gaussian",
+              p4="poisson",
+              b5="binomial",
+              g5="gaussian",
+              p5="poisson",
+              b6="binomial",
+              g6="gaussian",
+              p6="poisson"
+             );
+
+## set parent limits and banlists etc. 
+max.par<-2;## 2 parent max for all nodes
+## no explicit ban or retain restrictions 
+setwd(normalizePath(".."))
+mycache.inla<-buildScoreCache(data.df=mydat,
+                              data.dists=mydists,
+                              max.parents=max.par,
+                              control=build.control(max.mode.error=100, ## only use INLA
+                                                    ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla, file = "../inst/extdata/mycache.inla1.rds", compress = compressionLevel)
+# saveRDS(object = mycache.inla, file = "./inst/extdata/mycache.inla1.rds", compress = compressionLevel)
+```
+
+This case study involves the analysis of the data set `ex2.dag.data` (included with the abn package), where we calculate the log marginal likelihoods (mlik) for 18 nodes (variables).
+Each node in the DAG is allowed a maximum of two parent nodes.
+
+This study involves the estimation of mlik values across 2772 different GLM nodes, which include Gaussian, binary, and Poisson distributed variables. 
+We then compare these estimated mlik values between the internal abn code and the Integrated Nested Laplace Approximation (INLA) method.
+
+Since we lack a gold standard for verifying the mlik values, we instead compare the estimated parameter modes with the results obtained from `lme4::glm()`.
+
+Figure @ref(fig:perc-diff-inla-c) illustrates that, in general, there is excellent agreement between the internal abn code and INLA. 
+However, there are 45 out of the 2772 mlik values that show significant differences.
+
+```{r perc-diff-inla-c, echo=FALSE}
+#| fig.cap="Percentage difference in mlik values between abn and INLA for 2772 mlik values."
+# load(system.file("extdata", "QA_glm_case1_data.RData", package = "abn"))
+if(!exists("mycache.c")){
+  mycache.c <- readRDS("../inst/extdata/mycache.c1.rds")
+}
+if(!exists("mycache.inla")){
+  mycache.inla <- readRDS("../inst/extdata/mycache.inla1.rds")
+}
+
+perc<-100*(mycache.c$mlik-mycache.inla$mlik)/mycache.c$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+For these 45 mlik values, where the relative (absolute) difference between abn and INLA was at least 1%, we fitted these nodes individually. We then compared the parameter modes with the output from glm(). Some of these results are presented below.
+
+```{r eval=FALSE}
+## 3. get all mliks which are adrift by more than 1%
+if(any(abs(perc)>1)){
+  bad <- which(abs(perc)>1)
+} else {
+  bad <- NULL
+}
+
+## go through each and check for issues
+## 
+mydat<-ex2.dag.data;## this data comes with abn see ?ex2.dag.data
+mydat.std<-mydat;
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              g1="gaussian",
+              p1="poisson",
+              b2="binomial",
+              g2="gaussian",
+              p2="poisson",
+              b3="binomial",
+              g3="gaussian",
+              p3="poisson",
+              b4="binomial",
+              g4="gaussian",
+              p4="poisson",
+              b5="binomial",
+              g5="gaussian",
+              p5="poisson",
+              b6="binomial",
+              g6="gaussian",
+              p6="poisson"
+             );
+## create standardised dataset for comparison with glm
+for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){
+  ## then std data for comparison with glm_case
+  mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+}
+## create empty matrix which will be filled with nodes as needed
+mydag<-matrix(rep(0,dim(mydat)[2]^2),ncol=dim(mydat)[2]);
+colnames(mydag)<-rownames(mydag)<-names(mydat);
+
+## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+# for(i in 1:length(bad)){
+if (!is.null(bad)){
+  for(i in c(5,6,10)){ # just do a few for now
+    mydag[,]<-0;## reset
+    node<-mycache.c$child[bad[i]];pars<-mycache.c$node.defn[bad[i],];
+    form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),sep=""));
+    family<-mydists[[node]];
+    mydag[node,]<-pars;## copy "bad" node into DAG
+    myres.c <- fitAbn(dag = mydag, data.df = mydat, data.dists = mydists, control = fit.control(max.mode.error = 0), compute.fixed = TRUE);## use C
+    myres.inla <- fitAbn(dag = mydag, data.df = mydat, data.dists = mydists, control = fit.control(max.mode.error = 100, n.grid = NULL, std.area = FALSE), compute.fixed = TRUE);## use INLA
+    myres.glm<-glm(form,data=mydat.std,family=family);
+    
+    cat("################ bad=",i,"#################\n");
+    cat("\n# 1. glm()\n");print(coef(myres.glm));
+    cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+    cat("\n# 3. INLA\n");print(myres.inla$modes[[node]]);
+    cat("\n###########################################\n");
+  }
+} else {
+  cat("No bad nodes\n");
+}
+```
+
+In all 45 cases where the error was considered “large”, the modes estimated from INLA or abn internally were almost identical but differed in the third to fourth decimal place compared to the output from glm(). 
+This suggests that both the INLA approach and the internal abn code are robust in this example.
+
+## Gaussian and Binary Variables
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex5.dag.data;## this data comes with abn see ?ex1.dag.data
+
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              b2="binomial",
+              b3="binomial",
+              b4="binomial",
+              b5="binomial",
+              b6="binomial",
+              g1="gaussian",
+              g2="gaussian",
+              g3="gaussian",
+              g4="gaussian", 
+              g5="gaussian",
+              g6="gaussian",
+              g7="gaussian",
+              g8="gaussian",
+              g9="gaussian",
+              g10="gaussian",
+              g11="gaussian",
+              g12="gaussian");
+
+
+## SET BAN LIST - note only banning split variables - nothing more
+	banned<-matrix(c(
+		    #   1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8   
+                        0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 1 
+			1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 2 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 3 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 4 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 5    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 6    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 7 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 8 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 9 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 10 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 11      
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 12 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 13 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 14 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 15 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 16 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 17 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  # 18 
+                                                          ),byrow=TRUE,ncol=18);
+colnames(banned)<-rownames(banned)<-names(mydat[,-dim(mydat)[2]]);#set names
+
+## SET RETAIN LIST
+     retain<-matrix(
+                  c(#   1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8   
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 1 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 2 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 3 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 4 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 5    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 6    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 7 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 8 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 9 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 10 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 11      
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 12 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 13 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 14 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 15 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 16 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 17 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  # 18 
+                                                          ),byrow=TRUE,ncol=18);
+              
+		    
+     colnames(retain)<-rownames(retain)<-names(mydat[,-dim(mydat)[2]]);#set names
+
+max.par<-4;
+
+setwd(normalizePath(".."))
+mycache.c2<-buildScoreCache(data.df=mydat[,-dim(mydat)[2]],
+                            data.dists=mydists,
+                            max.parents=max.par,
+                            dag.banned=banned,
+                            dag.retained=retain,
+                            control = build.control(max.mode.error=0,
+                                                    ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c2, file = "../inst/extdata/mycache.c2.rds", compress = compressionLevel)
+
+###
+# INLA
+###
+
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              b2="binomial",
+              b3="binomial",
+              b4="binomial",
+              b5="binomial",
+              b6="binomial",
+              g1="gaussian",
+              g2="gaussian",
+              g3="gaussian",
+              g4="gaussian", 
+              g5="gaussian",
+              g6="gaussian",
+              g7="gaussian",
+              g8="gaussian",
+              g9="gaussian",
+              g10="gaussian",
+              g11="gaussian",
+              g12="gaussian");
+
+
+## SET BAN LIST - note only banning split variables - nothing more
+	banned<-matrix(c(
+		    #   1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8   
+                        0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 1 
+			1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 2 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 3 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 4 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 5    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 6    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 7 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 8 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 9 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 10 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 11      
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 12 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 13 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 14 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 15 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 16 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 17 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  # 18 
+                                                          ),byrow=TRUE,ncol=18);
+colnames(banned)<-rownames(banned)<-names(mydat[,-dim(mydat)[2]]);#set names
+
+## SET RETAIN LIST
+     retain<-matrix(
+                  c(#   1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8   
+                        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 1 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 2 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 3 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 4 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 5    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 6    
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 7 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 8 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 9 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 10 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 11      
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 12 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 13 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 14 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 15 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 16 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # 17 
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  # 18 
+                                                          ),byrow=TRUE,ncol=18);
+              
+		    
+     colnames(retain)<-rownames(retain)<-names(mydat[,-dim(mydat)[2]]);#set names
+
+max.par<-4;
+setwd(normalizePath(".."))
+mycache.inla2<-buildScoreCache(data.df=mydat[,-dim(mydat)[2]],
+                               data.dists=mydists,
+                               max.parents=max.par,                      
+                               dag.banned=banned,
+                               dag.retained=retain,
+                               control=build.control(max.mode.error=100,
+                                                     ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+
+saveRDS(object = mycache.inla2, file = "../inst/extdata/mycache.inla2.rds", compress = compressionLevel)
+```
+
+This study involves analyses of data set ex5.dag.data which is provided with abn and we estimate log marginal likelihoods (mlik) for 18 nodes (variables) allowing at most four parents per node in the DAG. This requires estimating mlik values across 56458 different glm nodes comprising (assumed) Gaussian, and binary distributed variables.
+
+The data, results and R code used to run this study can be found [here](source/Rcode/QA_glm_case2.tar.gz). Fig. 2 shows that while there is generally excellent agreement between abn internal code and INLA there are some 363 of the 56458 mlik values which are very different.
+
+```{r perc-diff-inla-c2, echo=FALSE}
+#| fig.cap="Percentage difference in mlik values between abn and INLA for 56458 mlik values."
+if(!exists("mycache.inla2")) {
+  mycache.inla2 <- readRDS("../inst/extdata/mycache.inla2.rds")
+}
+if(!exists("mycache.c2")) {
+  mycache.c2 <- readRDS("../inst/extdata/mycache.c2.rds")
+}
+perc<-100*(mycache.c2$mlik-mycache.inla2$mlik)/mycache.c2$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+
+To examine possible reasons for the differences we fit each node individually and check against results from glm(). We find that in each and every case the reason for the difference is that the model at each node is effectively over-parametrized (linearly dependent covariates), i.e. the residual deviance is zero. The internal code does the right thing here – it gives a massively low mlik value for the node, for this data somewhere around -1E+24, and so the model will never be chosen as a preferred model. Unfortunately, INLA here appears to do the reverse, the mlik values it provides are outliers but in the wrong direction. For these same node and parent combinations the mlik from INLA is much larger (more positive) than any other parent combinations for the same node. For example at node g2, then model g2=g1+g12 has mlik=-479.9385, g2=g3+g4 has mlik=1905.106, and g2=g3+g5 has mlik=-644.1653. The variables g3 and g4 are effectively linearly dependent (glm gives a residual deviance of zero) but here INLA gives a better mlik value when this should really be either missing or highly negative. Each of the 363 mlik values which differ between INLA and the internal code are due to this reason, some examples are given below. Note that the total mlik for DAG (below) assumes that the other nodes in the DAG are independent and is given to show that the mlik for the single node being examined is an outlier.
+
+```{r}
+setwd(normalizePath(".."))
+## 3. get all mliks which are adrift by more than 50% - this is just to catch the massive
+## differences
+if(any(abs(perc)>50)){
+  bad <- which(abs(perc)>50)
+} else {
+  bad <- NULL
+}
+## go through each and check for issues
+mydat <- ex5.dag.data[-dim(ex5.dag.data)[2]]
+## this data comes with abn see ?ex5.dag.data
+mydat.std <- mydat
+
+## setup distribution list for each node
+mydists <- list(
+  b1 = "binomial",
+  b2 = "binomial",
+  b3 = "binomial",
+  b4 = "binomial",
+  b5 = "binomial",
+  b6 = "binomial",
+  g1 = "gaussian",
+  g2 = "gaussian",
+  g3 = "gaussian",
+  g4 = "gaussian",
+  g5 = "gaussian",
+  g6 = "gaussian",
+  g7 = "gaussian",
+  g8 = "gaussian",
+  g9 = "gaussian",
+  g10 = "gaussian",
+  g11 = "gaussian",
+  g12 = "gaussian"
+)
+
+## create standardised dataset for comparison with glm
+for (i in 1:length(mydists)) {
+  if (mydists[[i]] == "gaussian") {
+    ## then std data for comparison with glm_case
+    mydat.std[, i] <-
+      (mydat.std[, i] - mean(mydat.std[, i])) / sd(mydat.std[, i])
+  }
+}
+
+## create empty matrix which will be filled with nodes as needed
+mydag <- matrix(rep(0, dim(mydat)[2] ^ 2), ncol = dim(mydat)[2])
+colnames(mydag) <- rownames(mydag) <- names(mydat)
+
+## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+if (!is.null(bad)){
+  # for (i in 1:length(bad)) {
+  for (i in c(1,2,363)) {
+    mydag[, ] <- 0
+    ## reset
+    node <- mycache.c2$child[bad[i]]
+    pars <- mycache.c2$node.defn[bad[i], ]
+    
+    form <-
+      as.formula(paste(
+        colnames(mydag)[node],
+        "~",
+        paste(colnames(mydag)[which(pars == 1)], collapse = "+", sep = ""),
+        sep = ""
+      ))
+    
+    family <- mydists[[node]]
+    
+    mydag[node, ] <- pars
+    ## copy "bad" node into DAG
+    myres.c <-
+      fitAbn(
+        dag = mydag,
+        data.df = mydat,
+        data.dists = mydists,
+        control = fit.control(max.mode.error = 0,
+                              ncores = NCPUS)
+      )
+    ## use C
+    myres.inla <- fitAbn(
+        dag = mydag,
+        data.df = mydat,
+        data.dists = mydists,
+        control = fit.control(max.mode.error = 100,
+                              ncores = NCPUS)
+      )
+    ## use INLA
+    myres.glm <- glm(form, data = mydat.std, family = family)
+    
+    cat("################ bad=", i, "#################\n")
+    
+    cat("\n# 1. glm()\n")
+    print(coef(myres.glm))
+    
+    cat("# residual deviance from glm()\n")
+    print(myres.glm$deviance)
+    
+    cat("\n# 2. C\n")
+    print(myres.c$modes[[node]])
+    cat("mlik for node=", myres.c$mliknode[[node]], "\n")
+    cat("total mlik for DAG=", myres.c$mlik, "\n")
+    
+    cat("\n# 3. INLA\n")
+    print(myres.inla$modes[[node]])
+    cat("mlik for node=", myres.inla$mliknode[[node]], "\n")
+    cat("total mlik for DAG=", myres.inla$mlik, "\n")
+    
+    cat("\n###########################################\n")
+  }
+} else {
+  cat("No bad nodes found\n")
+}
+```
+
+
+```{r}
+if (FALSE) {
+  ## a manual compare with raw call to INLA - same results as above - INLA is definitely wrong - see precision estimates
+  r <- try(res <- INLA::inla(
+    g4 ~ g2 + g11,
+    data = mydat.std,
+    family = "gaussian",
+    control.family = list(hyper = list(prec = list(
+      prior = "loggamma", param = c(1, 5e-05)
+    ))),
+    control.fixed = list(
+      mean.intercept = 0,
+      prec.intercept = 0.001,
+      mean = 0,
+      prec = 0.001,
+      compute = TRUE
+    )
+  ),
+  silent = TRUE)
+  summary(res)
+  myres.glm <- glm(g2 ~ g3 + g4 , data = mydat.std, family = "gaussian")
+  summary(myres.glm)
+}
+#### Summary. Every single one of these is due to the fact that the model matrix is effectively singular, as can be seen
+#### by the residual deviance given by glm() as being zero in every case. C and INLA just give very low mlik values
+#### in this case (and massive precision estimate) which seems appropriate as this just says that these models
+#### will never be chosen as optimal. So correct.
+
+##############################################################################################################
+## PART 2
+## now look for more subtle differences, and discard the "singular models"
+if (FALSE) {
+  keep.these <- which(mycache.c2$mlik > -1e6)
+  
+  ## create a copy
+  mycache.cp <- mycache.c2
+  mycache.inlap <- mycache.inla2
+  
+  for (i in 1:length(mycache.cp)) {
+    if (is.null(dim(mycache.cp[[i]]))) {
+      mycache.cp[[i]] <- mycache.cp[[i]][keep.these]
+      ## have a vector
+      mycache.inlap[[i]] <- mycache.inlap[[i]][keep.these]
+    } else {
+      mycache.cp[[i]] <- mycache.cp[[i]][keep.these, ]
+      mycache.inlap[[i]] <- mycache.inlap[[i]][keep.these, ]
+    } ## matrix version
+  }
+  
+  
+  ## 1. raw differences
+  plot(mydiff <- mycache.inlap$mlik - mycache.cp$mlik)
+  
+  print(max(mydiff))
+  print(min(mydiff))
+  
+  perc <- 100 * (mycache.cp$mlik - mycache.inlap$mlik) / mycache.cp$mlik
+  
+  print(max(perc))
+  print(min(perc))
+  
+  ### all very small so not worth further investigation.
+}
+```
+
+This case study suggests that for this glm type data the internal code is reliable, and also does the sensible thing when faced with a model which is over-parametrized and gives it an extremely poor mlik. Using INLA is rather more problematic here as while it agrees with all but the 363 cases, it is less clear how to catch this sort of error as the modes in each case are a reasonably good match and so that cannot be used to switch from INLA to internal code.
+
+## Four Gaussian, two Binary and a single Poisson Variable
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex6.dag.data[,-8];## this data comes with abn drop group variable
+ 
+## setup distribution list for each node
+mydists<-list(p1="poisson",
+              g1="gaussian",
+              g2="gaussian",
+              b1="binomial",
+              b2="binomial",
+              g3="gaussian",
+              g4="gaussian"
+             );
+
+## parent limits
+max.par<-3;## dont use list use 3 parent max for all nodes
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.c3 <- buildScoreCache(data.df = mydat,
+                              data.dists=mydists, 
+                              max.parents=max.par, 
+                              control = build.control(max.mode.error=0, ## only use C
+                                                      ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c3, file = "../inst/extdata/mycache.c3.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+mydat<-ex6.dag.data[,-8];## this data comes with abn drop group variable
+ 
+## setup distribution list for each node
+mydists<-list(p1="poisson",
+              g1="gaussian",
+              g2="gaussian",
+              b1="binomial",
+              b2="binomial",
+              g3="gaussian",
+              g4="gaussian"
+             );
+
+## parent limits
+max.par<-3;## dont use list use 3 parent max for all nodes
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.inla3 <- buildScoreCache(data.df=mydat, 
+                                 data.dists=mydists, 
+                                 max.parents=max.par, 
+                                 control = build.control(max.mode.error=100,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla3, file = "../inst/extdata/mycache.inla3.rds", compress = compressionLevel)
+```
+
+
+This study involves analyses of data set ex6.dag.data which is provided with abn and we estimate log marginal likelihoods (mlik) for 7 nodes (variables) allowing at most three parents per node in the DAG. This requires estimating mlik values across 294 different glm nodes comprising four Gaussian, two binary and a single Poisson distributed variable.
+
+The data, results and R code used to run this study can be found [here](source/Rcode/QA_glm_case3.tar.gz). Fig. 3 shows that while there is generally excellent agreement between abn internal code and INLA there are some 42 of the 294 mlik values whose relative error, while still very small is higher than for the remaining comparisons.
+
+```{r perc-diff-inla-c3, echo=FALSE}
+#| fig.cap="Percentage difference in mlik values between abn and INLA for 294 mlik values."
+if(!exists("mycache.inla3")) {
+  mycache.inla3 <- readRDS("../inst/extdata/mycache.inla3.rds")
+}
+if(!exists("mycache.c3")) {
+  mycache.c3 <- readRDS("../inst/extdata/mycache.c3.rds")
+}
+perc<-100*(mycache.c3$mlik-mycache.inla3$mlik)/mycache.c3$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+To examine possible reasons for the slightly higher – although still very small – differences in the mlik estimates for the Poisson node we fit each node individually and check against results from *glm()*.
+
+```{r}
+setwd(normalizePath(".."))
+## 3. get all mliks which are adrift by more than 50% - this is just to catch the massive
+## differences
+if(any(abs(perc)>3E-04)){
+  bad<-which(abs(perc)>3E-04);
+} else {
+  bad <- NULL
+}
+
+## go through each and check for issues
+## 
+mydat<-ex6.dag.data[-8];## this data comes with abn see ?ex1.dag.data
+mydat.std<-mydat;
+## setup distribution list for each node
+mydists<-list(p1="poisson",
+              g1="gaussian",
+              g2="gaussian",
+              b1="binomial",
+              b2="binomial",
+              g3="gaussian",
+              g4="gaussian"
+             );
+## create standardised dataset for comparison with glm
+for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+  mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+}
+
+## create empty matrix which will be filled with nodes as needed
+mydag<-matrix(rep(0,dim(mydat)[2]^2),ncol=dim(mydat)[2]);
+colnames(mydag)<-rownames(mydag)<-names(mydat);
+
+## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+if (!is.null(bad)) {
+  # for(i in 1:length(bad)){
+  # for(i in c(1,2,22)){
+  for(i in c(1,2,length(bad))){
+    mydag[,]<-0;## reset
+    node<-mycache.c3$child[bad[i]];
+    pars<-mycache.c3$node.defn[bad[i],];
+    
+    if(length(which(pars==1))>0){
+      form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),sep=""));
+    } else {
+      form<-as.formula(paste(colnames(mydag)[node],"~1",sep=""));
+    }
+    family<-mydists[[node]];
+    mydag[node,]<-pars;## copy "bad" node into DAG
+    
+    myres.c<-fitAbn(dag = mydag, 
+                    data.df=mydat, 
+                    data.dists=mydists, 
+                    control = fit.control(max.mode.error=0, ## use C
+                                          ncores = NCPUS))
+    myres.inla<-fitAbn(dag = mydag, 
+                       data.df=mydat, 
+                       data.dists=mydists, 
+                       control = fit.control(max.mode.error=100, ## use INLA
+                                             ncores = NCPUS))
+    myres.glm<-glm(form,data=mydat.std,family=family);
+    
+    cat("################ bad=",i,"#################\n");
+    cat("\n# 1. glm()\n")
+    print(coef(myres.glm));
+    cat("\n# 2. C\n")
+    print(myres.c$modes[[node]]);
+    cat("\n# 3. INLA\n")
+    print(myres.inla$modes[[node]]);
+    cat("\n###########################################\n");
+  }
+}
+```
+
+```{r}
+setwd(normalizePath(".."))
+#### Summary. 
+
+## compare some densities - these look virtually identical between C and INLA
+## so no obvious reason to explain slightly larger differences between these
+## Poisson nodes.
+
+if(FALSE){
+  ##Manual check
+  mydat<-ex6.dag.data[-8];## this data comes with abn see ?ex1.dag.data
+  ## setup distribution list for each node
+  mydists<-list(p1="poisson",
+                g1="gaussian",
+                g2="gaussian",
+                b1="binomial",
+                b2="binomial",
+                g3="gaussian",
+                g4="gaussian"
+               );
+  
+  ## create empty matrix which will be filled with nodes as needed
+  mydag<-matrix(rep(0,dim(mydat)[2]^2),ncol=dim(mydat)[2]);
+  colnames(mydag)<-rownames(mydag)<-names(mydat);
+  mydag[1,5:7]<-1;
+  myres.c<-fitAbn(dag=mydag, 
+                  data.df=mydat, 
+                  data.dists=mydists, 
+                  control = fit.control(max.mode.error=0, ## use C
+                                        ncores = NCPUS), 
+                  compute.fixed = TRUE) 
+  myres.inla<-fitAbn(dag=mydag,
+                     data.df=mydat, 
+                     data.dists=mydists, 
+                     control = fit.control(max.mode.error=100, ## use INLA
+                                           ncores = NCPUS),
+                     compute.fixed = TRUE) 
+}
+```
+
+```{r eval=FALSE}
+
+################ bad= 1 #################
+
+# 1. glm()
+(Intercept)
+2.04866
+
+# 2. C
+p1|(Intercept)
+2.04866
+
+# 3. INLA
+p1|(Intercept)
+2.048619
+
+###########################################
+################ bad= 2 ###################
+
+# 1. glm()
+(Intercept) g1
+1.9827638 -0.3747767
+
+# 2. C
+p1|(Intercept) p1|g1
+1.9827634 -0.3747768
+
+# 3. INLA
+p1|(Intercept) p1|g1
+1.9826424 -0.3748008
+
+###########################################
+....
+################ bad= 42 ##################
+
+# 1. glm()
+(Intercept) b2no g3 g4
+1.07381236 1.07368150 -0.03414610 -0.01012696
+
+# 2. C
+p1|(Intercept) p1|b2 p1|g3 p1|g4
+1.07381238 1.07368130 -0.03414607 -0.01012696
+
+# 3. INLA
+p1|(Intercept) p1|b2 p1|g3 p1|g4
+1.07631002 1.07358110 -0.03418459 -0.01021941
+
+###########################################
+
+```
+
+In each and every comparison the modes estimated using the internal code and also INLA are virtually indistinguishable from those using *glm()*, although generally those from the internal code are rather closer to those from *glm()*. This does not help explain why the relative differences for the Poisson node should be slightly larger than for the Gaussian or binary nodes but in any case the mlik values are very close. This may simply be due to differing numerical accuracies used in each approach. This case study suggests that for this glm type data the internal code is reliable.
+
+## Epil Data Set: Gaussian, Binary and Poisson Variables
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+data(Epil)
+
+mydat<-Epil[,c("y","Trt","Age")];## Epil is from INLA
+mydat$Trt<-as.factor(mydat$Trt)
+
+## setup distribution list for each node
+mydists<-list(y="poisson",
+              Trt="binomial",
+              Age="gaussian"
+             )
+
+## parent limits
+## smaller example to allow comparison with INLA 
+max.par<-2;## dont use list use 3 parent max for all nodes
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.c4 <- buildScoreCache(data.df=mydat, 
+                              data.dists=mydists, 
+                              max.parents=max.par, 
+                              control = build.control(max.mode.error=0, ## only use C
+                                                      ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c4, file = "../inst/extdata/mycache.c4.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla4 <- buildScoreCache(data.df=mydat, 
+                                 data.dists=mydists, 
+                                 max.parents=max.par, 
+                                 control = build.control(max.mode.error=100, ## only use INLA
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla4, file = "../inst/extdata/mycache.inla4.rds", compress = compressionLevel)
+```
+
+This case study uses the data set Epil which is provided as part of the INLA library and comprises two parts. First we examine DAGs comprising of three variables, a Poisson, a binary and a Gaussian variable. The data, results and R code used to run this study can be found [here](source/Rcode/QA_glm_case4A.tar.gz). Fig.4  shows that while there is excellent agreement between abn internal code and INLA, as in case study three there is a slightly higher – although still very small – relative difference for the Poisson node than the binary or Gaussian nodes.
+
+```{r perc-diff-inla-c4, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla4")) {
+  mycache.inla4 <- readRDS("../inst/extdata/mycache.inla4.rds")
+}
+if(!exists("mycache.c4")) {
+  mycache.c4 <- readRDS("../inst/extdata/mycache.c4.rds")
+}
+perc<-100*(mycache.c4$mlik-mycache.inla4$mlik)/mycache.c4$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+We now repeat this analyses but where we multiply the values of the count variable, Epil$y, by 100. This is a somewhat arbitrary figure but as R’s *glm()* has no trouble with this it is not unreasonable to expect abn to also fit this model. Fig. 5 shows that the internal code and INLA completely disagree on mlik values for this new data set.
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+data(Epil)
+
+mydat<-Epil[,c("y","Trt","Age")];## Epil is from INLA
+mydat$Trt<-as.factor(mydat$Trt)
+mydat$y <- mydat$y*100
+
+## setup distribution list for each node
+mydists<-list(y="poisson",
+              Trt="binomial",
+              Age="gaussian"
+             )
+
+## parent limits
+## smaller example to allow comparison with INLA 
+max.par<-2;## dont use list use 3 parent max for all nodes
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.c4b <- buildScoreCache(data.df=mydat, 
+                               data.dists=mydists, 
+                               max.parents=max.par, 
+                               control = build.control(max.mode.error=0, ## only use C
+                                                       ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c4b, file = "../inst/extdata/mycache.c4.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla4b <- buildScoreCache(data.df=mydat, 
+                                  data.dists=mydists, 
+                                  max.parents=max.par, 
+                                  control = build.control(max.mode.error=100, # only use INLA
+                                                          ncores = NCPUS)) 
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla4b, file = "../inst/extdata/mycache.inla4b.rds", compress = compressionLevel)
+```
+
+```{r perc-diff-inla-c4b, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla4b")) {
+  mycache.inla4 <- readRDS("../inst/extdata/mycache.inla4b.rds")
+}
+if(!exists("mycache.c4b")) {
+  mycache.c4 <- readRDS("../inst/extdata/mycache.c4b.rds")
+}
+perc2<-100*(mycache.c4b$mlik-mycache.inla4b$mlik)/mycache.c4b$mlik
+plot_diffs(perc2)
+ggplot_diffs(perc2)
+```
+
+
+To examine more closely a possible reason for such a discrepancy we compare the parameter modes from *glm()*, internal code and INLA.
+
+```{r eval=FALSE}
+
+# 1. glm()
+(Intercept)
+6.715897
+
+# 2. C
+y|(Intercept)
+6.715897
+
+# 3. INLA
+y|(Intercept)
+78.62504
+
+###########################################
+################ bad= 2 ###################
+
+# 1. glm()
+(Intercept) Trt1
+6.75464572 -0.07508706
+
+# 2. C
+y|(Intercept) y|Trt
+6.75464565 -0.07508699
+
+# 3. INLA
+y|(Intercept) y|Trt
+81.002154 -4.572519
+
+###########################################
+################ bad= 3 ###################
+
+# 1. glm()
+(Intercept) Age
+6.71286815 -0.07831446
+
+# 2. C
+y|(Intercept) y|Age
+6.71286812 -0.07831447
+
+# 3. INLA
+y|(Intercept) y|Age
+78.628716 -6.708889
+
+###########################################
+################ bad= 4 ###################
+
+# 1. glm()
+(Intercept) Trt1 Age
+6.76040114 -0.09251375 -0.08347222
+
+# 2. C
+y|(Intercept) y|Trt y|Age
+6.76040107 -0.09251368 -0.08347222
+
+# 3. INLA
+y|(Intercept) y|Trt y|Age
+81.832478 -6.162349 -7.056603
+
+###########################################
+
+```
+
+In each case above the modes estimated from INLA are completely different – and therefore assumed incorrect – compared to glm(). The internal code is virtually identical to *glm()*. This suggests that the internal code is reliable. In terms of INLA, as with the above case studies, INLA can give very misleading results but which seems to be possible to identify fairly easily by comparing its modes with either the internal code or *glm()*.
+
+# QA Case Studies – GLMM Nodes
+
+## General Comment
+
+Numerical estimation of the marginal likelihood and marginal posterior distributions for model parameters is considerably more difficult in mixed models compared to those containing only fixed effects. Generally speaking, the internal abn code for nodes with a random effect term is very much slower than using INLA. Other than the fact that the internal code implements the conventional Laplace approximation (in contrast to INLA spline-based nested approximations) it also attempts to minimize the size of error in the mlik estimate by comparing mlik values using a 3 pt finite difference approximation for the hessian with those of a 5pt estimate, both of which use adaptive step sizes at both first and second derivative estimates. This takes considerable time but hopefully provides highly reliable estimates as we demonstrate below.
+
+
+## QA Study One – glmm nodes
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex3.dag.data;## this data comes with abn see ?ex1.dag.data
+
+mydists<-list(b1="binomial",
+              b2="binomial",
+              b3="binomial",
+              b4="binomial",
+              b5="binomial",
+              b6="binomial",
+              b7="binomial",
+              b8="binomial",
+              b9="binomial",
+              b10="binomial",
+              b11="binomial",
+              b12="binomial",
+              b13="binomial"
+             );
+max.par<-4;
+
+setwd(normalizePath(".."))
+mycache.c5 <-buildScoreCache(data.df=mydat,
+                             data.dists=mydists,
+                             group.var="group",
+                             max.parents=max.par, 
+                             control = build.control(max.mode.error=0,
+                                                     max.hessian.error=1E-04,
+                                                     ncores = NCPUS.C))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c5, file = "../inst/extdata/mycache.c5.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla5 <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 group.var="group",
+                                 max.parents=max.par, 
+                                 control = build.control(max.mode.error=100,
+                                                         max.hessian.error=1E-04,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla5, file = "../inst/extdata/mycache.inla5.rds", compress = compressionLevel)
+```
+
+This case study uses data set ex3.dag.data which is provided with abn and comprises of 13 binary variables and one grouping factor. We consider an analyses where each node is parametrized as a GLMM and where this has at most four parents. This gives a total of 10322 node-parent combinations against which we compare the internal abn code, with INLA, and also the posterior parameter modes against *glmer()*. All the results, data and R code files for conducting this case study can be found [here](source/Rcode/QA_glmm_case1.tar.gz).
+
+Fig. 6 shows the mlik comparison between the internal code and INLA. These are clearly in very close agreement, with the median (absolute) relative difference being 0.03 %. 
+
+```{r perc-diff-inla-c5, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla5")) {
+  mycache.inla5 <- readRDS("../inst/extdata/mycache.inla5.rds")
+}
+if(!exists("mycache.c5")) {
+  mycache.c5 <- readRDS("../inst/extdata/mycache.c5.rds")
+}
+perc<-100*(mycache.c5$mlik-mycache.inla5$mlik)/mycache.c5$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+Fig. 7 compares the estimated local error in mlik with the difference with INLA – there is no relationship here.
+
+```{r perc-diff-inla-c5-err, echo=FALSE}
+plot_err_diffs(perc, mycache.c5$hessian.accuracy)
+ggplot_err_diffs(perc, mycache.c5$hessian.accuracy)
+```
+
+While there is very good agreement with INLA, for completeness we also compare the parameter modes from the node-parent combinations with the 10 largest differences against those from *glmer()*. As while the mliks are in agreement, neither approach is a gold standard and so it is of interest to check the modes are in close agreement with *glmer()*.
+
+```{r}
+setwd(normalizePath(".."))
+## have a look at some of the biggest differences
+sorted.indexes<-order(abs(perc));## absolute percentage differences
+bad<-sorted.indexes[seq(length(sorted.indexes),by=-1,len=10)];## top 10
+
+## go through each and check for issues 
+mydat.std<-mydat;
+
+## create standardised dataset for comparison with glm
+for(i in 1:length(mydists)){
+  if(mydists[[i]]=="gaussian"){
+    ## then std data for comparison with glm_case
+    mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i])
+  } 
+} 
+
+## create empty matrix which will be filled with nodes as needed
+mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);
+colnames(mydag)<-rownames(mydag)<-names(mydat)[-dim(mydat)[2]];
+
+## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+for(i in 1:length(bad)){
+  mydag[,]<-0;## reset
+  node<-mycache.c5$child[bad[i]];
+  pars<-mycache.c5$node.defn[bad[i],];
+  if(length(which(pars==1))>0){
+    form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+  } else {
+    form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));
+    }
+  family<-mydists[[node]];
+  mydag[node,]<-pars;## copy "bad" node into DAG
+  myres.c<-fitAbn(dag=mydag,
+                  data.df=mydat,
+                  data.dists=mydists,
+                  control = fit.control(max.mode.error=0, ## use C
+                                        factor.brent = 1E+02,
+                                        max.hessian.error=1E-04,
+                                        num.intervals.brent=100,
+                                        hessian.params=c(1E-04,1E-02),
+                                        max.iters.hessian=100,
+                                        ncores = NCPUS.C),
+                  group.var="group")
+  myres.inla<-fitAbn(dag=mydag,
+                     data.df=mydat,
+                     data.dists=mydists,
+                     control = fit.control(max.mode.error=100, ## use INLA
+                                           ncores = NCPUS), 
+                     group.var="group")
+  myres.glmer<-glmer(form,
+                     data=mydat.std,
+                     family=family)
+  res.glmer<-c(coefficients(summary(myres.glmer))[,1], 1/as.numeric(VarCorr(myres.glmer)));
+  names(res.glmer)[length(res.glmer)]<-"group.precision";
+  cat("################ bad=",i,"#################\n");
+  cat("\n# 1. glmer()\n");print(res.glmer);
+  cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+  cat("\n# 2b. glmer()-C\n");print(res.glmer-myres.c$modes[[node]]);
+  cat("\n# 3. INLA\n");print(myres.inla$modes[[node]]);
+  cat("\n# 3b. glmer()-INLA\n");print(res.glmer-myres.inla$modes[[node]]);
+  cat("\n###########################################\n");
+}
+```
+
+The modes are in close agreement, while those from INLA are generally further away from *glmer()* than those from the internal code they are all very similar.
+
+Finally, we compare the marginal posterior densities in the node-parent combination which had the largest relative difference between the internal code and INLA. Fig. 8 shows that the densities are all very similar.
+
+```{r comp_marginal_posterior_densities}
+# for (i in 10) {
+i<- 1 # only with largest difference
+mydag[,]<-0;## reset
+node<-mycache.c5$child[bad[i]];
+pars<-mycache.c5$node.defn[bad[i],];
+if(length(which(pars==1))>0){
+  form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+} else {
+  form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));
+} 
+
+family<-mydists[[node]];
+mydag[node,]<-pars;## copy "bad" node into DAG
+
+setwd(normalizePath(".."))
+myres5.inla<-fitAbn(dag=mydag,
+                    data.df=mydat,
+                    data.dists=mydists,
+                    control = fit.control(max.mode.error=100, ## use INLA
+                                          std.area = FALSE,
+                                          n.grid = NULL,
+                                          ncores = NCPUS),
+                    group.var="group",
+                    compute.fixed=TRUE)
+setwd(normalizePath("./vignettes"))
+saveRDS(object = myres5.inla, file = "../inst/extdata/myres5.inla.rds", compress = compressionLevel)
+
+## manual fit parameters
+if(TRUE){
+  setwd(normalizePath(".."))
+  myres5.c1 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 1, 
+                                            variate.vec = seq(-2.5,0.5,len=100),
+                                            # variate.vec = seq(-1.5,1.0,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C), 
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c1, file = "../inst/extdata/myres5.c1.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres5.c2 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 2, 
+                                            variate.vec = seq(-2,0,len=100),
+                                            # variate.vec = seq(-2,0.0,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c2, file = "../inst/extdata/myres5.c2.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres5.c3 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 3, 
+                                            variate.vec = seq(0,2.5,len=100),
+                                            # variate.vec = seq(-2,0,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c3, file = "../inst/extdata/myres5.c3.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres5.c4 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 4, 
+                                            variate.vec = seq(0.5,2.5,len=100),
+                                            # variate.vec = seq(0.35,2.5,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c4, file = "../inst/extdata/myres5.c4.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres5.c5 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 5, 
+                                            variate.vec = seq(-0.5,1.5,len=100),
+                                            # variate.vec = seq(0.5,2.5,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c5, file = "../inst/extdata/myres5.c5.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres5.c6 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 10,
+                                            marginal.param = 6, 
+                                            variate.vec = seq(0,1,len=100),
+                                            # variate.vec = seq(0.01,1,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres5.c6, file = "../inst/extdata/myres5.c6.rds", compress = compressionLevel)
+} 
+
+if (!exists("myres5.inla")) {
+  myres5.inla <- readRDS("../inst/extdata/myres5.inla.rds")
+} 
+if (!exists("myres5.c1")) {
+  myres5.c1 <- readRDS("../inst/extdata/myres5.c1.rds")
+}
+if (!exists("myres5.c2")) {
+  myres5.c2 <- readRDS("../inst/extdata/myres5.c2.rds")
+}
+if (!exists("myres5.c3")) {
+  myres5.c3 <- readRDS("../inst/extdata/myres5.c3.rds")
+}
+if (!exists("myres5.c4")) {
+  myres5.c4 <- readRDS("../inst/extdata/myres5.c4.rds")
+}
+if (!exists("myres5.c5")) {
+  myres5.c5 <- readRDS("../inst/extdata/myres5.c5.rds")
+}
+if (!exists("myres5.c6")) {
+  myres5.c6 <- readRDS("../inst/extdata/myres5.c6.rds")
+}
+
+if(T){
+  par(mfrow=c(2,3))
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l");
+  lines(myres5.c1$marginals$b10[[1]],col="red");
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l");
+  lines(myres5.c2$marginals$b10[[1]],col="red");
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l");
+  lines(myres5.c3$marginals$b10[[1]],col="red");
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l"); 
+  lines(myres5.c4$marginals$b10[[1]],col="red");
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l");
+  lines(myres5.c5$marginals$b10[[1]],col="red");
+  
+  plot(myres5.inla$marginals$b10[[1]],type="l");
+  lines(myres5.c6$marginals$b10[[1]],col="red");
+}
+
+if(F){
+  ## std.area - save running above again
+  sum1<-sum(diff(myres5.c1$marginals$b10[[1]][,1])[1]*myres5.c1$marginals$b10[[1]][,2]);
+  sum2<-sum(diff(myres5.c2$marginals$b10[[1]][,1])[1]*myres5.c2$marginals$b10[[1]][,2]);
+  sum3<-sum(diff(myres5.c3$marginals$b10[[1]][,1])[1]*myres5.c3$marginals$b10[[1]][,2]);
+  sum4<-sum(diff(myres5.c4$marginals$b10[[1]][,1])[1]*myres5.c4$marginals$b10[[1]][,2]);
+  sum5<-sum(diff(myres5.c5$marginals$b10[[1]][,1])[1]*myres5.c5$marginals$b10[[1]][,2]);
+  sum6<-sum(diff(myres5.c6$marginals$b10[[1]][,1])[1]*myres5.c6$marginals$b10[[1]][,2]);
+  
+  par(mfrow=c(2,3));
+  # par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+  # par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+  # par(mfrow=c(2,1));
+  plot(myres5.inla$marginals$b10[[1]][,1],myres5.inla$marginals$b10[[1]][,2],type="l",main="Node b10",xlab="Intercept",ylab="");
+  lines(myres5.c1$marginals$b10[[1]][,1],myres5.c1$marginals$b10[[1]][,2]/sum1,col="red");
+  plot(myres5.inla$marginals$b10[[2]][,1],myres5.inla$marginals$b10[[2]][,2],type="l",main="Node b10",xlab="b2",ylab="");
+  lines(myres5.c2$marginals$b10[[1]][,1],myres5.c2$marginals$b10[[1]][,2]/sum2,col="red");
+  plot(myres5.inla$marginals$b10[[3]][,1],myres5.inla$marginals$b10[[3]][,2],type="l",main="Node b10",xlab="b5",ylab="");
+  lines(myres5.c3$marginals$b10[[1]][,1],myres5.c3$marginals$b10[[1]][,2]/sum3,col="red");
+  plot(myres5.inla$marginals$b10[[4]][,1],myres5.inla$marginals$b10[[4]][,2],type="l",main="Node b10",xlab="b7",ylab="");
+  lines(myres5.c4$marginals$b10[[1]][,1],myres5.c4$marginals$b10[[1]][,2]/sum4,col="red");
+  plot(myres5.inla$marginals$b10[[5]][,1],myres5.inla$marginals$b10[[5]][,2],type="l",main="Node b10",xlab="b9",ylab="");
+  lines(myres5.c5$marginals$b10[[1]][,1],myres5.c5$marginals$b10[[1]][,2]/sum5,col="red");
+  plot(myres5.inla$marginals$b10[[6]][,1],myres5.inla$marginals$b10[[6]][,2],type="l",main="Node b10",xlab="group.precision",ylab="");
+  lines(myres5.c6$marginals$b10[[1]][,1],myres5.c6$marginals$b10[[1]][,2]/sum6,col="red");
+}
+```
+
+## QA Study Two – glmm nodes
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex4.dag.data
+mydists<-list(b1="binomial",
+              b2="binomial",
+              b3="binomial",
+              b4="binomial",
+              b5="binomial",
+              b6="binomial",
+              b7="binomial",
+              b8="binomial",
+              b9="binomial",
+              b10="binomial"
+             )
+max.par<-4
+
+setwd(normalizePath(".."))
+mycache.c6 <- buildScoreCache(data.df=mydat,
+                             data.dists=mydists,
+                             group.var="group",
+                             max.parents=max.par,
+                             control = build.control(max.mode.error=0,
+                                                     max.hessian.error=1E-04,
+                                                     ncores = NCPUS.C))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c6, file = "../inst/extdata/mycache.c6.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla6 <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 group.var="group",
+                                 max.parents=max.par,
+                                 control = build.control(max.mode.error=100,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla6, file = "../inst/extdata/mycache.inla6.rds", compress = compressionLevel)
+```
+
+This case study uses data set *ex4.dag.data* which is provided with abn and comprises of 10 binary variables and one grouping factor. We consider an analyses where each node is parametrized as a GLMM and where this has at most four parents. This gives a total of 2560 node-parent combinations against which we compare the internal abn code, with INLA, and also the posterior parameter modes against *glmer()*. All the R code files for conducting this case study can be found [here](source/Rcode/QA_glmm_case2.tar.gz).
+
+Fig. 9 and Fig. 10 show a comparison between the internal code and INLA. As with case study one above there is very close agreement.
+
+```{r perc-diff-inla-c6, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla6")) {
+  mycache.inla6 <- readRDS("../inst/extdata/mycache.inla6.rds")
+}
+if(!exists("mycache.c6")) {
+  mycache.c6 <- readRDS("../inst/extdata/mycache.c6.rds")
+}
+perc<-100*(mycache.c6$mlik-mycache.inla6$mlik)/mycache.c6$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+```{r perc-diff-inla-c6-err, echo=FALSE}
+plot_err_diffs(perc, mycache.c6$hessian.accuracy)
+ggplot_err_diffs(perc, mycache.c6$hessian.accuracy)
+```
+
+Following the similar pattern as in case study one we also check the modes of the ten comparisons with the biggest relative differences.
+
+```{r}
+setwd(normalizePath(".."))
+## have a look at some of the biggest differences
+sorted.indexes<-order(abs(perc));
+bad<-sorted.indexes[seq(length(sorted.indexes),by=-1,len=10)];## top 10
+
+## go through each and check for issues
+mydat.std<-mydat;
+
+## create standardised dataset for comparison with glm
+for(i in 1:length(mydists)){
+  if(mydists[[i]]=="gaussian"){
+    ## then std data for comparison with glm_case
+    mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i])
+  } 
+} 
+
+## create empty matrix which will be filled with nodes as needed
+mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1)
+colnames(mydag)<-rownames(mydag)<-names(mydat)[-1]
+
+## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+# for(i in 1:length(bad)){
+for(i in c(1,2,10)){
+  mydag[,]<-0;## reset
+  node<-mycache.c6$child[bad[i]]
+  pars<-mycache.c6$node.defn[bad[i],];
+  if(length(which(pars==1))>0){
+    form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""))
+  } else {
+    form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""))
+  } 
+  family<-mydists[[node]]
+  mydag[node,]<-pars ## copy "bad" node into DAG
+  
+  myres.c <- fitAbn(dag=mydag,
+                    data.df=mydat,
+                    data.dists=mydists,
+                    control = fit.control(max.mode.error=0, ## use C
+                                          max.hessian.error=1E-04,
+                                          num.intervals.brent=100,
+                                          ncores = NCPUS.C),
+                    group.var="group")
+  myres.inla <- fitAbn(dag=mydag,
+                       data.df=mydat,
+                       data.dists=mydists,
+                       control = fit.control(max.mode.error=100,
+                                             ncores = NCPUS), ## use INLA
+                       group.var="group")
+  
+  myres.glmer<-glmer(form,
+                     data=mydat.std,
+                     family=family)
+  res.glmer<-c(coefficients(summary(myres.glmer))[,1], 1/as.numeric(VarCorr(myres.glmer)));
+  names(res.glmer)[length(res.glmer)]<-"group.precision";
+  cat("################ bad=",i,"#################\n");
+  cat("\n# 1. glmer()\n");print(res.glmer);
+  cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+  cat("\n# 2b. glmer()-C\n");print(res.glmer-myres.c$modes[[node]]);
+  cat("\n# 3. INLA\n");print(myres.inla$modes[[node]]);
+  cat("\n# 3b. glmer()-INLA\n");print(res.glmer-myres.inla$modes[[node]]);
+  cat("\n###########################################\n");
+}
+```
+
+In each case we find that the modes of the internal code, INLA and *glmer()* are in very close agreement, although the internal code being somewhat closer. Finally, we compare the marginal posterior densities in the node-parent combination which had the largest relative difference between the internal code and INLA. Fig. 11 shows that the densities are all very similar.
+
+```{r}
+# for (i in 10) {
+i<- 1 # only with largest difference
+mydag[,]<-0;## reset
+node<-mycache.c6$child[bad[i]];
+pars<-mycache.c6$node.defn[bad[i],];
+if(length(which(pars==1))>0){
+  form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+} else {
+  form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));
+} 
+
+family<-mydists[[node]];
+mydag[node,]<-pars;## copy "bad" node into DAG
+
+setwd(normalizePath(".."))
+myres6.inla<-fitAbn(dag=mydag,
+                    data.df=mydat,
+                    data.dists=mydists,
+                    control = fit.control(max.mode.error=100, ## use INLA
+                                          std.area = FALSE,
+                                          n.grid = NULL,
+                                          ncores = NCPUS),
+                    group.var="group",
+                    compute.fixed=TRUE)
+setwd(normalizePath("./vignettes"))
+saveRDS(object = myres6.inla, file = "../inst/extdata/myres6.inla.rds", compress = compressionLevel)
+
+## manual fit parameters
+if(TRUE){
+  setwd(normalizePath(".."))
+  myres6.c1 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 1, 
+                                            variate.vec = seq(1,4,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ), 
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c1, file = "../inst/extdata/myres6.c1.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres6.c2 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 2, 
+                                            variate.vec = seq(0,1.5,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c2, file = "../inst/extdata/myres6.c2.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres6.c3 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 3, 
+                                            variate.vec = seq(-1.25,1,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c3, file = "../inst/extdata/myres6.c3.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres6.c4 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 4, 
+                                            variate.vec = seq(-0.5,1.5,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c4, file = "../inst/extdata/myres6.c4.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres6.c5 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 5, 
+                                            variate.vec = seq(-1,2,len=100),
+                                            max.hessian.error=1E-04,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c5, file = "../inst/extdata/myres6.c5.rds", compress = compressionLevel)
+}
+if(T){
+  setwd(normalizePath(".."))
+  myres6.c6 <- fitAbn(dag=mydag,
+                      data.df=mydat,
+                      data.dists=mydists,
+                      control = fit.control(max.mode.error=0, ## use C
+                                            marginal.node = 1,
+                                            marginal.param = 6, 
+                                            variate.vec = seq(0.01,1,len=100),
+                                            hessian.params=c(1E-04,1E-05),
+                                            max.iters.hessian=50,
+                                            max.hessian.error=1E-03,
+                                            num.intervals.brent=100,
+                                            std.area = FALSE,
+                                            ncores = NCPUS.C
+                      ),
+                      group.var="group",
+                      compute.fixed=TRUE)
+  setwd(normalizePath("./vignettes"))
+  saveRDS(object = myres6.c6, file = "../inst/extdata/myres6.c6.rds", compress = compressionLevel)
+} 
+
+if (!exists("myres6.inla")) {
+  myres6.inla <- readRDS("../inst/extdata/myres6.inla.rds")
+} 
+if (!exists("myres6.c1")) {
+  myres6.c1 <- readRDS("../inst/extdata/myres6.c1.rds")
+}
+if (!exists("myres6.c2")) {
+  myres6.c2 <- readRDS("../inst/extdata/myres6.c2.rds")
+}
+if (!exists("myres6.c3")) {
+  myres6.c3 <- readRDS("../inst/extdata/myres6.c3.rds")
+}
+if (!exists("myres6.c4")) {
+  myres6.c4 <- readRDS("../inst/extdata/myres6.c4.rds")
+}
+if (!exists("myres6.c5")) {
+  myres6.c5 <- readRDS("../inst/extdata/myres6.c5.rds")
+}
+if (!exists("myres6.c6")) {
+  myres6.c6 <- readRDS("../inst/extdata/myres6.c6.rds")
+}
+
+if(F){
+  par(mfrow=c(2,3))
+  
+  plot(myres6.inla$marginals$b1[[1]],type="l");
+  lines(myres6.c1$marginals$b1[[1]],col="red");
+  
+  plot(myres6.inla$marginals$b1[[2]],type="l");
+  lines(myres6.c2$marginals$b1[[1]],col="red");
+  
+  plot(myres6.inla$marginals$b1[[3]],type="l");
+  lines(myres6.c3$marginals$b1[[1]],col="red");
+  
+  plot(myres6.inla$marginals$b1[[4]],type="l");
+  lines(myres6.c4$marginals$b1[[1]],col="red");
+  
+  plot(myres6.inla$marginals$b1[[5]],type="l");
+  lines(myres6.c5$marginals$b1[[1]],col="red");
+  
+  plot(myres6.inla$marginals$b1[[6]],type="l");
+  lines(myres6.c6$marginals$b1[[1]],col="red");
+}
+
+if(F){
+  ## std.area - save running above again
+  sum1<-sum(diff(myres6.c1$marginals$b1[[1]][,1])[1]*myres6.c1$marginals$b1[[1]][,2]);
+  sum2<-sum(diff(myres6.c2$marginals$b1[[1]][,1])[1]*myres6.c2$marginals$b1[[1]][,2]);
+  sum3<-sum(diff(myres6.c3$marginals$b1[[1]][,1])[1]*myres6.c3$marginals$b1[[1]][,2]);
+  sum4<-sum(diff(myres6.c4$marginals$b1[[1]][,1])[1]*myres6.c4$marginals$b1[[1]][,2]);
+  sum5<-sum(diff(myres6.c5$marginals$b1[[1]][,1])[1]*myres6.c5$marginals$b1[[1]][,2]);
+# TODO: CHECK THIS:
+  sum6<-sum(diff(myres6.c6$marginals$b1[[1]][,1])[1]*myres6.c6$marginals$b1[[1]][,2]);
+  ## group.precision has one weird estimate near the mode - to avoid re-running remove and spline.
+  # myres.c.6$marginals[[1]]<-myres.c.6$marginals[[1]][-33,];
+  # myres.c.6$marginals[[1]]<-spline(myres.c.6$marginals[[1]]);
+  # sum6<-sum(diff(myres.c.6$marginals[[1]]$x)[1]*myres.c.6$marginals[[1]]$y);
+  
+  par(mfrow=c(2,3));
+  # par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+  # par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+  # par(mfrow=c(2,1));
+  plot(myres6.inla$marginals$b1[[1]][,1],myres6.inla$marginals$b1[[1]][,2],type="l",main="Node b1",xlab="Intercept",ylab="");
+  lines(myres6.c1$marginals$b1[[1]][,1],myres6.c1$marginals$b1[[1]][,2]/sum1,col="red");
+  plot(myres6.inla$marginals$b1[[2]][,1],myres6.inla$marginals$b1[[2]][,2],type="l",main="Node b1",xlab="b2",ylab="");
+  lines(myres6.c2$marginals$b1[[1]][,1],myres6.c2$marginals$b1[[1]][,2]/sum2,col="red");
+  plot(myres6.inla$marginals$b1[[3]][,1],myres6.inla$marginals$b1[[3]][,2],type="l",main="Node b1",xlab="b5",ylab="");
+  lines(myres6.c3$marginals$b1[[1]][,1],myres6.c3$marginals$b1[[1]][,2]/sum3,col="red");
+  plot(myres6.inla$marginals$b1[[4]][,1],myres6.inla$marginals$b1[[4]][,2],type="l",main="Node b1",xlab="b6",ylab="");
+  lines(myres6.c4$marginals$b1[[1]][,1],myres6.c4$marginals$b1[[1]][,2]/sum4,col="red");
+  plot(myres6.inla$marginals$b1[[5]][,1],myres6.inla$marginals$b1[[5]][,2],type="l",main="Node b1",xlab="b7",ylab="");
+  lines(myres6.c5$marginals$b1[[1]][,1],myres6.c5$marginals$b1[[1]][,2]/sum5,col="red");
+  plot(myres6.inla$marginals$b1[[6]][,1],myres6.inla$marginals$b1[[6]][,2],type="l",main="Node b1",xlab="b8",ylab="");
+  lines(myres6.c6$marginals$b1[[1]][,1],myres6.c6$marginals$b1[[1]][,2]/sum6,col="red");
+  
+  # lines(myres6.c2$marginals$b1[[1]][,1],myres6.c2$marginals$b1[[1]][,2]/sum2,col="red");
+  # plot(myres6.inla$marginals$b10[[2]][,1],myres5.inla$marginals$b10[[2]][,2],type="l",main="Node b10",xlab="b2",ylab="");
+  # lines(myres6.c2$marginals$b10[[1]][,1],myres5.c2$marginals$b10[[1]][,2]/sum2,col="red");
+  # plot(myres6.inla$marginals$b10[[3]][,1],myres5.inla$marginals$b10[[3]][,2],type="l",main="Node b10",xlab="b5",ylab="");
+  # lines(myres6.c3$marginals$b10[[1]][,1],myres5.c3$marginals$b10[[1]][,2]/sum3,col="red");
+  # plot(myres6.inla$marginals$b10[[4]][,1],myres5.inla$marginals$b10[[4]][,2],type="l",main="Node b10",xlab="b7",ylab="");
+  # lines(myres6.c4$marginals$b10[[1]][,1],myres5.c4$marginals$b10[[1]][,2]/sum4,col="red");
+  # plot(myres6.inla$marginals$b10[[5]][,1],myres5.inla$marginals$b10[[5]][,2],type="l",main="Node b10",xlab="b9",ylab="");
+  # lines(myres6.c5$marginals$b10[[1]][,1],myres5.c5$marginals$b10[[1]][,2]/sum5,col="red");
+  # plot(myres6.inla$marginals$b10[[6]][,1],myres5.inla$marginals$b10[[6]][,2],type="l",main="Node b10",xlab="group.precision",ylab="");
+  # lines(myres6.c6$marginals$b10[[1]][,1],myres5.c6$marginals$b10[[1]][,2]/sum6,col="red");
+}
+```
+
+
+## QA Study Three – glmm nodes
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex5.dag.data[,c("g1","g2","g3","g4","g5","g6","g7","g8","group")];## take a subset of cols
+mydists<-list(g1="gaussian",
+              g2="gaussian",
+              g3="gaussian",
+              g4="gaussian",
+              g5="gaussian",
+              g6="gaussian",
+              g7="gaussian",
+              g8="gaussian")
+max.par<-4
+setwd(normalizePath(".."))
+mycache.c7 <- buildScoreCache(data.df=mydat,
+                              data.dists=mydists,
+                              group.var="group",
+                              cor.vars=c("g1","g2","g3","g4","g5","g6","g7","g8"),
+                              max.parents=max.par,
+                              verbose=FALSE,
+                              centre=TRUE,
+                              control = build.control(max.mode.error=0,
+                                                      max.hessian.error=1E-04,
+                                                      ncores = NCPUS.C),
+                              dry.run=FALSE)
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c7, file = "../inst/extdata/mycache.c7.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla7 <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 group.var="group",
+                                 cor.vars=c("g1","g2","g3","g4","g5","g6","g7","g8"),
+                                 max.parents=max.par,
+                                 verbose=FALSE,
+                                 centre=TRUE,
+                                 control = build.control(max.mode.error=100,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla7, file = "../inst/extdata/mycache.inla7.rds", compress = compressionLevel)
+```
+
+This case study uses data set *ex5.dag.data* which is provided with abn and comprises of 8 continuous variables each modelled as Gaussian and one grouping factor. We consider an analyses where each node is parametrized as a GLMM and where this has at most four parents. This gives a total of 792 node-parent combinations against which we compare the internal abn code, with INLA, and also the posterior parameter modes against *glmer()*. All the results, data and R code files for conducting this case study can be found [here](source/Rcode/QA_glmm_case3.tar.gz).
+
+This case study differs from the above two studies in that there are now 48 node-parent combinations in which the internal code throws an error (returning R’s NA missing value for the mlik in each case). In addition, the comparison with INLA now results in far larger relative differences in mlik values compared to the previous two studies with GLMM nodes. Fig. 12 shows the relative differences and fig. 13 the estimated local error in mlik from the internal code. Fig. 14 shows a comparison of the actual mlik estimates in the cases where the internal code and INLA differed by more than 0.25%.
+
+```{r perc-diff-inla-c7, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla7")) {
+  mycache.inla7 <- readRDS("../inst/extdata/mycache.inla7.rds")
+}
+if(!exists("mycache.c7")) {
+  mycache.c7 <- readRDS("../inst/extdata/mycache.c7.rds")
+}
+perc<-100*(mycache.c7$mlik-mycache.inla7$mlik)/mycache.c7$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+```{r perc-diff-inla-c7-err, echo=FALSE}
+plot_err_diffs(perc, mycache.c7$hessian.accuracy)
+ggplot_err_diffs(perc, mycache.c7$hessian.accuracy)
+```
+
+```{r}
+plot_mlik_comparison <- function(mycache.c, mycache.inla, bad) {
+  par(mfrow=c(1,1))
+  par(mar=c(8.8,8,3.1,3.1))
+  par(cex.axis=1.5)
+  par(cex.lab=2.5)
+  par(bg="white")
+  par(fg="black")
+  par(col.axis="black")
+  par(col="black")
+  par(col.main="black")
+  par(cex.main=2.5)
+  par(col.lab="black")
+  par(las=1)
+  par(xaxs="r")
+  par(yaxs="r")
+  
+  plot(mycache.c$mlik[bad], mycache.inla$mlik[bad], type="n", xlab="", ylab="", axes=F, main="")
+  mtext("mlik (internal code)", 1, line=3.5, cex=1.5)
+  title("")
+  points(mycache.c$mlik[bad], mycache.inla$mlik[bad], pch=21, col="blue", bg="green")
+  par(las=3)
+  mtext("mlik (INLA) ", 2, line=5.5, cex=2.0)
+  par(las=1)
+  abline(h=0.25)
+  axis(1, padj=0.4, cex.axis=1.25)
+  axis(2)
+  box()
+  abline(0, 1, lty=1, col="grey")
+}
+ggplot_mlik_comparison <- function(mycache.c, mycache.inla, bad) {
+  df <- data.frame(mycache.c$mlik[bad], mycache.inla$mlik[bad])
+  names(df) <- c("internal", "INLA")
+  plt <- ggplot(df, aes(x=internal, y=INLA)) +
+    geom_point() +
+    geom_abline(intercept=0, slope=1, linetype="dashed") +
+    geom_hline(yintercept=0.25, linetype="dashed") +
+    theme_bw() + 
+    # theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position="none") +
+    xlab("mlik (internal code)") +
+    ylab("mlik (INLA)")
+  return(plt)
+}
+
+bad<-which(abs(perc)>0.25);
+plot_mlik_comparison(mycache.c7, mycache.inla7, bad)
+ggplot_mlik_comparison(mycache.c7, mycache.inla7, bad)
+```
+
+
+To summarize, compared with the previous two GLMM case studies (both of which have binary nodes) there is a far larger discrepancy with this data set between INLA and the internal code. As neither is a gold standard estimate we now compare the posterior modes from each approach with those from *glmer()* (or equivalent *lmer()* as the family here is Gaussian), where we consider *lmer()* to be the gold standard in terms of approximate parameter modes. There are a total of 234 node-parent comparisons which differ by more than 0.25% between the internal code and INLA and we examine the modes against *lmer()* for each of these, a subset of this output is given below:
+
+```{r eval=FALSE}
+################ bad= 1 #################
+
+# 1. glmer()
+(Intercept) group.precision residual.precision
+0.04696366 7.50243829 1.13755290
+
+# 2. C
+g1|(Intercept) g1|group.precision g1|precision
+0.04677903 8.50140683 1.13755827
+
+# 2b. glmer()-C
+(Intercept) group.precision residual.precision
+1.846249e-04 -9.989685e-01 -5.376578e-06
+
+# 3. INLA
+g1|(Intercept) g1|group.precision g1|precision
+0.0006158085 0.0119924728 0.9950390718
+
+# 3b. glmer()-INLA
+(Intercept) group.precision residual.precision
+0.04634785 7.49044582 0.14251382
+
+###########################################
+################ bad= 2 #################
+
+# 1. glmer()
+(Intercept) g3 group.precision residual.precision
+0.05045563 -0.04287693 6.52613718 1.13931550
+
+# 2. C
+g1|(Intercept) g1|g3 g1|group.precision g1|precision
+0.04992646 -0.03880092 7.51539161 1.14162350
+
+# 2b. glmer()-C
+(Intercept) g3 group.precision residual.precision
+0.0005291644 -0.0040760109 -0.9892544259 -0.0023079958
+
+# 3. INLA
+g1|(Intercept) g1|g3 g1|group.precision g1|precision
+0.0003158667 0.1338808903 0.0228107222 1.0112658362
+
+# 3b. glmer()-INLA
+(Intercept) g3 group.precision residual.precision
+0.05013976 -0.17675782 6.50332646 0.12804966
+
+###########################################
+...
+################ bad= 234 #################
+
+# 1. glmer()
+(Intercept) g4 g5 g6
+-0.05752297 0.05904066 -0.10722607 0.32266629
+g7 group.precision residual.precision
+-0.03362285 6.84931507 1.23770035
+
+# 2. C
+g8|(Intercept) g8|g4 g8|g5 g8|g6
+-0.05636448 0.05909492 -0.10871338 0.31925136
+g8|g7 g8|group.precision g8|precision
+-0.03444493 7.91465688 1.24896274
+
+# 2b. glmer()-C
+(Intercept) g4 g5 g6
+-1.158488e-03 -5.425953e-05 1.487311e-03 3.414929e-03
+g7 group.precision residual.precision
+8.220844e-04 -1.065342e+00 -1.126239e-02
+
+# 3. INLA
+g8|(Intercept) g8|g4 g8|g5 g8|g6
+-0.001015261 0.059252274 -0.197926250 0.187808979
+g8|g7 g8|group.precision g8|precision
+-0.058010075 0.013210750 1.060274214
+
+# 3b. glmer()-INLA
+(Intercept) g4 g5 g6
+-0.0565077069 -0.0002116155 0.0907001775 0.1348573147
+g7 group.precision residual.precision
+0.0243872291 6.8361043190 0.1774261383
+
+###########################################
+```
+
+In each and every of the 234 comparisons the modes estimated from the INLA output are completely different from those using *lmer()*, whereas the internal code is in every case a close match to the *lmer()* modes. This suggests that values from INLA are not reliable here.
+
+A second issue is present with this data set. The internal code returns 48 mlik values as NA. Two things are of interest here: 
+1. is this NA value reasonable, i.e. can *lmer()* fit this model?
+2. what does INLA do here? Fig. 15 shows that for each and every case where the internal code cannot fit the model, and gives an NA, that INLA instead gives a spuriously positive mlik value vastly better that those for “valid” models.
+
+```{r}
+plot_mlik <- function(mycache_inla, mycache_c) {
+  mymis <- which(is.na(mycache_c$mlik))
+  
+  par(mfrow = c(1, 1))
+  par(mar = c(8.8, 8, 3.1, 3.1))
+  par(cex.axis = 1.5)
+  par(cex.lab = 2.5)
+  par(bg = "white")
+  par(fg = "black")
+  par(col.axis = "black")
+  par(col = "black")
+  par(col.main = "black")
+  par(cex.main = 2.5)
+  par(col.lab = "black")
+  par(las = 1)
+  par(xaxs = "r")
+  par(yaxs = "r")
+  
+  plot(mycache_inla$mlik, type = "n", xlab = "", ylab = "", axes = FALSE, main = "")
+  mtext("node-parent combination", 1, line = 3.5, cex = 1.5)
+  title("")
+  points(mycache_inla$mlik, pch = 21, col = "blue", bg = "green")
+  points(mymis, mycache_inla$mlik[mymis], pch = 21, col = "red", bg = "yellow")
+  
+  par(las = 3)
+  mtext("mlik (INLA) ", 2, line = 5.5, cex = 2.0)
+  par(las = 1)
+  
+  axis(1, padj = 0.4, cex.axis = 1.25)
+  axis(2)
+  box()
+}
+ggplot_mlik <- function(mycache_inla, mycache_c) {
+  mymis <- which(is.na(mycache_c$mlik))
+  mymis_bin <- rep(FALSE, length(mycache_inla$mlik))
+  mymis_bin[mymis] <- TRUE
+  mydf <- data.frame(mlik = mycache_inla$mlik, 
+                     mis = mymis_bin)
+  
+  ggplot(mydf, aes(x = 1:nrow(mydf) , y = mlik, color = mis)) +
+    geom_point()+
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+    ylab("mlik (INLA)") +
+    xlab("node-parent combination") +
+    ggtitle("mlik (INLA) vs node-parent combination")
+}
+
+plot_mlik(mycache.inla7, mycache.c7)
+ggplot_mlik(mycache.inla7, mycache.c7)
+```
+
+
+The output snippet below shows that for each and every of the 48 cases where the internal code “fails” then *lmer()* also reports an error, in contrast to INLA’s highly inflated and misleading mlik value.
+
+CONTINUE HERE: RUN THE BELOW CHUNKS:
+
+```{r}
+# TODO: Same as for study above. But first investigate on the issues above.
+
+# ## 
+# mydat<-ex5.dag.data[,c("g1","g2","g3","g4","g5","g6","g7","g8","group")];## take a subset of cols
+# ## this data comes with abn see ?ex1.dag.data
+# mydat.std<-mydat;
+# mydists<-list(
+#               g1="gaussian",
+#               g2="gaussian",
+#               g3="gaussian",
+#               g4="gaussian",
+#               g5="gaussian",
+#               g6="gaussian",
+#               g7="gaussian",
+#               g8="gaussian"
+#              
+#              );
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-9];
+# 
+# ## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+# for(i in 1:length(mymis)){
+# 
+#   mydag[,]<-0;## reset
+#   node<-mycache.c$child[mymis[i]];pars<-mycache.c$node.defn[mymis[i],];
+#   if(length(which(pars==1))>0){
+#   form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+#   } else {form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));}
+#   family<-mydists[[node]];
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   #myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("g1","g2","g3","g4","g5","g6","g7","g8"));## use C
+#   myres.inla<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=100,group.var="group",cor.vars=c("g1","g2","g3","g4","g5","g6","g7","g8"));## use INLA
+#   r<-try(myres.glmer<-glmer(form,data=mydat.std,family=family));
+#   if(!(attr(r,"class")=="try-error")){
+#   myres.glmer<-summary(myres.glmer);
+#   res.glmer<-c(slot(myres.glmer,"coefs")[,1],1/as.numeric(slot(myres.glmer,"REmat")[,3]));
+#   if(is.null(names(res.glmer))){names(res.glmer)<-rep("",length(res.glmer));names(res.glmer)[1]<-"(Intercept)";}
+#   names(res.glmer)[-c(1:(length(res.glmer)-2))]<-c("group.precision","residual.precision");}
+#   cat("################ missing=",i,"#################\n");
+#   #cat("\n# 1. glmer()\n");print(res.glmer);
+#   #cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+#   #cat("\n# 2b. glmer()-C\n");print(res.glmer-myres.c$modes[[node]]);
+#   #cat("\n# 2. C NA\n");print(myres.c$modes[[node]]);
+#   cat("\n# 3. INLA\n");print(myres.inla$modes[[node]]);
+#   cat("\n$ mlik=",myres.inla[[node]],"\n");
+#   #cat("\n# 3b. glmer()-INLA\n");print(res.glmer-myres.inla$modes[[node]]);
+#   cat("\n###########################################\n");
+# }
+# 
+# 
+# 
+# }
+# 
+# if(FALSE){
+# ##Manual check
+# source("../header_code.R");
+# 
+# library(lme4);
+# mydat<-ex5.dag.data[,c("g1","g2","g3","g4","g5","g6","g7","g8","group")];## take a subset of cols
+# mydat.std<-mydat;
+# mydists<-list(
+#               g1="gaussian",
+#               g2="gaussian",
+#               g3="gaussian",
+#               g4="gaussian",
+#               g5="gaussian",
+#               g6="gaussian",
+#               g7="gaussian",
+#               g8="gaussian"
+#              
+#              );
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# max.par<-4;
+# 
+# mycache.c<-build.score.cache(data.df=mydat,data.dists=mydists,group.var="group",
+#                          cor.vars=c("g1","g2","g3","g4","g5","g6","g7","g8"),
+#                          max.parents=max.par,
+#                          verbose=FALSE,centre=TRUE,max.mode.error=0,max.hessian.error=1E-05,dry.run=TRUE);
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-9];
+# i<-1;
+#   mydag[,]<-0;## reset
+#   #node<-mycache.c$child[bad[i]];pars<-mycache.c$node.defn[bad[i],];
+#   node<-mycache.c$child[114];pars<-mycache.c$node.defn[114,]
+#   if(length(which(pars==1))>0){
+#   form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+#   } else {form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));}
+#   family<-mydists[[node]];
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("g2"));#,compute.fixed=TRUE);## use C
+#   myres.inla<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=100,group.var="group",cor.vars=c("g2"),compute.fixed=TRUE,std.area=FALSE,n.grid=NULL);## use INLA
+#   myres.glmer<-glmer(form,data=mydat.std,family=family);
+#   myres.glmer<-summary(myres.glmer);
+# 
+#   ## manual fit parameters
+#   myres.c.1<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=1,variate.vec=seq(1,4,len=100));## use C
+# 
+#   myres.c.2<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=2,variate.vec=seq(0,1.5,len=100));## use C
+# 
+#   myres.c.3<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=3,variate.vec=seq(-1,1,len=100));## use C
+# 
+#   myres.c.4<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=4,variate.vec=seq(-0.5,1.5,len=100));## use C
+# 
+#   myres.c.5<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=5,variate.vec=seq(-1,2.0,len=100));## use C
+# 
+#   myres.c.6<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=1,marginal.param=6,variate.vec=seq(0.01,1,len=100));## use C
+# save.image("all.RData");
+# 
+#  if(FALSE){par(mfrow=c(2,3));
+#  plot(myres.inla$marginals$b1[[1]],type="l");
+#  lines(myres.c.1$marginals[[1]],col="red");
+#  plot(myres.inla$marginals$b1[[2]],type="l");
+#  lines(myres.c.2$marginals[[1]],col="red");
+#  plot(myres.inla$marginals$b1[[3]],type="l");
+#  lines(myres.c.3$marginals[[1]],col="red");
+#  plot(myres.inla$marginals$b1[[4]],type="l");
+#  lines(myres.c.4$marginals[[1]],col="red");
+#  plot(myres.inla$marginals$b1[[5]],type="l");
+#  lines(myres.c.5$marginals[[1]],col="red");
+#  plot(myres.inla$marginals$b1[[6]],type="l");
+#  lines(myres.c.6$marginals[[1]],col="red");
+# }
+# }
+
+```
+
+```{r eval=FALSE}
+########################################################
+Error in mer_finalize(ans) : Calculated PWRSS for a LMM is negative
+################ missing= 1 #################
+
+# 3. INLA
+g2|(Intercept) g2|g3 g2|g4 g2|group.precision
+-2.648608e-06 8.981587e-01 -7.014133e-01 7.368817e+04
+g2|precision
+4.710170e+05
+
+$ mlik= 1888.338
+
+###########################################
+########################################################
+Error in mer_finalize(ans) : Calculated PWRSS for a LMM is negative
+################ missing= 2 #################
+
+# 3. INLA
+g2|(Intercept) g2|g1 g2|g3 g2|g4
+-2.649968e-06 -5.636391e-07 8.981587e-01 -7.014133e-01
+g2|group.precision g2|precision
+7.374590e+04 4.708745e+05
+
+$ mlik= 1876.489
+
+###########################################
+....
+########################################################
+Error in mer_finalize(ans) : Calculated PWRSS for a LMM is negative
+################ missing= 48 #################
+
+# 3. INLA
+g4|(Intercept) g4|g2 g4|g3 g4|g7
+-2.650460e-06 -1.425695e+00 1.280500e+00 -5.647343e-07
+g4|g8 g4|group.precision g4|precision
+-5.632820e-07 7.378532e+04 4.707246e+05
+
+$ mlik= 1864.993
+
+###########################################
+```
+
+In this case study the internal code seems to perform well. INLA appears to struggle here with many of the node-parent combinations, and is a good illustration of why having an alternative to INLA seems necessary in order to ensure reliable and robust mlik values for subsequent structure discovery searches.
+
+___
+
+## QA Study Four – glmm nodes
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex6.dag.data
+ 
+## setup distribution list for each node
+mydists<-list(p1="poisson",
+              g1="gaussian",
+              g2="gaussian",
+              b1="binomial",
+              b2="binomial",
+              g3="gaussian",
+              g4="gaussian")
+
+## parent limits
+## smaller example to allow comparison with INLA 
+max.par<-3 ## dont use list use 3 parent max for all nodes
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.c8 <- buildScoreCache(data.df=mydat,
+                              data.dists=mydists,
+                              max.parents=max.par,
+                              group.var="group",
+                              control = build.control(max.mode.error=0, ## only use C
+                                                      max.hessian.error=1E-04,
+                                                      ncores = NCPUS.C))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c8, file = "../inst/extdata/mycache.c8.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla8 <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 max.parents=max.par,
+                                 group.var="group",
+                                 control = build.control(max.mode.error=100,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla8, file = "../inst/extdata/mycache.inla8.rds", compress = compressionLevel)
+```
+
+This case study uses data set *ex6.dag.data* which is provided with abn and comprises of 7 variables, one Poisson, four Gaussian and two binary plus one grouping factor. We consider an analyses where each node is parametrized as a GLMM and where this has at most three parents. This gives a total of 294 node-parent combinations against which we compare the internal abn code, with INLA, and also the posterior parameter modes against glmer(). All the results, data and R code files for conducting this case study can be found [here](source/Rcode/QA_glmm_case4.tar.gz).
+
+Fig. 16 and 17 show the relative difference between internal code and INLA and the estimated local error in mlik values. Many of the mlik values are very close with the median (absolute) relative difference around 0.006%. Although it is clear than quite a number of the mlik values differ by considerably more than that. There are 48 node-parent combinations which have a difference of more than 0.25% and these are investigated further below.
+
+```{r perc-diff-inla-c8, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla8")) {
+  mycache.inla8 <- readRDS("../inst/extdata/mycache.inla8")
+}
+if(!exists("mycache.c8")) {
+  mycache.c8 <- readRDS("../inst/extdata/mycache.c8")
+}
+perc<-100*(mycache.c8$mlik-mycache.inla8$mlik)/mycache.c8$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+```{r perc-diff-inla-c8-err, echo=FALSE}
+plot_err_diffs(perc, mycache.c8$hessian.accuracy)
+ggplot_err_diffs(perc, mycache.c8$hessian.accuracy)
+```
+
+As with the other case studies we use *glmer()* as the gold standard against which to compare the modes from the internal code and INLA.
+
+```{r}
+# TODO: Same as for study above. But first investigate on the issues above.
+
+
+# mydat<-ex6.dag.data;## this data comes with abn drop group variable
+# 
+# mydat.std<-mydat;
+# ## setup distribution list for each node
+# mydists<-list(p1="poisson",
+#               g1="gaussian",
+#               g2="gaussian",
+#               b1="binomial",
+#               b2="binomial",
+#               g3="gaussian",
+#               g4="gaussian"
+#              );
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-8];
+# i<-35;
+# ## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+# for(i in 1:length(bad)){
+# 
+#   mydag[,]<-0;## reset
+#   node<-mycache.c$child[bad[i]];pars<-mycache.c$node.defn[bad[i],];
+#   if(length(which(pars==1))>0){
+#   form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+#   } else {form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));}
+#   family<-mydists[[node]];
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("p1","g1","g2","b1","b2","g3","g4"));## use C
+#   myres.inla<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=100,group.var="group",cor.vars=c("p1","g1","g2","b1","b2","g3","g4"));## use INLA
+#   r<-try(myres.glmer<-glmer(form,data=mydat.std,family=family));
+#  if(!(attr(r,"class")=="try-error")){
+#   myres.glmer<-summary(myres.glmer);
+#   res.glmer<-c(slot(myres.glmer,"coefs")[,1],1/as.numeric(slot(myres.glmer,"REmat")[,3]));
+#   if(is.null(names(res.glmer))){names(res.glmer)<-rep("",length(res.glmer));names(res.glmer)[1]<-"(Intercept)";}
+#   if(family=="gaussian"){names(res.glmer)[-c(1:(length(res.glmer)-2))]<-c("group.precision","residual.precision");
+#   } else {names(res.glmer)[-c(1:(length(res.glmer)-1))]<-c("group.precision");}
+# 
+#   cat("################ bad=",i,"#################\n");
+#   cat("\n# 1. glmer()\n");print(res.glmer);}
+#   cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+#   if(!(attr(r,"class")=="try-error")){
+#   cat("\n# 2b. glmer()-C\n");print(res.glmer-myres.c$modes[[node]]);}
+#   cat("\n# 3. INLA\n");print(myres.inla$modes[[node]]);
+# if(!(attr(r,"class")=="try-error")){
+#   cat("\n# 3b. glmer()-INLA\n");print(res.glmer-myres.inla$modes[[node]]);}
+#   cat("\n###########################################\n");
+# }
+# 
+# if(FALSE){## a manual compare with raw call to INLA - same results as above - INLA is definitely wrong - see precision estimates 
+# r<-try(res<-inla(g1~g2+b2+f(group,model="iid",
+#                  hyper=list(theta=list(prior="loggamma",param=c(1,5e-05)))),
+#                  data=mydat.std,family="gaussian",control.family=list(hyper = list(prec = list(prior="loggamma",param=c(1,5e-05)))),
+#                  control.fixed=list(mean.intercept=0,prec.intercept=0.001,mean=0,prec=0.001,compute=TRUE)),silent=TRUE);
+#  myres.glmer<-glmer(g1 ~ g2 + b2 + (1 | group),data=mydat.std,family="gaussian");
+# }
+# }
+# 
+
+```
+
+
+```{r eval=FALSE}
+################ bad= 1 #################
+
+# 1. glmer()
+(Intercept) g2 b2no group.precision
+0.3731573 0.5005805 -0.3725462 13.7258939
+residual.precision
+1.5833282
+
+# 2. C
+g1|(Intercept) g1|g2 g1|b2 g1|group.precision
+0.3734518 0.5010345 -0.3736847 15.1134356
+g1|precision
+1.5871722
+
+# 2b. glmer()-C
+(Intercept) g2 b2no group.precision
+-0.0002945187 -0.0004539956 0.0011384602 -1.3875416939
+residual.precision
+-0.0038440001
+
+# 3. INLA
+g1|(Intercept) g1|g2 g1|b2 g1|group.precision
+0.371865404 0.507477896 -0.383664192 0.004242917
+g1|precision
+1.448831144
+
+# 3b. glmer()-INLA
+(Intercept) g2 b2no group.precision
+0.001291923 -0.006897374 0.011117985 13.721650982
+residual.precision
+0.134497043
+
+###########################################
+################ bad= 2 #################
+
+# 1. glmer()
+(Intercept) p1 g2 b2no
+0.3735870930 -0.0009740356 0.4966137404 -0.3657885004
+group.precision residual.precision
+13.6345663526 1.5825764661
+
+# 2. C
+g1|(Intercept) g1|p1 g1|g2 g1|b2
+0.3739064967 -0.0009685062 0.4971737246 -0.3671259819
+g1|group.precision g1|precision
+15.2623303040 1.5883509984
+
+# 2b. glmer()-C
+(Intercept) p1 g2 b2no
+-3.194037e-04 -5.529345e-06 -5.599842e-04 1.337481e-03
+group.precision residual.precision
+-1.627764e+00 -5.774532e-03
+
+# 3. INLA
+g1|(Intercept) g1|p1 g1|g2 g1|b2
+0.3670454445 -0.0008727633 0.5085936258 -0.3798340438
+g1|group.precision g1|precision
+0.0035272743 1.4547554930
+
+# 3b. glmer()-INLA
+(Intercept) p1 g2 b2no
+0.0065416485 -0.0001012723 -0.0119798854 0.0140455434
+group.precision residual.precision
+13.6310390783 0.1278209731
+
+###########################################
+....
+################ bad= 48 #################
+
+# 1. glmer()
+(Intercept) g2 g3 g4 group.precision
+8.15087496 -0.32545776 0.44682748 -1.13666443 0.01597648
+
+# 2. C
+b2|(Intercept) b2|g2 b2|g3 b2|g4
+8.10292305 -0.32537730 0.44685912 -1.13661702
+b2|group.precision
+0.01621116
+
+# 2b. glmer()-C
+(Intercept) g2 g3 g4 group.precision
+4.795191e-02 -8.045411e-05 -3.163456e-05 -4.741090e-05 -2.346731e-04
+
+# 3. INLA
+b2|(Intercept) b2|g2 b2|g3 b2|g4
+4.2794890 -0.3166347 0.4400366 -1.1246914
+b2|group.precision
+0.5905595
+
+# 3b. glmer()-INLA
+(Intercept) g2 g3 g4 group.precision
+3.871385915 -0.008823091 0.006790914 -0.011973063 -0.574583037
+
+###########################################
+```
+
+In each and every of the 48 cases with largest difference, INLA’s estimate of the mode of the group level precision is vastly different from that provided by either *glmer()* of the internal code (which are both very similar). In most cases INLA’s estimate of precision is vastly smaller than that from *glmer()* but in some cases it is much larger (e.g. the last case in the above output snippet). Fig. 18 shows a comparison of the estimated posterior density for the group level precision in one of the 48 cases gives above, specially for the model g1 ~ g2 + b2 + (1  group) (in INLA inla(g1~g2+b2+f(group,model=”iid”….)). These estimates are clearly completely different and the INLA estimate is completely inconsistent with *glmer()* and therefore not reliable here. The other cases above are similar.
+
+```{r}
+# TODO: Update this fig code. Make as function.
+
+# if(FALSE){
+# ##Manual check
+# source("../header_code.R");library(INLA);library(lme4);
+# load("glmm_case4_c.RData");## mycache.c.a
+# load("glmm_case4_inla.RData");## mycache.inla.a
+# mydat<-ex6.dag.data;## this data comes with abn drop group variable
+# 
+# mydat.std<-mydat;
+# ## setup distribution list for each node
+# mydists<-list(p1="poisson",
+#               g1="gaussian",
+#               g2="gaussian",
+#               b1="binomial",
+#               b2="binomial",
+#               g3="gaussian",
+#               g4="gaussian"
+#              );
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-8];
+# 
+# i<-1;
+#   mydag[,]<-0;## reset
+#   #node<-mycache.c$child[bad[i]];pars<-mycache.c$node.defn[bad[i],];
+#   node<-mycache.c$child[56];pars<-mycache.c$node.defn[56,]
+#   if(length(which(pars==1))>0){
+#   form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|group)",sep=""));
+#   } else {form<-as.formula(paste(colnames(mydag)[node],"~1+(1|group)",sep=""));}
+#   family<-mydists[[node]];
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("g1"));#,compute.fixed=TRUE);## use C
+#   myres.inla<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=100,group.var="group",cor.vars=c("g1"),compute.fixed=TRUE,std.area=FALSE,n.grid=NULL);## use INLA
+#   myres.glmer<-glmer(form,data=mydat.std,family=family);
+#   myres.glmer<-summary(myres.glmer);
+# 
+#   ## manual fit parameters
+#   myres.c.1<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("g1"),compute.fixed=TRUE,max.grid.iter=100,
+#   marginal.node=2,marginal.param=4,variate.vec=seq(0.01,80,len=100));## use C
+# 
+#   #plot(myres.c.1$marginals[[1]]);
+# 
+# library(Cairo);
+# CairoPNG("QA_glmm_case4_fig4.png");#postscript("obsall.ps");#,height=10.0,width=11.0,paper="special");
+# par(mfrow=c(1,1));
+# par(mar=c(8.8,8,3.1,3.1));
+# par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+# par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+# plot(myres.c.1$marginals[[1]],type="n",xlab="",ylab="",axes=F,main="");
+# mtext("group.precision",1,line=3.5,cex=1.5);title("");
+# lines(myres.c.1$marginals[[1]],col="red",lwd=2);
+# lines(myres.inla$marginals$g1[[4]],col="black",lwd=2);
+# par(las=3);
+# mtext("Density",2,line=5.5,cex=2.0);par(las=1);
+# axis(1,padj=0.4,cex.axis=1.25); axis(2);box();
+# dev.off();
+# 
+#  
+# }
+```
+
+
+As with case study three, the internal code appears robust, if much slower than INLA, while INLA appears reliable for many node-parent combinations but does give incorrect results for a considerable minority of cases.
+___
+
+## QA Study Five – glmm nodes
+
+```{r}
+# Generate cache of network scores
+####
+# C
+####
+library(INLA)
+data(Epil)
+mydat<-Epil[,c("y","Trt","Age","Ind")] ## Epil is from INLA
+
+mydat$Trt<-as.factor(mydat$Trt);
+mydat$Ind<-as.factor(mydat$Ind); 
+mydat$y<-mydat$y*100
+
+## setup distribution list for each node
+mydists<-list(y="poisson",
+              Trt="binomial",
+              Age="gaussian")
+
+## parent limits
+## smaller example to allow comparison with INLA 
+max.par<-2 
+
+## no explicit ban or retain restrictions set so dont need to supply ban or retain matrices
+setwd(normalizePath(".."))
+mycache.c9 <- buildScoreCache(data.df=mydat,
+                              data.dists=mydists,
+                              max.parents=max.par,
+                              group.var="Ind",
+                              # cor.vars=c("y"),
+                              control = build.control(max.mode.error=0, 
+                                                      max.hessian.error=1E-04,
+                                                      ncores = NCPUS.C))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.c9, file = "../inst/extdata/mycache.c9.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+mycache.inla9 <- buildScoreCache(data.df=mydat,
+                                 data.dists=mydists,
+                                 max.parents=max.par,
+                                 group.var="Ind",
+                                 # cor.vars=c("y"),
+                                 control = build.control(max.mode.error=100,
+                                                         ncores = NCPUS))
+setwd(normalizePath("./vignettes"))
+saveRDS(object = mycache.inla9, file = "../inst/extdata/mycache.inla9.rds", compress = compressionLevel)
+```
+
+This case study is similar to case study four in the GLM nodes and uses the data set Epil which is provided as part of the INLA library but we now model the repeated observations for (assumed Poisson count) variable “y” using group variable “Ind”. As in the second part of case study four (GLM nodes) we consider  the new response y=100y. In the GLM node-parent combinations this caused INLA to produce incorrect very large mlik values. Repeating this analysis with the GLMM node-parent combinations causes INLA to crash for all four parent combinations for node “y”. All results, data and R code files for this case study can be found [here](source/Rcode/QA_glmm_case5.tar.gz), along with the crash output for the INLA calls (see file out2.inla.txt).
+
+```{r perc-diff-inla-c9, echo=FALSE}
+#| fig.cap="TODO"
+if(!exists("mycache.inla9")) {
+  mycache.inla9 <- readRDS("../inst/extdata/mycache.inla9")
+}
+if(!exists("mycache.c9")) {
+  mycache.c9 <- readRDS("../inst/extdata/mycache.c9")
+}
+perc<-100*(mycache.c9$mlik-mycache.inla9$mlik)/mycache.c9$mlik
+plot_diffs(perc)
+ggplot_diffs(perc)
+```
+
+```{r perc-diff-inla-c9-err, echo=FALSE}
+plot_err_diffs(perc, mycache.c9$hessian.accuracy)
+ggplot_err_diffs(perc, mycache.c9$hessian.accuracy)
+```
+
+To check that the internal code does a reasonable job, we again compare its output against modes using *glmer()* for all four cases where INLA crashed.
+```{r}
+# TODO: Same as for study above. But first investigate on the issues above.
+# 
+# 
+# mydat.std<-mydat;
+# 
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-4];
+# 
+# ## loop through each node which differed from INLA by at least 1% and compare with glm() modes
+# for(i in 1:4){
+# 
+#   mydag[,]<-0;## reset
+#   node<-mycache.c$child[i];pars<-mycache.c$node.defn[i,];
+#   if(length(which(pars==1))>0){
+#   form<-as.formula(paste(colnames(mydag)[node],"~",paste(colnames(mydag)[which(pars==1)],collapse="+",sep=""),"+ (1|Ind)",sep=""));
+#   } else {form<-as.formula(paste(colnames(mydag)[node],"~1+(1|Ind)",sep=""));}
+#   family<-mydists[[node]];
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="Ind",cor.vars=c("y"));## use C
+#   #myres.inla<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=100,group.var="Ind",cor.vars=c("y"));## use INLA
+#   r<-try(myres.glmer<-glmer(form,data=mydat.std,family=family));
+#  if(!(attr(r,"class")=="try-error")){
+#   myres.glmer<-summary(myres.glmer);
+#   res.glmer<-c(slot(myres.glmer,"coefs")[,1],1/as.numeric(slot(myres.glmer,"REmat")[,3]));
+#   if(is.null(names(res.glmer))){names(res.glmer)<-rep("",length(res.glmer));names(res.glmer)[1]<-"(Intercept)";}
+#   if(family=="gaussian"){names(res.glmer)[-c(1:(length(res.glmer)-2))]<-c("group.precision","residual.precision");
+#   } else {names(res.glmer)[-c(1:(length(res.glmer)-1))]<-c("group.precision");}
+# 
+#   cat("################ node-parent=",i,"#################\n");
+#   cat("\n# 1. glmer()\n");print(res.glmer);}
+#   cat("\n# 2. C\n");print(myres.c$modes[[node]]);
+#   #if(!(attr(r,"class")=="try-error")){
+#   #cat("\n# 2b. glmer()-C\n");print(res.glmer-myres.c$modes[[node]]);}
+#   cat("\n###########################################\n");
+# }
+# 
+# }
+# 
+# if(TRUE){
+# rm(list=ls());
+# source("../header_code.R");library(INLA);library(lme4);
+# load("glmm_case5_c.RData");## mycache.c.a
+# data(Epil);
+# mydat<-Epil[,c("y","Trt","Age","Ind")];## Epil is from INLA
+# mydat$Trt<-as.factor(mydat$Trt);
+# mydat$Ind<-as.factor(mydat$Ind); 
+# mydat$y<-mydat$y*100;  ## 
+# 
+# ## setup distribution list for each node
+# mydists<-list(y="poisson",
+#               Trt="binomial",
+#               Age="gaussian"
+#              );
+# 
+# mydat.std<-mydat;
+# 
+# ## create standardised dataset for comparison with glm
+# for(i in 1:length(mydists)){if(mydists[[i]]=="gaussian"){## then std data for comparison with glm_case
+#                                                             mydat.std[,i]<-(mydat.std[,i]-mean(mydat.std[,i]))/sd(mydat.std[,i]);}
+# }
+# 
+# ## create empty matrix which will be filled with nodes as needed
+# mydag<-matrix(rep(0,(dim(mydat)[2]-1)^2),ncol=dim(mydat)[2]-1);colnames(mydag)<-rownames(mydag)<-names(mydat)[-4];
+# 
+# i<-4;
+#   mydag[,]<-0;## reset
+#   mydag[node,]<-pars;## copy "bad" node into DAG
+#   myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="Ind",cor.vars=c("y"),compute.fixed=TRUE,max.grid.iter=100);#,compute.fixed=TRUE);## use C
+# library(Cairo); 
+# CairoPNG("QA_glmm_case5_fig1.png", width = 640, height = 480);#postscript("obsall.ps");#,height=10.0,width=11.0,paper="special");
+# par(mfrow=c(2,2));
+# par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+# par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="r");
+#  plot(myres.c$marginals$y[[1]],type="l",main="Node y",xlab="Intercept",ylab="",col="red");
+#  plot(myres.c$marginals$y[[2]],type="l",main="Node y",xlab="Trt",ylab="",col="red");
+#  plot(myres.c$marginals$y[[3]],type="l",main="Node y",xlab="Age",ylab="",col="red");
+#  plot(myres.c$marginals$y[[4]],type="l",main="Node y",xlab="group.precision",ylab="",col="red");
+# dev.off();
+#   ## manual fit parameters
+#   #myres.c.1<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("b1"),compute.fixed=TRUE,max.grid.iter=100,
+#   #marginal.node=1,marginal.param=1,variate.vec=seq(1,4,len=100));## use C
+```
+
+```{r eval=FALSE}
+################ node-parent= 1 #################
+
+# 1. glmer()
+(Intercept) group.precision
+6.1452448 0.6680473
+
+# 2. C
+y|(Intercept) y|group.precision
+6.1392521 0.6649523
+
+#################################################
+################ node-parent= 2 #################
+
+# 1. glmer()
+(Intercept) Trt1 group.precision
+6.3706617 -0.4288202 0.6888950
+
+# 2. C
+y|(Intercept) y|Trt y|group.precision
+6.3699960 -0.4274550 0.6887558
+
+###########################################
+################ node-parent= 3 ###########
+
+# 1. glmer()
+(Intercept) Age group.precision
+6.1454883 -0.1297835 0.6741270
+
+# 2. C
+y|(Intercept) y|Age y|group.precision
+6.1475772 -0.1260702 0.6715139
+
+###########################################
+################ node-parent= 4 ###########
+
+# 1. glmer()
+(Intercept) Trt1 Age group.precision
+6.3867339 -0.4594058 -0.1530896 0.6980803
+
+# 2. C
+y|(Intercept) y|Trt y|Age y|group.precision
+6.3866019 -0.4694131 -0.1620847 0.6926234
+
+###########################################
+```
+
+There is a very close match between the modes for the internal code and *glmer()*. Fig. 18also shows the estimated marginal posterior densities.
+
+![](Material/Plot/QA_glmm_case5_fig1.png)
+*Figure 18*
+
+This case study suggests the internal code is reliable.
+
+___
+## QA Study Six – glmm nodes
+
+```{r}
+# TODO: Check if this is really running as it is now. Not sure...
+# Generate cache of network scores
+####
+# C
+####
+mydat<-ex7.dag.data;## this data comes with abn drop group variable
+mydat.std<-mydat;
+## setup distribution list for each node
+mydists<-list(b1="binomial",
+              b2="binomial")
+
+## model where b1<-b2
+mydag<-matrix(data=c(
+                     0,1, ## b1
+                     0,0  ## b2
+                     ), byrow=TRUE,ncol=2);
+colnames(mydag)<-rownames(mydag)<-names(mydat)[-3];
+
+#myres.c<-fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists,max.mode.error=0,group.var="group",cor.vars=c("slope"));## use C
+setwd(normalizePath(".."))
+myres10.c <- fitAbn(dag=mydag,
+                    data.df=mydat,
+                    data.dists=mydists,
+                    control = fit.control(max.mode.error=0,
+                                          max.grid.iter=100,
+                                          marginal.node=1,
+                                          marginal.param=3,
+                                          variate.vec=seq(0.3,1.5,len=50),
+                                          n.grid=NULL,
+                                          ncores = NCPUS.C),
+                    group.var="group",
+                    # cor.vars=c("b1"),
+                    compute.fixed=TRUE)
+setwd(normalizePath("./vignettes"))
+saveRDS(object = myres10.c, file = "../inst/extdata/myres10.c.rds", compress = compressionLevel)
+
+####
+# INLA
+####
+setwd(normalizePath(".."))
+myres10.inla <- fitAbn(dag=mydag,
+                       data.df=mydat,
+                       data.dists=mydists,
+                       control = fit.control(max.mode.error=100,## use INLA
+                                             n.grid=NULL,
+                                             std.area=FALSE,
+                                             ncores = NCPUS),
+                       group.var="group",
+                       # cor.vars=c("b1"),
+                       compute.fixed=TRUE)
+setwd(normalizePath("./vignettes"))
+saveRDS(object = myres10.inla, file = "../inst/extdata/myres10.inla.rds", compress = compressionLevel)
+```
+
+In this case study we consider just a single glmm node (model) using data *ex7.dag.data* which is again provided with abn. We examine the model b1=b2+(1 group), in INLA inla(g1~g2+b2+f(group,model=”iid”….). This is a large data set with over 10K observations and variables b1 and b2 are measured across over 4K groups. All results, data and R code files for this case study can be found [here](source/Rcode/QA_glmm_case6.tar.gz). As with all other case studies we compare the results from the internal code, INLA and *glmer()* for this data.
+
+Below we compare the modes given from *glmer()* with those from INLA and the internal code.
+
+```{r eval=FALSE}
+#######################################################################
+
+## 1. glmer()
+
+Generalized linear mixed model fit by the Laplace approximation
+Formula: b1 ~ b2 + (1 | group)
+Random effects:
+Groups Name Variance
+group (Intercept) 1.619 # => group.precision=(1/1.619) = 0.618
+Fixed effects:
+Estimate Std. Error z value Pr(>|z|)
+(Intercept) -2.73022 0.04557 -59.91 < 2e-16 *** b2TRUE -0.43468 0.16591 -2.62 0.00879 **
+
+####################################################################### ## 2. C (internal code) 
+
+b1|(Intercept) b1|b2 b1|group.precision -2.7276459 -0.4367608 0.6207554 
+
+####################################################################### ## 3. INLA b1|(Intercept) 
+
+b1|b2 b1|group.precision -2.3692217 -0.3728149 1.7348308 
+
+```
+
+The intercept and slope parameters are quite different from INLA compared to *glmer()* and the internal code, but what is very considerably different is the precision estimate which differs by almost a factor three. Fig. 19 shows the marginal posterior density produced by INLA and compared with that from the internal code.
+
+```{r}
+# TOOD: Check if this is running. 
+
+# CairoPNG("QA_glmm_case6_fig1.png", width = 640, height = 480);#postscript("obsall.ps");#,height=10.0,width=11.0,paper="special");
+# par(mfrow=c(1,1));
+# par(cex.axis=1.5);par(cex.lab=2.5);par(bg="white");par(fg="black");par(col.axis="black");par(col="black");par(col.main="black");
+# par(cex.main=2.5);par(col.lab="black");par(las=1);par(xaxs="r");par(yaxs="i");
+#  plot(spline(myres.c.1$marginals[[1]]),type="l",main="Node slope",xlab="group.precision",ylab="",col="red",xlim=c(0.3,4),ylim=c(0,5));
+#  lines(myres.inla$marginals$b1[[3]],col="black")
+# dev.off();
+# 
+# #save.image("all.RData");
+# 
+# mydat.std$b1<-as.numeric(mydat.std$b1)-1;## INLA doesn't like factors as response
+# r<-try(res<-inla(b1~b2+f(group,model="iid",
+#                  hyper=list(theta=list(prior="loggamma",param=c(1,5e-05)))),
+#                  data=mydat.std,family="binomial",control.family=list(hyper = list(prec = list(prior="loggamma",param=c(1,5e-05)))),
+#                  control.fixed=list(mean.intercept=0,prec.intercept=0.001,mean=0,prec=0.001,compute=TRUE)),silent=TRUE);
+#  myres.glmer<-glmer(b1 ~ b2 + (1 | group),data=mydat.std,family="binomial");
+```
+
+Figure 19: Comparison of the marginal posterior density from INLA (black) and the internal code (red). Obviously these are very different.*
+
+___
+
+Updates (Dec-2018) Gilles Kratzer & Marta Pittavino

@@ -19,3 +19,4 @@ list with all control arguments with respect to the method but with new values.
 \description{
 Simple check on the control parameters
 }
+\keyword{internal}

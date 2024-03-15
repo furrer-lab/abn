@@ -1,19 +1,666 @@
 [
     {
-        "file": "/home/matteo/rrr/abn-public/abn/src/rcpp_hello_world.cpp",
-        "file_last_write": 1705577371.0,
+        "file": "/home/matteo/rrr/devel-abn/src/abn_toolbox.cpp",
+        "file_last_write": 1710409100.0,
         "definitions": [
             {
-                "usr": "c:@F@rcpp_hello_world#",
+                "usr": "c:@F@logit_cpp#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#",
                 "kind": 6,
                 "parent_name": "",
-                "name": "rcpp_hello_world",
-                "file": "/home/matteo/rrr/abn-public/abn/src/rcpp_hello_world.cpp",
-                "line": 6,
-                "column": 6,
+                "name": "logit_cpp(Rcpp::NumericVector)",
+                "file": "/home/matteo/rrr/devel-abn/src/abn_toolbox.cpp",
+                "line": 13,
+                "column": 21,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@expit_cpp#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "expit_cpp(Rcpp::NumericVector)",
+                "file": "/home/matteo/rrr/devel-abn/src/abn_toolbox.cpp",
+                "line": 33,
+                "column": 21,
                 "hidden": false
             }
         ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/buildcachematrix.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/buildcachematrix.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/cycles.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/cycles.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/fit_single_node.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/fit_single_node.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/fitabn_marginals.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/fitabn_marginals.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_binomial.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_binomial.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_binomial_cpp#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_binomial_cpp(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial.cpp",
+                "line": 13,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_br.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_binomial_br.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_br.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_binomial_cpp_br#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_binomial_cpp_br(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_br.cpp",
+                "line": 14,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_binomial_fast.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_binomial_cpp_fast#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_binomial_cpp_fast(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast.cpp",
+                "line": 13,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast_br.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_binomial_fast_br.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast_br.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_binomial_cpp_fast_br#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_binomial_cpp_fast_br(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_binomial_fast_br.cpp",
+                "line": 14,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_gaussian.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_gaussian_cpp#$@N@arma@S@Mat>#d#S0_#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_gaussian_cpp(arma::mat, arma::mat, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian.cpp",
+                "line": 13,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian_fast.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_gaussian_fast.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian_fast.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_gaussian_cpp_fast#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_gaussian_cpp_fast(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_gaussian_fast.cpp",
+                "line": 12,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_multinomial.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_poisson.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_poisson.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@factorial#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "factorial(double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson.cpp",
+                "line": 13,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_poisson_cpp#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_poisson_cpp(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson.cpp",
+                "line": 25,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/irls_poisson_fast.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:irls_poisson_fast.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson_fast.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@factorial_fast#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "factorial_fast(double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson_fast.cpp",
+                "line": 14,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@irls_poisson_cpp_fast#$@N@arma@S@Mat>#d#$@N@arma@S@Col>#d#d#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "irls_poisson_cpp_fast(arma::mat, arma::vec, double, double)",
+                "file": "/home/matteo/rrr/devel-abn/src/irls_poisson_fast.cpp",
+                "line": 24,
+                "column": 12,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/mi.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:mi.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/mi.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@mi_cpp#$@N@arma@S@Mat>#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "mi_cpp(arma::mat)",
+                "file": "/home/matteo/rrr/devel-abn/src/mi.cpp",
+                "line": 12,
+                "column": 8,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/mobius.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/mobius.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/mostprobable.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_marginals_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_marginals_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_rv_inner.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_binomial_rv_inner.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_marginals_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_marginals_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_rv_inner.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_gaussian_rv_inner.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_marginals_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_marginals_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_rv.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_rv.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_rv_inner.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/node_poisson_rv_inner.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/rank.cpp",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:rank.cpp@8@macro@ARMA_WARN_LEVEL",
+                "kind": 9,
+                "parent_name": "",
+                "name": "ARMA_WARN_LEVEL",
+                "file": "/home/matteo/rrr/devel-abn/src/rank.cpp",
+                "line": 1,
+                "column": 9,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@rank_cpp#$@N@arma@S@Mat>#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "rank_cpp(arma::mat)",
+                "file": "/home/matteo/rrr/devel-abn/src/rank.cpp",
+                "line": 14,
+                "column": 5,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/searchhill.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/searchhill.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [
+            {
+                "usr": "c:@S@network_struct",
+                "kind": 3,
+                "parent_name": "",
+                "name": "network_struct",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 28,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:structs.h@T@network",
+                "kind": 8,
+                "parent_name": "",
+                "name": "network",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 42,
+                "column": 31,
+                "hidden": false
+            },
+            {
+                "usr": "c:@S@cycle_struct",
+                "kind": 3,
+                "parent_name": "",
+                "name": "cycle_struct",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 45,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:structs.h@T@cycle",
+                "kind": 8,
+                "parent_name": "",
+                "name": "cycle",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 52,
+                "column": 29,
+                "hidden": false
+            },
+            {
+                "usr": "c:@S@cache_struct",
+                "kind": 3,
+                "parent_name": "",
+                "name": "cache_struct",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 55,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:structs.h@T@cache",
+                "kind": 8,
+                "parent_name": "",
+                "name": "cache",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 63,
+                "column": 29,
+                "hidden": false
+            },
+            {
+                "usr": "c:structs.h@T@diskdatamatrix",
+                "kind": 8,
+                "parent_name": "",
+                "name": "diskdatamatrix",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 68,
+                "column": 38,
+                "hidden": false
+            },
+            {
+                "usr": "c:@S@datamatrix_struct",
+                "kind": 3,
+                "parent_name": "",
+                "name": "datamatrix_struct",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 71,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:structs.h@T@datamatrix",
+                "kind": 8,
+                "parent_name": "",
+                "name": "datamatrix",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 98,
+                "column": 34,
+                "hidden": false
+            },
+            {
+                "usr": "c:@S@fnparams",
+                "kind": 3,
+                "parent_name": "",
+                "name": "fnparams",
+                "file": "/home/matteo/rrr/devel-abn/src/structs.h",
+                "line": 100,
+                "column": 8,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/utility.c",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
+        "hidden": false
+    },
+    {
+        "file": "/home/matteo/rrr/devel-abn/src/utility.h",
+        "file_last_write": 1710409100.0,
+        "definitions": [],
         "hidden": false
     }
 ]

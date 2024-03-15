@@ -157,9 +157,16 @@ buildScoreCache.bayes <-
             message(paste("File exists and will be overwritten:", path))
           }
 
-          cl <- makeCluster(ncores, outfile = path)
+          cl <- makeCluster(ncores,
+                            type = control[["cluster.type"]],
+                            rscript_args = "--no-environ", # only available for "FORK"
+                            outfile = path)
+
         } else {
-          cl <- makeCluster(ncores) # no redirection
+          # no redirection of output
+          cl <- makeCluster(ncores,
+                            type = control[["cluster.type"]],
+                            rscript_args = "--no-environ") # only available for "FORK"
         }
 
         registerDoParallel(cl)
@@ -187,6 +194,7 @@ buildScoreCache.bayes <-
       } else {
         res <- foreach(i = 1:rows,
                        .combine = "rbind",
+                       .packages = c("INLA"),
                        .export = "forLoopContentBayes",
                        .verbose = verbose) %do% {
                          forLoopContentBayes(row.no = i,

@@ -54,7 +54,7 @@ Kratzer, G., Pittavino, M, Lewis, F. I., and Furrer, R., (2017). "abn: an R pack
 Useful links:
 \itemize{
   \item \url{http://r-bayesian-networks.org}
-  \item Report bugs at \url{https://git.math.uzh.ch/mdeluc/abn/-/issues}
+  \item Report bugs at \url{https://github.com/furrer-lab/abn/issues}
 }
 
 }

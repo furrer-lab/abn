@@ -19,3 +19,4 @@ list of sums of each distribution types (abbreviated) as names.
 \description{
 Set of simple commonsense validity checks on the data.df and data.dists arguments
 }
+\keyword{internal}

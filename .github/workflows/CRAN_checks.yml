@@ -1,0 +1,80 @@
+# See https://github.com/r-lib/actions/tree/master/examples#readme for
+# example workflows available for the R community.
+
+name: CRAN-like checks
+
+on:
+  push:
+    branches: [ main, master, 150-strip-down-to-essentials] # for temporary testing
+  pull_request:
+    types: [ ready_for_review ]
+    branches: [ main, master ]
+
+env:
+  BUILD_LOC: "./build"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  R-CMD-check:
+    runs-on: ubuntu-22.04
+    container:
+      image: ${{ matrix.image-source }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+    strategy:
+      fail-fast: false
+      matrix:
+        image-source: ["ghcr.io/furrer-lab/r-containers"]  # This is only here since container.image ignores env
+        r-version: ['release' , 'devel', 'patched']  # ['3.6.3', '4.1.1']
+        os: ['debian', 'fedora']
+        compiler: ['gcc', 'clang']
+        exclude:
+          - os: 'fedora'
+            r-version: 'release'
+          - os: 'fedora'
+            r-version: 'patched'
+          - r-version: 'patched'
+            compiler: 'clang'
+          - r-version: 'release'
+            compiler: 'clang'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: rcmdcheck run
+        run: |
+            options(crayon.enabled = TRUE)
+            cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+            if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
+            if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
+            cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
+            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--as-cran")), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
+        shell: Rscript {0}
+        env:
+          BUILD_LOC: ./build
+          R_KEEP_PKG_SOURCE: yes
+      - name: rchmdchek show results
+        run: |
+          echo ::group::Show testthat output
+          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+          echo ::endgroup::
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        env:
+          BUILD_LOC: ./build
+          R_KEEP_PKG_SOURCE: yes

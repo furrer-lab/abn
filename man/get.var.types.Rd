@@ -15,3 +15,4 @@ numeric encoding of distribution corresponding to its list element number in \co
 \description{
 gaussian = 1, binomial = 2, poisson = 3, multinomial = 4
 }
+\keyword{internal}

@@ -7,7 +7,9 @@
 #' @param n corresponds to \code{nvars}, number of variables in data.dists.
 #' @importFrom stats AIC BIC sd model.matrix as.formula lm glm logLik
 #' @importFrom nnet nnet.default multinom
+#' @importFrom mclogit mblogit
 #' @return list
+#' @keywords internal
 forLoopContent <-
   function(row.num,
            mycache,
@@ -154,7 +156,6 @@ forLoopContent <-
                 stop("'catcov.mblogit' == 'single' is not yet implemented.")
                 fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single")
                 # manipulate VarCov to bring in correct shape
-                # TODO
               } else {
                 stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
               }
@@ -199,7 +200,6 @@ forLoopContent <-
                                             control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
                                                                                trace = control[["trace.mblogit"]]))
                     # manipulate VarCov to bring in correct shape
-                    # TODO
                   } else {
                     stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
                   }
@@ -598,9 +598,16 @@ buildScoreCache.mle <-
             message(paste("File exists and will be overwritten:", path))
           }
 
-          cl <- makeCluster(ncores, outfile=path)
+          cl <- makeCluster(ncores,
+                            type = control[["cluster.type"]],
+                            rscript_args = "--no-environ", # only available for "FORK"
+                            outfile=path)
         } else {
-          cl <- makeCluster(ncores) # no redirection
+          # no redirection
+          cl <- makeCluster(ncores,
+                            type = control[["cluster.type"]],
+                            rscript_args = "--no-environ" # only available for "FORK"
+                            )
         }
 
         registerDoParallel(cl)
@@ -630,6 +637,7 @@ buildScoreCache.mle <-
       } else {
         res <- foreach(row.num = 1:rows,
                        .combine='rbind',
+                       .packages = c("stats", "lme4", "mclogit", "nnet"),
                        .export = 'forLoopContent',
                        .verbose = verbose) %do% {
                          forLoopContent(row.num = row.num,

@@ -24,6 +24,7 @@
 #'                        ftol_abs = 1e-6,
 #'                        epsilon = 1e-6,
 #'                        ncores = 2,
+#'                        cluster.type = "PSOCK",
 #'                        seed = 9062019L)
 #' ctrlbayes <- abn::fit.control(method = "bayes",
 #'                          mean = 0,
@@ -52,6 +53,7 @@
 #'                          marginal.param = NULL,
 #'                          variate.vec = NULL,
 #'                          ncores = 1,
+#'                          cluster.type = NULL,
 #'                          seed = 9062019L)
 #'
 #' @seealso \code{\link{build.control}}.
@@ -85,6 +87,7 @@ fit.control <-
             marginal.param = NULL,
             variate.vec = NULL,
             ncores = 1,
+            cluster.type = "FORK",
             max.irls = 100,
             tol = 1e-11,
             tolPwrss = 1e-7,
@@ -129,12 +132,14 @@ fit.control <-
           marginal.param = marginal.param,
           variate.vec = variate.vec,
           ncores = ncores,
+          cluster.type = cluster.type,
           seed = seed
         )
     } else if (method == "mle") {
       ctrl <-
         list(
           ncores = ncores,
+          cluster.type = cluster.type,
           max.iters = max.iters,
           max.irls = max.irls,
           tol = tol,
@@ -647,7 +652,28 @@ fitAbn <- function(object = NULL,
     if(verbose){message("Assessing validity of argument 'centre'. ... OK.")}
   }
 
+  # check compute.fixed
+  if(!any(compute.fixed %in% c(TRUE, FALSE))){
+    stop("'compute.fixed' should be either TRUE or FALSE but it was provided as: ", compute.fixed)
+    compute.fixed <- compute.fixed
+  } else if (isTRUE(compute.fixed) & method == "mle"){
+    stop("compute.fixed=TRUE is not allowed for method='mle'.")
+  } else {
+    if(verbose){message("Assessing validity of argument 'compute.fixed'. ... OK.")}
+  }
+
   # Check control args
+  # if any arg matches a possible control arg from fit.control(), warn and use it.
+  fit.control.args <- names(formals(fit.control))[-which(names(formals(fit.control))=="method")] # allow method to be provided as it has a different meaning here.
+  provided.args <- names(match.call()[-1]) # remove the first element of match.call() which is empty.
+  if(any(provided.args %in% fit.control.args)){
+    warning(paste("Some arguments match possible control arguments from `fit.control()`.
+                  I will use the provided arguments. Please use `control=fit.control(...)` instead in the future."))
+    ambiguous.args <- provided.args[which(provided.args %in% fit.control.args)]
+    for (i in 1:length(ambiguous.args)){
+      control[[ambiguous.args[i]]] <- match.call()[-1][[ambiguous.args[i]]]
+    }
+  }
   ctrl <- check.valid.fitControls(control = control, method = method, verbose = verbose)
 
   if("max.mode.error" %in% names(ctrl)){

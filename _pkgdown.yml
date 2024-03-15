@@ -1,0 +1,121 @@
+url: http://r-bayesian-networks.org/
+template:
+  bootstrap: 5
+lang: en, de, fr
+
+articles:
+- title: Additive Bayesian Network Workflow
+  navbar: ~
+  contents:
+  - quick_start_example
+  - model_specification
+  - structure_learning
+  - parameter_learning
+  - mixed_effect_BN_model
+  - data_simulation
+  - multiprocessing
+- title: Archive
+  desc: >
+    Articles that are no longer maintained, but may still be useful.
+  contents:
+  - starts_with("archive")
+
+
+reference:
+- title: "Building a cache of scores"
+  contents:
+  - buildScoreCache
+  - build.control
+- title: "Structure Learning"
+  contents:
+  - mostProbable
+  - searchHeuristic
+  - searchHillClimber
+- title: "Parameter Fitting"
+  contents:
+  - fitAbn
+  - fit.control
+- title: "Simulating Data"
+  contents:
+  - simulateAbn
+  - simulateDag
+- title: "Plotting"
+  contents:
+  - plotAbn
+  - toGraphviz
+- title: "Miscellaneous"
+  contents:
+  - linkStrength
+  - mb
+  - compareDag
+  - compareEG
+  - discretization
+  - essentialGraph
+  - infoDag
+  - expit
+  - logit
+  - odds
+  - or
+  - logLik.abnFit
+  - miData
+  - skewness
+  - scoreContribution
+  - summary.abnDag
+  - summary.abnFit
+  - summary.abnMostprobable
+  - AIC.abnFit
+  - BIC.abnFit
+- title: internal
+  contents:
+  - Cfunctions
+  - FCV
+  - abn.version
+  - adg
+  - calc.node.inla.glm
+  - calc.node.inla.glmm
+  - check.valid.buildControls
+  - check.valid.dag
+  - check.valid.data
+  - check.valid.fitControls
+  - check.valid.groups
+  - check.valid.parents
+  - check.which.valid.nodes
+  - coef.abnFit
+  - entropyData
+  - ex0.dag.data
+  - ex1.dag.data
+  - ex2.dag.data
+  - ex3.dag.data
+  - ex4.dag.data
+  - ex5.dag.data
+  - ex6.dag.data
+  - ex7.dag.data
+  - expit_cpp
+  - family.abnFit
+  - g2b2c_data
+  - g2pbcgrp
+  - get.var.types
+  - getMSEfromModes
+  - getmarginals
+  - logit_cpp
+  - modes2coefs
+  - nobs.abnFit
+  - pigs.vienna
+  - plot.abnDag
+  - plot.abnFit
+  - plot.abnHeuristic
+  - plot.abnHillClimber
+  - plot.abnMostprobable
+  - print.abnCache
+  - print.abnDag
+  - print.abnFit
+  - print.abnHeuristic
+  - print.abnHillClimber
+  - print.abnMostprobable
+  - validate_abnDag
+  - validate_dists
+  - var33
+
+
+
+

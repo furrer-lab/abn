@@ -199,6 +199,8 @@ test_that("mostProbable() is backward compatible with `ex3.dag.data`", {
         m <- fitAbn(object = mp.dag,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
       })
     }
+  } else {
+    skip("INLA is not tested on CRAN")
   }
 })
 

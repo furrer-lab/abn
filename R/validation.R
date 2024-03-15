@@ -27,8 +27,13 @@
 #' @return An object of class \code{abnDag} containing a named matrix and a named list giving the distribution for each node.
 #' @export
 #' @examples
-#' createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
-#' plot(createAbnDag(dag = matrix(c(0,1,0,0), 2, 2)))
+#' dagFromFormula <- createAbnDag(dag = ~a+b|a,
+#'                               data.df = data.frame("a"=1, "b"=1),
+#'                               data.dists = list(a="binomial", b="gaussian"))
+#' dagFromMatrix <- createAbnDag(dag = matrix(c(0,1,0,0), 2, 2),
+#'                               data.df = data.frame("a"=1, "b"=1),
+#'                               data.dists = list(a="binomial", b="gaussian"))
+#' plot(dagFromMatrix)
 #'
 #' @keywords utilities internal
 #' @concept DAG
@@ -73,6 +78,7 @@ createAbnDag <- function(dag,
 #' @param ... additional arguments.
 #'
 #' @return either TRUE/FALSE or list of variable distributions as provided as input.
+#' @keywords internal
 validate_dists <- function(data.dists, returnDists=TRUE,...) {
 
   name <- names(data.dists)
@@ -106,6 +112,7 @@ validate_dists <- function(data.dists, returnDists=TRUE,...) {
 #' @param ... additional arguments.
 #'
 #' @return Either TRUE/FALSE or DAG as matrix.
+#' @keywords internal
 validate_abnDag <- function( dag, data.df=NULL, returnDag=TRUE, ...) {
     # we already have a valid container. can be used to extract...
   if (inherits(x = dag, what = "abnDag"))  dag <- dag$dag

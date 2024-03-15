@@ -25,3 +25,4 @@ for no undirected cycles.
 \details{
 Similar to \code{check.valid.dag()}.
 }
+\keyword{internal}

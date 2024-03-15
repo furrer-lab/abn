@@ -21,3 +21,4 @@ g2b2c_data
 1000 observations with 5 variables: 2 continuous, 2 binary and 1 categorical.
 }
 \keyword{datasets}
+\keyword{internal}

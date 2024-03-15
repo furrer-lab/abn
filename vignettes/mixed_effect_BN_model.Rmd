@@ -1,0 +1,180 @@
+---
+title: "Mixed-effect Bayesian Network Model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Mixed-effect Bayesian Network Model}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(abn)
+library(lme4)
+library(Rgraphviz)
+
+# Set seed for reproducibility
+set.seed(123)
+```
+
+This vignette demonstrates how to fit a mixed-effect Bayesian network model using the `abn` package. 
+
+# Introduction
+
+Multi-level models, also known as hierarchical models are particularly useful when dealing with data that is structured at different levels - for instance, students nested within schools, or repeated measures nested within individuals. 
+Multi-level models allow for the estimation of both within-group and between-group effects, and can help to account for the non-independence of observations within groups.
+
+There are various types of multi-level models, including random-intercept models, random-slope models, and models that include both random intercepts and slopes. 
+The estimation of multi-level models can be complex, as it involves estimating parameters at multiple levels of organization and accounting for correlations within each level. 
+For instance, mixed-effect models with varying intercepts and slopes allow the effects of predictor variables to vary across groups. 
+This involves the estimation of numerous parameters, including the variances and covariances of the random slopes and intercepts.
+
+Among the different multi-level models, random-intercept models are often the simplest to understand and implement. 
+They allow for variation between groups (e.g., schools or individuals), but assume that the effect of predictor variables is constant across these groups.
+This assumption is useful when there is outcome variability attributable to group-level characteristics, but the effects of predictor variables are assumed to be consistent across groups. 
+Consequently, random-intercept models are less complex than those that also include random slopes.
+
+Bayesian network models can be formulated based on these multi-level models. 
+This approach was formalised by Azzimonti (2021) for discrete data and Scutari (2022) for continuous data. 
+These authors demonstrated how to apply these models, including models with random coefficients, in various studies.
+
+This vignette focuses on mixed data, which includes both discrete and continuous variables. 
+Unlike in other R packages for mixed-effect Bayesian network modelling, additive Bayesian networks in the R package `abn` do not restrict the possible parent-child combinations. 
+However, `abn` is limited to random-intercept models without random coefficients.
+The inclusion of random coefficients would render the model estimation process computationally practically unfeasible in this less restricted data distribution setting.
+
+In the following sections, we will demonstrate how to use this package to fit a random-intercept model to mixed data.
+
+# Ground truth data
+
+We will generate first a data set with continuous (Gaussian) and discrete (Binomial) variables with a random-intercept structure.
+
+```{r}
+n_groups <- 5
+
+# Number of observations per group
+n_obs_per_group <- 1000
+
+# Total number of observations
+n_obs <- n_groups * n_obs_per_group
+
+# Simulate group effects
+group <- factor(rep(1:n_groups, each = n_obs_per_group))
+group_effects <- rnorm(n_groups)
+
+# Simulate variables
+G1 <- rnorm(n_obs) + group_effects[group]
+B1 <- rbinom(n_obs, 1, plogis(group_effects[group]))
+G2 <- 1.5 * B1 + 0.7 * G1 + rnorm(n_obs) + group_effects[group]
+B2 <- rbinom(n_obs, 1, plogis(2 * G2 + group_effects[group]))
+
+# Normalize the continuous variables
+G1 <- (G1 - mean(G1)) / sd(G1)
+G2 <- (G2 - mean(G2)) / sd(G2)
+
+# Create data frame
+data <- data.frame(group = group, G1 = G1, G2 = G2, B1 = factor(B1), B2 = factor(B2))
+
+# Look at data
+str(data)
+summary(data)
+```
+
+```{r echo=FALSE}
+# Define the nodes and edges of the graph
+nodes <- c("G1", "B1", "G2", "B2", "group_effects")
+edges <- c("group_effects", "G1",
+           "group_effects", "G2",
+           "group_effects", "B1",
+           "group_effects", "B2",
+           "G1", "G2",
+           "B1", "G2",
+           "G2", "B2")
+
+# Create a graphNEL object with specified nodes and edges
+graph <- new("graphNEL", nodes=nodes, edgemode="directed")
+for (i in seq(1, length(edges), by=2)) {
+  graph <- addEdge(edges[i], edges[i+1], graph)
+}
+
+# Layout the graph
+g <- layoutGraph(graph)
+
+# Set the node attributes
+nodeRenderInfo(g) <- list(
+  shape = c(G1="ellipse", B1="box", G2="ellipse", B2="box", group_effects="box"),
+  fill = c(G1="lightblue", B1="lightgreen", G2="lightblue", B2="lightgreen", group_effects="lightgrey")
+)
+
+# set edge attributes
+edgeRenderInfo(g) <- list(
+  col = c("G1~G2"="black", "B1~G2"="black", "G2~B2"="black", 
+          "group_effects~G1"="lightgrey", "group_effects~G2"="lightgrey", 
+          "group_effects~B1"="lightgrey", "group_effects~B2"="lightgrey"))
+
+renderGraph(g)
+```
+
+
+# Additive Bayesian Network Model fitting
+
+We will fit a mixed-effect Bayesian network model to the data using the `abn` package to estimate the relationships between the variables G1, G2, B1, and B2 qualitatively.
+The model will include a random intercept for the group variable which is specified using the `group` argument in the `buildScoreCache()` function.
+
+```{r}
+# Build the score cache
+score_cache <- buildScoreCache(data.df = data,
+                               data.dists = list(G1 = "gaussian", 
+                                                 G2 = "gaussian", 
+                                                 B1 = "binomial", 
+                                                 B2 = "binomial"),
+                               group.var = "group",
+                               max.parents = 2,
+                               method = "mle")
+
+# Structure learning
+mp_dag <- mostProbable(score.cache = score_cache)
+
+# Plot the DAG
+plot(mp_dag)
+```
+
+We see that the most probable DAG equals the true DAG.
+Note that the `abn` package does not plot the grouping variable in the DAG, but it is included in the model.
+
+
+```{r}
+# Parameter estimation
+abn_fit <- fitAbn(object = mp_dag,
+                  method = "mle")
+
+# Print the fitted model
+print(abn_fit)
+```
+
+
+# Comparison with the results of the `lme4` package
+
+```{r}
+# Fit a lmer model for G2
+model_g2 <- lmer(G2 ~ G1 + B1 + (1 | group), data = data)
+
+# Print summary
+summary(model_g2)
+```
+
+```{r}
+# Fit a glmer model for B2
+model_b2 <- glmer(B2 ~ G1 + G2 + B1 + (1 | group), data = data, family = binomial)
+
+# Print summary
+summary(model_b2)
+```
+
+The quantitative results of the `abn` package are consistent with the results of the `lme4` package.

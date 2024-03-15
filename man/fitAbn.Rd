@@ -405,4 +405,5 @@ Fraser Iain Lewis and Gilles Kratzer.
 \concept{Bayes}
 \concept{abn}
 \concept{fitAbn}
+\keyword{internal}
 \keyword{models}

@@ -22,3 +22,4 @@ g2pbcgrp
 10000 observations with 6 variables: 2 continuous, 1 binary, 1 count, 1 categorical and 1 grouping factor.
 }
 \keyword{datasets}
+\keyword{internal}

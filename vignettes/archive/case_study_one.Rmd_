@@ -1,0 +1,319 @@
+---
+title: "Case Study 1"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Case Study 1}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(abn)
+```
+
+# Overview
+
+This case study uses data set *ex5.dag.data* provided with [abn](https://CRAN.R-project.org/package=abn) which comprises of 434 observations across 18 variables, 6 binary and 12 continuous, and one grouping variable.
+
+Variables b1 and b2 were formed by taking a variable with three categories and splitting it into two binary variables. To include such multinomial variables in [abn](https://CRAN.R-project.org/package=abn) one must first split these variables into separate binary variables, e.g. each denoting categories such as *{Yes, Not Yes}*, *{No, Not No}*, *{Dont Know, Not Dont Know}* etc. This is more flexible than usual nominal regression since other variables can now have completely different effects on each different category (as opposed to something like a proportional odds assumption). This does, however, have two consequences:
+1. it can greatly add to the dimension of the model which can be a limiting factor
+2. when performing any model selection we must ban any arcs from being considered between the split variables as these are not “real” dependencies but simply structural artefacts. This can be easily achieved through giving a ban matrix to the relevant functions (see below).
+
+This data has a grouping variable. This means that the observations within each group (e.g. household or farm) may be correlated, and therefore potentially causing the distribution of the data for any particular covariate pattern to be over-dispersed relative to standard sampling distributions (e.g. binomial or Gaussian sampling). The usual way to deal with this would be to move from using generalised linear models at each node to generalised linear mixed models at each node. As yet, such functionality is not available within [abn](https://CRAN.R-project.org/package=abn) (it is for binary nodes but this is still largely experimental and nothing is implemented for correlated data at Gaussian nodes). There is a relatively straightforward workaround – we simply ignore the grouping effects during the model searching and then apply an appropriate adjustment to the final chosen model, where this may result in trimming some arcs from the model. This adjustment is to correct for the fact that our model may not be sufficiently conservative as the usual impact of ignoring correlation effects is an under-estimation of variance. Therefore, resulting in potential over-modelling – our model may have more structure (arcs) than could reasonably be supported given the available data. There is some argument that this “post-correction” approach may in fact be a better solution, as dealing directly with DAGs comprising of mixed models is vastly more computationally demanding, and the numerics involved are always far more approximate than when random effects are not involved. This correction will be performed using MCMC in JAGS/WinBUGS (see later).
+
+# Deciding on a search method
+
+As a very rough rule of thumb if there are less than 20 variables (and no random effects) then probably the most robust model search option is an exact search (as opposed to a heuristic) which will identify a globally best DAG. Followed then by parametric bootstrapping in order to assess whether the identified model contains excess structure (this is an adjustment for over-modelling). Although, the parametric bootstrapping might require access to a cluster computer to make this computationally feasible. This is arguably one of the most comprehensive and reliable statistical modelling approaches for identifying an empirically justified best guess (DAG) at “nature’s true model” – the unknown mechanisms and processes which generated the study data.
+
+# Preparing the data
+
+There are two main things which need to be checked in the data before it can be used with any of the [abn](https://CRAN.R-project.org/package=abn) model fitting functions.
+
+1. All records with missing variables must be either removed or imputed. There is a range of libraries available from CRAN for completing missing values using approaches such as multiple imputation. Ideally, marginalising over the missing values is preferable (as opposed completing them as this then results in essentially dealing with models of models), but this is far from trivial here and not yet (and may never be) implemented in [abn](https://CRAN.R-project.org/package=abn). To remove all records with one or more missing values then code similar to the following probably suffices
+*ex5.dag.data[complete.cases(ex5.dag.data),]*
+
+2. All variables which are to be treated as binary must be coerced to factors. To coerce an existing variable into a factor then
+*ex5.dag.data[,1]<-as.factor(ex5.dag.data[,1])* coerces the first variable in data.frame *ex5.dag.data*. The levels (labels of the factor) can be anything provided there are only two and a *success* here is take to be the second level. For example, the second value in the vector returned by
+*levels(ex5.dag.data[,1])*
+
+To include additional variables in the modeling, for example interaction terms or polynomials, then these must be created manually and included into the data.frame just like any other variable.
+
+# Initial searches
+
+Below is some R code which will perform an exact search using a parent limit of at most one parent per node. Similar code can be used to perform searches for higher parent limits (similar code can be downloaded from a link further down this page).
+
+```{r}
+library(abn)
+mydat <- ex5.dag.data[,-19] ## get the data - drop group variable 
+```
+
+Create a matrix of banned arcs. Row are children, columns parents. The first row says do not allow arc b1<-b2. Second row is similar and says do not allow b2<-b1. These banned arcs are for the split variables. The ban matrix must be a named matrix.
+
+```{r}
+banned<-matrix(c(
+# 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
+0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b1
+1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b2
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b3
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b4
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b5
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b6
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g1
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g2
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g3
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g4
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g5
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g6
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g7
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g8
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g9
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g10
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g11
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 # g12
+),byrow=TRUE,ncol=18)
+
+colnames(banned)<-rownames(banned)<-names(mydat);
+```
+
+The retain matrix is not constrained i.e a zero matrix (one could also use *NULL*).
+
+```{r}
+retain<-matrix(c(
+# 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b1
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b2
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b3
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b4
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b5
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # b6
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g1
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g2
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g3
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g4
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g5
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g6
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g7
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g8
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g9
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g10
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, # g11
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 # g12
+),byrow=TRUE,ncol=18)
+## again must set names
+colnames(retain)<-rownames(retain)<-names(mydat)
+```
+
+Set up distribution list for each node
+
+```{r}
+mydists<-list(b1="binomial",
+b2="binomial",
+b3="binomial",
+b4="binomial",
+b5="binomial",
+b6="binomial",
+g1="gaussian",
+g2="gaussian",
+g3="gaussian",
+g4="gaussian",
+g5="gaussian",
+g6="gaussian",
+g7="gaussian",
+g8="gaussian",
+g9="gaussian",
+g10="gaussian",
+g11="gaussian",
+g12="gaussian"
+)
+```
+
+Build a cache of all the local computations and perform an exact search.
+
+```{r}
+mycache.1par <- buildscorecache(data.df=mydat,data.dists=mydists, max.parents=1,centre=TRUE)
+
+mp.dag <- mostprobable(score.cache=mycache.1par)
+```
+
+We want to find the DAG with the best goodness of fit (network score - log marginal likelihood) and ideally we would search for this without any a priori complexity limit (max number of parents). However, this may be both not computationally feasible and also highly inefficient. For example, with 434 observation is it really realistic to consider models with up to 17 covariates per node? One heuristic approach is to start off with an a priori limit of one parent per node, find the best DAG, and then repeat an identical search process (again using functions *buildscorecache()* and *mostprobable()*) with an increasing parent limit. Then stopping when the network score reach a plateau.
+
+These initial searches can be parallelised, although whether this is worth the extra hassle depends on how many variables are present and what computing facilities are available. The run time for the *mostprobable()* function increases very considerably with the number of parents. The abn library does not include any implicit parallelisation. While it lacks the conceptual elegance of multi-threading, simply task farming jobs on separate cpus using R CMD BATCH is by far the most computationally efficient solution here. This can also easily be achieved on a cluster via an MPI C wrapper (e.g. run many parallel R CMD BATCH jobs). Many systems use MPI and as such some standard code can be used here (but there is usually a local submission script required for the scheduling engine).
+
+Sample code which can be used on a cluster to parallelize searches for parent limits 2 through 9 can be found [here](source/Rcode/search_code.tar.gz). This comprises of 8 R scripts plus an MPI C wrapper (which needs to be compiled on the cluster using an appropriate compiler like mpicc). The compiled wrapper is the program actually submitted to the cluster. I used 8 different parent limits here as the cluster I use is built from compute nodes of 8 cores each and so it makes most sense to run parallel tasks in multiples of 8. I could have ran parent limits 1 through 16 but this is likely wasteful since I don’t expect the data to support so many parents.
+
+ **Results**
+
+Searches across parent limits 1 through 9 were run and we now examine the results. What we are looking for is simply the model with the best score (the largest – least negative – mlik value), checking that this does not improve when more parents are permitted. This then says we have found a DAG with maximal goodness of fit. What we find (below) is that the goodness of fit does not improve when we increase the parent limit beyond 4.
+
+![](Material/Plot/fig1.png)
+*Figure 1*
+
+The actual DAG corresponding to the mlik = -8323.9393
+
+![](Material/Plot/mp4.png)
+*Figure 2*
+
+# Adjustment for overfitting
+
+We have identified a DAG which has the best (maximum) possible goodness of fit according to the log marginal likelihood. This is the standard goodness of fit metric in Bayesian modelling (see [MacKay (1992)](https://www.mitpressjournals.org/doi/abs/10.1162/neco.1992.4.5.720)) and includes an implicit penalty for model complexity. While it is sometimes not always apparent from the technical literature, the log marginal likelihood can easily (and sometimes vastly) overfit with smaller data sets. Of course the difficulty is identifying what constitutes *small* here. In other words using the log marginal likelihood alone (or indeed any of the other usual metrics such as AIC or BIC) is likely to identify structural features, which, if the experiment/study was repeated many times, would likely only be recovered in a tiny faction of instances. Therefore, these features could not be considered robust. Overfitting is an ever present issue in model selection procedures, particular is common approaches such as stepwise regression searches (see [Babyak (2004)](https://www.cs.vu.nl/~eliens/sg/local/theory/overfitting.pdf)).
+
+A well established approach for addressing overfitting is to use parametric bootstrapping (see [Friedman (1999)](http://scholar.google.com/scholar_url?hl=en&q=http://w3.cs.huji.ac.il/~nir/Papers/FGW2.pdf&sa=X&scisig=AAGBfm3-UgXALoAdzzXG_hPQAzhuMvYaiQ&oi=scholarr)). The basic idea is very simple. We take our chosen model and then simulate data sets from this, the same size as the original observed data, and see how often the different structural features are recovered. For example, is it reasonable for our data set of 434 observations to support a complexity of 29 arcs? Parametric bootstrapping is arguably one of the most defensible solutions for addressing overfitting, although it is likely the most computationally demanding, as for each simulated (bootstrap) data set we need to repeat the same exact model search as used with the original data. And we may need to repeat this analysis hundreds (or more) times to get robust results.
+
+Performing parametric bootstrapping is easy enough to code up if done in small manageable chunks. Here we provide a step-by-step guide along with necessary sample code.
+
+**Preliminaries – software**
+
+We have selected a DAG model and installed MCMC software such as [JAGS](http://mcmc-jags.sourceforge.net/) and WinBUGS are designed for simulating from exactly such models. So all we need to do is to implement the model, in the appropriate JAGS/WinBUGS syntax (which are very similar). Here I am going to use JAGS in preference to WinBUGS or OpenBUGS for no other reason than that is what I am most familiar with.
+
+To implement the selected DAG in JAGS we need write a model definition file (a BUG file) which contains the structure of the dependencies in the model. We also need to provide in here the probability distributions for each and every parameter in the model. Note that in Bayesian modelling the parameter estimates will not generally conform to any standard probability distribution (e.g. Gaussian) unless we are in the very special case of having conjugate priors. The marginal parameter distributions required can be estimated using the *fitabn()* function and then fed into the model definition. We next demonstrate one way of doing this which is to use empirical distributions – in effect we provide JAGS with a discrete distribution over a fine grid which approximates whatever shape of density we need to sample from.
+
+**Generating marginal densities**
+
+The function *fitabn()* has functionality to estimate the marginal posterior density for each parameter in the model. The parameters can be estimated one at a time by manually giving a grid (e.g. the x values where we want to evaluate f(x)) or else all together. In the latter case a very simple algorithm will try and work out where to estimate the density. This can work better sometimes and others, although it seems to work fine here for most variables. In order to use these distributions with JAGS we must evaluate the density over an equally spaced grid as otherwise the approach used in JAGS will not sample correctly. The basic command needed here is to estimate marginals, and use an equal grid of 1000 points:
+
+```{r}
+marg.f <- fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists, compute.fixed=TRUE,n.grid=1000)
+```
+
+All the code in this section (there is quite a bit in total) is provided for download (later).
+
+We should not simply assume that the marginals have been estimated accurately, and they should each be checked using some common sense. Generally speaking, estimating the goodness of fit (mlik) for a DAG comprising of GLM nodes is very reliable. This marginalises out all parameters in the model. Estimating marginal posterior densities for individual parameters, however, can run into trouble as this presupposes that the data contains sufficient information to accurately estimate the "shape" (density) for every individual parameter in the model. This is a stronger requirement than simply being able to estimate an overall goodness of fit metric. If a relatively large number of arcs have been chosen for a node with relatively few observations (i.e. "successes" in a binary node) then this may not be possible, or at least the results are likely to be suspect. Exactly such issues - overfitting - are why we are performing the parametric bootstrapping in the first place but they can also pose some difficulties before getting to this stage.
+
+It is essential to first visually check the marginal densities estimated from *fitabn()*. Something like the following code will create a single pdf file where each page is a separate plot of a marginal posterior density:
+
+```{r}
+### update 22/02/2014.
+## NOTE: this code only works in the version 0.83+ please use this latest version
+library(Cairo)
+CairoPDF("margplots.pdf")
+for(i in 1:length(marg.f$marginals)){
+cat("processing marginals for node:",nom1<-names(marg.f$marginals)[i],"\n") 
+cur.node <- marg.f$marginals[i] ## get marginal for current node - this is a matrix [x,f(x)] cur.node <- cur.node[[1]] # this is always [[1]] for models without random effects 
+for(j in 1:length(cur.node)){ 
+cat("processing parameter:",nom2 <- names(cur.node)[j],"\n") 
+cur.param <- cur.node[[j]]
+plot(cur.param,type="l",main=paste(nom1,":",nom2))} 
+}
+
+dev.off()
+```
+
+These [plots](source/Plot/margplots.pdf) suggests that the first node, b1, has not been estimated very well - e.g. usually the densities should drop to zero at each endpoint which they do not for some of the parameters in b1. The rest of the densities look sensible enough. In case it is just that the built-in choice of x that has not worked well here we manually re-compute each of the odd looking marginals in node b1 to see if that improves the plots:
+
+```{r}
+
+## node b1 looks odd so re-do with manually chosen intervals
+## (trial and error end points)
+marg.b1.1 <- fitabn(dag.m=mydag,data.df=mydat,data.dists=mydists, compute.fixed=TRUE,marginal.node=1,marginal.param=1, variate.vec=seq(-150,5,len=1000))
+
+```
+
+Moreover, an additional implementation is needed to create the marginal densities in a suitable format for abn:
+
+```{r}
+### update 05/02/2016
+marnew <- marg.f$marginals[[1]] 
+for(i in 2: length(marg.f$marginals)){ 
+marnew <- c(marnew, marg.f$marginals[[i]])
+}
+```
+
+The variable *marnew* should replace the *marg.f$marginals*, from the computation of the area, present in the full [code](source/Rcode/get_marginals_n18.R). There are four parameters which need manual intervention (parameter 2 in node b1 seems fine). The new refined [plots](source/Plot/margplots2.pdf) look better. We can now perform an additional common sense check on their reliability. A probability density must integrate to unity (the area under the curve is equal to one). The densities here are estimated numerically and so we would not expect to get exactly one (n.b. no internal standardization is done so we can check this), but if the numerical estimation has worked reliably then we would expect this to be close (e.g. 0.99, 1.01) to one.
+
+
+![](Material/Plot/fig1n.png)
+*Figure 3*
+
+
+From Fig.3 it is obvious that something is wrong with the parameters of node b1 as they are not close to one (n.b their estimation is interdependent on each other since they are all from the same node). In the full code listing this is investigated in some detail by comparing results with R's glm() and also INLA. In short, the marginal parameters for this node cannot be estimated with any accuracy as the node is simply over-parametrised. Looking at the raw data the answer is obvious - variable b1 comprises of 432 "failures" and 2 "successes"! Yet, the exact model selection algorithm choose this node to have 4 covariates (excl. intercept). An excellent example of overfitting. No similar problems are apparent with any other node. So what do we do with node b1? The simplest option is to drop this variable from the analyses. In truth it would probably not have mattered too much if we kept it in and used the marginal densities as is in the bootstrapping - even though very poorly estimated (the area is not a problem as JAGS standardises this itself) - as these arcs would either all be dropped as a result of the parametric bootstrapping, or else some of them dropped and the remainder having such a large confidence intervals (wide posterior) that it not possible to really say anything about their effect. Dropping the variable b1 is the simpler option here which is what we now do.
+
+There is one other parameter - in orange in Fig.3 - node b6 and covariate b4 which requires further investigation. The density looks ok but the area is a little adrift from one. The full code listing does some additional checking and the intercept for this node is estimated very accurately, which suggests that this parameter estimate is probably fine. The difference from one for the area just likely reflects the numerical accuracy error due to the massively wide posterior density (e.g. vanishing small floating point values involved), and so this seems of little concern. The reason for this *difficulty* can again be seen by simply looking at the data - a 2x2 table of b6 and b4 has a zero in it which is the cause of the massive uncertainty in the estimate for parameter b4. In summary, this parameter seems fine for including in the bootstrapping.
+
+Finally, given that we are dropping node b1 we must then repeat all the exact searches. We now find that we only need a maximum of 3 parents and the chosen globally optimal DAG is:
+
+![](Material/Plot/mp3.png)
+*Figure 4*
+
+We repeat the estimation of marginal posterior densities just as before but on a slightly different model with 17 nodes. The code used to do this can be found [here](source/Rcode/get_marginals.R). The output from this code is a file called *post_params.R* which contains all the information JAGS needs to sample from the marginal posterior distributions.
+
+**Building BUG model**
+
+Once we have the posterior distributions the next step is to actually create the DAG in JAGS. This involves creating a BUG file - a file which contains a definition of our DAG (from Fig.4) in terms which can be understood by JAGS. This can easily be done by hand, if rather tedious, and should be checked carefully for errors (which JAGS will prompt about in any case). The BUG file is [here](source/Rcode/model.bug). This file is fairly heavily commented (it might look complicated but most of it is just copy and paste with minor edit) - the syntax is similar to R - and should be fairly self explanatory. Note that unlike a more usual use of WinBUGS or JAGS we have no data here, we are simply providing JAGS with a set of marginal probability distributions and how they are inter-dependent, and we want it to then generate realisations from the appropriate joint probability distribution. The next step is to tell JAGS to perform this simulation, i.e. generate a single bootstrap data set of size n=434 observations based on the assumption that the DAG is Fig.4 is our true model.
+
+**Single bootstrap analysis**
+
+To run JAGS we use four separate files:
+1. the BUG model definition file (model.bug)
+2. a file post_params.R which contains the marginal distributions referred to in the BUG file
+3. a script which runs the MCMC simulation (jags_script.R)
+4. a file which sets of random number seed (inits.R - the value in this must be changed to use different streams of random numbers). 
+
+These four files are contained in this [tarball](source/Rcode/jags_stuff.tar.gz). To run this example extract all the files into one directory and then at the command line type *jags jags_script.R*. In terms of the MCMC component, a burn-in of 100000 is used but as there are no data here this takes no time to run and is likely of little use and could be shorted (it is just included to allow JAGS any internal adaptations or diagnostics that it might need to do). The actual MCMC is then run for 4340 iterations with a thin of 10, which gives 434 observations for each variable - the same size as the original data. The number of MCMC steps and thin is a little arbitrary and this could be run for longer with a bigger thin, but for this data looking at autocorrelation plots for the Gaussian variables there appears no evidence of correlation at a thin of 10 and so this seems sufficient here.
+
+The next step is to automate a single run, e.g. generate a single bootstrap sample and then perform an exact search on this, just as was done for the original data. This [file](source/Rcode/run_jags_single.R) performs a single such analysis in R - just drop this into the same directory as the four JAGS file above. For ease we also call the JAGS script from inside R which might require some messing about with the PATH variable on Windows (e.g. if you open up a cmd prompt then you should be able to type "jags" without needed to give a full path). The output from this is a single matrix (DAG) which is saved in an R workspace called *boot1.RData*.
+
+Once this works on your local machine it is then a case of trying to automate this in the most efficient way, for example for use on a cluster. The crucial thing here is that the random number seed used each time (in the file inits.R) must be changed for each bootstrap simulation otherwise an identical bootstrap data set will be produced!
+
+**Automating cluster computing**
+
+One fairly crude approach for parallelising the bootstrap analyses across a cluster is to use a similar MPI C wrapper as used in the above exact searches. But now which performs a number of bootstrap analyses on each CPU, where we ask R to create a new seed and script file for use with JAGS in each bootstrap iteration. An R file which can be run (using R CMD BATCH) and performs 5 bootstrap analyses can be found [here](source/Rcode/five_boot_run.R). The general idea is that you have 200 (say) of these files where each has a different index value on the very first line (index values from 1 through to 200) and each file runs 5 bootstrap analyses on each cpu and the MPI file distributes the work across 200 cpus. Of course the same method would work for any number of analyses per cpu, and total number of cpus. On a cluster it would make most sense to have as many bootstrap iterations on a single cpu that can be completed within a given queue time (e.g. <24hrs assuming the cluster has a queuing system) and in this case many more than 5 bootstrap iterations per cpu makes better sense since for this data it only take a few minutes per iteration. While it is a bit tedious setting up all the separate R files, they only differ on the first line and so this hardly takes any time. There are far more elegant ways but this is very simple to implement. One thing of note here is that the actual results (the DAG) in each bootstrap iteration are stored in a list called *dag[[..]]* which can then be combined together once all the runs have finished (in this example giving 1000 DAGs). These 1000 DAGs are then analysed to see how many arcs are present at a given threshold, e.g. 50%. Those arcs that are poorly supported are then deemed potentially unreliable and trimmed off the selected DAG - that in Fig.4. We outline how this might be done in the next section.
+
+# Bootstrapping summary
+
+The globally optimal DAG (Fig.4) has 25 arcs. It way be that some of these are due to over-modelling which means they will be recovered in relatively few bootstrap analyses. 10000 bootstrap analyses were conducted (on a cluster) and all the R files, MPI wrapper, and also the actual results (in R workspaces) can be found [here](source/Rcode/boot10K_all.tar.gz).
+
+The first step is to explore the bootstrap results. Of some interest is how many of the arcs were recovered during each of the bootstrap "simulations". This is given in Fig.5. We can see right away that not all the arcs in the original DAG (Fig.4 - with 25 arcs) were recovered - even just once. This provides overwhelming evidence that the original exact search has indeed overfitted to the original data. Not at all surprising given the relatively small sample size. We must therefore trim off some of the complexity - arcs - from the original DAG in order to justify that our chosen DAG is a robust estimate of the underlying system which generated the observed data.
+
+![](Material/Plot/bootres1.png)
+*Figure 5*
+
+There are a number of different options in terms of trimming/pruning arcs. One common option which apes the use of majority consensus trees in phylogenetic - trees are just special cases of DAGs - is to remove all arcs which were not recovered in at least a majority (50%) of the bootstrap results. Fig.6 shows the frequency at which each arc was recovered, the maximum value possible being 10000 (100% support).
+
+![](Material/Plot/boot_table.png)
+*Figure 6*
+
+Note that this 50% is not in any way comparable with the usual 95% points used in parameter estimation as these are entirely different concepts.
+
+Another option, other than choosing a different level of support (which is entirely up to the researcher), is to consider an undirected network. That is, include all arcs if there support - considering both directions - exceeds 50%. This is justifiable due to likelihood equivalence which means that - generally speaking - the data cannot discriminate between different arc directions and therefore considering arcs recovered in only one direction may be overly conservative. Again, this decision is likely problem specific. For example, from a purely statistical perspective being conservative is generally a good thing, but from the scientists point of view this may then remove most of the more interesting results from the study. Obviously a balance is required.
+
+In this data it turns out that removing all arcs with have less than 50% support gives an identical pruned network as if we were to consider both arc directions jointly. In generally this need not be the case. Fig.7 shows out optimal DAG after removing these arcs. This is our optimal model of the data. All the code for analysing the results from the bootstrap analyses can be found [here](source/Rcode/summary_bootstrap.R).
+
+![](Material/Plot/postboot.png)
+*Figure 7*
+
+# Estimating marginals from DAG
+
+Once we have identified our optimal DAG then it is usual to want to examine the parameters in this model. These are our results - the effects of the various variables in our study. This process is very similar to when estimating the marginals for the bootstrapping but should now be easier since we should have removed any difficulties due to over-fitting. The posterior density plots for the final DAG can be found [here](source/Plot/postbootplots.pdf). These all look fine. A table of percentiles is given below.
+
+
+![](Material/Plot/quantiles1.png)
+*Figure 8*
+
+All of the effect parameters, that is, ignoring the intercept terms (which is just a background constant) and the precision parameters - have 95% confidence (or credible) intervals which do not cross the origin. Note this is not guaranteed to happen this criteria was not part of the model selection process, and all the parameters in the model have been justified using mlik and bootstrapping. But having such marginal intervals can make presenting the results possibly easier to a skeptical audience. R code for creating the marginals and quantiles can be found [here](source/Rcode/marginals_summary.R).
+
+# Correction for grouped data
+
+In some studies, the way the data collected has a clear grouping aspect, and therefore there is the potential for non-independence between data points from the same group to cause over-dispersion. This can lead to analyses which are over-optimistic as the true level of variation in the data is under-estimated. This might not affect the modelling results at all, but it may, and it is good practice to at least check whether this is an issue. The usual solution here is to include random effects into the model at group level to incorporate additional variance into the sampling distributions (should they need it). What this means is that our DAG here now comprises of GLMM's at each node, rather than simply GLMs. This introduces considerable additional numerical complexity and we fit this new formulation using MCMC (in JAGS). What we are looking for here is simply whether the marginal posterior densities given above now become much wider due to the grouping effects. If this is the case then it would suggest that we should then drop some of these arcs to give us a final DAG adjusted for grouping effect. In short, in this section we fit the DAG from Fig.7 to the original data - but now including a random effect at group level into each and every node in the DAG and then re-examine the marginal densities. All computation is now done using MCMC.
+
+Before we can fit our DAG to the original data using JAGS we need to first make some small adjustments to the data. For example JAGS has no concept of factors and binary variables must be coded numerically 0,1. Some R code which make the necessary changes is available [here](source/Rcode/data_prep_jags.R).
+
+The process here is broadly the same as the parametric bootstrapping except we only the analyses once and this time actually use MCMC to fit the DAG to the observed data, as opposed to just simulating realisations from a model. The main task is to translate the DAG in Fig.7 into code which can be understood by JAGS, and also now with the inclusion of random effects. This is relatively straightforward and is very similar to the parametric bootstrapping case except we do not provide any parameter distributions this time since these will be estimated from the data. Fittig this model using MCMC can take a relatively long time in order to get robust parameter estimates. It is again a good idea to run this on a cluster, e.g. by running lots of separate JAGS runs in parallel and then combining the results. This is much more efficient than running several very long chains, although each of the shorter parallel analyses does need a burn-in phrase. A tarball comprising all the files necessary to fit the DAG (with random effects) to the data, and also including some files suitable for running on a cluster, along with all the results is available [here](source/Rcode/cluster_res.tar.gz).
+
+Once we have the results from the MCMC simulation the next step is to analyse the model parameters to see if any of the distributions have widened sufficiently that the relevant arc may need to be considered for removal from our DAG in Fig.7. Fig.9 shows the new quantile estimates in the marginal posterior densities for the parameters at each node after the inclusion of random effects. R code for computing these values is [here](source/Rcode/analysis_jags_output.R).
+
+![](Material/Plot/quantiles_mcmc.png)
+*Figure 9*
+
+After the inclusion of random effects none of the 95% intervals cross the origin (again excluding the intercept terms) and so the MCMC analyses provides no evidence for removing any arcs from our DAG in Fig.7. Comparing Fig.8 and Fig.9 we can see that some the precision terms are now rather larger than before. For example *g4 precision* is noticeable larger than before the inclusion of random effects, similarly in *g6 precision*. This makes sense in that variance in the data is now shared between two variance terms, the group level variance and the residual (observation level) variance. The residual variance has now decreased (i.e. precision has increased and precision=1/variance) because some of variance previously included in this term has now been transferred to the group level variance term.
+
+The key observation here is that none of the intervals have widened sufficiently to render any of the arcs no longer statistically supported (using crossing the origin in a 95% CI as the criteria here). Indeed, inspecting many of the intervals in Fig8. and Fig.9 it is apparent that including random effects has had virtually no impact on the parameter estimates (remembering also that these all these estimates are approximations). This suggests that while the data is technical grouped their is little or no within group correlation. It is therefore arguable as to whether to use the estimates in Fig.8 or Fig.9 as the final parameter values, and similarly whether our final model of the data need or need not include random effects/correlation adjustment. Given that models without random effects are very much simpler and more parsimonious, then there is a reasonable argument here for choosing as the final optimal model of the data a DAG comprising of simply GLMs rather than GLMMs.
+
+*last update (Dec-2018), Gilles Kratzer & Marta Pittavino*

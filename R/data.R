@@ -25,7 +25,7 @@
 #' @references
 #' Kratzer, G., Lewis, F.I., Comin, A., Pittavino, M. and Furrer, R. (2019). "Additive Bayesian Network Modelling with the R Package abn". arXiv preprint arXiv:1911.09006.
 #' Dohoo, Ian Robert, Wayne Martin, and Henrik Stryhn. Veterinary epidemiologic research. No. V413 DOHv. Charlottetown, Canada: AVC Incorporated, 2003.
-#' @keywords datasets
+#' @keywords datasets internal
 "adg"
 
 #' @title Synthetic validation data set for use with abn library examples
@@ -108,7 +108,7 @@
 #'                            p9=rpois(datasize, lambda=10),
 #'                            p10=rpois(datasize, lambda=10))
 #' }
-#' @keywords datasets
+#' @keywords datasets internal
 "ex0.dag.data"
 
 #' @title Synthetic validation data set for use with abn library examples
@@ -149,7 +149,7 @@
 #'
 #' colnames(ex1.true.dag) <- rownames(ex1.true.dag) <-
 #'   c("b1","p1","g1","b2","p2","b3","g2","b4","b5","g3")
-#' @keywords datasets
+#' @keywords datasets internal
 "ex1.dag.data"
 
 #' @title Synthetic validation data set for use with abn library examples
@@ -208,7 +208,7 @@
 #'                                                       "p3","b4","g4","p4",
 #'                                                       "b5","g5","p5","b6",
 #'                                                       "g6","p6")
-#' @keywords datasets
+#' @keywords datasets internal
 "ex2.dag.data"
 
 #' @title Validation data set for use with abn library examples
@@ -220,7 +220,7 @@
 #' \code{group} is a factor with 100 factors  defining the sampling
 #' groups (10 observations each).
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "ex3.dag.data"
 
 #' @title Valdiation data set for use with abn library examples
@@ -231,7 +231,7 @@
 #' \code{group} factor with 85 levels defining sampling groups;
 #' \code{b1,\dots,b10} binary variables encoded as factors.
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "ex4.dag.data"
 
 #' @title Valdiation data set for use with abn library examples
@@ -243,7 +243,7 @@
 #' \code{g1,\dots,g12} continuous variables. Finally, the column
 #' \code{group} defines sampling groups (encoded as a factor as well).
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "ex5.dag.data"
 
 #' @title Valdiation data set for use with abn library examples
@@ -262,7 +262,7 @@
 #'   \item{group}{factor,defines sampling groups}
 #' }
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "ex6.dag.data"
 
 #' @title Valdiation data set for use with abn library examples
@@ -277,7 +277,7 @@
 #'   \item{group}{factor, defines sampling groups}
 #' }
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "ex7.dag.data"
 
 #' @title Dataset related to Feline calicivirus infection among cats in Switzerland.
@@ -312,7 +312,7 @@
 #' }
 #' @references Berger, A., Willi, B., Meli, M. L., Boretti, F. S., Hartnack, S., Dreyfus, A., ... and Hofmann-Lehmann, R. (2015). Feline calicivirus and other respiratory pathogens in cats with Feline calicivirus-related symptoms and in clinically healthy cats in Switzerland. BMC Veterinary Research, 11(1), 282.
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "FCV"
 
 #' @title Dataset related to diseases present in `finishing pigs', animals about to enter the human food chain at an abattoir.
@@ -345,7 +345,7 @@
 #' bootstrapping example thereof.
 #' @references Hartnack, S., et al. (2016) "Attitudes of Austrian veterinarians towards euthanasia in small animal practice: impacts of age and gender on views on euthanasia." BMC Veterinary Research 12.1: 26.
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "pigs.vienna"
 
 #' @title simulated dataset from a DAG comprising of 33 variables
@@ -421,7 +421,7 @@
 #' dag33[30,29] <- 1
 #' dag33[28,27] <- 1; dag33[28,29] <- 1; dag33[28,31] <- 1
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "var33"
 
 #' @title Toy Data Set for Examples in README
@@ -437,7 +437,7 @@
 #'   \item{G2}{gaussian}
 #' }
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "g2b2c_data"
 
 #' @title Toy Data Set for Examples in README
@@ -454,5 +454,5 @@
 #'   \item{group}{categorical}
 #' }
 #'
-#' @keywords datasets
+#' @keywords datasets internal
 "g2pbcgrp"

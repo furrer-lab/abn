@@ -33,6 +33,7 @@
 #' \dontrun{
 #'   abn.version("system")
 #' }
+#' @keywords internal
 abn.version <- function(what=c('abn','system')) {
   what <- match.arg(what)
   if (what %in% 'system') {
@@ -203,6 +204,7 @@ formula_abn <- function(f, name) {
 #'
 #' @return list of sums of each distribution types (abbreviated) as names.
 #' @importFrom stats complete.cases
+#' @keywords internal
 check.valid.data <- function(data.df = NULL, data.dists = NULL, group.var = NULL) {
 
     ## check data is in a data.frame
@@ -312,6 +314,7 @@ check.valid.data <- function(data.df = NULL, data.dists = NULL, group.var = NULL
 #' @param group.var not yet implemented
 #'
 #' @return dag as named square matrix
+#' @keywords internal
 check.valid.dag <- function(dag = NULL, data.df = NULL, is.ban.matrix = FALSE, group.var = NULL) {
   if (!is.null(data.df) && !inherits(data.df, "data.frame")){
     stop("Invalid argument for data.df provided. Must be NULL or of class data.frame.")
@@ -405,6 +408,7 @@ check.valid.dag <- function(dag = NULL, data.df = NULL, is.ban.matrix = FALSE, g
 #' @param group.var not yet implemented
 #'
 #' @return numeric vector of max number of parents per variable
+#' @keywords internal
 check.valid.parents <- function(data.df = NULL, max.parents = NULL, group.var = NULL) {
   ## Stop if data.df is not provided
   if (is.null(data.df)){
@@ -414,8 +418,6 @@ check.valid.parents <- function(data.df = NULL, max.parents = NULL, group.var = 
   ## have a grouping variable so temporarily drop this from data.df - LOCAL TO THIS FUNCTION ONLY
   if (!is.null(group.var)) {
     data.df <- check.valid.groups(group.var = group.var, data.df = data.df)[["data.df"]]
-  } else {
-    # TODO: Take care of group.var
   }
 
   if (is.numeric(max.parents)){
@@ -483,6 +485,7 @@ check.valid.parents <- function(data.df = NULL, max.parents = NULL, group.var = 
 #' @param group.var not yet implemented
 #'
 #' @return integer vector of column indexes of valid nodes in data.df
+#' @keywords internal
 check.which.valid.nodes <- function(data.df = NULL, which.nodes = NULL, group.var = NULL) {
     ## have a grouping variable so temporarily drop this from data.df - LOCAL TO THIS FUNCTION ONLY
     if (!is.null(group.var)) {
@@ -510,6 +513,7 @@ check.which.valid.nodes <- function(data.df = NULL, which.nodes = NULL, group.va
 #' @param verbose when TRUE additional information is printed. Defaults to FALSE.
 #'
 #' @return list with data.df, indexes of variables to which the grouping should be applied to and the associated group for each observation as integer.
+#' @keywords internal
 check.valid.groups <- function(group.var=NULL, data.df=NULL, cor.vars=NULL, verbose = FALSE) {
   # No data no checks.
   if (is.null(data.df)){
@@ -547,7 +551,7 @@ check.valid.groups <- function(group.var=NULL, data.df=NULL, cor.vars=NULL, verb
     stop("name of cor.vars does not match any of those in data.df")
   }
   if (group.var %in% cor.vars) {
-    stop("group.var is among the cor.vars.") # TODO: consider to relax this.
+    stop("group.var is among the cor.vars.")
   }
 
   ## get group id data
@@ -588,6 +592,7 @@ check.valid.groups <- function(group.var=NULL, data.df=NULL, cor.vars=NULL, verb
 #' @param verbose when TRUE additional information is printed. Defaults to FALSE.
 #'
 #' @return list with all control arguments with respect to the method but with new values.
+#' @keywords internal
 check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE) {
   ctrl.basic <- build.control(method = method)
   if (is.null(control)) {
@@ -604,41 +609,7 @@ check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE
   }
 
   # check if keys are ok
-  allowed_list_names <- c("method",
-                          "max.mode.error",
-                          "mean",
-                          "prec",
-                          "loggam.shape",
-                          "loggam.inv.scale",
-                          "max.iters",
-                          "epsabs",
-                          "error.verbose",
-                          "trace",
-                          "epsabs.inner",
-                          "max.iters.inner",
-                          "finite.step.size",
-                          "hessian.params",
-                          "max.iters.hessian",
-                          "max.hessian.error",
-                          "factor.brent",
-                          "maxiters.hessian.brent",
-                          "num.intervals.brent",
-                          "n.grid",
-                          "ncores",
-                          "max.irls",
-                          "tol",
-                          "tolPwrss",
-                          "check.rankX",
-                          "check.scaleX",
-                          "check.conv.grad",
-                          "check.conv.singular",
-                          "check.conv.hess",
-                          "xtol_abs",
-                          "ftol_abs",
-                          "trace.mblogit",
-                          "catcov.mblogit",
-                          "epsilon",
-                          "seed")
+  allowed_list_names <- names(formals(build.control))
   if(any(!(names(ctrl.new) %in% allowed_list_names))) {
     stop("Unknown control parameter(s).")
   } else if(any(!(names(ctrl.new) %in% names(build.control(method=method))))) {
@@ -646,7 +617,6 @@ check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE
     # ctrl <- ctrl.basic[which(!(names(build.control(method=method)) %in% names(ctrl.new)))] # ignore them further down in collecting list for return
   }
 
-  # TODO: Add more checks here for the individual control parameters.
   # check catcov.mblogit
   possible_catcov.mblogit <- c("free", "diagonal", "single")
   if (!is.null(ctrl.new[["catcov.mblogit"]])) {
@@ -677,7 +647,34 @@ check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE
     } else {
       stop(paste("Argument 'ncores' from build.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
     }
+
+    # checking cluster type if ncores > 1
+    if (ctrl.new[["ncores"]] > 1) {
+      if (!is.null(ctrl.new[["cluster.type"]])) {
+        if (!(ctrl.new[["cluster.type"]] %in% c("PSOCK", "FORK"))) {
+          stop(paste("'cluster.type' must be one of", deparse(c("PSOCK", "FORK"))))
+        }
+        if (ctrl.new[["cluster.type"]] == "FORK" & Sys.info()[["sysname"]] == "Windows") {
+          warning("FORK cluster type is not supported on Windows. Using PSOCK instead.")
+          ctrl.new[["cluster.type"]] <- "PSOCK"
+        }
+        if (verbose) message(paste0("Using cluster type ", ctrl.new[["cluster.type"]], "."))
+      } else {
+        # if cluster type is not specified, set to PSOCK on windows, FORK on unix
+        # default in abn to PSOCK on windows, FORK on unix
+        if (Sys.info()[["sysname"]] == "Windows") {
+          ctrl.new[["cluster.type"]] <- "PSOCK"
+        } else {
+          ctrl.new[["cluster.type"]] <- "FORK"
+        }
+      }
+    } else {
+      # if ncores == 1, cluster type is ignored
+      ctrl.new[["cluster.type"]] <- NULL
+      if (verbose) message("Running in single core mode. 'cluster.type' is ignored.")
+    }
   }
+
   # check seed
   if (!is.null(ctrl.new[["seed"]])) {
     if ((!inherits(ctrl.new[["seed"]], "integer") | ctrl.new[["seed"]] < 0)) {
@@ -714,55 +711,13 @@ check.valid.fitControls <- function(control, method = "bayes", verbose = FALSE) 
   }
 
   # check if keys are ok
-  allowed_list_names <- c("method",
-                          "max.mode.error",
-                          "mean",
-                          "prec",
-                          "loggam.shape",
-                          "loggam.inv.scale",
-                          "max.iters",
-                          "epsabs",
-                          "error.verbose",
-                          "trace",
-                          "epsabs.inner",
-                          "max.iters.inner",
-                          "finite.step.size",
-                          "hessian.params",
-                          "max.iters.hessian",
-                          "max.hessian.error",
-                          "factor.brent",
-                          "maxiters.hessian.brent",
-                          "num.intervals.brent",
-                          "min.pdf",
-                          "n.grid",
-                          "std.area",
-                          "marginal.quantiles",
-                          "max.grid.iter",
-                          "marginal.node",
-                          "marginal.param",
-                          "variate.vec",
-                          "ncores",
-                          "max.irls",
-                          "tol",
-                          "tolPwrss",
-                          "check.rankX",
-                          "check.scaleX",
-                          "check.conv.grad",
-                          "check.conv.singular",
-                          "check.conv.hess",
-                          "xtol_abs",
-                          "ftol_abs",
-                          "trace.mblogit",
-                          "catcov.mblogit",
-                          "epsilon",
-                          "seed")
+  allowed_list_names <- names(formals(fit.control))
   if(any(!(names(ctrl.new) %in% allowed_list_names))) {
     stop("Unknown control parameter(s).")
   } else if(any(!(names(ctrl.new) %in% names(fit.control(method=method))))) {
     warning(paste("Control parameters provided that are not used with method", method, "are ignored."))
   }
 
-  # TODO: Add more checks here for the individual control parameters.
   # check catcov.mblogit
   possible_catcov.mblogit <- c("free", "diagonal", "single")
   if (!is.null(ctrl.new[["catcov.mblogit"]])) {
@@ -805,7 +760,34 @@ check.valid.fitControls <- function(control, method = "bayes", verbose = FALSE) 
     } else {
       stop(paste("Argument 'ncores' from fit.control(ncores=...) is invalid. It must be larger or equal -1 and smaller or equal", parallel::detectCores()))
     }
+
+    # checking cluster type if ncores > 1
+    if (ctrl.new[["ncores"]] > 1) {
+      if (!is.null(ctrl.new[["cluster.type"]])) {
+        if (!(ctrl.new[["cluster.type"]] %in% c("PSOCK", "FORK"))) {
+          stop(paste("'cluster.type' must be one of", deparse(c("PSOCK", "FORK"))))
+        }
+        if (ctrl.new[["cluster.type"]] == "FORK" & Sys.info()[["sysname"]] == "Windows") {
+          warning("FORK cluster type is not supported on Windows. Using PSOCK instead.")
+          ctrl.new[["cluster.type"]] <- "PSOCK"
+        }
+        if (verbose) message(paste0("Using cluster type ", ctrl.new[["cluster.type"]], "."))
+      } else {
+        # if cluster type is not specified, set to PSOCK on windows, FORK on unix
+        # default in abn to PSOCK on windows, FORK on unix
+        if (Sys.info()[["sysname"]] == "Windows") {
+          ctrl.new[["cluster.type"]] <- "PSOCK"
+        } else {
+          ctrl.new[["cluster.type"]] <- "FORK"
+        }
+      }
+    } else {
+      # if ncores == 1, cluster type is ignored
+      ctrl.new[["cluster.type"]] <- NULL
+      if (verbose) message("Running in single core mode. 'cluster.type' is ignored.")
+    }
   }
+
   # check seed
   if (!is.null(ctrl.new[["seed"]])) {
     if ((!inherits(ctrl.new[["seed"]], "integer") | ctrl.new[["seed"]] < 0)) {
@@ -833,6 +815,7 @@ check.valid.fitControls <- function(control, method = "bayes", verbose = FALSE) 
 #' @param data.dists list specifying each columns distribution type. Names correspond to column names and values must be one of "gaussian", "binomial", "poisson", "multinomial".
 #'
 #' @return numeric encoding of distribution corresponding to its list element number in `data.dists`.
+#' @keywords internal
 get.var.types <- function(data.dists = NULL) {
   store <- rep(NA, length(data.dists))
 

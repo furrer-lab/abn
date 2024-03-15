@@ -21,3 +21,4 @@ numeric vector of max number of parents per variable
 \description{
 Set of simple checks on the given parent limits
 }
+\keyword{internal}
