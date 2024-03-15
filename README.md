@@ -2,7 +2,7 @@
 # abn: Additive Bayesian Networks <a href="https://r-bayesian-networks.org/"><img src="man/figures/logo.png" align="right" height="139" /></a>
 
 <!-- badges: start -->
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/furrer-lab/abn/CRAN_checks.yml)](https://github.com/furrer-lab/devel-abn/actions)
+[![CRAN-like checks](https://github.com/furrer-lab/abn/actions/workflows/CRAN_checks.yml/badge.svg)](https://github.com/furrer-lab/abn/actions/workflows/CRAN_checks.yml)
 ![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)
 [![GitHub R package version](https://img.shields.io/github/r-package/v/furrer-lab/abn)](https://github.com/furrer-lab/abn/tags)
 ![cran](https://www.r-pkg.org/badges/version-ago/abn) 
