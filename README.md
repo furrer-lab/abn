@@ -387,7 +387,7 @@ Please note that the `abn` project is released with a [Contributor Code of Condu
 
 # Applications
 
-The [abn' website] (http://r-bayesian-networks.org) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
+The [abn website](http://r-bayesian-networks.org) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
 
 ## Technical articles
 
