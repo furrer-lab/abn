@@ -9,7 +9,6 @@ on:
       - "**"           # include all branches
       - "!main"        # then exclude only
       - "!master"      # those two
-      - 150-strip-down-to-essentials # for temporary testing
   pull_request:
     branches-ignore:   # do not run on pull
       - main           # requests on default

@@ -5,7 +5,7 @@ name: CRAN-like checks
 
 on:
   push:
-    branches: [ main, master, 150-strip-down-to-essentials] # for temporary testing
+    branches: [ main, master] # for temporary testing
   pull_request:
     types: [ ready_for_review ]
     branches: [ main, master ]
