@@ -1,0 +1,14 @@
+docs
+inst/doc
+/doc/
+/Meta/
+
+.Rproj.user
+.Rhistory
+*.o
+*.so
+config.log
+config.status
+*.code-workspace
+autom4te.cache
+*~
