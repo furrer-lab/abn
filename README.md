@@ -56,7 +56,7 @@ BiocManager::install("Rgraphviz", version = "3.8")
 
 # Quickstart
 
-Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](quick_start_example.md).
+Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](vignettes/quick_start_example.Rmd).
 The datasets required for these examples are included within the [`abn` package](https://CRAN.R-project.org/package=abn).
 
 For a deeper understanding, refer to the manual pages on the [`abn` homepage](http://r-bayesian-networks.org), which include numerous examples. 
