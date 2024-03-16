@@ -111,8 +111,8 @@ Only to be called internally.
 \seealso{
 Other Bayes: 
 \code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{fitAbn}()}
 }
 \concept{Bayes}

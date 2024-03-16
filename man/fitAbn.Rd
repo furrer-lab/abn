@@ -395,8 +395,8 @@ Other fitAbn:
 
 Other Bayes: 
 \code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{getmarginals}()}
 }
 \author{
