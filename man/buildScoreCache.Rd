@@ -265,21 +265,22 @@ myfit.mle <- fitAbn(object = dag.mle,
 plot(myfit.mle)
 
 # ABN with Bayes
-mycache.bayes <- buildScoreCache(data.df = mydf,
-                                 data.dists = mydists,
-                                 method = "bayes",
-                                 max.parents = 2)
-dag.bayes <- mostProbable(score.cache = mycache.bayes,
-                          max.parents = 2)
-myfit.bayes <- fitAbn(object = dag.bayes,
-                      method = "bayes",
-                      max.parents = 2)
-plot(myfit.bayes)
-
+if(requireNamespace("INLA", quietly = TRUE)){
+  # Run only if INLA is available
+  mycache.bayes <- buildScoreCache(data.df = mydf,
+                                   data.dists = mydists,
+                                   method = "bayes",
+                                   max.parents = 2)
+  dag.bayes <- mostProbable(score.cache = mycache.bayes,
+                            max.parents = 2)
+  myfit.bayes <- fitAbn(object = dag.bayes,
+                        method = "bayes",
+                        max.parents = 2)
+  plot(myfit.bayes)
+}
 # Compare MLE and Bayes with lm
 mymod.lm <- lm(c ~ a + b, data = mydf)
 summary(mymod.lm)
-
 
 \dontrun{
 ##################################################################################################
@@ -412,8 +413,8 @@ Other buildScoreCache:
 \code{\link{build.control}()}
 
 Other Bayes: 
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{fitAbn}()},
 \code{\link{getmarginals}()}
 }
