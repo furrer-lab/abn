@@ -92,7 +92,7 @@ For multinomial distributed variables, `abn` fits a multinomial baseline categor
 Currently, only single-layer clustering is supported (e.g., for `method = "mle"`, this corresponds to a random intercept model).
 
 With a Bayesian approach (`method = "bayes"`), `abn` utilizes its own implementation of the Laplace approximation as well as the `INLA` package [@inla2013] to fit a single-level hierarchical model for Binomial, Poisson, and Gaussian distributed variables. 
-Independent of the type of data, multinomial distributed variables are not yet implemented with `method ="bayes"` (details in the [online manual](https://r-bayesian-networks.org/quick_start_example.html)).
+Independent of the type of data, multinomial distributed variables are not yet implemented with `method ="bayes"` (details in the online manual).
 
 Furthermore, the code base has been enhanced to be more efficient, reliable, and user-friendly through code optimization, regular reviews and continuous integration practices. 
 We have adhered to the latest open-source software standards, including active maintenance of `abn`. 
