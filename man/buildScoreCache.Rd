@@ -264,6 +264,7 @@ myfit.mle <- fitAbn(object = dag.mle,
                     max.parents = 2)
 plot(myfit.mle)
 
+\dontrun{
 # ABN with Bayes
 if(requireNamespace("INLA", quietly = TRUE)){
   # Run only if INLA is available
@@ -282,7 +283,6 @@ if(requireNamespace("INLA", quietly = TRUE)){
 mymod.lm <- lm(c ~ a + b, data = mydf)
 summary(mymod.lm)
 
-\dontrun{
 ##################################################################################################
 ## Example 1 - "mle" vs. "bayes" and the later with using the internal C routine compared to INLA
 ##################################################################################################

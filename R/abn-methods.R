@@ -83,10 +83,12 @@ plot.abnDag <- function(x, ...){
 #' max.par <- list("b1"=2, "b2"=2, "g1"=2, "g2"=2, "b3"=2, "g3"=2)
 #'
 #' ## now build the cache of pre-computed scores accordingly to the structural constraints
-#'
+#' if(requireNamespace("INLA", quietly = TRUE)){
+#'   # Run only if INLA is available
 #' res.c <- buildScoreCache(data.df=mydat, data.dists=mydists,
 #'                          dag.banned= ~b1|b2, dag.retained= ~g1|g2, max.parents=max.par)
 #' print(res.c)
+#' }
 print.abnCache <- function(x, digits = 3, ...){
 
   cat("Number of nodes in the network: ",max(x$children), ".\n\n", sep='')
