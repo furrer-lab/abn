@@ -22,23 +22,23 @@ Author: Matteo Delucchi [aut, cre]
     (<https://orcid.org/0000-0003-4580-2712>), Marta Pittavino [ctb]
     (<https://orcid.org/0000-0002-1232-1034>), Kalina Cherneva [ctb]
 Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
-Description: The `abn` R package is a powerful tool for Bayesian network
-    analysis, a probabilistic graphical model that derives from empirical
-    data a directed acyclic graph (DAG). This DAG describes the dependency
-    structure between random variables. The R package `abn` provides
+Description: The 'abn' R package facilitates Bayesian network analysis, a
+    probabilistic graphical model that derives from empirical data a
+    directed acyclic graph (DAG). This DAG describes the dependency
+    structure between random variables. The R package 'abn' provides
     routines to help determine optimal Bayesian network models for a given
     data set. These models are used to identify statistical dependencies
     in messy, complex data. Their additive formulation is equivalent to
     multivariate generalised linear modelling, including mixed models with
     independent and identically distributed (iid) random effects. The core
-    functionality of the `abn` package revolves around model selection,
+    functionality of the 'abn' package revolves around model selection,
     also known as structure discovery. It supports both exact and
     heuristic structure learning algorithms and does not restrict the data
     distribution of parent-child combinations, providing flexibility in
-    model creation and analysis. The `abn` package uses Laplace
+    model creation and analysis. The 'abn' package uses Laplace
     approximations for metric estimation and includes wrappers to the INLA
     package. It also employs JAGS for data simulation purposes. For more
-    resources and information, visit the `abn` website.
+    resources and information, visit the 'abn' website.
 License: GPL (>= 3)
 URL: http://r-bayesian-networks.org
 BugReports: https://github.com/furrer-lab/abn/issues
