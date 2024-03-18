@@ -22,7 +22,7 @@ affiliations:
    index: 1
  - name: Centre of Computational Health, Institute for Computational Life Sciences, Zurich University of Applied Sciences (ZHAW), Wädenswil, Switzerland
    index: 2
- - name: "[T4D.ch](https://T4D.ch), T4D GmbH, Zurich, Switzerland"
+ - name: T4D.ch, T4D GmbH, Zurich, Switzerland
    index: 3
 date: 17. March 2024
 bibliography: paper.bib
