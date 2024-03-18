@@ -40,7 +40,7 @@ Description: The 'abn' R package facilitates Bayesian network analysis, a
     package. It also employs JAGS for data simulation purposes. For more
     resources and information, visit the 'abn' website.
 License: GPL (>= 3)
-URL: http://r-bayesian-networks.org
+URL: https://furrer-lab.github.io/abn/
 BugReports: https://github.com/furrer-lab/abn/issues
 Depends: 
     R (>= 4.0.0)
