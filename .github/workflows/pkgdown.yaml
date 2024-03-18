@@ -44,4 +44,5 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         with:
           clean: false
+          branch: 7-pipeline-to-publish-pkgdown-site # change this to main when finished debugging
           folder: docs
