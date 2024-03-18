@@ -9,6 +9,7 @@ on:
       - "**"           # include all branches
       - "!main"        # then exclude only
       - "!master"      # those two
+      - "!**noT**"     # exclude all branches containing noT in their name
   pull_request:
     branches-ignore:   # do not run on pull
       - main           # requests on default
@@ -23,7 +24,7 @@ permissions:
 
 jobs:
   build-install-test:
-    if: github.event_name != 'pull_request'
+    if: ${{ github.event_name != 'pull_request' && !startsWith(github.event.head_commit.message, 'noT') }}
     runs-on: ubuntu-22.04
     name: Testing ${{ matrix.os }} (${{ matrix.compiler}}-${{ matrix.r-version }})
     # runs-on: ubuntu-latest
