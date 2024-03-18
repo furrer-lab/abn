@@ -1,15 +1,11 @@
 ---
 title: "Additive Bayesian Networks"
-output:
-  rmarkdown::html_vignette:
-    keep_md: TRUE
 tags:
 - data science
 - R
 - mixed-effects models
 - Bayesian networks
 - graphical models
-author: Matteo Delucchi, Jonas I. Liechti, Reinhard Furrer
 authors:
 - name: Matteo Delucchi
   orcid: 0000-0002-9327-1496
@@ -30,16 +26,6 @@ affiliations:
    index: 4
 date: 17. March 2024
 bibliography: paper.bib
-vignette: >
-  %\VignetteIndexEntry{Additive Bayesian Networks}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", width = 68)
-options(width = 68, cli.unicode = FALSE, cli.width = 68)
-```
 
 # Summary
 The `abn` package is a comprehensive tool for Bayesian network (BN) analysis, a form of probabilistic graphical model. 
@@ -110,13 +96,13 @@ Additional documentation and resources are available on the `abn` [website](http
 
 The `abn` package is available on [CRAN](https://cran.r-project.org/package=abn) and can be installed with the R command:
 
-```{r, eval = FALSE}
+```r
 install.packages("abn")
 ```
 
 The development version of the `abn` package is hosted on [GitHub](https://github.com/furrer-lab/abn) and can be installed using the `devtools` package:
 
-```{r, eval = FALSE}
+```r
 devtools::install_github("furrer-lab/abn")
 ```
 
