@@ -20,6 +20,7 @@ permissions:
 jobs:
   R-CMD-check:
     runs-on: ubuntu-22.04
+    if: ${{ !startsWith(github.event.head_commit.message, 'noT') }}  # skip on commits starting with 'noT'
     container:
       image: ${{ matrix.image-source }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
