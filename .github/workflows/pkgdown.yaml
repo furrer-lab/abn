@@ -39,10 +39,14 @@ jobs:
         run: pkgdown::build_site_github_pages(dest_dir= "docs", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 
-      - name: Deploy to GitHub pages 🚀
-        if: github.event_name != 'pull_request'
-        uses: JamesIves/github-pages-deploy-action@v4.5.0
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
         with:
-          clean: false
-          branch: 7-pipeline-to-publish-pkgdown-site # change this to main when finished debugging
-          folder: docs
+          path: 'docs/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
