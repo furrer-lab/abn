@@ -13,17 +13,18 @@ If you would like to contribute bigger changes please always refer to the
 
 In case you simply consider contributing (that's awesome!) head over to the
 [issue board](https://github.com/furrer-lab/abn/issues) where you will find
-open issues  with the label
-https://github.com/furrer-lab/abn/labels/help%20wanted.
+open issues  with the label https://github.com/furrer-lab/abn/labels/help%20wanted.
 Feel free to comment on them if it is not clear to you what exactly the issue
 is about.
-If you have found an open issue that you would like to fix simply follow the
-[Pull request process](#pull-request-proces) that is described below.
+If you have found an open issue that you would like to contribute to, simply
+follow the [Pull request process](#pull-request-proces) that is described
+below.
 
 In case you already have some specific contribution you would like to add,
-please first check (also in the already closed issues) if you can find existing
-issues on [issue board]([issue board](https://github.com/furrer-lab/abn/issues)
-that are related to the contribution you plan to make.
+please first check the [issue board](https://github.com/furrer-lab/abn/issues)
+(also see the
+[closed issues](https://github.com/furrer-lab/abn/issues?q=is%3Aissue+is%3Aclosed)
+) if you can find existing issues related to the contribution you plan to make.
 If yes, please leave a comment on the related issue.
 If you cannot find an issue related to the contribution you plan to make, please
 create a [new issue](https://github.com/furrer-lab/abn/issues/new).
@@ -35,6 +36,13 @@ the [Pull request process](#pull-request-proces).
 
 
 ### Pull request process
+
+> [!NOTE]
+> Please never open a pull request without an existing issue that it relates
+> to!
+>
+> If you want to link a pull request to an issue simply copy the link to the
+> issue into the description of the pull request.
 
 *   Fork the package and clone onto your computer.
     You might use `usethis::create_from_github("furrer-lab/abn", fork = TRUE)`
