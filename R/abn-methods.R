@@ -135,7 +135,11 @@ print.abnHeuristic <- function(x, digits = 2L, ...){
 #' @importFrom grDevices rgb
 #' @export
 plot.abnHeuristic <- function(x, ...){
+  # Keep old par() settings and restore them at the end
+  op <- par(no.readonly = TRUE)
+  on.exit(par(op))
 
+  # Plot the scores
   df <- unlist(x$scores)
 
   par(mfrow=c(1,2))
