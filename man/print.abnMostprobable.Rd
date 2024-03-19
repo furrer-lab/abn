@@ -13,6 +13,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the mostprobable consensus DAG.
+}
 \description{
 Print objects of class \code{abnMostprobable}
 }

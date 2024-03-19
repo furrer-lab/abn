@@ -193,7 +193,7 @@ careful if \code{buildScoreCache.bayes()} is run in parallel!}
 \item{used.INLA}{A logical value indicating whether \code{inla()} was used to fit the model.}
 }
 
-list
+A list that will be passed to \code{\link{buildScoreCache.mle}}.
 }
 \description{
 Iterates over all valid parent combinations - subject to ban, retain, and \code{max.parent} limits - for each node, or a subset of nodes, and computes a cache of scores (AIC, BIC, log marginal likelihood).

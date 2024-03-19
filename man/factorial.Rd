@@ -6,6 +6,9 @@
 \usage{
 factorial(n)
 }
+\value{
+a double
+}
 \description{
 Calculate the factorial in C##
 }

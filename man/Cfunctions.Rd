@@ -9,6 +9,9 @@
 \alias{mostprobable_C}
 \alias{searchhill}
 \title{Documentation of C Functions}
+\value{
+nothing.
+}
 \description{
 This is mainly to circumvent issues in R CMD check.
 }

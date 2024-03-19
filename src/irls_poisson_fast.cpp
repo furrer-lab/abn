@@ -9,6 +9,7 @@ using namespace R;
 //' @title Fast Factorial
 //' @description Calculate the factorial in C##
 //' @keywords internal
+//' @returns a double
 //' @export
 // [[Rcpp::export]]
 double factorial_fast(double n)
@@ -19,6 +20,7 @@ double factorial_fast(double n)
 //' @title Fast Iterative Reweighed Least Square algorithm for Poissons
 //' @description IRLS to estimate network score of Poisson nodes.
 //' @keywords internal
+//' @returns a list
 //' @export
 // [[Rcpp::export]]
 Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double tol)

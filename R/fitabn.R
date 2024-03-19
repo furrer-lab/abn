@@ -15,6 +15,7 @@
 #' @inherit build.control details
 #' @inherit build.control return
 #' @export fit.control
+#' @returns a list of control parameters for the \code{\link{fitAbn}} function.
 #' @examples
 #' ctrlmle <- abn::fit.control(method = "mle",
 #'                        max.irls = 100,

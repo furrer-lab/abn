@@ -8,6 +8,7 @@ using namespace arma;
 //' @title BR Iterative Reweighed Least Square algorithm for Binomials
 //' @description IRLS to estimate network score of Binomial nodes.
 //' @keywords internal
+//' @returns a list
 //' @export
 // [[Rcpp::export]]
 

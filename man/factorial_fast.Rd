@@ -6,6 +6,9 @@
 \usage{
 factorial_fast(n)
 }
+\value{
+a double
+}
 \description{
 Calculate the factorial in C##
 }

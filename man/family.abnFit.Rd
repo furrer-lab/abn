@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the distributions for each variable of the fitted model.
+}
 \description{
 Print family of objects of class \code{abnFit}
 }

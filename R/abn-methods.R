@@ -25,6 +25,7 @@ print.abnDag <- function(x, digits = 3L, ...){
 #' @examples
 #' mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
 #' summary(mydag)
+#' @returns List with summary statistics of the DAG.
 summary.abnDag <- function(object, ...) {
   su <- infoDag(object$dag)
   return(su)
@@ -117,6 +118,7 @@ print.abnCache <- function(x, digits = 3, ...){
 #' @param x Object of class \code{abnHeuristic}
 #' @param digits number of digits of the results.
 #' @param ... additional parameters. Not used at the moment.
+#' @return prints the best score found and the distribution of the scores.
 #' @export
 print.abnHeuristic <- function(x, digits = 2L, ...){
   cat("Best DAG' score found with",x$algo,"algorithm with", x$num.searches,"different searches limited to" , x$max.steps,"steps:\n")
@@ -133,6 +135,7 @@ print.abnHeuristic <- function(x, digits = 2L, ...){
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom graphics par plot points title lines
 #' @importFrom grDevices rgb
+#' @return plot of the scores of the heuristic search.
 #' @export
 plot.abnHeuristic <- function(x, ...){
   # Keep old par() settings and restore them at the end
@@ -179,6 +182,7 @@ plot.abnHeuristic <- function(x, ...){
 #' @param x Object of class \code{abnHillClimber}
 #' @param digits number of digits of the results.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the consensus DAG and the class of the object.
 #' @export
 print.abnHillClimber <- function(x, digits = 3L, ...){
   print(x$consensus, digits = digits)
@@ -190,6 +194,7 @@ print.abnHillClimber <- function(x, digits = 3L, ...){
 #' @param x Object of class \code{abnHillClimber}
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom grDevices dev.new dev.flush
+#' @returns plot of the consensus DAG.
 #' @export
 plot.abnHillClimber <- function(x, ...){
   # Check if the object is of class abnHillClimber
@@ -213,6 +218,7 @@ plot.abnHillClimber <- function(x, ...){
 #' @param x Object of class \code{abnMostprobable}
 #' @param digits number of digits of the results.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the mostprobable consensus DAG.
 #' @export
 print.abnMostprobable <- function(x, digits = 3L, ...){
 
@@ -224,6 +230,7 @@ print.abnMostprobable <- function(x, digits = 3L, ...){
 #' Print summary of objects of class \code{abnMostprobable}
 #' @param object Object of class \code{abnMostprobable}
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the mostprobable consensus DAG and the number of observations used to calculate it.
 #' @export
 summary.abnMostprobable <- function(object, ...){
   cat("Optimal DAG from 'mostProbable':\n")
@@ -237,6 +244,7 @@ summary.abnMostprobable <- function(object, ...){
 #' @param x Object of class \code{abnMostprobable}
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom grDevices dev.new dev.flush
+#' @returns plot of the mostprobable consensus DAG.
 #' @export
 plot.abnMostprobable <- function(x, ...){
   # Check if the object is of class abnMostprobable
@@ -258,6 +266,7 @@ plot.abnMostprobable <- function(x, ...){
 #' @param x Object of class \code{abnFit}
 #' @param digits number of digits of the results.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the parameters of the fitted model.
 #' @export
 print.abnFit <- function(x, digits = 3L, ...){
 
@@ -291,6 +300,7 @@ print.abnFit <- function(x, digits = 3L, ...){
 #' @param object Object of class \code{abnFit}
 #' @param digits number of digits of the results.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints summary statistics of the fitted model.
 #' @export
 summary.abnFit <- function(object, digits = 3L, ...){
 
@@ -328,6 +338,7 @@ summary.abnFit <- function(object, digits = 3L, ...){
 #' @param digits number of digits of the results.
 #' @param verbose print additional output.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the coefficients of the fitted model.
 #' @export
 coef.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
   if(object$method=="mle"){
@@ -349,6 +360,7 @@ coef.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 #' @param digits number of digits of the results.
 #' @param verbose print additional output.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the AIC of the fitted model.
 #' @export
 AIC.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 
@@ -372,6 +384,7 @@ AIC.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 #' @param digits number of digits of the results.
 #' @param verbose print additional output.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the BIC of the fitted model.
 #' @export
 BIC.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 
@@ -395,6 +408,7 @@ BIC.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 #' @param digits number of digits of the results.
 #' @param verbose print additional output.
 #' @param ... additional parameters. Not used at the moment.
+#' @returns prints the logLik of the fitted model.
 #' @export
 logLik.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 
@@ -417,6 +431,7 @@ logLik.abnFit <- function(object, digits = 3L, verbose = TRUE, ...){
 #' @param object Object of class \code{abnFit}
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom stats family
+#' @returns prints the distributions for each variable of the fitted model.
 #' @exportS3Method abn::family abnFit
 family.abnFit <- function(object, ...){
 
@@ -432,6 +447,7 @@ family.abnFit <- function(object, ...){
 #' @param object Object of class \code{abnFit}
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom stats nobs
+#' @returns prints the number of observations of the fitted model.
 #' @exportS3Method abn::nobs abnFit
 nobs.abnFit <- function(object, ...){
   nrow(object$abnDag$data.df)
@@ -442,6 +458,7 @@ nobs.abnFit <- function(object, ...){
 #' @param ... additional parameters. Not used at the moment.
 #' @importFrom methods hasArg
 #' @importFrom stats fitted.values
+#' @returns a plot of the fitted model.
 #' @export
 plot.abnFit <- function(x, ...){
   # Check if the object is of class abnFit

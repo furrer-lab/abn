@@ -6,6 +6,9 @@
 \usage{
 irls_binomial_cpp_fast_br(A, b, maxit, tol)
 }
+\value{
+a list
+}
 \description{
 IRLS to estimate network score of Binomial nodes.
 }

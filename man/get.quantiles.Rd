@@ -22,6 +22,8 @@ get.ind.quantiles(outmat, inmat)
 }
 \value{
 list
+
+matrix
 }
 \description{
 function to get to extract quantiles

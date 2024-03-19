@@ -12,6 +12,7 @@
 #' @param INLA.marginals vector - TRUE if INLA used false otherwise
 #' @param iter.max same as \code{max.iters} in \code{\link{fit.control}}. Total number of iterations allowed when estimating the modes in Laplace approximation. Passed to .Call("fit_single_node", ...).
 #' @family Bayes
+#' @returns A named list with "modes", "error.code", "hessian.accuracy", "error.code.desc", "mliknode", "mlik", "mse", "coef", "used.INLA", "marginals".
 #' @importFrom stats sd spline
 #' @keywords internal
 getmarginals <- function(res.list,
@@ -777,6 +778,7 @@ find.next.left.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
 }
 
 #' @describeIn find.next.left.x Attempt to find the next x evaluation point using spline extrapolation traversing right from mode.
+#' @return integer
 find.next.right.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
 
   xright <- max(mat.xy[,"x"]);## current left hand endpoint

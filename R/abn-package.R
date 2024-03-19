@@ -43,6 +43,7 @@
 #' @keywords internal
 #' @importFrom Rcpp evalCpp
 #' @exportPattern "^[[:alpha:]]+"
+#' @returns nothing.
 #' @useDynLib abn, .registration=TRUE
 "_PACKAGE"
 
@@ -52,6 +53,7 @@ NULL
 
 #' @title Documentation of C Functions
 #' @description This is mainly to circumvent issues in R CMD check.
+#' @returns nothing.
 #' @name Cfunctions
 #' @aliases buildcachematrix checkforcycles fit_single_node fitabn_marginals mostprobable_C searchhill
 #' @keywords internal

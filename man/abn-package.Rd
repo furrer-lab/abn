@@ -5,6 +5,9 @@
 \alias{abn}
 \alias{abn-package}
 \title{\code{abn} Package}
+\value{
+nothing.
+}
 \description{
 \code{abn} is a collection of functions for fitting, selecting/learning, analyzing, reporting Additive Bayesian Networks.
 }
