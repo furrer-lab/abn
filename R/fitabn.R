@@ -59,49 +59,49 @@
 #' @seealso \code{\link{build.control}}.
 #' @family fitAbn
 fit.control <-
-  function (method = "bayes",
-            max.mode.error = 10,
-            mean = 0,
-            prec = 0.001,
-            loggam.shape = 1,
-            loggam.inv.scale = 5e-05,
-            max.iters = 100,
-            epsabs = 1e-07,
-            error.verbose = FALSE,
-            trace = 0L,
-            epsabs.inner = 1e-06,
-            max.iters.inner = 100,
-            finite.step.size = 1e-07,
-            hessian.params = c(1e-04, 0.01),
-            max.iters.hessian = 10,
-            max.hessian.error = 1e-04,
-            factor.brent = 100,
-            maxiters.hessian.brent = 10,
-            num.intervals.brent = 100,
-            min.pdf = 0.001,
-            n.grid = 250,
-            std.area = TRUE,
-            marginal.quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975),
-            max.grid.iter = 1000,
-            marginal.node = NULL,
-            marginal.param = NULL,
-            variate.vec = NULL,
-            ncores = 1,
-            cluster.type = "FORK",
-            max.irls = 100,
-            tol = 1e-11,
-            tolPwrss = 1e-7,
-            check.rankX = "message+drop.cols",
-            check.scaleX = "message+rescale",
-            check.conv.grad = "message",
-            check.conv.singular = "message",
-            check.conv.hess = "message",
-            xtol_abs = 1e-6,
-            ftol_abs = 1e-6,
-            trace.mblogit = FALSE,
-            catcov.mblogit = "free",
-            epsilon = 1e-6,
-            seed = 9062019L) {
+  function(method = "bayes",
+           max.mode.error = 10,
+           mean = 0,
+           prec = 0.001,
+           loggam.shape = 1,
+           loggam.inv.scale = 5e-05,
+           max.iters = 100,
+           epsabs = 1e-07,
+           error.verbose = FALSE,
+           trace = 0L,
+           epsabs.inner = 1e-06,
+           max.iters.inner = 100,
+           finite.step.size = 1e-07,
+           hessian.params = c(1e-04, 0.01),
+           max.iters.hessian = 10,
+           max.hessian.error = 1e-04,
+           factor.brent = 100,
+           maxiters.hessian.brent = 10,
+           num.intervals.brent = 100,
+           min.pdf = 0.001,
+           n.grid = 250,
+           std.area = TRUE,
+           marginal.quantiles = c(0.025, 0.25, 0.5, 0.75, 0.975),
+           max.grid.iter = 1000,
+           marginal.node = NULL,
+           marginal.param = NULL,
+           variate.vec = NULL,
+           ncores = 1,
+           cluster.type = "FORK",
+           max.irls = 100,
+           tol = 1e-11,
+           tolPwrss = 1e-7,
+           check.rankX = "message+drop.cols",
+           check.scaleX = "message+rescale",
+           check.conv.grad = "message",
+           check.conv.singular = "message",
+           check.conv.hess = "message",
+           xtol_abs = 1e-6,
+           ftol_abs = 1e-6,
+           trace.mblogit = FALSE,
+           catcov.mblogit = "free",
+           epsilon = 1e-6,
+           seed = 9062019L) {
     if (method == "bayes") {
       ctrl <-
         list(
@@ -157,7 +157,7 @@ fit.control <-
           seed = seed
         )
     } else {
-      stop("`method` unknown.")
+      stop("'method' unknown.")
     }
     return(ctrl)
   }
@@ -280,176 +280,188 @@ fit.control <-
 #' @examples
 #' \dontrun{
 #' ## Built-in dataset with a subset of cols
-#' mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
+#' mydat <- ex0.dag.data[, c("b1", "b2", "b3", "g1", "b4", "p2", "p4")]
 #'
 #' ## setup distribution list for each node
-#' mydists <- list(b1="binomial", b2="binomial", b3="binomial", g1="gaussian",
-#'                 b4="binomial", p2="poisson", p4="poisson")
+#' mydists <- list(b1 = "binomial",
+#'                 b2 = "binomial",
+#'                 b3 = "binomial",
+#'                 g1 = "gaussian",
+#'                 b4 = "binomial",
+#'                 p2 = "poisson",
+#'                 p4 = "poisson")
 #'
 #' ## Null model - all independent variables
-#' mydag.empty <- matrix(0, nrow=7, ncol=7)
-#' colnames(mydag.empty) <- rownames(mydag.empty) <- names(mydat)
+#' mydag_empty <- matrix(0, nrow = 7, ncol = 7)
+#' colnames(mydag_empty) <- rownames(mydag_empty) <- names(mydat)
 #'
 #' ## Now fit the model to calculate its goodness-of-fit
-#' myres <- fitAbn(dag=mydag.empty,
-#'                 data.df=mydat,
-#'                 data.dists=mydists)
+#' myres <- fitAbn(dag = mydag_empty,
+#'                 data.df = mydat,
+#'                 data.dists = mydists)
 #'
 #' ## Log-marginal likelihood goodness-of-fit for complete DAG
 #' print(myres$mlik)
 #'
 #' ## fitAbn accepts also the formula statement
-#' myres <- fitAbn(dag=~b1|b2+b2|p4:g1+g1|p2+b3|g1+b4|b1+p4|g1,
-#'                 data.df=mydat,
-#'                 data.dists=mydists)
-#' print(myres$mlik) ## a much weaker fit than full independence DAG
+#' myres <- fitAbn(dag = ~ b1 | b2 + b2 | p4:g1 + g1 | p2 + b3 | g1 + b4 | b1 + p4 | g1,
+#'                 data.df = mydat,
+#'                 data.dists = mydists)
+#' print(myres$mlik) # a much weaker fit than full independence DAG
 #'
 #' # Plot the DAG via Rgraphviz
-#' plotAbn(dag=myres)
-#' # or more explicitly
-#' plotAbn(dag=myres$abnDag$dag,
-#'         data.dists=mydists,
-#'         fitted.values=myres$modes)
+#' plot(myres)
 #'
-#' ## Or equivalentelly using the formula statement, with plotting
+#' ## Or equivalently using the formula statement, with plotting
 #' ## Now repeat but include some dependencies first
-#' mydag <- mydag.empty
-#' mydag["b1","b2"] <- 1 # b1<-b2 and so on
-#' mydag["b2","p4"] <- mydag["b2","g1"] <- mydag["g1","p2"] <- 1
-#' mydag["b3","g1"] <- mydag["b4","b1"] <- mydag["p4","g1"] <- 1
-#' myresAlt <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists)
-#' plot(myresAlt)
+#' mydag <- mydag_empty
+#' mydag["b1", "b2"] <- 1 # b1<-b2 and so on
+#' mydag["b2", "p4"] <- mydag["b2", "g1"] <- mydag["g1", "p2"] <- 1
+#' mydag["b3", "g1"] <- mydag["b4", "b1"] <- mydag["p4", "g1"] <- 1
+#' myres_alt <- fitAbn(dag = mydag,
+#'                     data.df = mydat,
+#'                     data.dists = mydists)
+#' plot(myres_alt)
 #'
-#' ## -----------------------------------------------------------------------------------
-#' ## This function contains an MLE implementation accessible through a method parameter
-#' ## use built-in simulated data set
-#' ## -----------------------------------------------------------------------------------
-#' myres.mle <- fitAbn(dag=~b1|b2+b2|p4+g1+g1|p2+b3|g1+b4|b1+p4|g1,
-#'                     data.df=mydat,
-#'                     data.dists=mydists,
-#'                     method="mle")
+#' ## -----------------------------------------------------------------------------
+#' ## This function contains an MLE implementation accessible through a method
+#' ## parameter use built-in simulated data set
+#' ## -----------------------------------------------------------------------------
+#' myres_mle <- fitAbn(dag = ~ b1 | b2 + b2 | p4 + g1 + g1 | p2 + b3 | g1 + b4 | b1 + p4 | g1,
+#'                     data.df = mydat,
+#'                     data.dists = mydists,
+#'                     method = "mle")
 #'
 #' ## Print the output for mle first then for Bayes:
-#' print(myres.mle); plot(myres.mle)
-#' print(myres); plot(myres)
+#' print(myres_mle)
+#' plot(myres_mle)
 #'
-#' ## This is a basic plot of some posterior densities. The algorithm used for selecting
-#' ## density points is quite straightforward, but it might result in a sparse distribution.
-#' ## Therefore, we also recompute the density over an evenly spaced grid
-#' ## of 50 points between the two endpoints that had a minimum PDF at f=min.pdf.
-#' ## Setting max.mode.error=0 forces the use of the internal C code.
-#' myres.c <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
-#'                   compute.fixed=TRUE,
-#'                   control=list(max.mode.error=0))
+#' print(myres)
+#' plot(myres)
 #'
-#' print(names(myres.c$marginals)) ## gives all the different parameter names
+#' ## This is a basic plot of some posterior densities. The algorithm used for
+#' ## selecting density points is quite straightforward, but it might result
+#' ## in a sparse distribution. Therefore, we also recompute the density over
+#' ## an evenly spaced grid of 50 points between the two endpoints that had
+#' ## a minimum PDF at f = min.pdf.
+#' ## Setting max.mode.error = 0 forces the use of the internal C code.
+#' myres_c <- fitAbn(dag = mydag,
+#'                   data.df = mydat,
+#'                   data.dists = mydists,
+#'                   compute.fixed = TRUE,
+#'                   control = list(max.mode.error = 0))
 #'
-#' ## Repeat but use INLA for the numerics using max.mode.error=100
+#' print(names(myres_c$marginals)) # gives all the different parameter names
+#'
+#' ## Repeat but use INLA for the numerics using max.mode.error = 100
 #' ## as using internal code is the default here rather than INLA
-#' myres.inla <- fitAbn(dag=mydag,
-#'                      data.df=mydat,
-#'                      data.dists=mydists,
-#'                      compute.fixed=TRUE,
-#'                      control=list(max.mode.error=100))
+#' myres_inla <- fitAbn(dag = mydag,
+#'                      data.df = mydat,
+#'                      data.dists = mydists,
+#'                      compute.fixed = TRUE,
+#'                      control = list(max.mode.error = 100))
 #'
 #' ## Plot posterior densities
-#' par(mfrow=c(2,2), mai=c(.7,.7,.2,.1))
-#' plot(myres.c$marginals$b1[["b1|(Intercept)"]], type="l", xlab="b1|(Intercept)")
-#' lines(myres.inla$marginals$b1[["b1|(Intercept)"]], col="blue")
-#' plot(myres.c$marginals$b2[["b2|p4"]], type="l", xlab="b2|p4")
-#' lines(myres.inla$marginals$b2[["b2|p4"]], col="blue")
-#' plot(myres.c$marginals$g1[["g1|precision"]], type="l", xlab="g1|precision")
-#' lines(myres.inla$marginals$g1[["g1|precision"]], col="blue")
-#' plot(myres.c$marginals$b4[["b4|b1"]], type="l", xlab="b4|b1")
-#' lines(myres.inla$marginals$b4[["b4|b1"]], col="blue")
+#' par(mfrow = c(2, 2), mai = c(.7, .7, .2, .1))
+#' plot(myres_c$marginals$b1[["b1 | (Intercept)"]], type = "l", xlab = "b1 | (Intercept)")
+#' lines(myres_inla$marginals$b1[["b1 | (Intercept)"]], col = "blue")
+#' plot(myres_c$marginals$b2[["b2 | p4"]], type = "l", xlab = "b2 | p4")
+#' lines(myres_inla$marginals$b2[["b2 | p4"]], col = "blue")
+#' plot(myres_c$marginals$g1[["g1 | precision"]], type = "l", xlab = "g1 | precision")
+#' lines(myres_inla$marginals$g1[["g1 | precision"]], col = "blue")
+#' plot(myres_c$marginals$b4[["b4 | b1"]], type = "l", xlab = "b4 | b1")
+#' lines(myres_inla$marginals$b4[["b4 | b1"]], col = "blue")
 #'
 #' ## An elementary mixed model example using built-in data specify DAG,
 #' ## only two variables using a subset of variables from ex3.dag.data
 #' ## both variables are assumed to need (separate) adjustment for the
 #' ## group variable, i.e., a binomial GLMM at each node
 #'
-#' mydists <- list(b1="binomial",b2="binomial")
+#' mydists <- list(b1 = "binomial",
+#'                 b2 = "binomial")
 #'
 #' ## Compute marginal likelihood - use internal code via max.mode.error=0
 #' ## as using INLA is the default here.
 #' ## Model where b1 <- b2
-#' myres.c <- fitAbn(dag=~b1|b2,
-#'                   data.df=ex3.dag.data[,c(1,2,14)],
-#'                   data.dists=mydists,
-#'                   group.var="group",
-#'                   cor.vars=c("b1","b2"),
-#'                   control=list(max.mode.error=0))
-#' print(myres.c) ## show all the output
+#' myres_c <- fitAbn(dag = ~b1 | b2,
+#'                   data.df = ex3.dag.data[, c(1, 2, 14)],
+#'                   data.dists = mydists,
+#'                   group.var = "group",
+#'                   cor.vars = c("b1", "b2"),
+#'                   control = list(max.mode.error = 0))
+#' print(myres_c) # show all the output
 #'
 #' ## compare mode for node b1 with glmer(), lme4::glmer is automatically attached.
 #'
-#' ## Now for marginals - INLA is strongly preferable for estimating marginals for nodes
-#' ## with random effects as it is far faster, but may not be reliable
+#' ## Now for marginals - INLA is strongly preferable for estimating marginals for
+#' ## nodes with random effects as it is far faster, but may not be reliable
 #' ## see http://r-bayesian-networks.org
 #'
-#' ## INLA's estimates of the marginals, using high n.grid=500
+#' ## INLA's estimates of the marginals, using high n.grid = 500
 #' ## as this makes the plots smoother - see below.
-#' myres.inla <- fitAbn(dag=~b1|b2,
-#'                      data.df=ex3.dag.data[,c(1,2,14)],
-#'                      data.dists=mydists,
-#'                      group.var="group",
-#'                      cor.vars=c("b1", "b2"),
-#'                      compute.fixed=TRUE,
-#'                      n.grid=500,
-#'                      control=list(max.mode.error=100,
-#'                                   max.hessian.error=10E-02))
+#' myres_inla <- fitAbn(dag = ~b1 | b2,
+#'                    data.df = ex3.dag.data[, c(1, 2, 14)],
+#'                   data.dists = mydists,
+#'                   group.var = "group",
+#'                   cor.vars = c("b1", "b2"),
+#'                   compute.fixed = TRUE,
+#'                   n.grid = 500,
+#'                   control = list(max.mode.error = 100,
+#'                                  max.hessian.error = 10E-02))
 #'
-#' ## this is NOT recommended - marginal density estimation using fitAbn in mixed models
-#' ## is really just for diagnostic purposes, better to use fitAbn.inla() here
-#' ## but here goes...be patient
-#' myres.c <- fitAbn(dag=~b1|b2,
-#'                   data.df=ex3.dag.data[,c(1,2,14)],
-#'                   data.dists=mydists,
-#'                   group.var="group",
-#'                   cor.vars=c("b1", "b2"),
-#'                   compute.fixed=TRUE,
-#'                   control=list(max.mode.error=0,
-#'                                max.hessian.error=10E-02))
+#' ## this is NOT recommended - marginal density estimation using fitAbn in
+#' ## mixed models is really just for diagnostic purposes, better to use
+#' ## fitAbn.inla() here; but here goes... be patient
+#' myres_c <- fitAbn(dag = ~b1 | b2,
+#'                   data.df = ex3.dag.data[, c(1, 2, 14)],
+#'                   data.dists = mydists,
+#'                   group.var = "group",
+#'                   cor.vars = c("b1", "b2"),
+#'                   compute.fixed = TRUE,
+#'                   control = list(max.mode.error = 0,
+#'                                  max.hessian.error = 10E-02))
 #'
 #' ## compare marginals between internal and INLA.
-#' par(mfrow=c(2,3))
+#' par(mfrow = c(2, 3))
 #' # 5 parameters - two intercepts, one slope, two group level precisions
-#' plot(myres.inla$marginals$b1[[1]], type="l", col="blue")
-#' lines(myres.c$marginals$b1[[1]], col="brown", lwd=2)
-#' plot(myres.inla$marginals$b1[[2]], type="l", col="blue")
-#' lines(myres.c$marginals$b1[[2]], col="brown", lwd=2)
+#' plot(myres_inla$marginals$b1[[1]], type = "l", col = "blue")
+#' lines(myres_c$marginals$b1[[1]], col = "brown", lwd = 2)
+#' plot(myres_inla$marginals$b1[[2]], type = "l", col = "blue")
+#' lines(myres_c$marginals$b1[[2]], col = "brown", lwd = 2)
 #' # the precision of group-level random effects
-#' plot(myres.inla$marginals$b1[[3]],type="l", col="blue", xlim=c(0,2))
-#' lines(myres.c$marginals$b1[[3]],col="brown",lwd=2)
-#' plot(myres.inla$marginals$b2[[1]],type="l", col="blue")
-#' lines(myres.c$marginals$b2[[1]],col="brown",lwd=2)
-#' plot(myres.inla$marginals$b2[[1]], type="l", col="blue")
-#' lines(myres.c$marginals$b2[[1]], col="brown", lwd=2)
+#' plot(myres_inla$marginals$b1[[3]], type = "l", col = "blue", xlim = c(0, 2))
+#' lines(myres_c$marginals$b1[[3]], col = "brown", lwd = 2)
+#' plot(myres_inla$marginals$b2[[1]], type = "l", col = "blue")
+#' lines(myres_c$marginals$b2[[1]], col = "brown", lwd = 2)
+#' plot(myres_inla$marginals$b2[[1]], type = "l", col = "blue")
+#' lines(myres_c$marginals$b2[[1]], col = "brown", lwd = 2)
 #' # the precision of group-level random effects
-#' plot(myres.inla$marginals$b2[[2]], type="l", col="blue", xlim=c(0,2))
-#' lines(myres.c$marginals$b2[[2]], col="brown", lwd=2)
+#' plot(myres_inla$marginals$b2[[2]], type = "l", col = "blue", xlim = c(0, 2))
+#' lines(myres_c$marginals$b2[[2]], col = "brown", lwd = 2)
 #'
 #' ### these are very similar although not exactly identical
 #'
-#' ## use internal code but only to compute a single parameter over a specified grid
-#' ## This can be necessary if the simple auto grid finding functions does a poor job
-#' myres.c <- fitAbn(dag=~b1|b2,
-#'                   data.df=ex3.dag.data[,c(1,2,14)],
-#'                   data.dists=mydists,
-#'                   group.var="group",
-#'                   cor.vars=c("b1", "b2"),
-#'                   centre=FALSE,
-#'                   compute.fixed=TRUE,
-#'                   control=list(marginal.node=1,
-#'                                marginal.param=3,## precision term in node 1
-#'                                variate.vec=seq(0.05, 1.5, len=25),
-#'                                max.hessian.error=10E-02))
+#' ## use internal code but only to compute a single parameter over a specified
+#' ## grid.
+#' ## This can be necessary if the simple auto grid finding functions does
+#' ## a poor job.
+#' myres_c <- fitAbn(dag = ~b1 | b2,
+#'                   data.df = ex3.dag.data[, c(1, 2, 14)],
+#'                   data.dists = mydists,
+#'                   group.var = "group",
+#'                   cor.vars = c("b1", "b2"),
+#'                   centre = FALSE,
+#'                   compute.fixed = TRUE,
+#'                   control = list(marginal.node = 1,
+#'                                  marginal.param = 3, # precision term in node 1
+#'                                  variate.vec = seq(0.05, 1.5, len = 25),
+#'                                  max.hessian.error = 10E-02))
 #'
-#' par(mfrow=c(1,2))
-#' plot(myres.c$marginals$b1[[1]], type="l", col="blue")## still fairly sparse
+#' par(mfrow = c(1, 2))
+#' plot(myres_c$marginals$b1[[1]], type = "l", col = "blue") # still fairly sparse
 #' # An easy way is to use spline to fill in the density without recomputing other
 #' # points provided the original grid is not too sparse.
-#' plot(spline(myres.c$marginals$b1[[1]], n=100), type="b", col="brown")
+#' plot(spline(myres_c$marginals$b1[[1]], n = 100), type = "b", col = "brown")
 #' }
 #'
 #' @keywords models
@@ -464,21 +476,21 @@ fitAbn <- function(object = NULL,
                    cor.vars = NULL,
                    centre = TRUE,
                    compute.fixed = FALSE,
-                   control=NULL,
+                   control = NULL,
                    verbose = FALSE,
                    debugging = FALSE,
                    ...) {
 
   # Check verbose
-  if(!any(verbose %in% c(TRUE, FALSE))){
+  if (!any(verbose %in% c(TRUE, FALSE))) {
     stop(paste("'verbose' is not provided but should be TRUE/FALSE."))
   }
 
   # Check data
-  if(!is.null(data.df) && !is.null(object)){
+  if (!is.null(data.df) && !is.null(object)) {
     # data and object (with data) provided together but don't know on which data to rely
-    stop("`data.df` and `object` provided but can only accept one of them.")
-  } else if (!is.null(data.df) && is.null(object)){
+    stop("'data.df' and 'object' provided but can only accept one of them.")
+  } else if (!is.null(data.df) && is.null(object)) {
     # only data.df provided
     mylist <- check.valid.data(data.df = data.df, data.dists = data.dists, group.var = group.var)
   } else if (is.null(data.df) && !is.null(object)) {
@@ -488,16 +500,16 @@ fitAbn <- function(object = NULL,
     stop("'data.df' is missing but must be provided in this situation.")
   } else {
     # no data.df and no object argument provided
-    stop("`data.df` and `object` are missing but one of them is required.")
+    stop("'data.df' and 'object' are missing but one of them is required.")
   }
 
   # Check dists
-  if(!is.null(data.dists) && !is.null(object)){
+  if (!is.null(data.dists) && !is.null(object)) {
     # data and object (with data) provided together but don't know on which data to rely
-    stop("`data.dists` and `object` provided but can only accept one of them.")
-  } else if (!is.null(data.dists) && is.null(object)){
+    stop("'data.dists' and 'object' provided but can only accept one of them.")
+  } else if (!is.null(data.dists) && is.null(object)) {
     # only data.dists provided
-    data.dists <- validate_dists(data.dists = data.dists, returnDists=TRUE)
+    data.dists <- validate_dists(data.dists = data.dists, returnDists = TRUE)
   } else if (is.null(data.dists) && !is.null(object)) {
     # only object provided
     NA # This will be catched downstream when other arguments have passed tests.
@@ -505,15 +517,15 @@ fitAbn <- function(object = NULL,
     stop("'data.dists' is NA but must be provided.")
   } else {
     # no data.dists and no object argument provided
-    stop("`data.dists` and `object` are missing but one of them is required.")
+    stop("'data.dists' and 'object' are missing but one of them is required.")
   }
 
   # check object$group.var matches group.var argument here
-  if(!is.null(group.var) && !is.null(object)){
-    if (inherits(x=object, what="abnLearned") || inherits(x=object, what="abnCache")){
+  if (!is.null(group.var) && !is.null(object)) {
+    if (inherits(x = object, what = "abnLearned") || inherits(x = object, what = "abnCache")) {
       # object is provided in correct form.
       if (group.var == object$score.cache$group.var) {
-        if (verbose){message("Ok. 'group.var' in score.cache object equals 'group.var' argument provided to fitAbn().")}
+        if (verbose) {message("Ok. 'group.var' in score.cache object equals 'group.var' argument provided to fitAbn().")}
       } else if (group.var != object$score.cache$group.var) {
         stop(paste("Fitting (", group.var, ") and learned (", object$score.cache$group.var, ") 'group.var' argument differ."))
       } else {
@@ -524,17 +536,17 @@ fitAbn <- function(object = NULL,
     }
   } else {
     # more extensive tests are performed further downstream.
-    if (verbose){message("Ok. No 'group.var' in score.cache object or no 'group.var' argument provided to fitAbn(). I assume there is no grouping.")}
+    if (verbose) {message("Ok. No 'group.var' in score.cache object or no 'group.var' argument provided to fitAbn(). I assume there is no grouping.")}
   }
 
 
   # Resolve historic issue with dag and object arguments
-  if (!is.null(dag) && !is.null(object)){
+  if (!is.null(dag) && !is.null(object)) {
     # dag and object argument provided together
-    stop("`dag` and `object` provided but can only accept one of them.")
-  } else if (!is.null(dag) && is.null(object)){
+    stop("'dag' and 'object' provided but can only accept one of them.")
+  } else if (!is.null(dag) && is.null(object)) {
     # only dag provided
-    if(inherits(x = dag, what = "abnLearned")){
+    if (inherits(x = dag, what = "abnLearned")) {
       # if dag is of class "abnLearned" make it the object. This is the old way.
       object <- dag
       message("Best practice with abn > 2.0 requires to pass 'dag' as 'object' parameter.")
@@ -553,12 +565,12 @@ fitAbn <- function(object = NULL,
       validdag <- check.valid.dag(dag = dag, data.df = data.df, group.var = group.var)
       fitmethod <- NULL
       if (!is.matrix(validdag)) {
-        stop("Unknown `dag` argument")
+        stop("Unknown 'dag' argument")
       } else {
         dag <- validdag
       }
     }
-  } else if (is.null(dag) && !is.null(object)){
+  } else if (is.null(dag) && !is.null(object)) {
     # only object provided
     if (inherits(x=object, what="abnLearned")) {
       # if object is of class "abnLearned" extract its stuff
@@ -572,45 +584,45 @@ fitAbn <- function(object = NULL,
       fitmethod <- object$method
       mylist <- object$mylist
     } else {
-      stop("Unknown type of `object`. Must be of class 'abnLearned'.")
+      stop("Unknown type of 'object'. Must be of class 'abnLearned'.")
     }
   } else {
     # no dag and no object argument provided
-    stop("`dag` and `object` are missing but one of them is required.")
+    stop("'dag' and 'object' are missing but one of them is required.")
   }
 
   # Check method
-  if(!is.null(method)){
+  if (!is.null(method)) {
     method <- tolower(method)
-    if (is.na(method)){
+    if (is.na(method)) {
       stop("'method' is NA but must be provided.")
-    } else if(!(method %in% c("bayes", "mle"))){
-      stop("`method` argument is unknown. Must be NULL='bayes' or 'mle'.")
+    } else if (!(method %in% c("bayes", "mle"))) {
+      stop("'method' argument is unknown. Must be NULL='bayes' or 'mle'.")
     }
   } else {
     # if no method provided, assume "bayes"
     method <- "bayes"
   }
 
-  if(!is.null(fitmethod)){
-    if(!(fitmethod %in% c("bayes", "mle"))){
-      stop("Fitting `method` is unknown.")
-    } else if (fitmethod != method){
+  if (!is.null(fitmethod)) {
+    if (!(fitmethod %in% c("bayes", "mle"))) {
+      stop("Fitting 'method' is unknown.")
+    } else if (fitmethod != method) {
       warning(paste("Fitting and learned methods differ. Continuing with fitting method: ", method))
     } else {
       # if method and fitmethod are ok, overwrite method argument with method from object$method
       method <- fitmethod
     }
   } else {
-    if(!is.null(method)){
-      if(verbose){message("using method from fitAbn() argument.")}
+    if (!is.null(method)) {
+      if (verbose) {message("using method from fitAbn() argument.")}
     } else {
       stop(paste("'method' is not provided."))
     }
   }
 
   # Check group.var
-  if (!is.null(group.var)){
+  if (!is.null(group.var)) {
     # we have grouping
     if (inherits(x=object, what="abnLearned") || inherits(x=object, what="abnCache")) {
       # grouping was checked before. Extract only the variables that were not already above.
@@ -619,7 +631,7 @@ fitAbn <- function(object = NULL,
     } else {
       # check grouping
       val_groups <- check.valid.groups(group.var = group.var, data.df = data.df, cor.vars = cor.vars, verbose = verbose)
-      val_corvars <- check.valid.groups(group.var = group.var, data.df = data.df, cor.vars = cor.vars, verbose = verbose)
+      # val_corvars <- check.valid.groups(group.var = group.var, data.df = data.df, cor.vars = cor.vars, verbose = verbose)
 
       grouped.vars <- val_groups$grouped.vars ## int vect of variables to be treated as grouped indexed from 1
       group.ids <- val_groups$group.ids ## int vector of group membership ids
@@ -628,7 +640,7 @@ fitAbn <- function(object = NULL,
     }
   } else if (is.null(group.var)) {
     # no group.var provided to fitAbn(). Check if group.var is provided through object.
-    if (inherits(x=object, what="abnLearned") || inherits(x=object, what="abnCache")) {
+    if (inherits(x = object, what = "abnLearned") || inherits(x = object, what = "abnCache")) {
       # grouping was checked before. Extract only the variables that were not already above.
       grouped.vars <- object$grouped.vars
       group.ids <- object$group.ids
@@ -642,44 +654,44 @@ fitAbn <- function(object = NULL,
   }
 
   # Check adj.vars
-  if((!is.null(adj.vars) & !is.null(cor.vars)) & !(is.null(cor.vars[adj.vars]))){stop("cor.vars contains adj.vars, please remove them")}
+  if ((!is.null(adj.vars) & !is.null(cor.vars)) & !(is.null(cor.vars[adj.vars]))) {stop("cor.vars contains adj.vars, please remove them")}
 
   # Check centre
-  if(!any(centre %in% c(TRUE, FALSE))){
+  if (!any(centre %in% c(TRUE, FALSE))) {
     stop("'centre' should be either TRUE or FALSE but it was provided as: ", centre)
     centre <- centre
   } else {
-    if(verbose){message("Assessing validity of argument 'centre'. ... OK.")}
+    if (verbose) {message("Assessing validity of argument 'centre'. ... OK.")}
   }
 
   # check compute.fixed
-  if(!any(compute.fixed %in% c(TRUE, FALSE))){
+  if (!any(compute.fixed %in% c(TRUE, FALSE))) {
     stop("'compute.fixed' should be either TRUE or FALSE but it was provided as: ", compute.fixed)
     compute.fixed <- compute.fixed
-  } else if (isTRUE(compute.fixed) & method == "mle"){
+  } else if (isTRUE(compute.fixed) & method == "mle") {
     stop("compute.fixed=TRUE is not allowed for method='mle'.")
   } else {
-    if(verbose){message("Assessing validity of argument 'compute.fixed'. ... OK.")}
+    if (verbose) {message("Assessing validity of argument 'compute.fixed'. ... OK.")}
   }
 
   # Check control args
   # if any arg matches a possible control arg from fit.control(), warn and use it.
-  fit.control.args <- names(formals(fit.control))[-which(names(formals(fit.control))=="method")] # allow method to be provided as it has a different meaning here.
+  fit.control.args <- names(formals(fit.control))[-which(names(formals(fit.control)) == "method")] # allow method to be provided as it has a different meaning here.
   provided.args <- names(match.call()[-1]) # remove the first element of match.call() which is empty.
-  if(any(provided.args %in% fit.control.args)){
-    warning(paste("Some arguments match possible control arguments from `fit.control()`.
-                  I will use the provided arguments. Please use `control=fit.control(...)` instead in the future."))
+  if (any(provided.args %in% fit.control.args)) {
+    warning(paste("Some arguments match possible control arguments from 'fit.control()'.
+                  I will use the provided arguments. Please use 'control=fit.control(...)' instead in the future."))
     ambiguous.args <- provided.args[which(provided.args %in% fit.control.args)]
-    for (i in 1:length(ambiguous.args)){
+    for (i in 1:length(ambiguous.args)) {
       control[[ambiguous.args[i]]] <- match.call()[-1][[ambiguous.args[i]]]
     }
   }
   ctrl <- check.valid.fitControls(control = control, method = method, verbose = verbose)
 
-  if("max.mode.error" %in% names(ctrl)){
-    if(ctrl[["max.mode.error"]]==0) {
+  if ("max.mode.error" %in% names(ctrl)) {
+    if (ctrl[["max.mode.error"]] == 0) {
       force.method <- "C"
-    } else if(ctrl[["max.mode.error"]]==100) {
+    } else if (ctrl[["max.mode.error"]] == 100) {
       force.method <- "INLA"
     } else {
       force.method <- "notset"
@@ -718,7 +730,7 @@ fitAbn <- function(object = NULL,
                       control = ctrl,
                       debugging = debugging)
   } else {
-    stop("`method` unknown.")
+    stop("'method' unknown.")
   }
   class(out) <- c("abnFit")
   return(out)

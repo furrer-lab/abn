@@ -64,49 +64,67 @@ A rendered graph, if \code{plot=TRUE}. The \code{graphAM} object is returned inv
 Plot an ABN DAG using formula statement or a matrix in using Rgraphviz through the graphAM class.
 }
 \details{
-By default binomial nodes are squares, multinoial nodes are empty, Gaussian nodes are circles and poison nodes are ellipses.
+By default binomial nodes are squares, multinomial nodes are empty, Gaussian nodes are circles and poison nodes are ellipses.
 
 The \code{dag} can be provided using a formula statement (similar to glm). A typical formula is \code{ ~ node1|parent1:parent2 + node2:node3|parent3}.
 
-The construction is based on the \pkg{graph} package. Properties of the graph can be changend after the construction, see \sQuote{Examples}.
+The construction is based on the \pkg{graph} package. Properties of the graph can be changed after the construction, see \sQuote{Examples}.
 }
 \examples{
-#Define distribution list
-dist <- list(a="gaussian", b="gaussian", c="gaussian", d="gaussian", e="binomial", f="binomial")
+# Define distribution list
+dist <- list(a = "gaussian",
+             b = "gaussian",
+             c = "gaussian",
+             d = "gaussian",
+             e = "binomial",
+             f = "binomial")
 
-#Define a matrix formulation
-edge.strength <- matrix(c(0,0.5,0.5,0.7,0.1,0,
-                          0,0,0.3,0.1,0,0.8,
-                          0,0,0,0.35,0.66,0,
-                          0,0,0,0,0.9,0,
-                          0,0,0,0,0,0.8,
-                          0,0,0,0,0,0),nrow = 6L, ncol = 6L, byrow = TRUE)
+# Define a matrix formulation
+edge_strength <- matrix(c(0, 0.5, 0.5, 0.7, 0.1, 0,
+                          0, 0, 0.3, 0.1, 0, 0.8,
+                          0, 0, 0, 0.35, 0.66, 0,
+                          0, 0, 0, 0, 0.9, 0,
+                          0, 0, 0, 0, 0, 0.8,
+                          0, 0, 0, 0, 0, 0),
+                        nrow = 6L,
+                        ncol = 6L,
+                        byrow = TRUE)
 
 ## Naming of the matrix
-colnames(edge.strength) <- rownames(edge.strength) <- names(dist)
+colnames(edge_strength) <- rownames(edge_strength) <- names(dist)
 
 ## Plot form a matrix
-plotAbn(dag = edge.strength, data.dists = dist)
+plotAbn(dag = edge_strength,
+        data.dists = dist)
 
 ## Edge strength
-plotAbn(dag = ~a|b:c:d:e+b|c:d:f+c|d:e+d|e+e|f, data.dists = dist, edge.strength = edge.strength)
+plotAbn(dag = ~ a | b:c:d:e + b | c:d:f + c | d:e + d | e + e | f,
+        data.dists = dist,
+        edge.strength = edge_strength)
 
 ## Plot from a formula for a different DAG!
-plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist)
+plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
+        data.dists = dist)
 
 ## Markov blanket
-plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = "e")
+plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
+        data.dists = dist,
+        markov.blanket.node = "e")
 
 ## Change col for all edges
-tmp <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, plot=FALSE)
-graph::edgeRenderInfo(tmp) <- list(col="blue")
+tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
+               data.dists = dist,
+               plot = FALSE)
+graph::edgeRenderInfo(tmp) <- list(col = "blue")
 Rgraphviz::renderGraph(tmp)
 
 ## Change lty for individual ones. Named vector is necessary
-tmp <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, plot=FALSE)
-edgelty <- rep(c("solid","dotted"), c(6,1))
-names(edgelty) <- names( graph::edgeRenderInfo(tmp, "col"))
-graph::edgeRenderInfo(tmp) <- list(lty=edgelty)
+tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
+               data.dists = dist,
+               plot = FALSE)
+edgelty <- rep(c("solid", "dotted"), c(6, 1))
+names(edgelty) <- names(graph::edgeRenderInfo(tmp, "col"))
+graph::edgeRenderInfo(tmp) <- list(lty = edgelty)
 Rgraphviz::renderGraph(tmp)
 }
 \seealso{
