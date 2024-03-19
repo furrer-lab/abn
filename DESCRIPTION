@@ -1,7 +1,7 @@
 Package: abn
 Title: Modelling Multivariate Data with Additive Bayesian Networks
 Version: 3.0.6
-Date: 2024-03-17
+Date: 2024-03-19
 Authors@R: c(
     person("Matteo", "Delucchi", , "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-9327-1496")),
@@ -36,8 +36,8 @@ Description: The 'abn' R package facilitates Bayesian network analysis, a
     heuristic structure learning algorithms and does not restrict the data
     distribution of parent-child combinations, providing flexibility in
     model creation and analysis. The 'abn' package uses Laplace
-    approximations for metric estimation and includes wrappers to the INLA
-    package. It also employs JAGS for data simulation purposes. For more
+    approximations for metric estimation and includes wrappers to the 'INLA'
+    package. It also employs 'JAGS' for data simulation purposes. For more
     resources and information, visit the 'abn' website.
 License: GPL (>= 3)
 URL: http://r-bayesian-networks.org
