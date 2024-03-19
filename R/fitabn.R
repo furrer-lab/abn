@@ -336,7 +336,7 @@ fit.control <-
 #' ## This is a basic plot of some posterior densities. The algorithm used for selecting
 #' ## density points is quite straightforward, but it might result in a sparse distribution.
 #' ## Therefore, we also recompute the density over an evenly spaced grid
-#' of 50 points between the two endpoints that had a minimum PDF at f=min.pdf.
+#' ## of 50 points between the two endpoints that had a minimum PDF at f=min.pdf.
 #' ## Setting max.mode.error=0 forces the use of the internal C code.
 #' myres.c <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
 #'                   compute.fixed=TRUE,
