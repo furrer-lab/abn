@@ -5,7 +5,11 @@ name: CRAN-like checks
 
 on:
   push:
-    branches: [ main, master] # for temporary testing
+    branches: 
+      - main
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]+.[0-9]+.[0-9]+"
   pull_request:
     types: [ ready_for_review ]
     branches: [ main, master ]
