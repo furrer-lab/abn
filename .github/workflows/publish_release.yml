@@ -3,7 +3,7 @@ name: Publish Release
 # Only trigger, when CRAN-like checks succeed 
 on:
   workflow_run:
-    branches: [main, 8-package-archive-as-artifact]
+    branches: [main]
     workflows: ["CRAN-like checks"]
     types:
       - completed

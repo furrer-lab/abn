@@ -10,7 +10,6 @@ on:
       - "!main"        # then exclude only
       - "!master"      # those two
       - "!**noT**"     # exclude all branches containing noT in their name
-      - "!8-package-archive-as-artifact"  # TODO: remove! just for dev
   pull_request:
     branches-ignore:   # do not run on pull
       - main           # requests on default
