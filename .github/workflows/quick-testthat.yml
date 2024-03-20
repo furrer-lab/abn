@@ -27,15 +27,17 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       # CONTAINER: ${{ steps.get-container.outputs.container || vars.CONTAINER_SOURCE }}/debian/clang/release/abn }}:${{ vars.CONTAINER_VERSION || 'latest' }}
-      CONTAINER: ${{ steps.get-container.outputs.container }}
+      CONTAINER: ${{ steps.container.outputs.container  || 'debian/clang/devel' }}
 
     steps:
       - name: Get container
+        id: container
         env:
           BRANCH: ${{ github.ref_name }}
         id: split
         # run: echo "::set-output name=container::${BRANCH##(*__)}"
         run: |
+          echo "container=${BRANCH##*__}"
           echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
 
   build-install-test:
@@ -47,7 +49,7 @@ jobs:
     # runs-on: ubuntu-latest
     container:
       # image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
-      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER || 'debian/clang/devel' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
