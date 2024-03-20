@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       # CONTAINER: ${{ steps.get-container.outputs.container || vars.CONTAINER_SOURCE }}/debian/clang/release/abn }}:${{ vars.CONTAINER_VERSION || 'latest' }}
-      CONTAINER: ${{ steps.get-container.outputs.container || 'debian/clang/devel/abn' }}
+      CONTAINER: ${{ steps.get-container.outputs.container || 'debian/clang/devel' }}
 
     steps:
       - name: Get container
@@ -45,7 +45,7 @@ jobs:
     # runs-on: ubuntu-latest
     container:
       # image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
-      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER }}:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
