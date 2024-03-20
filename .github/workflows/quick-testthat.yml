@@ -34,7 +34,6 @@ jobs:
         id: container
         env:
           BRANCH: ${{ github.ref_name }}
-        id: split
         # run: echo "::set-output name=container::${BRANCH##(*__)}"
         run: |
           echo "container=${BRANCH##*__}"
