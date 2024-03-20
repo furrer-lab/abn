@@ -1,0 +1,46 @@
+name: Publish Release
+
+# Only trigger, when CRAN-like checks succeed 
+on:
+  workflow_run:
+    branches: [main, 8-package-archive-as-artifact]
+    workflows: ["CRAN-like checks"]
+    types:
+      - completed
+
+env:
+  BUILD_LOC: "./build"
+
+jobs:
+   publish:
+     runs_on: ubuntu-22.04
+     if: ${{ github.ref_type == 'tag' && github.event.workflow_run.conclusion == 'success' }}
+     permissions:
+       contents: write
+     steps:
+      - uses: actions/checkout@v4
+      - name: Create build location
+        run: |
+            mkdir ${{ env.BUILD_LOC }}
+        shell: bash
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Build the package
+        run: |
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+        shell: Rscript {0}
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "${{ env.BUILD_LOC }}/abn.tar.gz"
+          # TODO: decide if we want to have some optional description:
+          # bodyFile: "body.md"
