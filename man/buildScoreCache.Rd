@@ -224,7 +224,7 @@ comprising of all nodes (in the same order as the columns in \code{data.df}) bef
 
 This function is used to calculate all individual information-theoretic node scores. The possible information-theoretic based network scores computed in \code{buildScoreCache} are the maximum likelihood (mlik, called marginal likelihood in this context as it is computed node wise),
 the Akaike Information Criteria (aic), the Bayesian Information Criteria (bic) and the Minimum distance Length (mdl). The classical definitions of those metrics are given in Kratzer and Furrer (2018). This function computes a cache that can be fed into a model search algorithm.
-The numerical routines used here are identical to those in \code{\link{fitAbn}} and see that help page for further details and also the quality assurance section on the \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org} of the \pkg{abn} website for more details.
+The numerical routines used here are identical to those in \code{\link{fitAbn}} and see that help page for further details and also the quality assurance section on the \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org} of the \pkg{abn} website for more details.
 }
 }
 \section{Functions}{
@@ -404,7 +404,7 @@ Kratzer, G., and Furrer, R., (2018). "Information-Theoretic Scoring Rules to Lea
 
 Lewis, F. I., and McCormick, B. J. J. (2012). "Revealing the complexity of health determinants in resource poor settings". \emph{American Journal Of Epidemiology}. doi:10.1093/aje/KWS183).
 
-Further information about \pkg{abn} can be found at: \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org}.
+Further information about \pkg{abn} can be found at: \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org}.
 }
 \seealso{
 \code{\link{fitAbn}}

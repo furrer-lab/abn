@@ -17,7 +17,7 @@
 #' The R package \pkg{abn} requires the R package \pkg{Rgraphviz} to work well.
 #' It is store outside of CRAN; see \sQuote{Examples} for the code to install the last version.
 #'
-#' The web page \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org} provides further case studies.
+#' The web page \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org} provides further case studies.
 #' See also the files provided in the package directories \code{inst/bootstrapping_example} and \code{inst/old_vignette} for more details.
 #'
 #' @references

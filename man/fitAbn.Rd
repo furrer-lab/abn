@@ -135,7 +135,7 @@ Internal code is used by default for numerical estimation in nodes without rando
 This default behavior can be overridden using \code{control=list(max.mode.error=...)}. The default is \code{max.mode.error=10}, which means that the modes estimated from INLA output must be within 10\\% of those estimated using internal code.
 Otherwise, the internal code is used rather than INLA.
 To force the use of INLA on all nodes, use \code{max.mode.error=100}, which then ignores this check, to force the use of internal code then use \code{max.mode.error=0}.
-For the numerical reliability and perform of \pkg{abn} see \url{http://r-bayesian-networks.org}.
+For the numerical reliability and perform of \pkg{abn} see \url{https://r-bayesian-networks.org/}.
 Generally speaking, INLA can be swift and accurate, but in several cases, it can perform very poorly and so some care is required (which is why there is an internal check on the modes).
 Binary variables must be declared as factors with two levels, and the argument \code{data.dists} must be a list with named arguments, one for each of the variables in \code{data.df} (except a grouping variable - if present!), where each entry is either "poisson","binomial", "multinomial" or "gaussian", see examples below.
 The "poisson" and "binomial" distributions use log and logit link functions, respectively.
@@ -320,7 +320,7 @@ print(myres_c) # show all the output
 
 ## Now for marginals - INLA is strongly preferable for estimating marginals for
 ## nodes with random effects as it is far faster, but may not be reliable
-## see http://r-bayesian-networks.org
+## see https://r-bayesian-networks.org/
 
 ## INLA's estimates of the marginals, using high n.grid = 500
 ## as this makes the plots smoother - see below.
@@ -397,7 +397,7 @@ Kratzer, G., and Furrer, R., 2018. Information-Theoretic Scoring Rules to Learn 
 
 Lewis, F. I., and McCormick, B. J. J. (2012). Revealing the complexity of health determinants in resource poor settings. \emph{American Journal Of Epidemiology}. DOI:10.1093/aje/KWS183.
 
-Further information about \pkg{abn} can be found at: \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org}.
+Further information about \pkg{abn} can be found at: \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org}.
 }
 \seealso{
 \code{\link{buildScoreCache}}
