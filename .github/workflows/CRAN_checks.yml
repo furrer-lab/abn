@@ -6,6 +6,10 @@ name: CRAN-like checks
 on:
   push:
     branches: [ main, master, 8-package-archive-as-artifact] # for temporary testing
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+      - [0-9]+.[0-9]+.[0-9]+
+      - [0-9]+.[0-9]+.[0-9]+-alpha.1  # TODO: remove! just for dev
   pull_request:
     types: [ ready_for_review ]
     branches: [ main, master ]
