@@ -26,7 +26,7 @@ jobs:
   get-target-container:
     runs-on: ubuntu-22.04
     outputs:
-      CONTAINER: ${{ steps.container.outputs.container  || 'debian/clang/devel' }}
+      CONTAINER: ${{ steps.container.outputs.container  ||  }}
 
     steps:
       - name: Get container
@@ -34,7 +34,11 @@ jobs:
         env:
           BRANCH: ${{ github.ref_name }}
         run: |
-          echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
+          if [[ $BRANCH == *"__"* ]]; then
+            echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
+          else
+            echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
+          fi
 
   build-install-test:
     if: ${{ github.event_name != 'pull_request' && !startsWith(github.event.head_commit.message, 'noT') }}
