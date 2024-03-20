@@ -13,7 +13,7 @@ env:
 
 jobs:
    publish:
-     runs_on: ubuntu-22.04
+     runs-on: ubuntu-22.04
      if: ${{ github.ref_type == 'tag' && github.event.workflow_run.conclusion == 'success' }}
      permissions:
        contents: write
