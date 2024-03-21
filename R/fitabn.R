@@ -363,6 +363,7 @@ fit.control <-
 #'                      control = list(max.mode.error = 100))
 #'
 #' ## Plot posterior densities
+#' default_par <- par(no.readonly = TRUE) # save default par settings
 #' par(mfrow = c(2, 2), mai = c(.7, .7, .2, .1))
 #' plot(myres_c$marginals$b1[["b1 | (Intercept)"]], type = "l", xlab = "b1 | (Intercept)")
 #' lines(myres_inla$marginals$b1[["b1 | (Intercept)"]], col = "blue")
@@ -372,6 +373,7 @@ fit.control <-
 #' lines(myres_inla$marginals$g1[["g1 | precision"]], col = "blue")
 #' plot(myres_c$marginals$b4[["b4 | b1"]], type = "l", xlab = "b4 | b1")
 #' lines(myres_inla$marginals$b4[["b4 | b1"]], col = "blue")
+#' par(default_par) # reset par settings
 #'
 #' ## An elementary mixed model example using built-in data specify DAG,
 #' ## only two variables using a subset of variables from ex3.dag.data
@@ -423,6 +425,7 @@ fit.control <-
 #'                                  max.hessian.error = 10E-02))
 #'
 #' ## compare marginals between internal and INLA.
+#' default_par <- par(no.readonly = TRUE) # save default par settings
 #' par(mfrow = c(2, 3))
 #' # 5 parameters - two intercepts, one slope, two group level precisions
 #' plot(myres_inla$marginals$b1[[1]], type = "l", col = "blue")
@@ -439,6 +442,7 @@ fit.control <-
 #' # the precision of group-level random effects
 #' plot(myres_inla$marginals$b2[[2]], type = "l", col = "blue", xlim = c(0, 2))
 #' lines(myres_c$marginals$b2[[2]], col = "brown", lwd = 2)
+#' par(default_par) # reset par settings
 #'
 #' ### these are very similar although not exactly identical
 #'
@@ -458,11 +462,13 @@ fit.control <-
 #'                                  variate.vec = seq(0.05, 1.5, len = 25),
 #'                                  max.hessian.error = 10E-02))
 #'
+#' default_par <- par(no.readonly = TRUE) # save default par settings
 #' par(mfrow = c(1, 2))
 #' plot(myres_c$marginals$b1[[1]], type = "l", col = "blue") # still fairly sparse
 #' # An easy way is to use spline to fill in the density without recomputing other
 #' # points provided the original grid is not too sparse.
 #' plot(spline(myres_c$marginals$b1[[1]], n = 100), type = "b", col = "brown")
+#' par(default_par) # reset par settings
 #' }
 #'
 #' @keywords models
