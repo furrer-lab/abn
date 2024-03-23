@@ -26,6 +26,8 @@ test_that("plot.abnDag() works.", {
 })
 
 test_that("print.abnCache() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## Subset of the build-in dataset, see  ?ex0.dag.data
   mydat <- ex0.dag.data[,c("b1","b2","g1","g2","b3","g3")] ## take a subset of cols
 
@@ -50,6 +52,8 @@ test_that("print.abnCache() works.", {
 })
 
 test_that("print.abnHeuristic() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   mydat <- ex1.dag.data ## this data comes with abn see ?ex1.dag.data
 
   ## setup distribution list for each node
@@ -69,6 +73,8 @@ test_that("print.abnHeuristic() works.", {
 })
 
 test_that("plot.abnHeuristic() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   mydat <- ex1.dag.data ## this data comes with abn see ?ex1.dag.data
 
   ## setup distribution list for each node
@@ -93,6 +99,8 @@ test_that("plot.abnHeuristic() works.", {
 })
 
 test_that("print.abnHillClimber() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## this data comes with abn see ?ex1.dag.data
   mydat <- ex1.dag.data
 
@@ -114,6 +122,8 @@ test_that("print.abnHillClimber() works.", {
 })
 
 test_that("plot.abnHillClimber() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## this data comes with abn see ?ex1.dag.data
   mydat <- ex1.dag.data
 
@@ -141,6 +151,8 @@ test_that("plot.abnHillClimber() works.", {
 })
 
 test_that("print.abnMostprobable() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## This data comes with `abn` see ?ex1.dag.data
   mydat <- ex1.dag.data[1:5000, c(1:7,10)]
 
@@ -162,6 +174,8 @@ test_that("print.abnMostprobable() works.", {
 })
 
 test_that("summary.abnMostprobable() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## This data comes with `abn` see ?ex1.dag.data
   mydat <- ex1.dag.data[1:5000, c(1:7,10)]
 
@@ -183,6 +197,8 @@ test_that("summary.abnMostprobable() works.", {
 })
 
 test_that("plot.abnMostprobable() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   ## This data comes with `abn` see ?ex1.dag.data
   mydat <- ex1.dag.data[1:5000, c(1:7,10)]
 

@@ -785,6 +785,8 @@ test_that("simulateAbn() simulation works with method 'mle'", {
 })
 
 test_that("simulateAbn() simulation works with method 'bayes'", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # Make a proper abnFit object
   ## without group.var
   if(.Platform$OS.type == "unix") {
