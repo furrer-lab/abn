@@ -705,6 +705,9 @@ simulateAbn <- function(object = NULL,
   ###
   # Create BUGS Model
   ###
+  # save current options and set new ones
+  origoptions <- options()
+  on.exit(options(origoptions)) # reset options to original values after function exits
   # increase console width to avoid line breaks that cause JAGS errors.
   origwidth <- getOption("width")
   options(width=1000)

@@ -21,6 +21,8 @@ discretization(data.df = NULL,
 \value{
 The discretized data frame or a list containing the table of
 counts for each bin the discretized data frame.
+
+table of counts for each bin of the discretized data frame.
 }
 \description{
 This function discretizes a data frame of possibly continuous random variables

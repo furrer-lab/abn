@@ -5,6 +5,9 @@
 \alias{abn}
 \alias{abn-package}
 \title{\code{abn} Package}
+\value{
+nothing.
+}
 \description{
 \code{abn} is a collection of functions for fitting, selecting/learning, analyzing, reporting Additive Bayesian Networks.
 }
@@ -25,7 +28,7 @@ It supports a possible mixture of continuous, discrete, and count data and input
 The R package \pkg{abn} requires the R package \pkg{Rgraphviz} to work well.
 It is store outside of CRAN; see \sQuote{Examples} for the code to install the last version.
 
-The web page \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org} provides further case studies.
+The web page \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org} provides further case studies.
 See also the files provided in the package directories \code{inst/bootstrapping_example} and \code{inst/old_vignette} for more details.
 }
 
@@ -53,7 +56,8 @@ Kratzer, G., Pittavino, M, Lewis, F. I., and Furrer, R., (2017). "abn: an R pack
 \seealso{
 Useful links:
 \itemize{
-  \item \url{http://r-bayesian-networks.org}
+  \item \url{https://r-bayesian-networks.org/}
+  \item \url{https://github.com/furrer-lab/abn}
   \item Report bugs at \url{https://github.com/furrer-lab/abn/issues}
 }
 

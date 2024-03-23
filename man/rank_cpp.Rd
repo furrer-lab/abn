@@ -6,6 +6,9 @@
 \usage{
 rank_cpp(A)
 }
+\value{
+an integer
+}
 \description{
 similar to \code{base::rank}
 }

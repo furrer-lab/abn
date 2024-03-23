@@ -22,3 +22,16 @@ Makefile
 ^data-raw$
 ^CODE_OF_CONDUCT\.md$
 ^\.github$
+
+^vignettes/.*\.Rmd\.orig$
+^vignettes/.*\.png$
+^vignettes/archive/.*\.pdf$
+^vignettes/archive/.*\.asis$
+^vignettes/archive/.*\.Rmd\_$
+^inst/bootstrapping_example$
+^inst/code_vignette$
+^inst/old_vignette$
+^isnt/figures/.*\.R$
+^inst/figures/.*\.svg$
+^inst/figures/abn_logo.png$
+^inst/figures/abn_logo_white.png$

@@ -9,6 +9,9 @@ logit_cpp(x)
 \arguments{
 \item{x}{a numeric vector}
 }
+\value{
+a numeric vector
+}
 \description{
 transform \code{x} either via the logit, or expit.
 }

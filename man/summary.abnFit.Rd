@@ -13,6 +13,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints summary statistics of the fitted model.
+}
 \description{
 Print summary of objects of class \code{abnFit}
 }

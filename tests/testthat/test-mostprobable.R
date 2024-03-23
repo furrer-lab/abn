@@ -7,7 +7,7 @@ test_that("Test mostProbable() works", {
   expect_silent(mp.dag.test <- mostProbable(score.cache=mycache.test, verbose=FALSE))
 })
 
-test_that("mostProbable() is backward compatible with `ex0.dag.data`", {
+test_that("mostProbable() is backward compatible with 'ex0.dag.data'", {
   skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
   ## use built-in simulated data set
@@ -67,14 +67,14 @@ test_that("mostProbable() is backward compatible with `ex0.dag.data`", {
   })
   expect_error({
     m2 <- fitAbn(object = mp.dag,data.df=mydat,data.dists=mydists)$mlik;
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_no_message({
     m2 <- fitAbn(object = mp.dag)$mlik;
   })
   expect_equal(m1, m2)
 })
 
-test_that("mostProbable() is backward compatible with `ex1.dag.data`", {
+test_that("mostProbable() is backward compatible with 'ex1.dag.data'", {
   skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
   ## Second example ############
@@ -147,7 +147,7 @@ test_that("mostProbable() is backward compatible with `ex1.dag.data`", {
   }, regexp = "'data.df' is missing but must be provided") # if mp.dag is provided as dag, even it is an object, we need data.df and data.dists.
   expect_error({
     m2 <- fitAbn(object = mp.dag,data.df=mydat,data.dists=mydists)$mlik;
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_no_message({
     m2 <- fitAbn(object = mp.dag)$mlik;
   })
@@ -164,7 +164,7 @@ test_that("mostProbable() is backward compatible with `ex1.dag.data`", {
   expect_equal(plt.adjMat, mp.dag.adjMat)
 })
 
-test_that("mostProbable() is backward compatible with `ex3.dag.data`", {
+test_that("mostProbable() is backward compatible with 'ex3.dag.data'", {
   #################################################################
   ## example 3 - models with random effects
   #################################################################
@@ -194,7 +194,7 @@ test_that("mostProbable() is backward compatible with `ex3.dag.data`", {
       ## get goodness of fit
       expect_error({
         m <- fitAbn(object = mp.dag,data.df=mydat,data.dists=mydists,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
-      }, regexp = "`data.df` and `object` provided but can only accept one of them")
+      }, regexp = "'data.df' and 'object' provided but can only accept one of them")
       expect_no_error({
         m <- fitAbn(object = mp.dag,group.var="group",cor.vars=c("b1","b2","b3","b4"))$mlik;
       })

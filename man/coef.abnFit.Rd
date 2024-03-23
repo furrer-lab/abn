@@ -15,6 +15,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the coefficients of the fitted model.
+}
 \description{
 Print coefficients of objects of class \code{abnFit}
 }

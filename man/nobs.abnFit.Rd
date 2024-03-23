@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the number of observations of the fitted model.
+}
 \description{
 Print number of observations of objects of class \code{abnFit}
 }

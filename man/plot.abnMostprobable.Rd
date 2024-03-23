@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+plot of the mostprobable consensus DAG.
+}
 \description{
 Plot objects of class \code{abnMostprobable}
 }

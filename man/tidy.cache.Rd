@@ -6,6 +6,9 @@
 \usage{
 tidy.cache(thecache)
 }
+\value{
+list of chache with error indexes removed
+}
 \description{
 tidy up cache
 }

@@ -14,6 +14,9 @@ Note that row names must be set up or given in \code{node.names}.}
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+List with summary statistics of the DAG.
+}
 \description{
 Prints summary statistics from an object of class \code{abnDag}
 }

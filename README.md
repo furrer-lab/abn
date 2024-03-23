@@ -40,26 +40,26 @@ renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Sugges
 
 The following additional libraries are recommended to best profit from the [abn](https://cran.r-project.org/package=abn) features.
 
-- [INLA](http://www.r-inla.org/), which is an R package used for model fitting. It is hosted separately from CRAN and is easy to install on common platforms (see instructions on the INLA website). 
+- [INLA](https://www.r-inla.org/), which is an R package used for model fitting. It is hosted separately from CRAN and is easy to install on common platforms (see instructions on the INLA website). 
 ```r
 install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
 ```
 
-- [Rgraphviz](http://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) is used to produce plots of network graphs and is hosted on [Bioconductor](http://www.bioconductor.org).
+- [Rgraphviz](https://www.bioconductor.org//packages/release/bioc/html/Rgraphviz.html) is used to produce plots of network graphs and is hosted on [Bioconductor](https://www.bioconductor.org/).
 ```r
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("Rgraphviz", version = "3.8")
 ```
 
-- [JAGS](http://mcmc-jags.sourceforge.net/) is a program for analysing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. Its installation is platform-dependent and is, therefore, not covered here.
+- [JAGS](https://mcmc-jags.sourceforge.io/) is a program for analysing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. Its installation is platform-dependent and is, therefore, not covered here.
 
 # Quickstart
 
-Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](quick_start_example.md).
+Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](vignettes/quick_start_example.Rmd).
 The datasets required for these examples are included within the [`abn` package](https://CRAN.R-project.org/package=abn).
 
-For a deeper understanding, refer to the manual pages on the [`abn` homepage](http://r-bayesian-networks.org), which include numerous examples. 
+For a deeper understanding, refer to the manual pages on the [`abn` homepage](https://r-bayesian-networks.org/), which include numerous examples. 
 Key pages to visit are `fitAbn()`, `buildScoreCache()`, `mostProbable()`, and `searchHillClimber()`.
 Also, see the [examples](#examples) below for a quick overview of the package's capabilities.
 
@@ -123,14 +123,14 @@ This methodology is rather distinct from other forms of statistical modelling in
 It is a **multivariate** technique and can be used for one or many dependent variables. 
 This is a data-driven approach, as opposed to relying only on subjective expert opinion to determine how variables of interest are interrelated (for example, structural equation modelling). 
 
-[Below](#examples) and on the [package's website](http://r-bayesian-networks.org), we provide some [cookbook](#examples)-type examples of how to perform Bayesian network **structure discovery** analyses with observational data. 
+[Below](#examples) and on the [package's website](https://r-bayesian-networks.org/), we provide some [cookbook](#examples)-type examples of how to perform Bayesian network **structure discovery** analyses with observational data. 
 The particular type of Bayesian network models considered here are **additive Bayesian networks**. 
 These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrisation. 
 An additive Bayesian network model is simply a **multidimensional regression model**, e.g. directly analogous to generalised linear modelling but with all variables potentially dependent. 
 
-An example can be found in the [American Journal of Epidemiology](http://aje.oxfordjournals.org/content/176/11/1051.abstract), where this approach was used to investigate risk factors for child diarrhoea. 
+An example can be found in the [American Journal of Epidemiology](https://academic.oup.com/aje/article-abstract/176/11/1051/178588), where this approach was used to investigate risk factors for child diarrhoea. 
 A special issue of [Preventive Veterinary Medicine](http://www.sciencedirect.com/science/journal/01675877/110/1) on graphical modelling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data. 
-Introductions to this methodology can be found in [Emerging Themes in Epidemiology](http://www.ete-online.com/content/10/1/4) and in [Computers in Biology and Medicine](https://www.sciencedirect.com/science/article/pii/S0010482522005133) where it is compared to other approaches.
+Introductions to this methodology can be found in [Emerging Themes in Epidemiology](https://link.springer.com/journal/12982) and in [Computers in Biology and Medicine](https://www.sciencedirect.com/science/article/pii/S0010482522005133) where it is compared to other approaches.
 
 ## What is an additive Bayesian network?
 
@@ -387,45 +387,45 @@ Please note that the `abn` project is released with a [Contributor Code of Condu
 
 # Applications
 
-The [abn website](http://r-bayesian-networks.org) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
+The [abn website](https://r-bayesian-networks.org/) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
 
 ## Technical articles
 
 - Kratzer et al. (2023): [Additive Bayesian Network Modeling with the R Package abn](https://doi.org/10.18637/jss.v105.i08)
 
-- Kratzer et al. (2020) [Bayesian Networks modeling applied to Feline Calicivirus infection among cats in Switzerland](https://www.frontiersin.org/articles/10.3389/fvets.2020.00073/full)
+- Kratzer et al. (2020) [Bayesian Networks modeling applied to Feline Calicivirus infection among cats in Switzerland](https://doi.org/10.3389/fvets.2020.00073)
 
 - Kratzer et al. (2018): [Comparison between Suitable Priors for Additive Bayesian Networks](https://arxiv.org/pdf/1809.06636)
 
-- Koivisto et al. (2004): [Exact Bayesian structure discovery in Bayesian networks](https://static.aminer.org/pdf/PDF/000/984/996/exact_bayesian_structure_discovery_in_bayesian_networks.pdf)
+- Koivisto et al. (2004): [Exact Bayesian structure discovery in Bayesian networks](https://www.jmlr.org/papers/volume5/koivisto04a/koivisto04a.pdf)
 
-- Friedman et al. (2003): [Being Bayesian about network structure. A Bayesian approach to structure discovery in Bayesian networks](http://web.cs.iastate.edu/~jtian/cs673/cs673_spring05/references/Friedman-Koller-2003.pdf)
+- Friedman et al. (2003): [Being Bayesian about network structure. A Bayesian approach to structure discovery in Bayesian networks](https://doi.org/10.1023/A:1020249912095)
 
-- Friedman et al. (1999): [Data analysis with Bayesian networks: A bootstrap approach](http://scholar.google.com/scholar_url?hl=en&q=http://w3.cs.huji.ac.il/~nir/Papers/FGW2.pdf&sa=X&scisig=AAGBfm3-UgXALoAdzzXG_hPQAzhuMvYaiQ&oi=scholarr)
+- Friedman et al. (1999): [Data analysis with Bayesian networks: A bootstrap approach](https://arxiv.org/pdf/1301.6695.pdf)
 
 - Heckerman et al. (1995): [Learning Bayesian Networks – The Combination of Knowledge And Statistical-Data](http://maxchickering.com/publications/ml95.pdf)
 
 ## Application articles
 
-- Delucchi et al. (2022): [Bayesian network analysis reveals the interplay of intracranial aneurysm rupture risk factors](https://www.sciencedirect.com/science/article/pii/S0010482522005133)
+- Delucchi et al. (2022): [Bayesian network analysis reveals the interplay of intracranial aneurysm rupture risk factors](https://doi.org/10.1016/j.compbiomed.2022.105740)
 
-- Guinat et al. (2020) [Biosecurity risk factors for highly pathogenic avian influenza (H5N8) virus infection in duck farms, France](https://onlinelibrary.wiley.com/doi/abs/10.1111/tbed.13672)
+- Guinat et al. (2020) [Biosecurity risk factors for highly pathogenic avian influenza (H5N8) virus infection in duck farms, France](https://doi.org/10.1111/tbed.13672)
 
-- Hartnack et al. (2019) [Additive Bayesian networks for antimicrobial resistance and potential risk factors in non-typhoidal Salmonella isolates from layer hens in Uganda](https://bmcvetres.biomedcentral.com/articles/10.1186/s12917-019-1965-y)
+- Hartnack et al. (2019) [Additive Bayesian networks for antimicrobial resistance and potential risk factors in non-typhoidal Salmonella isolates from layer hens in Uganda](https://doi.org/10.1186/s12917-019-1965-y)
 
-- Ruchti et al. (2019): [Progression and risk factors of pododermatitis in part-time group housed rabbit does in Switzerland](https://www.sciencedirect.com/science/article/pii/S0167587718300813?via%3Dihub)
+- Ruchti et al. (2019): [Progression and risk factors of pododermatitis in part-time group housed rabbit does in Switzerland](https://doi.org/10.1016/j.prevetmed.2019.01.013)
 
-- Comin et al. (2019) [Revealing the structure of the associations between housing system, facilities, management and welfare of commercial laying hens using Additive Bayesian Networks](https://www.sciencedirect.com/science/article/abs/pii/S0167587718304665)
+- Comin et al. (2019) [Revealing the structure of the associations between housing system, facilities, management and welfare of commercial laying hens using Additive Bayesian Networks](https://doi.org/10.1016/j.prevetmed.2019.01.004)
 
-- Ruchti et al. (2018): [Pododermatitis in group housed rabbit does in Switzerland – prevalence, severity and risk factors](https://www.sciencedirect.com/science/article/pii/S0167587718300813?via%3Dihub)
+- Ruchti et al. (2018): [Pododermatitis in group housed rabbit does in Switzerland – prevalence, severity and risk factors](https://doi.org/10.1016/j.prevetmed.2018.06.011)
 
-- Pittavino et al. (2017): [Comparison between generalised linear modelling and additive Bayesian network; identification of factors associated with the incidence of antibodies against Leptospira interrogans sv Pomona in meat workers in New Zealand](https://www.sciencedirect.com/science/article/pii/S0001706X16308828?via%3Dihub)
+- Pittavino et al. (2017): [Comparison between generalised linear modelling and additive Bayesian network; identification of factors associated with the incidence of antibodies against Leptospira interrogans sv Pomona in meat workers in New Zealand](https://doi.org/10.1016/j.actatropica.2017.04.034)
 
-- Hartnack et al. (2017): [Attitudes of Austrian veterinarians towards euthanasia in small animal practice: impacts of age and gender on views on euthanasia](http://download.springer.com/static/pdf/949/art%253A10.1186%252Fs12917-016-0649-0.pdf?originUrl=http%3A%2F%2Fbmcvetres.biomedcentral.com%2Farticle%2F10.1186%2Fs12917-016-0649-0&token2=exp=1455044551~acl=%2Fstatic%2Fpdf%2F949%2Fart%25253A10.1186%25252Fs12917-016-0649-0.pdf*~hmac=e04039a7400eefea35dc05635bccae1688e549b8b0eb36edc0b8fd72caba73fc)
+- Hartnack et al. (2017): [Attitudes of Austrian veterinarians towards euthanasia in small animal practice: impacts of age and gender on views on euthanasia](https://doi.org/10.1186/s12917-016-0649-0)
 
-- Lewis et al. (2012): [Revealing the Complexity of Health Determinants in Resource-poor Settings](http://aje.oxfordjournals.org/content/176/11/1051.full.pdf?keytype=ref&ijkey=zCJD2Zt88XaDYyY)
+- Lewis et al. (2012): [Revealing the Complexity of Health Determinants in Resource-poor Settings](https://doi.org/10.1093/aje/kws183)
 
-- Lewis et al. (2011): [Structure discovery in Bayesian networks: An analytical tool for analysing complex animal health data](http://pdn.sciencedirect.com/science?_ob=MiamiImageURL&_cid=271186&_user=4429&_pii=S0167587711000341&_check=y&_origin=browseVolIssue&_zone=rslt_list_item&_coverDate=2011-06-15&wchp=dGLbVlS-zSkWb&md5=29522e1462a0ac05fe07c787a4cd3d0a&pid=1-s2.0-S0167587711000341-main.pdf)
+- Lewis et al. (2011): [Structure discovery in Bayesian networks: An analytical tool for analysing complex animal health data](https://doi.org/10.1016/j.prevetmed.2011.02.003)
 
 ## Workshops
 
