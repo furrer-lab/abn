@@ -5,8 +5,9 @@ name: CRAN-like checks
 
 on:
   push:
-    branches: 
+    branches:
       - main
+      - dev-fix-CRAN-checks-v3.0.6
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+"
