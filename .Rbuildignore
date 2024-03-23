@@ -24,7 +24,6 @@ Makefile
 ^\.github$
 
 ^vignettes/.*\.Rmd\.orig$
-^vignettes/.*\.png$
 ^vignettes/archive/.*\.pdf$
 ^vignettes/archive/.*\.asis$
 ^vignettes/archive/.*\.Rmd\_$
