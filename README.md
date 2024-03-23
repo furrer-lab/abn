@@ -59,7 +59,7 @@ BiocManager::install("Rgraphviz", version = "3.8")
 Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](vignettes/quick_start_example.Rmd).
 The datasets required for these examples are included within the [`abn` package](https://CRAN.R-project.org/package=abn).
 
-For a deeper understanding, refer to the manual pages on the [`abn` homepage](http://r-bayesian-networks.org), which include numerous examples. 
+For a deeper understanding, refer to the manual pages on the [`abn` homepage](https://r-bayesian-networks.org/), which include numerous examples. 
 Key pages to visit are `fitAbn()`, `buildScoreCache()`, `mostProbable()`, and `searchHillClimber()`.
 Also, see the [examples](#examples) below for a quick overview of the package's capabilities.
 
@@ -123,7 +123,7 @@ This methodology is rather distinct from other forms of statistical modelling in
 It is a **multivariate** technique and can be used for one or many dependent variables. 
 This is a data-driven approach, as opposed to relying only on subjective expert opinion to determine how variables of interest are interrelated (for example, structural equation modelling). 
 
-[Below](#examples) and on the [package's website](http://r-bayesian-networks.org), we provide some [cookbook](#examples)-type examples of how to perform Bayesian network **structure discovery** analyses with observational data. 
+[Below](#examples) and on the [package's website](https://r-bayesian-networks.org/), we provide some [cookbook](#examples)-type examples of how to perform Bayesian network **structure discovery** analyses with observational data. 
 The particular type of Bayesian network models considered here are **additive Bayesian networks**. 
 These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrisation. 
 An additive Bayesian network model is simply a **multidimensional regression model**, e.g. directly analogous to generalised linear modelling but with all variables potentially dependent. 
@@ -387,7 +387,7 @@ Please note that the `abn` project is released with a [Contributor Code of Condu
 
 # Applications
 
-The [abn website](http://r-bayesian-networks.org) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
+The [abn website](https://r-bayesian-networks.org/) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
 
 ## Technical articles
 

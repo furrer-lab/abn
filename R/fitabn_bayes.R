@@ -769,6 +769,7 @@ get.quantiles <- function(mylist,quantiles, single){
 #' @describeIn get.quantiles helper function for get.quantiles
 #' @param outmat matrix where the first col has the desired quantiles. We want to estimate this and out in into the second col
 #' @param inmat is the actual x,f(x) matrix
+#' @return matrix
 get.ind.quantiles <- function(outmat,inmat){
   ##outmat is a matrix where the first col has the desired quantiles
   ## we want to estimate this and out in into the second col

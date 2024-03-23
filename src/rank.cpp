@@ -8,6 +8,7 @@ using namespace arma;
 //' @title Rank of a matrix
 //' @description similar to \code{base::rank}
 //' @keywords internal
+//' @returns an integer
 //' @export
 // [[Rcpp::export]]
 

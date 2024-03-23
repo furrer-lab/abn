@@ -37,8 +37,14 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", width = 68)
-options(width = 68, cli.unicode = FALSE, cli.width = 68)
+knitr::opts_chunk$set(collapse = TRUE, 
+                      comment = "#>", 
+                      width = 68)
+
+orig_options <- options()
+options(width = 68, 
+        cli.unicode = FALSE, 
+        cli.width = 68)
 ```
 
 # Summary
@@ -128,5 +134,9 @@ We want to extend our gratitude to the faculty staff at the [Department of Mathe
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
 We would like to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in the realization of this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
 This work has been conducted as part of M.D.'s PhD project, which is supervised by R.F.
+
+```{r include=FALSE}
+options(orig_options)
+```
 
 # References

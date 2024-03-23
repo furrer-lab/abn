@@ -6,6 +6,7 @@
 #'
 #' @return numeric vector of same length as \code{x}.
 #' @export
+#' @returns numeric vector of same length as \code{x}.
 #' @keywords utilities
 logit <- function(x) {
   return(log(x/(1 - x)))

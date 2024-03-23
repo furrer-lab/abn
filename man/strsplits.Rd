@@ -6,6 +6,9 @@
 \usage{
 strsplits(x, splits, ...)
 }
+\value{
+A vector of strings
+}
 \description{
 Internal function that call multiple times strsplit() and remove space
 }

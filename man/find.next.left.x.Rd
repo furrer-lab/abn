@@ -22,6 +22,8 @@ find.next.right.x(mat.xy, g.max, g.factor, x.delta, max.fact.delta)
 }
 \value{
 integer
+
+integer
 }
 \description{
 Attempt to find the next x evaluation point using spline extrapolation traversing left from mode.

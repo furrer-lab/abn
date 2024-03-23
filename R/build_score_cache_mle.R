@@ -8,7 +8,7 @@
 #' @importFrom stats AIC BIC sd model.matrix as.formula lm glm logLik
 #' @importFrom nnet nnet.default multinom
 #' @importFrom mclogit mblogit
-#' @return list
+#' @returns A list that will be passed to \code{\link{buildScoreCache.mle}}.
 #' @keywords internal
 forLoopContent <-
   function(row.num,

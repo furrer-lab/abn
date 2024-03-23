@@ -7,6 +7,7 @@
 //'
 //'
 //' @param x a numeric vector
+//' @returns a numeric vector
 //' @export
 //' @rdname logit_cpp
 // [[Rcpp::export]]
@@ -27,6 +28,7 @@ Rcpp::NumericVector logit_cpp(Rcpp::NumericVector x) {
 //'
 //'
 //' @param x a numeric vector
+//' @returns a numeric vector
 //' @export
 //' @rdname expit_cpp
 // [[Rcpp::export]]

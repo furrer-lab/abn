@@ -6,6 +6,9 @@
 \usage{
 .onAttach(lib, pkg)
 }
+\value{
+Prints startup message to the console
+}
 \description{
 Prints start up message
 }

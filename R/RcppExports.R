@@ -7,6 +7,7 @@
 #'
 #'
 #' @param x a numeric vector
+#' @returns a numeric vector
 #' @export
 #' @rdname logit_cpp
 logit_cpp <- function(x) {
@@ -19,6 +20,7 @@ logit_cpp <- function(x) {
 #'
 #'
 #' @param x a numeric vector
+#' @returns a numeric vector
 #' @export
 #' @rdname expit_cpp
 expit_cpp <- function(x) {
@@ -28,6 +30,7 @@ expit_cpp <- function(x) {
 #' @title Iterative Reweighed Least Square algorithm for Binomials
 #' @description IRLS to estimate network score of Binomial nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_binomial_cpp <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_binomial_cpp`, A, b, maxit, tol)
@@ -36,6 +39,7 @@ irls_binomial_cpp <- function(A, b, maxit, tol) {
 #' @title BR Iterative Reweighed Least Square algorithm for Binomials
 #' @description IRLS to estimate network score of Binomial nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_binomial_cpp_br <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_binomial_cpp_br`, A, b, maxit, tol)
@@ -44,6 +48,7 @@ irls_binomial_cpp_br <- function(A, b, maxit, tol) {
 #' @title Fast Iterative Reweighed Least Square algorithm for Binomials
 #' @description IRLS to estimate network score of Binomial nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_binomial_cpp_fast <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_binomial_cpp_fast`, A, b, maxit, tol)
@@ -52,6 +57,7 @@ irls_binomial_cpp_fast <- function(A, b, maxit, tol) {
 #' @title Fast Br Iterative Reweighed Least Square algorithm for Binomials
 #' @description IRLS to estimate network score of Binomial nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_binomial_cpp_fast_br <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_binomial_cpp_fast_br`, A, b, maxit, tol)
@@ -59,6 +65,7 @@ irls_binomial_cpp_fast_br <- function(A, b, maxit, tol) {
 
 #' @title Iterative Reweighed Least Square algorithm for Gaussians
 #' @description IRLS to estimate network score of Gaussian nodes.
+#' @returns a list
 #' @keywords internal
 #' @export
 irls_gaussian_cpp <- function(A, b, maxit, tol) {
@@ -76,6 +83,7 @@ irls_gaussian_cpp_fast <- function(A, b, maxit, tol) {
 #' @title Factorial
 #' @description Calculate the factorial in C##
 #' @keywords internal
+#' @returns a double
 #' @export
 factorial <- function(n) {
     .Call(`_abn_factorial`, n)
@@ -84,6 +92,7 @@ factorial <- function(n) {
 #' @title Iterative Reweighed Least Square algorithm for Poissons
 #' @description IRLS to estimate network score of Poisson nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_poisson_cpp <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_poisson_cpp`, A, b, maxit, tol)
@@ -92,6 +101,7 @@ irls_poisson_cpp <- function(A, b, maxit, tol) {
 #' @title Fast Factorial
 #' @description Calculate the factorial in C##
 #' @keywords internal
+#' @returns a double
 #' @export
 factorial_fast <- function(n) {
     .Call(`_abn_factorial_fast`, n)
@@ -100,6 +110,7 @@ factorial_fast <- function(n) {
 #' @title Fast Iterative Reweighed Least Square algorithm for Poissons
 #' @description IRLS to estimate network score of Poisson nodes.
 #' @keywords internal
+#' @returns a list
 #' @export
 irls_poisson_cpp_fast <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_poisson_cpp_fast`, A, b, maxit, tol)
@@ -108,6 +119,7 @@ irls_poisson_cpp_fast <- function(A, b, maxit, tol) {
 #' @title Mutual Information
 #' @description Calculates the mutual information.
 #' @keywords internal
+#' @returns a double
 #' @export
 mi_cpp <- function(joint_dist) {
     .Call(`_abn_mi_cpp`, joint_dist)
@@ -116,6 +128,7 @@ mi_cpp <- function(joint_dist) {
 #' @title Rank of a matrix
 #' @description similar to \code{base::rank}
 #' @keywords internal
+#' @returns an integer
 #' @export
 rank_cpp <- function(A) {
     .Call(`_abn_rank_cpp`, A)

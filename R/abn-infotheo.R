@@ -64,6 +64,7 @@
 #' entropyData(freqs.table = discretization(data.df = rv, data.dists = dist,
 #' discretization.method = "sturges", nb.states = FALSE))
 #' @keywords utilities
+#' @returns table of counts for each bin of the discretized data frame.
 #' @importFrom stats sd IQR
 discretization <- function(data.df = NULL, data.dists = NULL, discretization.method = "sturges", nb.states = FALSE) {
 
@@ -270,7 +271,7 @@ discretization <- function(data.df = NULL, data.dists = NULL, discretization.met
 #' @seealso \code{\link{discretization}}
 #' @references Cover, Thomas M, and Joy A Thomas. (2012). "Elements of Information Theory". John Wiley & Sons.
 #' @export
-#'
+#' @returns integer
 #' @examples
 #' ## Generate random variable
 #' Y <- rnorm(n = 100, mean = 0, sd = 2)
@@ -363,7 +364,7 @@ miData <- function(freqs.table, method = c("mi.raw", "mi.raw.pc")) {
 #' @seealso \code{\link{discretization}}
 #' @references Cover, Thomas M, and Joy A Thomas. (2012). "Elements of Information Theory". John Wiley & Sons.
 #' @export
-#'
+#' @returns integer
 #' @examples
 #' ## Generate random variable
 #' rv <- rnorm(n = 100, mean = 5, sd = 2)

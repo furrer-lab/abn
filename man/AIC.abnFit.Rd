@@ -15,6 +15,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the AIC of the fitted model.
+}
 \description{
 Print AIC of objects of class \code{abnFit}
 }

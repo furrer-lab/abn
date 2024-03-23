@@ -6,6 +6,9 @@
 \usage{
 irls_gaussian_cpp(A, b, maxit, tol)
 }
+\value{
+a list
+}
 \description{
 IRLS to estimate network score of Gaussian nodes.
 }

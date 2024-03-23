@@ -138,7 +138,7 @@ fit.control(
 \item{seed}{a non-negative integer which sets the seed in \code{set.seed(seed)}.}
 }
 \value{
-Named list according the provided arguments.
+a list of control parameters for the \code{\link{fitAbn}} function.
 }
 \description{
 Allow the user to set restrictions in the \code{\link{fitAbn}} for both the Bayesian and the MLE approach.
