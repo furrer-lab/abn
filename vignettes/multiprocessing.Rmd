@@ -40,14 +40,6 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ## Load the data and specify the parameters
 
-```{r}
-print(paste("current working directory is: ", getwd()))
-print(paste("get system working directory: ", system("pwd")))
-print(paste("list files in current working directory: ", system("ls -la ")))
-print(paste("list files in parent directory: ", system("ls -la ../")))
-print(paste("find all png files in the parent directory: ", system("find ../ -name '*.png'")))
-```
-
 ```r
 library(abn)
 library(microbenchmark)
