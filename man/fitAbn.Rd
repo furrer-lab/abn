@@ -135,7 +135,7 @@ Internal code is used by default for numerical estimation in nodes without rando
 This default behavior can be overridden using \code{control=list(max.mode.error=...)}. The default is \code{max.mode.error=10}, which means that the modes estimated from INLA output must be within 10\\% of those estimated using internal code.
 Otherwise, the internal code is used rather than INLA.
 To force the use of INLA on all nodes, use \code{max.mode.error=100}, which then ignores this check, to force the use of internal code then use \code{max.mode.error=0}.
-For the numerical reliability and perform of \pkg{abn} see \url{http://r-bayesian-networks.org}.
+For the numerical reliability and perform of \pkg{abn} see \url{https://r-bayesian-networks.org/}.
 Generally speaking, INLA can be swift and accurate, but in several cases, it can perform very poorly and so some care is required (which is why there is an internal check on the modes).
 Binary variables must be declared as factors with two levels, and the argument \code{data.dists} must be a list with named arguments, one for each of the variables in \code{data.df} (except a grouping variable - if present!), where each entry is either "poisson","binomial", "multinomial" or "gaussian", see examples below.
 The "poisson" and "binomial" distributions use log and logit link functions, respectively.
@@ -205,176 +205,194 @@ The \code{control} argument is a list with separate arguments for the Bayesian a
 \examples{
 \dontrun{
 ## Built-in dataset with a subset of cols
-mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
+mydat <- ex0.dag.data[, c("b1", "b2", "b3", "g1", "b4", "p2", "p4")]
 
 ## setup distribution list for each node
-mydists <- list(b1="binomial", b2="binomial", b3="binomial", g1="gaussian",
-                b4="binomial", p2="poisson", p4="poisson")
+mydists <- list(b1 = "binomial",
+                b2 = "binomial",
+                b3 = "binomial",
+                g1 = "gaussian",
+                b4 = "binomial",
+                p2 = "poisson",
+                p4 = "poisson")
 
 ## Null model - all independent variables
-mydag.empty <- matrix(0, nrow=7, ncol=7)
-colnames(mydag.empty) <- rownames(mydag.empty) <- names(mydat)
+mydag_empty <- matrix(0, nrow = 7, ncol = 7)
+colnames(mydag_empty) <- rownames(mydag_empty) <- names(mydat)
 
 ## Now fit the model to calculate its goodness-of-fit
-myres <- fitAbn(dag=mydag.empty,
-                data.df=mydat,
-                data.dists=mydists)
+myres <- fitAbn(dag = mydag_empty,
+                data.df = mydat,
+                data.dists = mydists)
 
 ## Log-marginal likelihood goodness-of-fit for complete DAG
 print(myres$mlik)
 
 ## fitAbn accepts also the formula statement
-myres <- fitAbn(dag=~b1|b2+b2|p4:g1+g1|p2+b3|g1+b4|b1+p4|g1,
-                data.df=mydat,
-                data.dists=mydists)
-print(myres$mlik) ## a much weaker fit than full independence DAG
+myres <- fitAbn(dag = ~ b1 | b2 + b2 | p4:g1 + g1 | p2 + b3 | g1 + b4 | b1 + p4 | g1,
+                data.df = mydat,
+                data.dists = mydists)
+print(myres$mlik) # a much weaker fit than full independence DAG
 
 # Plot the DAG via Rgraphviz
-plotAbn(dag=myres)
-# or more explicitly
-plotAbn(dag=myres$abnDag$dag,
-        data.dists=mydists,
-        fitted.values=myres$modes)
+plot(myres)
 
-## Or equivalentelly using the formula statement, with plotting
+## Or equivalently using the formula statement, with plotting
 ## Now repeat but include some dependencies first
-mydag <- mydag.empty
-mydag["b1","b2"] <- 1 # b1<-b2 and so on
-mydag["b2","p4"] <- mydag["b2","g1"] <- mydag["g1","p2"] <- 1
-mydag["b3","g1"] <- mydag["b4","b1"] <- mydag["p4","g1"] <- 1
-myresAlt <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists)
-plot(myresAlt)
+mydag <- mydag_empty
+mydag["b1", "b2"] <- 1 # b1<-b2 and so on
+mydag["b2", "p4"] <- mydag["b2", "g1"] <- mydag["g1", "p2"] <- 1
+mydag["b3", "g1"] <- mydag["b4", "b1"] <- mydag["p4", "g1"] <- 1
+myres_alt <- fitAbn(dag = mydag,
+                    data.df = mydat,
+                    data.dists = mydists)
+plot(myres_alt)
 
-## -----------------------------------------------------------------------------------
-## This function contains an MLE implementation accessible through a method parameter
-## use built-in simulated data set
-## -----------------------------------------------------------------------------------
-myres.mle <- fitAbn(dag=~b1|b2+b2|p4+g1+g1|p2+b3|g1+b4|b1+p4|g1,
-                    data.df=mydat,
-                    data.dists=mydists,
-                    method="mle")
+## -----------------------------------------------------------------------------
+## This function contains an MLE implementation accessible through a method
+## parameter use built-in simulated data set
+## -----------------------------------------------------------------------------
+myres_mle <- fitAbn(dag = ~ b1 | b2 + b2 | p4 + g1 + g1 | p2 + b3 | g1 + b4 | b1 + p4 | g1,
+                    data.df = mydat,
+                    data.dists = mydists,
+                    method = "mle")
 
 ## Print the output for mle first then for Bayes:
-print(myres.mle); plot(myres.mle)
-print(myres); plot(myres)
+print(myres_mle)
+plot(myres_mle)
 
-## This is a basic plot of some posterior densities. The algorithm used for selecting
-## density points is quite straightforward, but it might result in a sparse distribution.
-## Therefore, we also recompute the density over an evenly spaced grid
-of 50 points between the two endpoints that had a minimum PDF at f=min.pdf.
-## Setting max.mode.error=0 forces the use of the internal C code.
-myres.c <- fitAbn(dag=mydag, data.df=mydat, data.dists=mydists,
-                  compute.fixed=TRUE,
-                  control=list(max.mode.error=0))
+print(myres)
+plot(myres)
 
-print(names(myres.c$marginals)) ## gives all the different parameter names
+## This is a basic plot of some posterior densities. The algorithm used for
+## selecting density points is quite straightforward, but it might result
+## in a sparse distribution. Therefore, we also recompute the density over
+## an evenly spaced grid of 50 points between the two endpoints that had
+## a minimum PDF at f = min.pdf.
+## Setting max.mode.error = 0 forces the use of the internal C code.
+myres_c <- fitAbn(dag = mydag,
+                  data.df = mydat,
+                  data.dists = mydists,
+                  compute.fixed = TRUE,
+                  control = list(max.mode.error = 0))
 
-## Repeat but use INLA for the numerics using max.mode.error=100
+print(names(myres_c$marginals)) # gives all the different parameter names
+
+## Repeat but use INLA for the numerics using max.mode.error = 100
 ## as using internal code is the default here rather than INLA
-myres.inla <- fitAbn(dag=mydag,
-                     data.df=mydat,
-                     data.dists=mydists,
-                     compute.fixed=TRUE,
-                     control=list(max.mode.error=100))
+myres_inla <- fitAbn(dag = mydag,
+                     data.df = mydat,
+                     data.dists = mydists,
+                     compute.fixed = TRUE,
+                     control = list(max.mode.error = 100))
 
 ## Plot posterior densities
-par(mfrow=c(2,2), mai=c(.7,.7,.2,.1))
-plot(myres.c$marginals$b1[["b1|(Intercept)"]], type="l", xlab="b1|(Intercept)")
-lines(myres.inla$marginals$b1[["b1|(Intercept)"]], col="blue")
-plot(myres.c$marginals$b2[["b2|p4"]], type="l", xlab="b2|p4")
-lines(myres.inla$marginals$b2[["b2|p4"]], col="blue")
-plot(myres.c$marginals$g1[["g1|precision"]], type="l", xlab="g1|precision")
-lines(myres.inla$marginals$g1[["g1|precision"]], col="blue")
-plot(myres.c$marginals$b4[["b4|b1"]], type="l", xlab="b4|b1")
-lines(myres.inla$marginals$b4[["b4|b1"]], col="blue")
+default_par <- par(no.readonly = TRUE) # save default par settings
+par(mfrow = c(2, 2), mai = c(.7, .7, .2, .1))
+plot(myres_c$marginals$b1[["b1 | (Intercept)"]], type = "l", xlab = "b1 | (Intercept)")
+lines(myres_inla$marginals$b1[["b1 | (Intercept)"]], col = "blue")
+plot(myres_c$marginals$b2[["b2 | p4"]], type = "l", xlab = "b2 | p4")
+lines(myres_inla$marginals$b2[["b2 | p4"]], col = "blue")
+plot(myres_c$marginals$g1[["g1 | precision"]], type = "l", xlab = "g1 | precision")
+lines(myres_inla$marginals$g1[["g1 | precision"]], col = "blue")
+plot(myres_c$marginals$b4[["b4 | b1"]], type = "l", xlab = "b4 | b1")
+lines(myres_inla$marginals$b4[["b4 | b1"]], col = "blue")
+par(default_par) # reset par settings
 
 ## An elementary mixed model example using built-in data specify DAG,
 ## only two variables using a subset of variables from ex3.dag.data
 ## both variables are assumed to need (separate) adjustment for the
 ## group variable, i.e., a binomial GLMM at each node
 
-mydists <- list(b1="binomial",b2="binomial")
+mydists <- list(b1 = "binomial",
+                b2 = "binomial")
 
 ## Compute marginal likelihood - use internal code via max.mode.error=0
 ## as using INLA is the default here.
 ## Model where b1 <- b2
-myres.c <- fitAbn(dag=~b1|b2,
-                  data.df=ex3.dag.data[,c(1,2,14)],
-                  data.dists=mydists,
-                  group.var="group",
-                  cor.vars=c("b1","b2"),
-                  control=list(max.mode.error=0))
-print(myres.c) ## show all the output
+myres_c <- fitAbn(dag = ~b1 | b2,
+                  data.df = ex3.dag.data[, c(1, 2, 14)],
+                  data.dists = mydists,
+                  group.var = "group",
+                  cor.vars = c("b1", "b2"),
+                  control = list(max.mode.error = 0))
+print(myres_c) # show all the output
 
 ## compare mode for node b1 with glmer(), lme4::glmer is automatically attached.
 
-## Now for marginals - INLA is strongly preferable for estimating marginals for nodes
-## with random effects as it is far faster, but may not be reliable
-## see http://r-bayesian-networks.org
+## Now for marginals - INLA is strongly preferable for estimating marginals for
+## nodes with random effects as it is far faster, but may not be reliable
+## see https://r-bayesian-networks.org/
 
-## INLA's estimates of the marginals, using high n.grid=500
+## INLA's estimates of the marginals, using high n.grid = 500
 ## as this makes the plots smoother - see below.
-myres.inla <- fitAbn(dag=~b1|b2,
-                     data.df=ex3.dag.data[,c(1,2,14)],
-                     data.dists=mydists,
-                     group.var="group",
-                     cor.vars=c("b1", "b2"),
-                     compute.fixed=TRUE,
-                     n.grid=500,
-                     control=list(max.mode.error=100,
-                                  max.hessian.error=10E-02))
+myres_inla <- fitAbn(dag = ~b1 | b2,
+                   data.df = ex3.dag.data[, c(1, 2, 14)],
+                  data.dists = mydists,
+                  group.var = "group",
+                  cor.vars = c("b1", "b2"),
+                  compute.fixed = TRUE,
+                  n.grid = 500,
+                  control = list(max.mode.error = 100,
+                                 max.hessian.error = 10E-02))
 
-## this is NOT recommended - marginal density estimation using fitAbn in mixed models
-## is really just for diagnostic purposes, better to use fitAbn.inla() here
-## but here goes...be patient
-myres.c <- fitAbn(dag=~b1|b2,
-                  data.df=ex3.dag.data[,c(1,2,14)],
-                  data.dists=mydists,
-                  group.var="group",
-                  cor.vars=c("b1", "b2"),
-                  compute.fixed=TRUE,
-                  control=list(max.mode.error=0,
-                               max.hessian.error=10E-02))
+## this is NOT recommended - marginal density estimation using fitAbn in
+## mixed models is really just for diagnostic purposes, better to use
+## fitAbn.inla() here; but here goes... be patient
+myres_c <- fitAbn(dag = ~b1 | b2,
+                  data.df = ex3.dag.data[, c(1, 2, 14)],
+                  data.dists = mydists,
+                  group.var = "group",
+                  cor.vars = c("b1", "b2"),
+                  compute.fixed = TRUE,
+                  control = list(max.mode.error = 0,
+                                 max.hessian.error = 10E-02))
 
 ## compare marginals between internal and INLA.
-par(mfrow=c(2,3))
+default_par <- par(no.readonly = TRUE) # save default par settings
+par(mfrow = c(2, 3))
 # 5 parameters - two intercepts, one slope, two group level precisions
-plot(myres.inla$marginals$b1[[1]], type="l", col="blue")
-lines(myres.c$marginals$b1[[1]], col="brown", lwd=2)
-plot(myres.inla$marginals$b1[[2]], type="l", col="blue")
-lines(myres.c$marginals$b1[[2]], col="brown", lwd=2)
+plot(myres_inla$marginals$b1[[1]], type = "l", col = "blue")
+lines(myres_c$marginals$b1[[1]], col = "brown", lwd = 2)
+plot(myres_inla$marginals$b1[[2]], type = "l", col = "blue")
+lines(myres_c$marginals$b1[[2]], col = "brown", lwd = 2)
 # the precision of group-level random effects
-plot(myres.inla$marginals$b1[[3]],type="l", col="blue", xlim=c(0,2))
-lines(myres.c$marginals$b1[[3]],col="brown",lwd=2)
-plot(myres.inla$marginals$b2[[1]],type="l", col="blue")
-lines(myres.c$marginals$b2[[1]],col="brown",lwd=2)
-plot(myres.inla$marginals$b2[[1]], type="l", col="blue")
-lines(myres.c$marginals$b2[[1]], col="brown", lwd=2)
+plot(myres_inla$marginals$b1[[3]], type = "l", col = "blue", xlim = c(0, 2))
+lines(myres_c$marginals$b1[[3]], col = "brown", lwd = 2)
+plot(myres_inla$marginals$b2[[1]], type = "l", col = "blue")
+lines(myres_c$marginals$b2[[1]], col = "brown", lwd = 2)
+plot(myres_inla$marginals$b2[[1]], type = "l", col = "blue")
+lines(myres_c$marginals$b2[[1]], col = "brown", lwd = 2)
 # the precision of group-level random effects
-plot(myres.inla$marginals$b2[[2]], type="l", col="blue", xlim=c(0,2))
-lines(myres.c$marginals$b2[[2]], col="brown", lwd=2)
+plot(myres_inla$marginals$b2[[2]], type = "l", col = "blue", xlim = c(0, 2))
+lines(myres_c$marginals$b2[[2]], col = "brown", lwd = 2)
+par(default_par) # reset par settings
 
 ### these are very similar although not exactly identical
 
-## use internal code but only to compute a single parameter over a specified grid
-## This can be necessary if the simple auto grid finding functions does a poor job
-myres.c <- fitAbn(dag=~b1|b2,
-                  data.df=ex3.dag.data[,c(1,2,14)],
-                  data.dists=mydists,
-                  group.var="group",
-                  cor.vars=c("b1", "b2"),
-                  centre=FALSE,
-                  compute.fixed=TRUE,
-                  control=list(marginal.node=1,
-                               marginal.param=3,## precision term in node 1
-                               variate.vec=seq(0.05, 1.5, len=25),
-                               max.hessian.error=10E-02))
+## use internal code but only to compute a single parameter over a specified
+## grid.
+## This can be necessary if the simple auto grid finding functions does
+## a poor job.
+myres_c <- fitAbn(dag = ~b1 | b2,
+                  data.df = ex3.dag.data[, c(1, 2, 14)],
+                  data.dists = mydists,
+                  group.var = "group",
+                  cor.vars = c("b1", "b2"),
+                  centre = FALSE,
+                  compute.fixed = TRUE,
+                  control = list(marginal.node = 1,
+                                 marginal.param = 3, # precision term in node 1
+                                 variate.vec = seq(0.05, 1.5, len = 25),
+                                 max.hessian.error = 10E-02))
 
-par(mfrow=c(1,2))
-plot(myres.c$marginals$b1[[1]], type="l", col="blue")## still fairly sparse
+default_par <- par(no.readonly = TRUE) # save default par settings
+par(mfrow = c(1, 2))
+plot(myres_c$marginals$b1[[1]], type = "l", col = "blue") # still fairly sparse
 # An easy way is to use spline to fill in the density without recomputing other
 # points provided the original grid is not too sparse.
-plot(spline(myres.c$marginals$b1[[1]], n=100), type="b", col="brown")
+plot(spline(myres_c$marginals$b1[[1]], n = 100), type = "b", col = "brown")
+par(default_par) # reset par settings
 }
 
 }
@@ -385,7 +403,7 @@ Kratzer, G., and Furrer, R., 2018. Information-Theoretic Scoring Rules to Learn 
 
 Lewis, F. I., and McCormick, B. J. J. (2012). Revealing the complexity of health determinants in resource poor settings. \emph{American Journal Of Epidemiology}. DOI:10.1093/aje/KWS183.
 
-Further information about \pkg{abn} can be found at: \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org}.
+Further information about \pkg{abn} can be found at: \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org}.
 }
 \seealso{
 \code{\link{buildScoreCache}}
@@ -395,8 +413,8 @@ Other fitAbn:
 
 Other Bayes: 
 \code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{getmarginals}()}
 }
 \author{

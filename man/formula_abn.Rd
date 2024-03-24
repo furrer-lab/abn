@@ -6,6 +6,9 @@
 \usage{
 formula_abn(f, name)
 }
+\value{
+A square matrix
+}
 \description{
 Internal function that produce a square matrix length(name) with \eqn{0,1} depending on f.
 f have to start with ~ terms are entries of name terms are separated by + term1 | term2 indicates

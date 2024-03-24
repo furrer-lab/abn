@@ -13,6 +13,8 @@ miData(freqs.table, method = c("mi.raw", "mi.raw.pc"))
 }
 \value{
 Mutual information estimate.
+
+integer
 }
 \description{
 This function empirically estimates the Mutual Information from a table of counts using the observed frequencies.

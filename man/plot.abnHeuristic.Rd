@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+plot of the scores of the heuristic search.
+}
 \description{
 Plot objects of class \code{abnHeuristic}
 }

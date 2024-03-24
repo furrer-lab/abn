@@ -7,10 +7,15 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = ""
+)
+```
 
-
-
-```r
+```{r setup}
 library(abn)
 ```
 
@@ -32,8 +37,7 @@ This process is illustrated in the `vignette("01_quick_start_example")`.
 Alternatively, with `fitAbn()` we can fit the parameters to a manually specified DAG.
 In this case, we need to provide the data, its distributions and the DAG as arguments to `fitAbn()`:
 
-
-```r
+```{r}
 # Load an illustrative subset of the example data
 mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
 
@@ -60,8 +64,7 @@ colnames(mydag) <- rownames(mydag) <- names(mydat)
 
 Fit the model to calculate the log marginal likelihood goodness of fit:
 
-
-```r
+```{r}
 myres.c <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
@@ -69,46 +72,12 @@ myres.c <- fitAbn(dag = mydag,
 plot(myres.c)
 ```
 
-![plot of chunk unnamed-chunk-3](unnamed-chunk-3-1.png)
-
 # Examine the parameter estimates
 
 We can examine the parameter estimates with the `print()` method for the class `abnFit`
 
-
-```r
+```{r}
 print(myres.c)
-#> The ABN model was fitted using a Bayesian approach. The estimated modes (the highest posterior density values of the parameters) are:
-#> 
-#> $b1
-#> b1|(Intercept)          b1|b3 
-#>          0.217         -0.164 
-#> 
-#> $b2
-#> b2|(Intercept)          b2|b1 
-#>         0.0286         0.0465 
-#> 
-#> $b3
-#> b3|(Intercept) 
-#>         0.0267 
-#> 
-#> $g1
-#> g1|(Intercept)          g1|b4   g1|precision 
-#>        -0.0494         0.0915         1.0054 
-#> 
-#> $b4
-#> b4|(Intercept) 
-#>           0.16 
-#> 
-#> $p2
-#> p2|(Intercept) 
-#>           2.34 
-#> 
-#> $p4
-#> p4|(Intercept) 
-#>           2.32 
-#> 
-#> Number of nodes in the network:  7
 ```
 
 or by looking at the `coef` slot of the `abnFit` object returned by `fitAbn()`:
@@ -120,8 +89,7 @@ This is useful to assess the uncertainty in the parameter estimates and to check
 
 Now fit the model with `compute.fixed=TRUE` to calculate the marginal posterior distributions for all parameters:
 
-
-```r
+```{r}
 myres.c2 <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
@@ -132,8 +100,7 @@ myres.c2 <- fitAbn(dag = mydag,
 The `marginals` slot of the `abnFit` object returned by `fitAbn()` contains a list of all marginal posterior densities.
 We can plot some of the marginal posterior densities to assess the uncertainty in the parameter estimates:
 
-
-```r
+```{r}
 library(ggplot2)
 library(gridExtra)
 
@@ -153,6 +120,4 @@ p2 <- ggplot(df2, aes(x=x, y=y)) +
 
 grid.arrange(p1, p2, ncol=2)
 ```
-
-![plot of chunk unnamed-chunk-6](unnamed-chunk-6-1.png)
 Note that, by default, all variables are standardized (`centre = TRUE`).

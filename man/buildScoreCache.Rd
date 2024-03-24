@@ -193,7 +193,7 @@ careful if \code{buildScoreCache.bayes()} is run in parallel!}
 \item{used.INLA}{A logical value indicating whether \code{inla()} was used to fit the model.}
 }
 
-list
+A list that will be passed to \code{\link{buildScoreCache.mle}}.
 }
 \description{
 Iterates over all valid parent combinations - subject to ban, retain, and \code{max.parent} limits - for each node, or a subset of nodes, and computes a cache of scores (AIC, BIC, log marginal likelihood).
@@ -224,7 +224,7 @@ comprising of all nodes (in the same order as the columns in \code{data.df}) bef
 
 This function is used to calculate all individual information-theoretic node scores. The possible information-theoretic based network scores computed in \code{buildScoreCache} are the maximum likelihood (mlik, called marginal likelihood in this context as it is computed node wise),
 the Akaike Information Criteria (aic), the Bayesian Information Criteria (bic) and the Minimum distance Length (mdl). The classical definitions of those metrics are given in Kratzer and Furrer (2018). This function computes a cache that can be fed into a model search algorithm.
-The numerical routines used here are identical to those in \code{\link{fitAbn}} and see that help page for further details and also the quality assurance section on the \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org} of the \pkg{abn} website for more details.
+The numerical routines used here are identical to those in \code{\link{fitAbn}} and see that help page for further details and also the quality assurance section on the \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org} of the \pkg{abn} website for more details.
 }
 }
 \section{Functions}{
@@ -264,24 +264,25 @@ myfit.mle <- fitAbn(object = dag.mle,
                     max.parents = 2)
 plot(myfit.mle)
 
+\dontrun{
 # ABN with Bayes
-mycache.bayes <- buildScoreCache(data.df = mydf,
-                                 data.dists = mydists,
-                                 method = "bayes",
-                                 max.parents = 2)
-dag.bayes <- mostProbable(score.cache = mycache.bayes,
-                          max.parents = 2)
-myfit.bayes <- fitAbn(object = dag.bayes,
-                      method = "bayes",
-                      max.parents = 2)
-plot(myfit.bayes)
-
+if(requireNamespace("INLA", quietly = TRUE)){
+  # Run only if INLA is available
+  mycache.bayes <- buildScoreCache(data.df = mydf,
+                                   data.dists = mydists,
+                                   method = "bayes",
+                                   max.parents = 2)
+  dag.bayes <- mostProbable(score.cache = mycache.bayes,
+                            max.parents = 2)
+  myfit.bayes <- fitAbn(object = dag.bayes,
+                        method = "bayes",
+                        max.parents = 2)
+  plot(myfit.bayes)
+}
 # Compare MLE and Bayes with lm
 mymod.lm <- lm(c ~ a + b, data = mydf)
 summary(mymod.lm)
 
-
-\dontrun{
 ##################################################################################################
 ## Example 1 - "mle" vs. "bayes" and the later with using the internal C routine compared to INLA
 ##################################################################################################
@@ -403,7 +404,7 @@ Kratzer, G., and Furrer, R., (2018). "Information-Theoretic Scoring Rules to Lea
 
 Lewis, F. I., and McCormick, B. J. J. (2012). "Revealing the complexity of health determinants in resource poor settings". \emph{American Journal Of Epidemiology}. doi:10.1093/aje/KWS183).
 
-Further information about \pkg{abn} can be found at: \href{http://r-bayesian-networks.org/}{r-bayesian-networks.org}.
+Further information about \pkg{abn} can be found at: \href{https://r-bayesian-networks.org/}{r-bayesian-networks.org}.
 }
 \seealso{
 \code{\link{fitAbn}}
@@ -412,8 +413,8 @@ Other buildScoreCache:
 \code{\link{build.control}()}
 
 Other Bayes: 
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{fitAbn}()},
 \code{\link{getmarginals}()}
 }

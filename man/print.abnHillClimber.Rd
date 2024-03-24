@@ -13,6 +13,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the consensus DAG and the class of the object.
+}
 \description{
 Print objects of class \code{abnHillClimber}
 }

@@ -8,7 +8,13 @@ vignette: >
   %\VignetteDepends{abn, microbenchmark}
 ---
 
-
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = ""
+)
+```
 
 This vignette provides an overview of parallel computation in R with the `parallel` package, focusing on its implementation in the `abn` package.
 We will also discuss the difference between the concepts of the "FORK" and "PSOCK" parallelisation methods.
@@ -40,16 +46,14 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ## Load the data and specify the parameters
 
-
-```r
+```{r setup}
 library(abn)
 library(microbenchmark)
 
 set.seed(123456)
 ```
 
-
-```r
+```{r load_data}
 # Prepare data and parameters
 df <- FCV[, -c(13)]
 mydists <- list(FCV = "binomial",
@@ -81,8 +85,7 @@ We compare the following methods:
 - `bayesMulticorePSOCK`: Bayesian estimation on 2 cores using PSOCK
 - `bayesMulticoreFORK`: Bayesian estimation on 2 cores using FORK
 
-
-```r
+```{r benchmarking}
 # Benchmark
 res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
                                                data.dists = mydists,
@@ -127,12 +130,9 @@ res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
                times = 25)
 ```
 
-
-```r
+```{r benchmarkBoxPlot, fig.width=15, fig.height=10}
 boxplot(res)
 ```
-
-![plot of chunk benchmarkBoxPlot](benchmarkBoxPlot-1.png)
 
 The boxplot illustrates the time distribution for computing the score cache using different methods.
 

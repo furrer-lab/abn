@@ -11,6 +11,8 @@ logit(x)
 }
 \value{
 numeric vector of same length as \code{x}.
+
+numeric vector of same length as \code{x}.
 }
 \description{
 See also the C implementation \code{?abn::logit_cpp()}.

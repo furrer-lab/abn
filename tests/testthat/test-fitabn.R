@@ -411,10 +411,10 @@ test_that("fitabn() works with all distributions, grouping and class abnCache", 
   })
   expect_error({
     myres.mle <- fitAbn(object = mp.dag.mle, data.df = df, data.dists = mydists)
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_error({
     myres.mle <- fitAbn(object = mp.dag.mle, data.dists = mydists)
-  }, regexp = "`data.dists` and `object` provided but can only accept one of them")
+  }, regexp = "'data.dists' and 'object' provided but can only accept one of them")
   expect_no_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = mp.dag.mle, method = "mle")
@@ -450,12 +450,12 @@ test_that("fitabn() works with all distributions, grouping and class abnCache", 
   })
   expect_error({
     myres.mle <- fitAbn(object = hc.dag.mle, data.df = df, data.dists = mydists)
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = hc.dag.mle, data.dists = mydists)
     })
-  }, regexp = "`data.dists` and `object` provided but can only accept one of them")
+  }, regexp = "'data.dists' and 'object' provided but can only accept one of them")
   expect_no_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = hc.dag.mle, method = "mle")

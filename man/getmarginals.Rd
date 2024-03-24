@@ -104,6 +104,9 @@ getmarginals(
 
 \item{num.intervals.brent}{the number of initial different bracket segments to try in the Brent-Dekker method. Passed to \code{.Call("fit_single_node", ...)}.}
 }
+\value{
+A named list with "modes", "error.code", "hessian.accuracy", "error.code.desc", "mliknode", "mlik", "mse", "coef", "used.INLA", "marginals".
+}
 \description{
 Function for computing marginal posterior densities using C and is called from fit.dag()
 Only to be called internally.
@@ -111,8 +114,8 @@ Only to be called internally.
 \seealso{
 Other Bayes: 
 \code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glmm}()},
 \code{\link{calc.node.inla.glm}()},
+\code{\link{calc.node.inla.glmm}()},
 \code{\link{fitAbn}()}
 }
 \concept{Bayes}

@@ -11,6 +11,8 @@ entropyData(freqs.table)
 }
 \value{
 Shannon's entropy estimate on natural logarithm scale.
+
+integer
 }
 \description{
 This function empirically estimates the Shannon entropy from a table of counts using the observed frequencies.

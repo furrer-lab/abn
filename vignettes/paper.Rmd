@@ -28,6 +28,16 @@ date: 17. March 2024
 bibliography: paper.bib
 ---
 
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, 
+                      comment = "#>", 
+                      width = 68)
+
+orig_options <- options()
+options(width = 68, 
+        cli.unicode = FALSE, 
+        cli.width = 68)
+```
 # Summary
 The `abn` package is a comprehensive tool for Bayesian network (BN) analysis, a form of probabilistic graphical model. 
 It derives a directed acyclic graph from empirical data, describing the dependency structure between random variables. 
@@ -79,7 +89,7 @@ For multinomial distributed variables, `abn` fits a multinomial baseline categor
 Currently, only single-layer clustering is supported (e.g., for `method = "mle"`, this corresponds to a random intercept model).
 
 With a Bayesian approach (`method = "bayes"`), `abn` utilizes its own implementation of the Laplace approximation as well as the `INLA` package [@inla2013] to fit a single-level hierarchical model for Binomial, Poisson, and Gaussian distributed variables. 
-Independent of the type of data, multinomial distributed variables are not yet implemented with `method ="bayes"` (details in the [online manual](https://r-bayesian-networks.org/quick_start_example.html)).
+Independent of the type of data, multinomial distributed variables are not yet implemented with `method ="bayes"` (details in the online manual).
 
 Furthermore, the code base has been enhanced to be more efficient, reliable, and user-friendly through code optimization, regular reviews and continuous integration practices. 
 We have adhered to the latest open-source software standards, including active maintenance of `abn`. 
@@ -115,5 +125,9 @@ We want to extend our gratitude to the faculty staff at the [Department of Mathe
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
 We would like to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in the realization of this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
 This work has been conducted as part of M.D.'s PhD project, which is supervised by R.F.
+
+```{r include=FALSE}
+options(orig_options)
+```
 
 # References
