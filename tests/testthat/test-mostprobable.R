@@ -1,4 +1,5 @@
 test_that("Test mostProbable() works", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
   load(file="testdata/buildscorecache_ex1.Rdata")
 
@@ -165,6 +166,8 @@ test_that("mostProbable() is backward compatible with 'ex1.dag.data'", {
 })
 
 test_that("mostProbable() is backward compatible with 'ex3.dag.data'", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   #################################################################
   ## example 3 - models with random effects
   #################################################################
@@ -205,6 +208,8 @@ test_that("mostProbable() is backward compatible with 'ex3.dag.data'", {
 })
 
 test_that("mostProbable() simple, historic numeric test", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   load(file="testdata/buildscorecache_ex1.Rdata")
   # load(file='tests/testthat/testdata/buildscorecache_ex1.Rdata')
 

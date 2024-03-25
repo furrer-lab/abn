@@ -31,6 +31,8 @@ test_that("Gaussian response Bugs model construction works", {
                                  std = c(0.05773503))),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -84,6 +86,8 @@ test_that("Gaussian response Bugs model construction with mixed-effects works", 
       # expect_no_error(),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -131,6 +135,8 @@ test_that("Binomial response Bugs model construction works", {
                                                    "c"=c(c=0.5555)))),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -178,6 +184,8 @@ test_that("Binomial response Bugs model construction with mixed-effects works", 
       # expect_no_error(),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -224,6 +232,8 @@ test_that("Categorical response Bugs model construction works", {
                                                           "c"=c(c=0.5555, c=0.6666, c=0.7777)))),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -290,6 +300,8 @@ test_that("Categorical response Bugs model construction with mixed-effects works
       # expect_no_error(),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -357,6 +369,8 @@ test_that("Poisson response Bugs model construction works", {
                                                    "c"=c(c=0.5555)))),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -404,6 +418,8 @@ test_that("Poisson response Bugs model construction with mixed-effects works", {
       # expect_no_error(),
       file = "/dev/null"
     )
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
   outstring <- c(
@@ -451,6 +467,8 @@ test_that("makebugs() works", {
                  coefs = mycoefs,
                  std = mymse)}),
       file = "/dev/null")
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 
 
@@ -682,6 +700,8 @@ test_that("simulateAbn() catches wrong arguments", {
                   bugsfile = NULL,
                   verbose = FALSE)
     })
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 })
 
@@ -781,10 +801,14 @@ test_that("simulateAbn() simulation works with method 'mle'", {
     act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
     expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
     expect_equal(length(act), length(expected))
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 })
 
 test_that("simulateAbn() simulation works with method 'bayes'", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # Make a proper abnFit object
   ## without group.var
   if(.Platform$OS.type == "unix") {
@@ -881,6 +905,8 @@ test_that("simulateAbn() simulation works with method 'bayes'", {
     act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
     expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
     expect_equal(length(act), length(expected))
+  } else {
+    skip("simulateAbn() is tested mainly on Unix-like systems")
   }
 })
 
@@ -964,6 +990,8 @@ test_that("simulateAbn() works with grouping in real data.",{
         },
         file = "/dev/null"
         )
+      } else {
+        skip("simulateAbn() is tested mainly on Unix-like systems")
       }
     })
   })

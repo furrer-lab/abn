@@ -13,6 +13,8 @@ test_that("Test searchHillClimber() works", {
 })
 
 test_that("searchHillClimber() is backward compatible with `ex1.dag.data`", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
     ##############################################
     ## example 1: use built-in simulated data set
     ##############################################
@@ -79,6 +81,8 @@ test_that("searchHillClimber() is backward compatible with `ex3.dag.data`", {
 })
 
 test_that("searchHillClimber() simple, historic numeric test", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   load(file="testdata/buildscorecache_ex1.Rdata")
   # load(file='tests/testthat/testdata/buildscorecache_ex1.Rdata')
 

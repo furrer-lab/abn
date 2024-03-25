@@ -376,6 +376,8 @@ test_that("fitAbn() is backward compatible", {
 })
 
 test_that("fitabn() works with all distributions, grouping and class abnCache", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   df <- FCV[, c(11:15)]
   mydists <- list(Pedigree="binomial",
                   Outdoor="binomial",

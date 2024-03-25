@@ -119,6 +119,8 @@ test_that("buildScoreCache() checks work fine", {
 })
 
 test_that("buildScoreCache()'s methods `bayes` and `mle` behave similarly", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   df <- airquality[complete.cases(airquality), ]
 
   # distribution (gaussian)
@@ -176,6 +178,8 @@ test_that("buildScoreCache()'s methods `bayes` and `mle` behave similarly", {
 })
 
 test_that("buildScoreCache() is backward compatible", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   suppressMessages({
     # test_unit <- function(){
     expect_no_error({
@@ -324,6 +328,8 @@ test_that("buildScoreCache() is backward compatible", {
 })
 
 test_that("buildScoreCache() works with all distributions", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   df <- FCV[, c(11:15)]
   mydists <- list(Pedigree="binomial",
                   Outdoor="binomial",
