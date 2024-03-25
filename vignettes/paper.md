@@ -29,9 +29,9 @@ bibliography: paper.bib
 ---
 
 # Summary
-The `abn` package is a comprehensive tool for Bayesian network (BN) analysis, a form of probabilistic graphical model. 
+The `abn` package is a comprehensive tool for Bayesian Network (BN) analysis, a form of probabilistic graphical model. 
 It derives a directed acyclic graph from empirical data, describing the dependency structure between random variables. 
-This package provides routines for structure learning and parameter estimation of additive Bayesian network (ABN) models.
+This package provides routines for structure learning and parameter estimation of Additive Bayesian Network (ABN) models.
 
 BNs are a type of statistical model that leverages the principles of Bayesian statistics and graph theory to provide a framework for representing complex multivariate data. 
 ABN models extend the concept of generalized linear models, typically used for predicting a single outcome, to scenarios with multiple dependent variables (e.g. @kratzer_additive_2023).
