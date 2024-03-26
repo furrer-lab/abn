@@ -12,17 +12,17 @@ authors:
   affiliation: "1, 2"
 - name: Jonas I. Liechti
   orcid: 0000-0003-3447-3060
-  affiliation: 3
+  affiliation: "3"
 - name: Reinhard Furrer
   orcid: 0000-0002-6319-2332
   corresponding: true
-  affiliation: 1
+  affiliation: "1"
 affiliations:
  - name: Department of Mathematical Modeling and Machine Learning, University of Zurich, Zürich, Switzerland
    index: 1
  - name: Centre of Computational Health, Institute for Computational Life Sciences, Zurich University of Applied Sciences (ZHAW), Wädenswil, Switzerland
    index: 2
- - name: T4D.ch, T4D GmbH, Zurich, Switzerland
+ - name: www.T4D.ch, T4D GmbH, Zurich, Switzerland
    index: 3
 date: 05. April 2024
 bibliography: paper.bib
