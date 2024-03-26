@@ -72,7 +72,7 @@ However, this was confined to a Bayesian context.
 With the release of `abn` major version 3 this was completed with an implementation under the informaiton-theoretic ("mle") setting.
 
 Analyzing hierarchical or grouped data, i.e., observations nested within higher-level units, requires statistical models with group-varying parameters (e.g., mixed-effect models). 
-The `abn` package facilitates single-layer clustering, where observations are grouped into a single layer of clusters. 
+The `abn` package facilitates single-layer clustering, where observations are grouped. 
 These clusters are assumed to be independent, but intra-cluster observations may exhibit correlation (e.g., students within schools, patient-specific measurements over time, etc.). 
 The ABN model is fitted independently as a varying intercept model, where the intercept can vary while the slope is assumed constant across all group levels.
 
