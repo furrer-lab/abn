@@ -14,7 +14,6 @@ articles:
   - mixed_effect_BN_model
   - data_simulation
   - multiprocessing
-  - paper
 - title: Archive
   desc: >
     Articles that are no longer maintained, but may still be useful.

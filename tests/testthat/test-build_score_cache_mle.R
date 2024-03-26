@@ -28,6 +28,8 @@ test_that("General behaviour of buildScoreCache.mle()", {
         buildScoreCache(data.df=df, data.dists=dist, method = "mle", max.parents=list(Ozone=2, Solar.R=4, Wind=4, Temp=4, Month=4), which.node=1:5),
         regexp = "ISSUE"),
       message = "`max.parents` with node specific values that are not all the same, is not yet implemented.")
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 
@@ -78,6 +80,8 @@ test_that("buildScoreCache.mle() with Gaussian nodes", {
     },
     file = "/dev/null")
     expect_equal(mycache$mlik[1], as.numeric(logLik(lm(formula=(mydf$a - mean(mydf$a))/sd(mydf$a) ~ 1))))
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 
@@ -113,6 +117,8 @@ test_that("buildScoreCache.mle() with Binomial nodes", {
     expect_equal(mycache.mle$bic[1], as.numeric(BIC(glm(formula=mydf$a ~ 1, family=binomial))), tolerance = 0.00005)
     expect_equal(mycache.mle$bic[2], as.numeric(BIC(glm(formula=mydf$a ~ 1 + mydf$b, family=binomial))), tolerance = 0.00005)
     expect_equal(mycache.mle$bic[3], as.numeric(BIC(glm(formula=mydf$b ~ 1, family=binomial))), tolerance = 0.00005)
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 
@@ -149,6 +155,8 @@ test_that("buildScoreCache.mle() with Poisson nodes", {
 
     # BIC
     expect_equal(mycache.mle$bic[1], as.numeric(BIC(modglm)), tolerance = 10e0)
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 
@@ -208,6 +216,8 @@ test_that("buildScoreCache.mle() with Multinomial nodes", {
 
     # BIC
     # expect_equal(mycache.mle3$mlik[5], as.numeric(BIC(nnet::multinom(b~a+c, data =mydf3, trace = FALSE))))
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 
@@ -246,6 +256,8 @@ test_that("buildScoreCache.mle() corresponds with simulation results", {
     }  else {
       cat('Package brglm not available, number of passed tests might be different')
     }
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
   }
 })
 

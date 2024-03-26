@@ -40,7 +40,6 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ## Load the data and specify the parameters
 
-
 ```r
 library(abn)
 library(microbenchmark)
