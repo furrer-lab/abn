@@ -11,7 +11,7 @@ Authors@R: c(
            comment = c(ORCID = "0000-0002-5929-8935")),
     person("Fraser Iain", "Lewis", , "fraser.iain.lewis@gmail.com", role = "aut",
            comment = c(ORCID = "0000-0003-4580-2712")),
-    person("Jonas I.", "Liechti", , "j.liechti@t4d.ch", role = "ctb",
+    person("Jonas I.", "Liechti", , "j-i-l@t4d.ch", role = "ctb",
            comment = c(ORCID = "0000-0003-3447-3060")),
     person("Marta", "Pittavino", , "marta.pittavino@math.uzh.ch", role = "ctb",
            comment = c(ORCID = "0000-0002-1232-1034")),
