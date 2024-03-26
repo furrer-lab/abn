@@ -11,17 +11,12 @@ Authors@R: c(
            comment = c(ORCID = "0000-0002-5929-8935")),
     person("Fraser Iain", "Lewis", , "fraser.iain.lewis@gmail.com", role = "aut",
            comment = c(ORCID = "0000-0003-4580-2712")),
+    person("Jonas I.", "Liechti", , "j.liechti@t4d.ch", role = "ctb",
+           comment = c(ORCID = "0000-0003-3447-3060")),
     person("Marta", "Pittavino", , "marta.pittavino@math.uzh.ch", role = "ctb",
            comment = c(ORCID = "0000-0002-1232-1034")),
     person("Kalina", "Cherneva", , "kalinacherneva@gmail.com", role = "ctb")
   )
-Author: Matteo Delucchi [aut, cre]
-    (<https://orcid.org/0000-0002-9327-1496>), Reinhard Furrer [aut]
-    (<https://orcid.org/0000-0002-6319-2332>), Gilles Kratzer [aut]
-    (<https://orcid.org/0000-0002-5929-8935>), Fraser Iain Lewis [aut]
-    (<https://orcid.org/0000-0003-4580-2712>), Marta Pittavino [ctb]
-    (<https://orcid.org/0000-0002-1232-1034>), Kalina Cherneva [ctb]
-Maintainer: Matteo Delucchi <matteo.delucchi@math.uzh.ch>
 Description: The 'abn' R package facilitates Bayesian network analysis, a
     probabilistic graphical model that derives from empirical data a
     directed acyclic graph (DAG). This DAG describes the dependency
@@ -36,9 +31,9 @@ Description: The 'abn' R package facilitates Bayesian network analysis, a
     heuristic structure learning algorithms and does not restrict the data
     distribution of parent-child combinations, providing flexibility in
     model creation and analysis. The 'abn' package uses Laplace
-    approximations for metric estimation and includes wrappers to the 'INLA'
-    package. It also employs 'JAGS' for data simulation purposes. For more
-    resources and information, visit the 'abn' website.
+    approximations for metric estimation and includes wrappers to the
+    'INLA' package. It also employs 'JAGS' for data simulation purposes.
+    For more resources and information, visit the 'abn' website.
 License: GPL (>= 3)
 URL: https://r-bayesian-networks.org/, https://github.com/furrer-lab/abn
 BugReports: https://github.com/furrer-lab/abn/issues
