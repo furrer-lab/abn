@@ -42,14 +42,16 @@ The need for a tool like `abn` arises from the increasing complexity of data in 
 Researchers often face multivariate, tabular data where the relationships between variables are not straightforward. 
 BN analysis becomes essential when traditional statistical methods fall short in analyzing multivariate data with intricate relationships, as it models these relationships graphically for more straightforward data interpretation.
 
-However, most existing implementations of BN models limit variable types, often allowing discrete variables to have only discrete parent variables, where a parent starts a directed edge in the graph.
+Commonly used implementations of BN models, such as `bnlearn` [@bnlearn2010], `bnstruct` [@franzin_bnstruct_2017], `deal` [@boettcher_deal_2003], `gRain` [@hojsgaard_graphical_2012], `pcalg` [@kalisch_causal_2012] and `pchc` [@tsagris_new_2021], limit variable types, often allowing discrete variables to have only discrete parent variables, where a parent starts a directed edge in the graph.
 This limitation can pose challenges when dealing with continuous or mixed-type data (i.e., data that includes both continuous and discrete variables) or when attempting to model complex relationships that do not fit these restricted categories.
-Further details have been discussed in the context of patient data in the study from @delucchi_bayesian_2022, particularly focusing on the widely used `bnlearn` package [@bnlearn2010] and the `abn` package.
+For a comprehensive overview of structure learning algorithms, including those applicable to mixed-type data, we refer the reader to the works of @kitson_survey_2023 and @zanga_survey_2022.
+In the context of patient data, the study from @delucchi_bayesian_2022 has discussed further details and strategies for handling this scenario, particularly in relation to the `abn` package and the widely used `bnlearn` package [@bnlearn2010].
 
 The `abn` package overcomes these limitations through its additive model formulation, which generalizes the usual (Bayesian) multivariable regression to accommodate multiple dependent variables.
 Additionally, the `abn` package offers a comprehensive suite of features for model selection, structure learning, and parameter estimation.
 It includes exact and greedy search algorithms for structure learning and allows for integrating prior expert knowledge into the model selection process by specifying structural constraints.
-Unlike other software, `abn` offers a Bayesian and information-theoretic model scoring approach.
+For model selection, a Bayesian and an information-theoretic model scoring approach are available, allowing users to choose between a Bayesian and frequentist paradigm.
+To our knowledge, this feature is not available in other software.
 Furthermore, it supports mixed-effect models to control one-layer clustering, making it suitable, e.g., for handling data from different sources.
 
 Previous versions of the `abn` package have been successfully used in various fields, including epidemiology [@pittavino_comparison_2017, @kratzer_information-theoretic_2018] and health [@hartnack_additive_2019, @kratzer_bayesian_2020, @delucchi_bayesian_2022].
