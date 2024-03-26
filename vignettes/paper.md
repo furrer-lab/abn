@@ -24,7 +24,7 @@ affiliations:
    index: 2
  - name: T4D.ch, T4D GmbH, Zurich, Switzerland
    index: 3
-date: 17. March 2024
+date: 05. April 2024
 bibliography: paper.bib
 ---
 
