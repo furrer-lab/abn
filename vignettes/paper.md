@@ -1,8 +1,5 @@
 ---
 title: "Additive Bayesian Networks"
-output:
-  rmarkdown::html_vignette:
-    keep_md: TRUE
 tags:
 - data science
 - R
@@ -30,10 +27,6 @@ affiliations:
    index: 4
 date: 17. March 2024
 bibliography: paper.bib
-vignette: >
-  %\VignetteIndexEntry{Additive Bayesian Networks}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
