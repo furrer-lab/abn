@@ -1,3 +1,15 @@
+# abn 3.0.7
+
+2024-03-27 Matteo Delucchi
+
+  * Reduced package size by compressions.
+  * Speed up the checks on CRAN by reducing the number of examples to be run.
+  * Fixed the checks on CRAN by resetting user options within functions and examples.
+  * Fixed failing tests on CRAN due to the use of `INLA` package.
+  * Reduced the number of empty tests by gracefully handling the specific conditions.
+  * Improved documentation, fixed typos and added return values for each function.
+  * Added Jonas Liechti as a contributor.
+
 # abn 3.0.6
 
 2024-03-21 Matteo Delucchi
