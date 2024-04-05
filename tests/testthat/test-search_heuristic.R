@@ -1,4 +1,6 @@
 test_that("searchHeuristic() works.", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   mydat <- ex1.dag.data ## this data comes with abn see ?ex1.dag.data
 
   ## setup distribution list for each node

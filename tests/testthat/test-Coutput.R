@@ -1,3 +1,5 @@
+skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
 suppressPackageStartupMessages(require(testthat))
 suppressPackageStartupMessages(require(abn))
 

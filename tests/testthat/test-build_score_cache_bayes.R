@@ -1,4 +1,5 @@
 test_that("General behaviour of buildScoreCache.bayes()", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
   df <- airquality[complete.cases(airquality), ]
 
@@ -29,6 +30,8 @@ test_that("General behaviour of buildScoreCache.bayes()", {
 })
 
 test_that("buildScoreCache.bayes() with Gaussian nodes", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   N <- 1000
   mydists <- list(a="gaussian",
                   b="gaussian",
@@ -85,6 +88,8 @@ test_that("buildScoreCache.bayes() with Gaussian nodes", {
 })
 
 test_that("buildScoreCache.bayes() with Binomial nodes", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   # Binomial
   mydists <- list(a="binomial",
                   b="binomial")
@@ -119,6 +124,8 @@ test_that("buildScoreCache.bayes() with Binomial nodes", {
 })
 
 test_that("buildScoreCache.bayes() simple, historic numeric test", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   load(file="testdata/buildscorecache_ex1.Rdata")
   # load(file='tests/testthat/testdata/buildscorecache_ex1.Rdata')
 
