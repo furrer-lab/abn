@@ -38,7 +38,7 @@ ABN models extend the concept of generalized linear models, typically used for p
 This makes them a powerful tool for understanding complex, multivariate datasets.
 
 # Statment of need
-The need for a tool like `abn` arises from the increasing complexity of data in various fields. 
+The increasing complexity of data in various fields, ranging from healthcare research to environmental science and ecology, has resulted in a need for a tool like `abn`.
 Researchers often face multivariate, tabular data where the relationships between variables are not straightforward. 
 BN analysis becomes essential when traditional statistical methods fall short in analyzing multivariate data with intricate relationships, as it models these relationships graphically for more straightforward data interpretation.
 
