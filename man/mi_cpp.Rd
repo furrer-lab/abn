@@ -6,6 +6,9 @@
 \usage{
 mi_cpp(joint_dist)
 }
+\value{
+a double
+}
 \description{
 Calculates the mutual information.
 }

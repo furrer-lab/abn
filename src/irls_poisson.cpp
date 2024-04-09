@@ -8,6 +8,7 @@ using namespace R;
 //' @title Factorial
 //' @description Calculate the factorial in C##
 //' @keywords internal
+//' @returns a double
 //' @export
 // [[Rcpp::export]]
 double factorial(double n)
@@ -19,6 +20,7 @@ double factorial(double n)
 //' @title Iterative Reweighed Least Square algorithm for Poissons
 //' @description IRLS to estimate network score of Poisson nodes.
 //' @keywords internal
+//' @returns a list
 //' @export
 // [[Rcpp::export]]
 

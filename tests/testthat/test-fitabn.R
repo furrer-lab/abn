@@ -376,6 +376,8 @@ test_that("fitAbn() is backward compatible", {
 })
 
 test_that("fitabn() works with all distributions, grouping and class abnCache", {
+  skip_on_cran() # Skipped on CRAN because it requires the INLA package
+
   df <- FCV[, c(11:15)]
   mydists <- list(Pedigree="binomial",
                   Outdoor="binomial",
@@ -411,10 +413,10 @@ test_that("fitabn() works with all distributions, grouping and class abnCache", 
   })
   expect_error({
     myres.mle <- fitAbn(object = mp.dag.mle, data.df = df, data.dists = mydists)
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_error({
     myres.mle <- fitAbn(object = mp.dag.mle, data.dists = mydists)
-  }, regexp = "`data.dists` and `object` provided but can only accept one of them")
+  }, regexp = "'data.dists' and 'object' provided but can only accept one of them")
   expect_no_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = mp.dag.mle, method = "mle")
@@ -450,12 +452,12 @@ test_that("fitabn() works with all distributions, grouping and class abnCache", 
   })
   expect_error({
     myres.mle <- fitAbn(object = hc.dag.mle, data.df = df, data.dists = mydists)
-  }, regexp = "`data.df` and `object` provided but can only accept one of them")
+  }, regexp = "'data.df' and 'object' provided but can only accept one of them")
   expect_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = hc.dag.mle, data.dists = mydists)
     })
-  }, regexp = "`data.dists` and `object` provided but can only accept one of them")
+  }, regexp = "'data.dists' and 'object' provided but can only accept one of them")
   expect_no_error({
     suppressWarnings({
       myres.mle <- fitAbn(object = hc.dag.mle, method = "mle")

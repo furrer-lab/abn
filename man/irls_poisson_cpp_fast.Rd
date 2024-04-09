@@ -6,6 +6,9 @@
 \usage{
 irls_poisson_cpp_fast(A, b, maxit, tol)
 }
+\value{
+a list
+}
 \description{
 IRLS to estimate network score of Poisson nodes.
 }
