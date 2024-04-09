@@ -128,7 +128,7 @@ The particular type of Bayesian network models considered here are **additive Ba
 These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrisation. 
 An additive Bayesian network model is simply a **multidimensional regression model**, e.g. directly analogous to generalised linear modelling but with all variables potentially dependent. 
 
-An example can be found in the [American Journal of Epidemiology](https://academic.oup.com/aje/article-abstract/176/11/1051/178588), where this approach was used to investigate risk factors for child diarrhoea. 
+An example can be found in the [American Journal of Epidemiology](http://aje.oxfordjournals.org/content/176/11/1051.abstract), where this approach was used to investigate risk factors for child diarrhoea. 
 A special issue of [Preventive Veterinary Medicine](http://www.sciencedirect.com/science/journal/01675877/110/1) on graphical modelling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data. 
 Introductions to this methodology can be found in [Emerging Themes in Epidemiology](https://link.springer.com/journal/12982) and in [Computers in Biology and Medicine](https://www.sciencedirect.com/science/article/pii/S0010482522005133) where it is compared to other approaches.
 
