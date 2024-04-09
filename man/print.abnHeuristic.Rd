@@ -13,6 +13,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the best score found and the distribution of the scores.
+}
 \description{
 Print objects of class \code{abnHeuristic}
 }

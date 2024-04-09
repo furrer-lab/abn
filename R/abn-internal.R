@@ -66,6 +66,7 @@ abn.version <- function(what=c('abn','system')) {
 #' @examples
 #' library(abn)
 #' @keywords internal
+#' @returns Prints startup message to the console
 ".onAttach" <- function (lib, pkg) {
   packageStartupMessage(abn.version()$version.string," is loaded.\nTo cite the package 'abn' in publications call: citation('abn').")
 }
@@ -73,6 +74,7 @@ abn.version <- function(what=c('abn','system')) {
 #' @title Recursive string splitting
 #' @description Internal function that call multiple times strsplit() and remove space
 #' @keywords internal
+#' @returns A vector of strings
 #' @export
 strsplits <- function(x, splits, ...) {
     for (split in splits) {
@@ -87,6 +89,7 @@ strsplits <- function(x, splits, ...) {
 #' f have to start with ~ terms are entries of name terms are separated by + term1 | term2 indicates
 #' col(term1) row(term2) puts a 1 term1 | term2:term3: ... : is used as a sep . = all terms in name
 #' @keywords internal
+#' @returns A square matrix
 #' @export
 formula_abn <- function(f, name) {
 
@@ -202,8 +205,9 @@ formula_abn <- function(f, name) {
 #' @param data.dists list specifying each columns distribution type. Names correspond to column names and values must be one of "gaussian", "binomial", "poisson", "multinomial".
 #' @param group.var not yet implemented
 #'
-#' @return list of sums of each distribution types (abbreviated) as names.
+#' @return list of indexes for each distribution type
 #' @importFrom stats complete.cases
+#' @returns a list of the indexes for each distribution type
 #' @keywords internal
 check.valid.data <- function(data.df = NULL, data.dists = NULL, group.var = NULL) {
 
@@ -846,6 +850,7 @@ get.var.types <- function(data.dists = NULL) {
 
 #' @title tidy up cache
 #' @keywords internal
+#' @returns list of chache with error indexes removed
 #' @export
 tidy.cache <- function(thecache) {
     if (!is.null(thecache[["error.indexes"]])) {

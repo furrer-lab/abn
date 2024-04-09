@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the mostprobable consensus DAG and the number of observations used to calculate it.
+}
 \description{
 Print summary of objects of class \code{abnMostprobable}
 }

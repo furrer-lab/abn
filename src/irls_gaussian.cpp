@@ -6,6 +6,7 @@
 using namespace Rcpp;
 //' @title Iterative Reweighed Least Square algorithm for Gaussians
 //' @description IRLS to estimate network score of Gaussian nodes.
+//' @returns a list
 //' @keywords internal
 //' @export
 // [[Rcpp::export]]

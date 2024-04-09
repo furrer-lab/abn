@@ -11,6 +11,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+a plot of the fitted model.
+}
 \description{
 Plot objects of class \code{abnFit}
 }

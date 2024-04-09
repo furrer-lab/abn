@@ -28,6 +28,8 @@ test_that("Test fitAbn.mle() with real Gaussian nodes", {
       file = "/dev/null")
       expect_equal(m1, m3)
       expect_equal(unname(m2$coef[[1]])[2], m4[1, 2])
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -77,6 +79,8 @@ test_that("Test fitAbn.mle() with simulated Gaussian nodes", {
       expect_equal(unname(m1$coef[[3]]), unname(t(coef(summary(object=m2))[, 1])))
       ## new: RF 2022 after big merge: tolerance required.
       expect_equal(unname(m1$Stderror[[3]]), unname(t(coef(summary(object=m2))[, 2])), tolerance=1e-06)
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -124,6 +128,8 @@ test_that("Test fitAbn.mle() with Binomial nodes", {
       expect_equal(unname(m1$coef[[1]]), unname(t(coef(summary.glm(object=m2))[, 1])))
       ## new: RF 2022 after big merge: tolerance required.
       expect_equal(unname(m1$Stderror[[1]]), unname(t(coef(summary.glm(object=m2))[, 2])), tolerance=1e-06)
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -276,6 +282,8 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Gaussians", {
       file = "/dev/null")
       expect_equal(unname(as.vector(m1$coef[[2]])), unname(as.vector(coefficients(m2))))
       expect_equal(unname(as.vector(m1$Stderror[[2]])), unname(as.vector(m2$standard.errors)))
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -372,6 +380,8 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Binomials", {
       file = "/dev/null")
       expect_equal(unname(as.vector(m1$coef[[2]])), unname(as.vector(coefficients(m2))))
       expect_equal(unname(as.vector(m1$Stderror[[2]])), unname(as.vector(m2$standard.errors)))
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -468,6 +478,8 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
       file = "/dev/null")
       expect_equal(unname(as.vector(m1$coef[[2]])), unname(as.vector(coefficients(m2))))
       expect_equal(unname(as.vector(m1$Stderror[[2]])), unname(as.vector(m2$standard.errors)))
+    } else {
+      skip("fitAbn.mle() is tested mainly on Unix-like systems")
     }
   })
 })
@@ -576,6 +588,8 @@ test_that("fitAbn's regressionLoop() works w/o group.var.", {
           expect_equal(res2, res3, tolerance = 10e-8)
         },
         file = "/dev/null")
+      } else {
+        skip("fitAbn.mle() is tested mainly on Unix-like systems")
       }
     })
   })
@@ -686,6 +700,8 @@ test_that("fitAbn's regressionLoop() works w/ group.var.", {
           expect_equal(res2, res3, tolerance = 10e-8)
         },
         file = "/dev/null")
+      } else {
+        skip("fitAbn.mle() is tested mainly on Unix-like systems")
       }
     })
   })

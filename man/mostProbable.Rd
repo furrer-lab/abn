@@ -26,7 +26,7 @@ Find most probable DAG structure using exact order based approach due to Koivist
 \details{
 The procedure runs the exact order based structure discovery approach of Koivisto and Sood (2004) to find the most probable posterior network (DAG). The local.score is the node cache, as created using \code{\link{buildScoreCache}} (or manually provided the same format is used). Note that the scope of this search is given by the options used in local.score, for example, by restricting the number of parents or the ban or retain constraints given there.
 
-This routine can take a long time to complete and is highly sensitive to the number of nodes in the network. It is recommended to use this on a reduced data set to get an idea as to the computational practicality of this approach.  In particular, memory usage can quickly increase to beyond what may be available. For additive models, problems comprising up to 20 nodes are feasible on most machines. Memory requirements can increase considerably after this, but then so does the run time making this less practical. It is recommended that some form of over-modeling adjustment is performed on this resulting DAG (unless dealing with vast numbers of observations), for example, using parametric bootstrapping, which is straightforward to implement in MCMC engines such as JAGS or WinBUGS. See the case studies at \url{http://r-bayesian-networks.org}
+This routine can take a long time to complete and is highly sensitive to the number of nodes in the network. It is recommended to use this on a reduced data set to get an idea as to the computational practicality of this approach.  In particular, memory usage can quickly increase to beyond what may be available. For additive models, problems comprising up to 20 nodes are feasible on most machines. Memory requirements can increase considerably after this, but then so does the run time making this less practical. It is recommended that some form of over-modeling adjustment is performed on this resulting DAG (unless dealing with vast numbers of observations), for example, using parametric bootstrapping, which is straightforward to implement in MCMC engines such as JAGS or WinBUGS. See the case studies at \url{https://r-bayesian-networks.org/}
 or the files provided in the package directories \code{inst/bootstrapping_example} and \code{inst/old_vignette}
 for details.
 
@@ -39,58 +39,73 @@ Note that the network score (log marginal likelihood) of the most probable DAG i
 ##############################
 ## Example 1
 ##############################
-
-## This data comes with `abn` see ?ex1.dag.data
-mydat <- ex1.dag.data[1:5000, c(1:7,10)]
+## This data comes with 'abn' see ?ex1.dag.data
+mydat <- ex1.dag.data[1:5000, c(1:7, 10)]
 
 ## Setup distribution list for each node:
-mydists <- list(b1="binomial", p1="poisson", g1="gaussian", b2="binomial",
-                p2="poisson", b3="binomial", g2="gaussian", g3="gaussian")
+mydists <- list(b1 = "binomial",
+                p1 = "poisson",
+                g1 = "gaussian",
+                b2 = "binomial",
+                p2 = "poisson",
+                b3 = "binomial",
+                g2 = "gaussian",
+                g3 = "gaussian")
 
 ## Parent limits, for speed purposes quite specific here:
-max.par <- list("b1"=0,"p1"=0,"g1"=1,"b2"=1,"p2"=2,"b3"=3,"g2"=3,"g3"=2)
+max_par <- list("b1" = 0,
+                "p1" = 0,
+                "g1" = 1,
+                "b2" = 1,
+                "p2" = 2,
+                "b3" = 3,
+                "g2" = 3,
+                "g3" = 2)
 ## Now build cache (no constraints in ban nor retain)
-mycache <- buildScoreCache(data.df=mydat, data.dists=mydists, max.parents=max.par)
+mycache <- buildScoreCache(data.df = mydat,
+                           data.dists = mydists,
+                           max.parents = max_par)
 
 ## Find the globally best DAG:
-mp.dag <- mostProbable(score.cache=mycache)
-myres <- fitAbn(object=mp.dag,create.graph=TRUE)
-myres$mlik
+mp_dag <- mostProbable(score.cache = mycache)
+myres <- fitAbn(object = mp_dag,
+                create.graph = TRUE)
 plot(myres) # plot the best model
 
-## last line is essentially equivalent to:
-# plotAbn(dag=mp.dag$dag, data.dists=mydists, fitted.values=myres$modes)
-
 ## Fit the known true DAG (up to variables 'b4' and 'b5'):
-true.dag <- matrix(data=0, ncol=8, nrow=8)
-colnames(true.dag) <- rownames(true.dag) <- names(mydists)
+true_dag <- matrix(data = 0, ncol = 8, nrow = 8)
+colnames(true_dag) <- rownames(true_dag) <- names(mydists)
 
-true.dag["p2",c("b1","p1")] <- 1
-true.dag["b3",c("b1","g1","b2")] <- 1
-true.dag["g2",c("p1","g1","b2")] <- 1
-true.dag["g3",c("g1","b2")] <- 1
+true_dag["p2", c("b1", "p1")] <- 1
+true_dag["b3", c("b1", "g1", "b2")] <- 1
+true_dag["g2", c("p1", "g1", "b2")] <- 1
+true_dag["g3", c("g1", "b2")] <- 1
 
-fitAbn(dag=true.dag, data.df=mydat, data.dists=mydists)$mlik
+fitAbn(dag = true_dag,
+       data.df = mydat,
+       data.dists = mydists)$mlik
 
 #################################################################
 ## Example 2 - models with random effects
 #################################################################
-
 ## This data comes with abn see ?ex3.dag.data
-mydat <- ex3.dag.data[,c(1:4,14)]
-mydists <- list(b1="binomial", b2="binomial", b3="binomial", b4="binomial")
+mydat <- ex3.dag.data[, c(1:4, 14)]
+mydists <- list(b1 = "binomial",
+                b2 = "binomial",
+                b3 = "binomial",
+                b4 = "binomial")
 
 ## This takes a few seconds and requires INLA:
-mycache.mixed <- buildScoreCache(data.df=mydat,
-                                 data.dists=mydists,
-                                 group.var="group",
-                                 max.parents=2)
+mycache_mixed <- buildScoreCache(data.df = mydat,
+                                 data.dists = mydists,
+                                 group.var = "group",
+                                 max.parents = 2)
 
 ## Find the most probable DAG:
-mp.dag <- mostProbable(score.cache=mycache.mixed)
+mp_dag <- mostProbable(score.cache = mycache_mixed)
 ## and get goodness of fit:
-fitAbn(object=mp.dag,
-       group.var="group")$mlik
+fitAbn(object = mp_dag,
+       group.var = "group")$mlik
 }
 }
 \references{

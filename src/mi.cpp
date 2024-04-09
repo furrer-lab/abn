@@ -7,6 +7,7 @@ using namespace Rcpp;
 //' @title Mutual Information
 //' @description Calculates the mutual information.
 //' @keywords internal
+//' @returns a double
 //' @export
 // [[Rcpp::export]]
 double mi_cpp(arma::mat joint_dist){

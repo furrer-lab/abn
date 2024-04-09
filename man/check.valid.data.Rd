@@ -14,7 +14,9 @@ check.valid.data(data.df = NULL, data.dists = NULL, group.var = NULL)
 \item{group.var}{not yet implemented}
 }
 \value{
-list of sums of each distribution types (abbreviated) as names.
+list of indexes for each distribution type
+
+a list of the indexes for each distribution type
 }
 \description{
 Set of simple commonsense validity checks on the data.df and data.dists arguments

@@ -15,6 +15,9 @@
 
 \item{...}{additional parameters. Not used at the moment.}
 }
+\value{
+prints the BIC of the fitted model.
+}
 \description{
 Print BIC of objects of class \code{abnFit}
 }
