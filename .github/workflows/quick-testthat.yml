@@ -88,16 +88,8 @@ jobs:
       - name: Check all urls for permanent redirects
         run: |
             library(urlchecker)
-            sink("urlchecker.out")
-            print(url_check("./"))
-            sink()
+            uc <- url_check("./"); if(any(uc$Status=="Error")) {q(status=1)}
         shell: Rscript {0}
-      - name: Show urls with permanent redirects
-        run: |
-          echo ::group::Show permanent redirects output
-          find ./ -name 'urlchecker.out' -exec cat '{}' \; || true
-          echo ::endgroup::
-        shell: bash --noprofile --norc -e -o pipefail {0}
 
       - name: Testthat!
         run: |
