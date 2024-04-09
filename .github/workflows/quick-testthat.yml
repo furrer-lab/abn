@@ -94,8 +94,8 @@ jobs:
         shell: Rscript {0}
       - name: Show urls with permanent redirects
         run: |
-          echo ::group::Show testthat output
-          find check -name 'urlchecker.out' -exec cat '{}' \; || true
+          echo ::group::Show permanent redirects output
+          find ./ -name 'urlchecker.out' -exec cat '{}' \; || true
           echo ::endgroup::
         shell: bash --noprofile --norc -e -o pipefail {0}
 
