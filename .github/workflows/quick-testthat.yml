@@ -81,6 +81,10 @@ jobs:
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
 
+      - name: Install urlchecker
+        run: |
+            install.packages("urlchecker")
+        shell: Rscript {0}
       - name: Check all urls for permanent redirects
         run: |
             library(urlchecker)
