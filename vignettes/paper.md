@@ -116,6 +116,6 @@ We acknowledge the contributions of Fraser Iain Lewis, Marta Pittavino, Gilles K
 We want to extend our gratitude to the faculty staff at the [Department of Mathematical Modeling and Machine Learning from the University of Zurich](https://dm3l.uzh.ch/home) and the [Institute of Mathematics](https://www.math.uzh.ch/home) who maintain the research and teaching infrastructure.
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
 We would like to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in the realization of this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
-This work has been conducted as part of M.D.'s PhD project, which is supervised by R.F.
+This work has been conducted as part of M.D.'s PhD project, which is co-supervised by Prof. Dr. Sven Hirsch (ZHAW) and Prof. Dr. Reinhard Furrer (UZH).
 
 # References
