@@ -88,7 +88,7 @@ jobs:
       - name: Check all urls for permanent redirects
         run: |
             library(urlchecker)
-            uc <- url_check("./"); if(any(uc$Status=="Error")) {q(status=1)}
+            uc=url_check("./"); if(any(uc$Status=="Error")) {q("no", status=1, FALSE)}
         shell: Rscript {0}
 
       - name: Testthat!
@@ -96,5 +96,5 @@ jobs:
             # since on a test failure devtools::test does not exit with
             # non-zero state we test explicitly for failed tests and exit
             # accordingly
-            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q(status=1)}
+            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q("no", status=1, FALSE)}
         shell: Rscript {0}
