@@ -88,7 +88,7 @@ jobs:
       - name: Check all urls for permanent redirects
         run: |
             library(urlchecker)
-            uc=url_check("./");print(uc); if(any(uc$Status=="Error")) {q("no", status=1, FALSE)}
+            uc=url_check("./");print(uc);print(uc$Status);print(any(us$Status=="Error")); if(any(uc$Status=="Error")) {q("no", status=1, FALSE)}
         shell: Rscript {0}
 
       - name: Testthat!
