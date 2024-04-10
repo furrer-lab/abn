@@ -90,6 +90,9 @@ jobs:
             library(urlchecker)
             uc=url_check("./");print(uc);print(uc$Status);print(any(us$Status=="Error")); if(any(uc$Status=="Error")) {q("no", status=1, FALSE)}
         shell: Rscript {0}
+      - name: Check exit code of last command
+        run: |
+          echo $?
 
       - name: Testthat!
         run: |
