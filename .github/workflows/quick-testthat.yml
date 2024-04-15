@@ -80,10 +80,17 @@ jobs:
         run: |
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
+
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
       - name: Testthat!
         run: |
             # since on a test failure devtools::test does not exit with
             # non-zero state we test explicitly for failed tests and exit
             # accordingly
-            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q(status=1)}
+            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q("no", status=1, FALSE)}
         shell: Rscript {0}
