@@ -91,11 +91,20 @@ This pipeline runs all the test defined by calling
 It does so in a docker container from the
 [r-containers](https://github.com/furrer-lab/r-containers) package which builds
 container images that are setup with all the dependencies of the abn package.
+
 By default a container based on `Debian` using `clang` as compiler front-end
-and the current R development version version (`debian/clang/devel`) is used,
-however, [other configurations are available](https://github.com/orgs/furrer-lab/packages?repo_name=r-containers).
-To change the container image you want to use for testing, you can append
-the desired configuration to the name of your branch with the prefix `'__'`.
-If you want to use the container image based on Debian, using `gcc` and the
-current release version of R when testing `your-awesome-branch`, you would
-name your branch: `your-awesome-branch__debian/gcc/release`.
+and the current R development version version (`debian/clang/devel`) is used.
+However, [other configurations are available](https://github.com/orgs/furrer-lab/packages?repo_name=r-containers).
+
+If you want to change the container image to use for testing your branch against,
+you can append the desired configuration to the name of your branch with the
+prefix `'__'`.
+Hence, a branch named `my-awesome-branch__debian/gcc/release` would use the
+container image based on Debian, using `gcc` and the current release version of
+R to run the tests.
+
+You can also completely opt-out of testing by adding the flag `noT` to your
+branch name.
+
+_Note:_ If you start a commit message with `"noT"` then the testing pipeline
+will also not run for this commit.
