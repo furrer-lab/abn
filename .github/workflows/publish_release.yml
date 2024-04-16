@@ -10,10 +10,6 @@ on:
   #   types:
   #     - completed
 
-permissions:
-  contents: read
-  packages: read
-
 env:
   BUILD_LOC: "./build"
 
@@ -23,9 +19,6 @@ jobs:
      # if: ${{ github.event.workflow_run.conclusion == 'success' }}
      container:
        image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
-       credentials:
-         username: ${{ github.actor }}
-         password: ${{ secrets.GITHUB_TOKEN }}
      permissions:
        contents: write
      steps:
