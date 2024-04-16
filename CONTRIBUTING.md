@@ -68,7 +68,7 @@ following workflow for development:
     
     _Note:_ You might use `usethis::pr_init("explicative-branch-name")`.
     
-    _See #Testing for the flags you can set in the branch name_
+    _See [Testing](#testing) for flags you can set in the branch name_
 
 *   Edit the code and commit your changes.
   
