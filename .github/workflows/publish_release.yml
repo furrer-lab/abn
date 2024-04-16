@@ -17,6 +17,11 @@ jobs:
    publish:
      runs-on: ubuntu-22.04
      # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+     container:
+       image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
+       credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.GITHUB_TOKEN }}
      permissions:
        contents: write
      steps:
@@ -33,10 +38,6 @@ jobs:
         run: |
             chmod +x configure
         shell: bash
-      - name: Install package dependencies
-        run: |
-            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
-        shell: Rscript {0}
       - name: Build the package
         run: |
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
