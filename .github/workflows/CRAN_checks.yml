@@ -32,6 +32,10 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
       - name: Check for broken urls and redirects
         run: |
             library(urlchecker)
