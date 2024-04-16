@@ -2,11 +2,13 @@ name: Publish Release
 
 # Only trigger, when CRAN-like checks succeed 
 on:
-  workflow_run:
-    branches: [main, streamline-release-process ]
-    workflows: ["CRAN-like checks"]
-    types:
-      - completed
+  push:
+    branches: [ main, streamline-release-process ]
+  # workflow_run:
+  #   branches: [ main, streamline-release-process ]
+  #   workflows: ["CRAN-like checks"]
+  #   types:
+  #     - completed
 
 env:
   BUILD_LOC: "./build"
@@ -14,7 +16,7 @@ env:
 jobs:
    publish:
      runs-on: ubuntu-22.04
-     if: ${{ github.event.workflow_run.conclusion == 'success' }}
+     # if: ${{ github.event.workflow_run.conclusion == 'success' }}
      permissions:
        contents: write
      steps:
