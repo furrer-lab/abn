@@ -28,15 +28,15 @@ If you would like to contribute bigger changes please always refer to the
 > If you are unsure how to to that have a look at the
 > official [Github documentation for pull requests](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) for further details.
 
-If you would like to contribute but have no specify feature in mind, simply
+If you would like to contribute but have no specific feature in mind, simply
 head over to the [issue board](https://github.com/furrer-lab/abn/issues) where
 you will find open issues  with the label
 https://github.com/furrer-lab/abn/labels/help%20wanted.
 Feel free to comment on them if it is not clear to you what exactly the issue
 is about.
 Some issues are also labeled with
-https://github.com/furrer-lab/abn/labels/good%20first%20issue and describe
-smaller changes or improvements.
+https://github.com/furrer-lab/abn/labels/good%20first%20issue, they might be
+more suitable if you are new to abn.
 
 In case you already have some specific contribution you would like to add,
 first check the [issue board](https://github.com/furrer-lab/abn/issues)
@@ -86,13 +86,14 @@ following workflow for development:
 The abn package uses several testing pipelines.
 When developing (i.e. not on the `main` branch) we recommend running the
 [quick-testthat.yml](https://github.com/furrer-lab/abn/blob/24-documentation-of-the-testing-procedure-noT/.github/workflows/quick-testthat.yml) action.
-This pipeline runs all the test defined by calling
+This pipeline runs be default on push event on all branches other than `main`
+and executes all the test defined withing the abn package by calling
 [`devtools::test`](https://devtools.r-lib.org/reference/test.html).
 It does so in a docker container from the
 [r-containers](https://github.com/furrer-lab/r-containers) package which builds
-container images that are setup with all the dependencies of the abn package.
+container images that are setup with all the required dependencies.
 
-By default a container based on `Debian` using `clang` as compiler front-end
+By default, a container based on `Debian` using `clang` as compiler front-end
 and the current R development version version (`debian/clang/devel`) is used.
 However, [other configurations are available](https://github.com/orgs/furrer-lab/packages?repo_name=r-containers).
 
