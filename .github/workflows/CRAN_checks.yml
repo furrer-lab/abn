@@ -24,7 +24,7 @@ permissions:
 jobs:
   URL_check:
     runs-on: ubuntu-22.04
-    name: Perform URL checks in ${{ vars.CONTAINER_RELEASE || "debian/gcc/release" }}
+    name: Run URL checks
     # runs-on: ubuntu-latest
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || "debian/gcc/release" }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
