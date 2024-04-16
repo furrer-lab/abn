@@ -23,34 +23,37 @@ permissions:
   packages: read
 
 jobs:
+  get-target-container:
+    runs-on: ubuntu-22.04
+    outputs:
+      CONTAINER: ${{ steps.container.outputs.container }}
+
+    steps:
+      - name: Get container
+        id: container
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ $BRANCH == *"__"* ]]; then
+            echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
+          else
+            echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
+          fi
+
   build-install-test:
     if: ${{ github.event_name != 'pull_request' && !startsWith(github.event.head_commit.message, 'noT') }}
+    needs: [get-target-container]
     runs-on: ubuntu-22.04
-    name: Testing ${{ matrix.os }} (${{ matrix.compiler}}-${{ matrix.r-version }})
+    # name: Testing ${{ matrix.os }} (${{ matrix.compiler}}-${{ matrix.r-version }})
+    name: Testing in  ${{ needs.get-target-container.outputs.CONTAINER }}
     # runs-on: ubuntu-latest
     container:
-      image: ${{ matrix.image-source }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
-    strategy:
-      fail-fast: false
-      matrix:
-        image-source: ["ghcr.io/furrer-lab/r-containers"]  # This is only here since container.image ignores env
-        r-version: ['release', 'devel', 'patched']  # ['3.6.3', '4.1.1']
-        os: ['debian', 'fedora']
-        compiler: ['gcc', 'clang']
-        exclude:
-          - os: 'fedora'
-            r-version: 'release'
-          - os: 'fedora'
-            r-version: 'patched'
-          - r-version: 'patched'
-            compiler: 'clang'
-          - r-version: 'release'
-            compiler: 'clang'
     steps:
       - uses: actions/checkout@v4
       - name: Create build location
@@ -77,10 +80,17 @@ jobs:
         run: |
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
+
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
       - name: Testthat!
         run: |
             # since on a test failure devtools::test does not exit with
             # non-zero state we test explicitly for failed tests and exit
             # accordingly
-            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q(status=1)}
+            res=devtools::test(pkg='.', reporter='summary');df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q("no", status=1, FALSE)}
         shell: Rscript {0}
