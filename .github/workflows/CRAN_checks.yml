@@ -36,6 +36,7 @@ jobs:
       - name: Disable renv
         run: |
             renv::deactivate()
+        shell: Rscript {0}
       - name: Check for broken urls and redirects
         run: |
             library(urlchecker)
