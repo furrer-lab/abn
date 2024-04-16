@@ -3,7 +3,7 @@ name: Publish Release
 # Only trigger, when CRAN-like checks succeed 
 on:
   workflow_run:
-    branches: [main]
+    branches: [main, streamline-release-process ]
     workflows: ["CRAN-like checks"]
     types:
       - completed
@@ -14,7 +14,7 @@ env:
 jobs:
    publish:
      runs-on: ubuntu-22.04
-     if: ${{ github.ref_type == 'tag' && github.event.workflow_run.conclusion == 'success' }}
+     if: ${{ github.event.workflow_run.conclusion == 'success' }}
      permissions:
        contents: write
      steps:
@@ -39,8 +39,14 @@ jobs:
         run: |
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
         shell: Rscript {0}
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
       - uses: ncipollo/release-action@v1
         with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: Release ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
           artifacts: "${{ env.BUILD_LOC }}/abn.tar.gz"
-          # TODO: decide if we want to have some optional description:
-          # bodyFile: "body.md"
