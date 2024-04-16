@@ -22,6 +22,22 @@ permissions:
   packages: read
 
 jobs:
+  URL_check:
+    runs-on: ubuntu-22.04
+    name: Perform URL checks in ${{ vars.CONTAINER_RELEASE || "debian/gcc/release" }}
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || "debian/gcc/release" }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
   R-CMD-check:
     runs-on: ubuntu-22.04
     if: ${{ !startsWith(github.event.head_commit.message, 'noT') }}  # skip on commits starting with 'noT'
