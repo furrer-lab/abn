@@ -29,15 +29,13 @@ bibliography: paper.bib
 ---
 
 # Summary
-The `abn` package is a comprehensive tool for Bayesian Network (BN) analysis, a form of probabilistic graphical model. 
-It derives a directed acyclic graph from empirical data, describing the dependency structure between random variables. 
-This package provides routines for structure learning and parameter estimation of Additive Bayesian Network (ABN) models.
-
+The R package `abn` is a comprehensive tool for Bayesian Network (BN) analysis, a form of probabilistic graphical model. 
 BNs are a type of statistical model that leverages the principles of Bayesian statistics and graph theory to provide a framework for representing complex multivariate data. 
-ABN models extend the concept of generalized linear models, typically used for predicting a single outcome, to scenarios with multiple dependent variables (e.g. @kratzer_additive_2023).
-This makes them a powerful tool for understanding complex, multivariate datasets.
+They can derive a directed acyclic graph from empirical data to describe the dependency structure between random variables. 
 
-[//]: # (You switch from BN to ABN 1st paragraph, then revisit BN and again to ABN. First all BN then To ABN.)
+Additive Bayesian Network (ABN) models extend the concept of generalized linear models, typically used for predicting a single outcome, to scenarios with multiple dependent variables (e.g., @kratzer_additive_2023).
+This makes them a powerful tool for understanding complex, multivariate datasets.
+This package provides routines for structure learning and parameter estimation of ABN models.
 
 # Statment of need
 The increasing complexity of data in various fields, ranging from healthcare research to environmental science and ecology, has resulted in a need for a tool like `abn`.
@@ -49,9 +47,7 @@ This limitation can pose challenges when dealing with continuous or mixed-type d
 For a comprehensive overview of structure learning algorithms, including those applicable to mixed-type data, we refer the reader to the works of @kitson_survey_2023 and @zanga_survey_2022.
 In the context of patient data, the study from @delucchi_bayesian_2022 has discussed further details and strategies for handling this scenario, particularly in relation to the `abn` package and the widely used `bnlearn` package [@bnlearn2010].
 
-[//]: # (Next line you talk about `these limitations`. Suboptimal, ascendant not clear. Especially in the previous paragraph you only talk about `this limitation`.) 
-
-The `abn` package overcomes these limitations through its additive model formulation, which generalizes the usual (Bayesian) multivariable regression to accommodate multiple dependent variables.
+The `abn` package overcomes this limitation through its additive model formulation, which generalizes the usual (Bayesian) multivariable regression to accommodate multiple dependent variables.
 Additionally, the `abn` package offers a comprehensive suite of features for model selection, structure learning, and parameter estimation.
 It includes exact and greedy search algorithms for structure learning and allows for integrating prior expert knowledge into the model selection process by specifying structural constraints.
 A Bayesian and an information-theoretic model scoring approach are available for model selection, allowing users to choose between a Bayesian and frequentist paradigm.
@@ -68,14 +64,12 @@ Future updates are planned to enhance its functionality and user experience furt
 We highly value feedback from the user community, which will guide our ongoing developments.
 
 In summary, `abn` sets itself apart by emphasizing ABNs and its exhaustive features for model selection and structure learning. 
-Its unique contribution is the implementation of mixed-effect BN models, thereby extending its applicability to a broader range of complex, multivariate datasets of mixed, continuous and discrete data.
+Its unique contribution is the implementation of mixed-effect BN models, thereby extending its applicability to a broader range of complex, multivariate datasets of mixed, continuous, and discrete data.
 
 # Implementation
 As outlined in @kratzer_additive_2023, the package's comprehensive framework integrates the mixed-effects model for clustered data, considering data heterogeneity and grouping effects.
-However, this was confined to a Bayesian context. 
+However, this was confined to a Bayesian context and was only a preliminary implementation.
 With the release of `abn` major version 3, this was completed with an implementation under the information-theoretic ("mle") setting.
-
-[//]: # (Maybe frame in line 74: more as there existed a first attempt towards mixed-effects in a Bayesian fitting context. or even a bit weaker.)
 
 Analyzing hierarchical or grouped data, i.e., observations nested within higher-level units, requires statistical models with group-varying parameters (e.g., mixed-effect models). 
 The `abn` package facilitates single-layer clustering, where observations are grouped. 
@@ -87,11 +81,8 @@ For multinomial distributed variables, `abn` fits a multinomial baseline categor
 Currently, only single-layer clustering is supported (e.g., for `method = "mle"`, this corresponds to a random intercept model).
 
 With a Bayesian approach (`method = "bayes"`), `abn` utilizes its own implementation of the Laplace approximation as well as the `INLA` package [@inla2013] to fit a single-level hierarchical model for Binomial, Poisson, and Gaussian distributed variables. 
-Independent of the type of data, multinomial distributed variables are not yet implemented with `method ="bayes"` (details in the [online manual](https://r-bayesian-networks.org/quick_start_example.html)).
 
-[//]: # (Line 90 needed?)
-
-Furthermore, the code base has been enhanced to be more efficient, reliable, and user-friendly through code optimization, regular reviews and continuous integration practices. 
+Furthermore, the code base has been enhanced to be more efficient, reliable, and user-friendly through code optimization, regular reviews, and continuous integration practices. 
 We have adhered to the latest open-source software standards, including active maintenance of `abn`. 
 Future updates to augment its functionality are planned via a flexible roadmap.
 User feedback is valued through open communication channels, which will steer our ongoing developments. 
@@ -117,16 +108,14 @@ The development version of the `abn` package is hosted on [GitHub](https://githu
 devtools::install_github("furrer-lab/abn")
 ```
 
-[//]: # (Comment should be above, do you mention that this is all under `R`??)
-
-
 # Acknowledgments
 
 The development of the `abn` package would not have been possible without the significant contributions of the former developers whose efforts have been instrumental in shaping this project. 
 We acknowledge the contributions of Fraser Iain Lewis, Marta Pittavino, Gilles Kratzer, and Kalina Cherneva, in particular.
 We want to extend our gratitude to the faculty staff at the [Department of Mathematical Modeling and Machine Learning from the University of Zurich](https://dm3l.uzh.ch/home) and the [Institute of Mathematics](https://www.math.uzh.ch/home) who maintain the research and teaching infrastructure.
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
-We want to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in the realization of this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
-This work has been conducted as part of M.D.'s PhD project, which is co-supervised by Prof. Dr. Sven Hirsch (ZHAW) and Prof. Dr. Reinhard Furrer (UZH).
+We want to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in realizing this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
+This work was conducted as part of M.D.'s PhD project, which was co-supervised by Prof. Dr. Sven Hirsch (ZHAW) and Prof. Dr. Reinhard Furrer (UZH).
 
 # References
+
