@@ -87,7 +87,7 @@ following workflow for development:
 The `abn` package uses several testing pipelines.
 When developing (i.e. not on the `main` branch) we recommend running the
 [quick-testthat.yml](https://github.com/furrer-lab/abn/blob/24-documentation-of-the-testing-procedure-noT/.github/workflows/quick-testthat.yml) action.
-This pipeline runs be default on push event on all branches other than `main`
+This pipeline runs by default on push event on all branches other than `main`
 and executes all the test defined withing the `abn` package by calling
 [`devtools::test`](https://devtools.r-lib.org/reference/test.html).
 It does so in a docker container from the
