@@ -1,10 +1,10 @@
-# Contributing to abn
+# Contributing to `abn`
 
-This outlines how to propose a change to abn.
+This outlines how to propose a change to `abn`.
 
 ## The "Pull request" process
 
-In general all edits to the abn package go through the process of a
+In general all edits to the `abn` package go through the process of a
 [Pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request).
 
 ### Fixing typos
@@ -36,7 +36,7 @@ https://github.com/furrer-lab/abn/labels/help%20wanted.
 Feel free to comment on them if it is not clear to you what exactly the issue is about.
 Issues with the label
 https://github.com/furrer-lab/abn/labels/good%20first%20issue might be good
-starting points if you are new to abn.
+starting points if you are new to `abn`.
 
 #### If you have a specific contribution
 that you would like to add first check the
@@ -59,7 +59,7 @@ and add your changes to the related branch.
 
 We use [renv](https://rstudio.github.io/renv/index.html) for our development
 environment and would encourage you to do the same.
-Therefore, abn directly provides a development environment and we suggest the
+Therefore, `abn` directly provides a development environment and we suggest the
 following workflow for development:
 
 *   Fork the package and clone it onto your computer.
@@ -84,11 +84,11 @@ following workflow for development:
 
 ## Testing
 
-The abn package uses several testing pipelines.
+The `abn` package uses several testing pipelines.
 When developing (i.e. not on the `main` branch) we recommend running the
 [quick-testthat.yml](https://github.com/furrer-lab/abn/blob/24-documentation-of-the-testing-procedure-noT/.github/workflows/quick-testthat.yml) action.
 This pipeline runs be default on push event on all branches other than `main`
-and executes all the test defined withing the abn package by calling
+and executes all the test defined withing the `abn` package by calling
 [`devtools::test`](https://devtools.r-lib.org/reference/test.html).
 It does so in a docker container from the
 [r-containers](https://github.com/furrer-lab/r-containers) package which builds
