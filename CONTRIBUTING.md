@@ -107,6 +107,9 @@ R to run the tests.
 
 You can also completely opt-out of testing by adding the flag `noT` to your
 branch name.
+It does not matter where you put the string `noT` in the branch name, so a
+branch named `"monoTestingBranch"` will also make you opt-out of testing.
 
 _Note:_ If you start a commit message with `"noT"` then the testing pipeline
-will also not run for this commit.
+will also not run for this commit. In a commit message, however, the message
+has to start with `noT`, it will be ignored otherwise.
