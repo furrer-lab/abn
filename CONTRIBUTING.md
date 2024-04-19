@@ -28,18 +28,19 @@ If you would like to contribute bigger changes please always refer to the
 > If you are unsure how to to that have a look at the
 > official [Github documentation for pull requests](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue) for further details.
 
-If you would like to contribute but have no specific feature in mind, simply
-head over to the [issue board](https://github.com/furrer-lab/abn/issues) where
-you will find open issues  with the label
-https://github.com/furrer-lab/abn/labels/help%20wanted.
-Feel free to comment on them if it is not clear to you what exactly the issue
-is about.
-Some issues are also labeled with
-https://github.com/furrer-lab/abn/labels/good%20first%20issue, they might be
-more suitable if you are new to abn.
+#### If you want to help,
 
-In case you already have some specific contribution you would like to add,
-first check the [issue board](https://github.com/furrer-lab/abn/issues)
+but have nothing specific in mind, simply head over to the [issue board](https://github.com/furrer-lab/abn/issues) where
+you will find open issues labelled with
+https://github.com/furrer-lab/abn/labels/help%20wanted.
+Feel free to comment on them if it is not clear to you what exactly the issue is about.
+Issues with the label
+https://github.com/furrer-lab/abn/labels/good%20first%20issue might be good
+starting points if you are new to abn.
+
+#### If you have a specific contribution
+that you would like to add first check the
+[issue board](https://github.com/furrer-lab/abn/issues)
 (also see the
 [closed issues](https://github.com/furrer-lab/abn/issues?q=is%3Aissue+is%3Aclosed))
 if you can find existing issues related to the contribution you plan to make.
