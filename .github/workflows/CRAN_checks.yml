@@ -22,11 +22,34 @@ permissions:
   packages: read
 
 jobs:
+  URL_check:
+    runs-on: ubuntu-22.04
+    name: Run URL checks
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./")
+            print(uc)
+            # uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
   R-CMD-check:
     runs-on: ubuntu-22.04
     if: ${{ !startsWith(github.event.head_commit.message, 'noT') }}  # skip on commits starting with 'noT'
     container:
-      image: ${{ matrix.image-source }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
@@ -35,7 +58,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image-source: ["ghcr.io/furrer-lab/r-containers"]  # This is only here since container.image ignores env
         r-version: ['release' , 'devel', 'patched']  # ['3.6.3', '4.1.1']
         os: ['debian', 'fedora']
         compiler: ['gcc', 'clang']
