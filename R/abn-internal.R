@@ -221,6 +221,16 @@ check.valid.data <- function(data.df = NULL, data.dists = NULL, group.var = NULL
         stop("The data contains missing values! These must be removed.")
     }
 
+    ## check factor variables for empty levels
+    for (i in 1:dim(data.df)[2]) {
+        if (is.factor(data.df[[i]])) {
+            # check if there are levels with no observations
+            if (sum(table(data.df[[i]], useNA = "no") == 0) > 0) {
+              stop(paste0("The factor variable ", names(data.df)[i], " has levels with no observations! These must be removed."))
+            }
+        }
+    }
+
     ## check that distributions are in a list
     if (!is.list(data.dists)) {
         stop("data.dist must be a list")
