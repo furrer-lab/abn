@@ -1,0 +1,52 @@
+# Defines the check and tests to run when in a release cycle
+name: Release Cycle Checks
+
+
+on:
+  push:
+    branch:
+      - "release-[0-9]+.[0-9]+.[0-9]+"
+      # TODO: remove next line
+      - "26-tests-tracking-memory-usage-the-slow-pipeline"
+
+jobs:
+  checks-with-gctorture:
+    runs-on: ubuntu-22.04
+    name: Running R CMD check with gctorture enabled
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['devel']  # ['3.6.3', '4.1.1']
+        os: ['debian']
+        compiler: ['gcc', 'clang']
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: R CMD check with memory checks
+        run: |
+            options(crayon.enabled = TRUE)
+            cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+            Sys.setenv("VALGRIND_OPTS", "--memcheck:leak-check=yes --memcheck:track-origins=yes")
+            if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
+            if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
+            cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
+            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--use-gct", "--use-valgrind")), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
