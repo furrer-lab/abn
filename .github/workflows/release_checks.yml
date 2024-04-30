@@ -45,7 +45,7 @@ jobs:
         run: |
             options(crayon.enabled = TRUE)
             cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
-            Sys.setenv("VALGRIND_OPTS", "--memcheck:leak-check=yes --memcheck:track-origins=yes")
+            Sys.setenv("VALGRIND_OPTS" = "--memcheck:leak-check=yes --memcheck:track-origins=yes")
             if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
             if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
             cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
