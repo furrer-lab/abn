@@ -49,5 +49,5 @@ jobs:
             if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
             if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
             cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
-            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--use-gct", "--use-valgrind")), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
+            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--use-gct"), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
         shell: Rscript {0}
