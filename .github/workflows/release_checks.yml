@@ -45,21 +45,21 @@ jobs:
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
         shell: Rscript {0}
-    - name: Configuration for valgrind (and ASan)
-      run: |
-        echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
-        echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
-      shell: bash
-    - name: Install package
-      run: |
-        devtools::install(upgrade='never')
-      shell: Rscript {0}
-    - name: valgrind - memcheck test single file
-      run: |
-        R -d "valgrind --tool=memcheck \
-        --leak-check=full \
-        --errors-for-leak-kinds=definite \
-        --error-exitcode=1" \
-        --vanilla \
-        -e "devtools::test_file('./tests/testthat/test-fitabn.R')"
-      shell: bash
+      - name: Configuration for valgrind (and ASan)
+        run: |
+          echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+          echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+        shell: bash
+      - name: Install package
+        run: |
+          devtools::install(upgrade='never')
+        shell: Rscript {0}
+      - name: valgrind - memcheck test single file
+        run: |
+          R -d "valgrind --tool=memcheck \
+          --leak-check=full \
+          --errors-for-leak-kinds=definite \
+          --error-exitcode=1" \
+          --vanilla \
+          -e "devtools::test_file('./tests/testthat/test-fitabn.R')"
+        shell: bash
