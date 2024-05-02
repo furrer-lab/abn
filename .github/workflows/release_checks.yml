@@ -28,7 +28,7 @@ jobs:
     steps:
       - name: Installing valgrind
         run: |
-          sudo apt-get install valgrind
+          apt-get install valgrind -y
         shell: bash
       - uses: actions/checkout@v4
         with:
