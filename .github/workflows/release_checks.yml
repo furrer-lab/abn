@@ -5,9 +5,9 @@ name: Release Cycle Checks
 on:
   push:
     branch:
+      # TODO: only run on creation of release and when a
+      # label is added
       - "release-[0-9]+.[0-9]+.[0-9]+"
-      # TODO: remove next line
-      - "26-tests-tracking-memory-usage-the-slow-pipeline"
 
 jobs:
   checks-with-gctorture:
