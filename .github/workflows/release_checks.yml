@@ -26,6 +26,10 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
+      - name: Installing valgrind
+        run: |
+          sudo apt-get install valgrind
+        shell: bash
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
@@ -41,13 +45,21 @@ jobs:
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
         shell: Rscript {0}
-      - name: R CMD check with memory checks
-        run: |
-            options(crayon.enabled = TRUE)
-            cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
-            Sys.setenv("VALGRIND_OPTS" = "--memcheck:leak-check=yes --memcheck:track-origins=yes")
-            if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
-            if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
-            cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
-            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--use-gct")), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
-        shell: Rscript {0}
+    - name: Configuration for valgrind (and ASan)
+      run: |
+        echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+        echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+      shell: bash
+    - name: Install package
+      run: |
+        devtools::install(upgrade='never')
+      shell: Rscript {0}
+    - name: valgrind - memcheck test single file
+      run: |
+        R -d "valgrind --tool=memcheck \
+        --leak-check=full \
+        --errors-for-leak-kinds=definite \
+        --error-exitcode=1" \
+        --vanilla \
+        -e "devtools::test_file('./tests/testthat/test-fitabn.R')"
+      shell: bash
