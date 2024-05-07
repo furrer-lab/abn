@@ -74,6 +74,7 @@ Authors:
 
 Other contributors:
 \itemize{
+  \item Jonas I. Liechti \email{j-i-l@t4d.ch} (\href{https://orcid.org/0000-0003-3447-3060}{ORCID}) [contributor]
   \item Marta Pittavino \email{marta.pittavino@math.uzh.ch} (\href{https://orcid.org/0000-0002-1232-1034}{ORCID}) [contributor]
   \item Kalina Cherneva \email{kalinacherneva@gmail.com} [contributor]
 }
