@@ -42,6 +42,10 @@ test_that("Data is checked properly", {
 
   expect_equal(check.valid.data(data.df = df, data.dists = dists, group.var = NULL),
                list(gaus=3, bin=1, pois=2, mult=4))
+
+  # test empty factor levels
+  df$D <- factor(df$D, levels=c("x", "y", "z", "w"))
+  expect_error(check.valid.data(data.df = df, data.dists = dists, group.var = NULL))
 })
 
 test_that("DAG is checked properly", {

@@ -409,7 +409,7 @@ The [abn website](https://r-bayesian-networks.org/) provides a comprehensive set
 
 - Delucchi et al. (2022): [Bayesian network analysis reveals the interplay of intracranial aneurysm rupture risk factors](https://doi.org/10.1016/j.compbiomed.2022.105740)
 
-- Guinat et al. (2020) [Biosecurity risk factors for highly pathogenic avian influenza (H5N8) virus infection in duck farms, France](https://doi.org/10.1111/tbed.13672)
+- Guinat et al. (2020) [Biosecurity risk factors for highly pathogenic avian influenza (H5N8) virus infection in duck farms, France](https://onlinelibrary.wiley.com/doi/10.1111/tbed.13672)
 
 - Hartnack et al. (2019) [Additive Bayesian networks for antimicrobial resistance and potential risk factors in non-typhoidal Salmonella isolates from layer hens in Uganda](https://doi.org/10.1186/s12917-019-1965-y)
 

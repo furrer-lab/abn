@@ -1,0 +1,65 @@
+# Defines the check and tests to run when in a release cycle
+name: Release Cycle Checks
+
+
+on:
+  push:
+    branch:
+      # TODO: only run on creation of release and when a
+      # label is added
+      - "release-[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  checks-with-gctorture:
+    runs-on: ubuntu-22.04
+    name: Running R CMD check with gctorture enabled
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['devel']  # ['3.6.3', '4.1.1']
+        os: ['debian']
+        compiler: ['gcc', 'clang']
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Installing valgrind
+        run: |
+          apt-get install valgrind -y
+        shell: bash
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Configuration for valgrind (and ASan)
+        run: |
+          echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+          echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+        shell: bash
+      - name: Install package
+        run: |
+          devtools::install(upgrade='never')
+        shell: Rscript {0}
+      - name: valgrind - memcheck test single file
+        run: |
+          R -d "valgrind --tool=memcheck \
+          --leak-check=full \
+          --errors-for-leak-kinds=definite \
+          --error-exitcode=1" \
+          --vanilla \
+          -e "devtools::test_file('./tests/testthat/test-fitabn.R')"
+        shell: bash
