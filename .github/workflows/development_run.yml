@@ -1,0 +1,26 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Runs on non-release pull requests
+
+on:
+  push:
+    branches-ignore:
+      - "release-[0-9]+.[0-9]+.[0-9]+"
+
+
+jobs:
+  development_checks:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # NOTE: This might be needed to assert that we get the full history
+                          #       for the changelog.
+      - name: Smoke test
+        run: |
+          echo "Hello there!"
