@@ -33,15 +33,30 @@ jobs:
         continue-on-error: true  # make sure the next steps run also on failure
       - id: set_label_check
         run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+  gather_tests:
+    if: github.event.label.name == needs.check_label_exist.outputs.label_check
+    needs:
+      - check_label_exist
+    outputs:
+      testfiles: ${{ steps.get-testfiles.outputs.testfiles }}
+    steps:
+      - id: get-testfiles
+        run: |
+           echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')"
+           echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
   run_memory_check:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
     needs:
       - check_label_exist
+      - gather_tests
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
+    strategy:
+      matrix:
+        testfile: ${{ fromJson(needs.gather_tests.output.testfiles) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,15 +67,27 @@ jobs:
         continue-on-error: true  # make sure the next steps run also on failure
         run: |
           echo Hello, world!
+  run_memory_check:
+    if: ${{ (github.event.label.name == needs.check_label_exist.outputs.label_check) && (success() || failure()) }}
+    needs:
+      - run_memory_check
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
       - name: Check if on demand tasks succeeded
+        #TODO: Properly establish if matrix failed
         run: |
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
-          if [ ${{ steps.some_task.outcome }} == "success" ]; then
+          if [ ${{ needs.run_memory_check.outcome }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
-          elif [ ${{ steps.some_task.outcome }} == "failure" ]; then
+          elif [ ${{ needs.run_memory_check.outcome }} == "failure" ]; then
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
