@@ -36,7 +36,12 @@ jobs:
         run: |
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
         shell: Rscript {0}
-        # TODO: add abn.tar.gz as artifact
+      # TODO: add abn.tar.gz as artifact
+      - name: Upload the built package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: ${{ env.BUILD_LOC }}/abn.tar.gz
 
   release-version:
     needs: build-release-content
@@ -107,11 +112,14 @@ jobs:
         run: |
           gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         shell: bash
-      # TODO: get artifact from previous job and add it to the release
-      # - name: Upload additional artifacts to the release
-      #   run: |
-      #     gh release upload ${{ steps.release_version.outputs.version }} \
-      #       some_file.md \
-      #       other_file.md \
-      #       --clobber
-      #       --repo ${{ env.OWNER }}/${{ env.REPO }}
+      - name: Get the built package
+        uses: actions/download-artifact@v4
+        with:
+          name:
+            package
+      - name: Upload additional artifacts to the release
+        run: |
+          gh release upload ${{ steps.release_version.outputs.version }} \
+            ${{ env.BUILD_LOC }}/abn.tar.gz \
+            --clobber
+            --repo ${{ env.OWNER }}/${{ env.REPO }}
