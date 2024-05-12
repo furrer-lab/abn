@@ -13,34 +13,34 @@ env:
 jobs:
   build-release-content:
     if: ${{ github.event.pull_request.merged && startsWith(github.head_ref, 'release-') }}
-     runs-on: ubuntu-latest
-     container:
-       image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
-     permissions:
-       contents: write
-     steps:
-      - uses: actions/checkout@v4
-      - name: Create build location
-        run: |
-            mkdir ${{ env.BUILD_LOC }}
-        shell: bash
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
-      - name: Change permissions of configure
-        run: |
-            chmod +x configure
-        shell: bash
-      - name: Build the package
-        run: |
-            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
-        shell: Rscript {0}
-      - name: Upload the built package as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: ${{ env.BUILD_LOC }}/abn.tar.gz
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
+    permissions:
+      contents: write
+    steps:
+     - uses: actions/checkout@v4
+     - name: Create build location
+       run: |
+           mkdir ${{ env.BUILD_LOC }}
+       shell: bash
+     - name: Disable renv
+       run: |
+           renv::deactivate()
+       shell: Rscript {0}
+     - name: Change permissions of configure
+       run: |
+           chmod +x configure
+       shell: bash
+     - name: Build the package
+       run: |
+           devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+       shell: Rscript {0}
+     - name: Upload the built package as artifact
+       uses: actions/upload-artifact@v4
+       with:
+         name: package
+         path: ${{ env.BUILD_LOC }}/abn.tar.gz
 
   release-version:
     needs: build-release-content
