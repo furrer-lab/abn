@@ -101,7 +101,7 @@ jobs:
           --errors-for-leak-kinds=definite \
           --error-exitcode=1" \
           --vanilla \
-          -e "devtools::test_active_file(./${{ matrix.testfile }})"
+          -e "devtools::test_active_file('${{ matrix.testfile }}')"
         shell: bash
 
   report_memory_checks:
