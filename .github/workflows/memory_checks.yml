@@ -1,4 +1,4 @@
-name: On label workflow
+name: Optional Memory Checking
 
 on:
   pull_request:
@@ -46,8 +46,6 @@ jobs:
       - id: get_testfiles
         run: |
            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
-           cat $GITHUB_OUTPUT
-
   run_memory_check:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
     needs:
@@ -59,6 +57,7 @@ jobs:
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
     strategy:
+      fail-fast: false
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
     container:
@@ -95,7 +94,7 @@ jobs:
         run: |
           devtools::install(upgrade='never')
         shell: Rscript {0}
-      - name: valgrind - memcheck test single file
+      - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |
           R -d "valgrind --tool=memcheck \
           --leak-check=full \
@@ -121,7 +120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check if on demand tasks succeeded
-        #TODO: Properly establish if matrix failed
+        #TODO: Properly establish what has failead and what not
         run: |
           echo ${{ toJson(needs.run_memory_check) }}
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
