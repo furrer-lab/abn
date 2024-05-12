@@ -35,10 +35,7 @@ jobs:
         run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   gather_tests:
-    if: github.event.label.name == needs.check_label_exist.outputs.label_check
     runs-on: ubuntu-latest
-    needs:
-      - check_label_exist
     outputs:
       testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
     steps:
