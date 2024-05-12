@@ -1,0 +1,18 @@
+# Workflow to check the state of the release banch
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Check release state
+
+on:
+  push:
+    branch:
+      - "release-[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  pre_release_checks:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: smoke step
+        run: |
+          echo I ran to prepare for 
+          echo "VERSION=$(echo ${{ github.ref }}|grep -Eo '[0-9]+.[0-9]+.[0-9]+')"

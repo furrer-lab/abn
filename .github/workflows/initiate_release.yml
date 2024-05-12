@@ -1,0 +1,61 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Initiate new version release process
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+-rc*"
+
+env:
+  CHGLOG_RELEASE: git-chglog_0.15.4_linux_amd64
+  CHGLOG_PATH: https://github.com/git-chglog/git-chglog/releases/download/v0.15.4
+
+jobs:
+  initiate-version-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Register desired version
+      id: release_version
+      run: |
+        echo "VERSION=`echo $(git describe --tags --abbrev=0|grep -Eo '[0-9]+.[0-9]+.[0-9]+')`" >> $GITHUB_OUTPUT
+        echo "AUTHOR=`echo $(git log -1 --pretty=%an)`" >> $GITHUB_OUTPUT
+        # get the previous clean (i.e. no -rc ) version
+        echo "PREVIOUS_VERSION=`echo $(git ls-remote --tags --refs --sort tag origin 'refs/tags/*'|grep -v -e '-rc(.*)'|tail -n 1|awk -F/ '{print substr($0, index($0,$3))}')`" >> $GITHUB_OUTPUT
+    - name: Get git-chglog and update CHANGELOG
+      run: |
+        wget ${{ env.CHGLOG_PATH }}/${{ env.CHGLOG_RELEASE}}.tar.gz  # get the binary for the chglog
+        tar --extract --file=${{ env.CHGLOG_RELEASE}}.tar.gz git-chglog
+        # update the changelog only for this tag
+        ./git-chglog -o _tmpCHLOG.md ${{ github.ref_name }}..${{ steps.release_version.outputs.PREVIOUS_VERSION }}
+        cat _tmpCHLOG.md CHANGELOG.md > new_CHLOG.md && mv new_CHLOG.md CHANGELOG.md
+        # now we substitute the clean tag
+        sed -i -e "s/${{ github.ref_name }}/${{ steps.release_version.outputs.version}}/g" CHANGELOG.md
+        rm git-chglog
+    # Update the DESCRIPITON file
+    # Update the configure.ac
+    - name: Create version release Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        branch: release-${{ steps.release_version.outputs.version }}
+        commit-message: "automated-update of changelog"
+        token: ${{ secrets.GITHUB_TOKEN }}
+        add-paths: |
+          CHANGELOG.md
+        delete-branch: false
+        title: Release request version ${{ steps.release_version.outputs.version }}
+        body: |
+          Request triggered by **${{ steps.release_version.outputs.AUTHOR }}**
+          
+          The initiating tag was **${{ github.ref_name }}**
+
+          Merging this Pull Request will create a release of the version **${{ steps.release_version.outputs.version }}**.
+        labels: |
+          version-release
+        base: main  # NOTE: this should match the branch on which the tag was made
+        draft: true  # NOTE: this is not allowed on free private repos
