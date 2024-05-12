@@ -41,7 +41,6 @@ jobs:
       - name: Find changed files
         id: changed_files
         run: | 
-          echo "gh pr view ${{ env.EVENT }} --json 'files' --jq '.[].[].path'
           echo "CHANGED_SRC=`echo $(gh pr view ${{ env.EVENT }} --json 'files'|jq --arg FOLDER 'src/' '.[].[] | select(.path | startswith($FOLDER)) | .path')`" >> $GITHUB_OUTPUT
           echo "CHANGED_R=`echo $(gh pr view ${{ env.EVENT }} --json 'files'|jq --arg FOLDER 'R/' '.[].[] | select(.path | startswith($FOLDER)) | .path')`" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
