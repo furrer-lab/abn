@@ -82,10 +82,6 @@ jobs:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
     steps:
       - uses: actions/checkout@v4
-      - name: Create build location
-        run: |
-            mkdir ${{ env.BUILD_LOC }}
-        shell: bash
       - name: Disable renv
         run: |
             renv::deactivate()
