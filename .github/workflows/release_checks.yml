@@ -4,7 +4,7 @@ name: Release Cycle Checks
 
 on:
   push:
-    branch:
+    branches:
       # TODO: only run on creation of release and when a
       # label is added
       - "release-[0-9]+.[0-9]+.[0-9]+"
