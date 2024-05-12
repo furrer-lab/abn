@@ -62,7 +62,7 @@ jobs:
           echo "CHANGED_R=`echo $(gh pr view ${{ env.EVENT }} --json 'files'|jq --arg FOLDER 'R/' '.[].[] | select(.path | startswith($FOLDER)) | .path')`" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
-  gather_tests:
+  gather-tests:
     needs:
       - get-changes
     runs-on: ubuntu-latest
