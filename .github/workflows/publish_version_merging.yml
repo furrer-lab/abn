@@ -36,7 +36,6 @@ jobs:
         run: |
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
         shell: Rscript {0}
-      # TODO: add abn.tar.gz as artifact
       - name: Upload the built package as artifact
         uses: actions/upload-artifact@v4
         with:
