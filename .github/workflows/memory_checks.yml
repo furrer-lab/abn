@@ -45,8 +45,8 @@ jobs:
       - uses: actions/checkout@v4
       - id: get_testfiles
         run: |
-           echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')"
-           echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+           echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
+           cat $GITHUB_OUTPUT
 
   run_memory_check:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
@@ -60,7 +60,7 @@ jobs:
       REPO: ${{ github.event.repository.name }}
     strategy:
       matrix:
-        testfile: ${{ fromJson(needs.gather_tests.output.testfiles) }}
+        testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
@@ -110,6 +110,10 @@ jobs:
     needs:
       - run_memory_check
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
@@ -119,6 +123,7 @@ jobs:
       - name: Check if on demand tasks succeeded
         #TODO: Properly establish if matrix failed
         run: |
+          echo ${{ toJson(needs.run_memory_check) }}
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
           if [ ${{ needs.run_memory_check.outcome }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
