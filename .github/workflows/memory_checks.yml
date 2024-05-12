@@ -33,17 +33,21 @@ jobs:
         continue-on-error: true  # make sure the next steps run also on failure
       - id: set_label_check
         run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
   gather_tests:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
+    runs-on: ubuntu-latest
     needs:
       - check_label_exist
     outputs:
-      testfiles: ${{ steps.get-testfiles.outputs.testfiles }}
+      testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
     steps:
-      - id: get-testfiles
+      - uses: actions/checkout@v4
+      - id: get_testfiles
         run: |
            echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')"
            echo "TESTFILES=ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
   run_memory_check:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
     needs:
@@ -57,17 +61,51 @@ jobs:
     strategy:
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.output.testfiles) }}
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - name: Installing valgrind
+        run: |
+          apt-get install valgrind -y
+        shell: bash
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}  # this is needed for gh as it needs a branch
-      # TODO: Here we perform the memory tests
-      - name: Doing something on demand
-        id: some_task
-        continue-on-error: true  # make sure the next steps run also on failure
+          ref: ${{ github.head_ref }}
+      - name: Disable renv
         run: |
-          echo Hello, world!
-  run_memory_check:
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Configuration for valgrind (and ASan)
+        run: |
+          echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+          echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+        shell: bash
+      - name: Install package
+        run: |
+          devtools::install(upgrade='never')
+        shell: Rscript {0}
+      - name: valgrind - memcheck test single file
+        run: |
+          R -d "valgrind --tool=memcheck \
+          --leak-check=full \
+          --errors-for-leak-kinds=definite \
+          --error-exitcode=1" \
+          --vanilla \
+          -e "devtools::test_file(${{ matrix.testfile }})"
+        shell: bash
+
+  report_memory_checks:
     if: ${{ (github.event.label.name == needs.check_label_exist.outputs.label_check) && (success() || failure()) }}
     needs:
       - run_memory_check
