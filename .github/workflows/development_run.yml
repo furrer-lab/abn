@@ -6,8 +6,6 @@ on:
   pull_request:
     branches-ignore:
       - "release-[0-9]+.[0-9]+.[0-9]+"
-
-
 jobs:
   get-target-container:
     if: github.ref != 'refs/heads/main'
@@ -80,8 +78,14 @@ jobs:
         testfile: ${{ fromJson(needs.gather-tests.outputs.testfiles) }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+      BUILD_LOC: "./build"
+
     steps:
       - uses: actions/checkout@v4
+      - name: Create build location
+        run: |
+            mkdir ${{ env.BUILD_LOC }}
+        shell: bash
       - name: Disable renv
         run: |
             renv::deactivate()
