@@ -1,0 +1,140 @@
+name: Optional Memory Checking
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'memory::check'
+  LABEL_SUCCESS: 'memory::passed'
+  LABEL_FAILURE: 'memory::failed'
+
+jobs:
+  check_label_exist:
+    runs-on: ubuntu-latest
+    outputs:
+      label_check: ${{ steps.set_label_check.outputs.label_check }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert labels ${{ env.LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_SUCCESS }} is defined
+        run: |
+          gh label create ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_FAILURE }} is defined
+        run: |
+          gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - id: set_label_check
+        run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  gather_tests:
+    runs-on: ubuntu-latest
+    outputs:
+      testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: get_testfiles
+        run: |
+           echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
+  run_memory_check:
+    if: github.event.label.name == needs.check_label_exist.outputs.label_check
+    needs:
+      - check_label_exist
+      - gather_tests
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Installing valgrind
+        run: |
+          apt-get install valgrind -y
+        shell: bash
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Configuration for valgrind (and ASan)
+        run: |
+          echo "PKG_CFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+          echo "PKG_CXXFLAGS = -g -fsanitize=address -fno-omit-frame-pointer" >> src/Makevars
+        shell: bash
+      - name: Install package
+        run: |
+          devtools::install(upgrade='never')
+        shell: Rscript {0}
+      - name: valgrind - memcheck for ${{ matrix.testfile }}
+        run: |
+          R -d "valgrind --tool=memcheck \
+          --leak-check=full \
+          --errors-for-leak-kinds=definite \
+          --track-origins=yes \
+          --error-exitcode=1" \
+          --vanilla \
+          -e "devtools::test_active_file('${{ matrix.testfile }}')"
+        shell: bash
+
+  report_memory_checks:
+    if: ${{ (github.event.label.name == needs.check_label_exist.outputs.label_check) && (success() || failure()) }}
+    needs:
+      - run_memory_check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        #TODO: Properly establish what has failead and what not
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
+          if [ ${{ needs.run_memory_check.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.run_memory_check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
