@@ -4,11 +4,19 @@ name: Runs on non-release pull requests
 
 on:
   pull_request:
-    branches-ignore:
-      - "release-[0-9]+.[0-9]+.[0-9]+"
+    branches:
+      - "*"  # run for any pull request (see 1st job if condition for head name selection)
 jobs:
+  should-run:
+    if: ${{ (github.ref != 'refs/heads/main') && (!startsWith(github.head_ref, 'release-')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "Running development tests for branch ${{ github.head_ref }}"
+
   get-target-container:
-    if: github.ref != 'refs/heads/main'
+    needs: should-run
     runs-on: ubuntu-22.04
     outputs:
       CONTAINER: ${{ steps.container.outputs.container }}
@@ -23,8 +31,8 @@ jobs:
           else
             echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
           fi
-
   get-changes:
+    needs: should-run
     runs-on: ubuntu-latest
     outputs:
       run_all: ${{ steps.changed_files.outputs.changed_src }}
