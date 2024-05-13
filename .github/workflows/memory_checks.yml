@@ -96,6 +96,7 @@ jobs:
           R -d "valgrind --tool=memcheck \
           --leak-check=full \
           --errors-for-leak-kinds=definite \
+          --track-origins=yes \
           --error-exitcode=1" \
           --vanilla \
           -e "devtools::test_active_file('${{ matrix.testfile }}')"
