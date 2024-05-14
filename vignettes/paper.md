@@ -13,6 +13,9 @@ authors:
 - name: Jonas I. Liechti
   orcid: 0000-0003-3447-3060
   affiliation: "3"
+- name: Georg R. Spinner
+  orcid: 0000-0001-9640-8155
+  affiliation: "2"
 - name: Reinhard Furrer
   orcid: 0000-0002-6319-2332
   corresponding: true
@@ -24,7 +27,7 @@ affiliations:
    index: 2
  - name: www.T4D.ch, T4D GmbH, Zurich, Switzerland
    index: 3
-date: 05. April 2024
+date: 17. Mai 2024
 bibliography: paper.bib
 ---
 
