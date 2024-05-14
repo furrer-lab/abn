@@ -34,9 +34,9 @@ Please note that the `abn` package is currently unavailable on CRAN.
 We are dedicated to providing a robust and reliable package, and we appreciate your understanding as we work towards making `abn` available on CRAN soon. [^1]
 
 [^1]: The `abn` package includes certain features, such as multiprocessing and integration with the INLA package, which are limited or available only on specific CRAN flavors. 
-While it is possible to relax the testing process by e.g. excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
+While it is possible to relax the testing process by, e.g., excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
 We have implemented a rigorous testing framework similar to CRAN's to validate these functionalities in our development process. 
-Our aim is to maximize the reliability of the `abn` package under various conditions and are dedicated to providing a robust and reliable package. 
+Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
 We appreciate your understanding as we work towards making `abn` available on CRAN soon.
 
 ## Additional libraries
@@ -45,7 +45,7 @@ The following additional libraries are recommended to best profit from the [abn]
 
 - [INLA](https://www.r-inla.org/), which is an R package used for model fitting. It is hosted separately from CRAN and is easy to install on common platforms (see instructions on the INLA website). 
 ```r
-install.packages("INLA", repos=c(getOption("repos"), INLA="https://inla.r-inla-download.org/R/stable"), dep=TRUE)
+install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 ```
 
 - [Rgraphviz](https://www.bioconductor.org//packages/release/bioc/html/Rgraphviz.html) is used to produce plots of network graphs and is hosted on [Bioconductor](https://www.bioconductor.org/).
@@ -55,7 +55,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install("Rgraphviz", version = "3.8")
 ```
 
-- [JAGS](https://mcmc-jags.sourceforge.io/) is a program for analysing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. Its installation is platform-dependent and is, therefore, not covered here.
+- [JAGS](https://mcmc-jags.sourceforge.io/) is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. Its installation is platform-dependent and is, therefore, not covered here.
 
 # Quickstart
 
@@ -110,29 +110,29 @@ Unlike other packages, `abn` does not restrict the combination of parent-child d
 
 The analysis of "hierarchical" or "grouped" data, in which observations are nested within higher-level units, requires statistical models with parameters that vary across groups (e.g. mixed-effect models).
 
-`abn` allows to control for one-layer clustering, where observations are grouped into a single layer of clusters which are themself assumed to be independent, but observations within the clusters may be correlated (e.g. students nested within schools, measurements over time for each patient, etc).
+`abn` allows to control for one-layer clustering, where observations are grouped into a single layer of clusters that are themself assumed to be independent, but observations within the clusters may be correlated (e.g. students nested within schools, measurements over time for each patient, etc).
 The argument `group.var` specifies the discrete variable that defines the group structure. The model is then fitted separately for each group, and the results are combined. 
 
-For example, studying student test scores across different schools, a varying intercept model would allow for the possibility that average test scores (the intercept) might be higher in one school than another due to factors specific to each school. This can be modelled in `abn` by setting the argument `group.var` to the variable containing the school names. The model is then fitted as a varying intercept model, where the intercept is allowed to vary across schools, but the slope is assumed to be the same for all schools.
+For example, studying student test scores across different schools, a varying intercept model would allow for the possibility that average test scores (the intercept) might be higher in one school than another due to factors specific to each school. This can be modeled in `abn` by setting the argument `group.var` to the variable containing the school names. The model is then fitted as a varying intercept model, where the intercept is allowed to vary across schools, but the slope is assumed to be the same for all schools.
 
-Under the frequentist paradigm (`method = "mle"`), `abn` relies on the `lme4` package to fit generalised linear mixed models (GLMMs) for Binomial, Poisson, and Gaussian distributed variables. For multinomial distributed variables, `abn` fits a multinomial baseline category logit model with random effects using the `mclogit` package. Currently, only one-layer clustering is supported (e.g., for `method = "mle"`, this corresponds to a random intercept model).
+Under the frequentist paradigm (`method = "mle"`), `abn` relies on the `lme4` package to fit generalized linear mixed models (GLMMs) for Binomial, Poisson, and Gaussian distributed variables. For multinomial distributed variables, `abn` fits a multinomial baseline category logit model with random effects using the `mclogit` package. Currently, only one-layer clustering is supported (e.g., for `method = "mle"`, this corresponds to a random intercept model).
 
 With a Bayesian approach (`method = "bayes"`), `abn` relies on its own implementation of the Laplace approximation and the package `INLA` to fit a single-level hierarchical model for Binomial, Poisson, and Gaussian distributed variables. Multinomial distributed variables in general (see Section [Supported Data Types](#supported-data-types)) are not yet implemented with `method = "bayes"`.
 
 # Basic Background
 
-Bayesian network modelling is a data analysis technique ideally suited to messy, highly correlated and complex datasets. 
-This methodology is rather distinct from other forms of statistical modelling in that its focus is on structure discovery—determining an optimal graphical model that describes the interrelationships in the underlying processes that generated the data. 
+Bayesian network modeling is a data analysis technique ideally suited to messy, highly correlated and complex datasets. 
+This methodology is rather distinct from other forms of statistical modeling in that its focus is on structure discovery—determining an optimal graphical model that describes the interrelationships in the underlying processes that generated the data. 
 It is a **multivariate** technique and can be used for one or many dependent variables. 
-This is a data-driven approach, as opposed to relying only on subjective expert opinion to determine how variables of interest are interrelated (for example, structural equation modelling). 
+This is a data-driven approach, as opposed to relying only on subjective expert opinion to determine how variables of interest are interrelated (for example, structural equation modeling). 
 
 [Below](#examples) and on the [package's website](https://r-bayesian-networks.org/), we provide some [cookbook](#examples)-type examples of how to perform Bayesian network **structure discovery** analyses with observational data. 
 The particular type of Bayesian network models considered here are **additive Bayesian networks**. 
-These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrisation. 
-An additive Bayesian network model is simply a **multidimensional regression model**, e.g. directly analogous to generalised linear modelling but with all variables potentially dependent. 
+These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrization. 
+An additive Bayesian network model is simply a **multidimensional regression model**, e.g., directly analogous to generalized linear modeling but with all variables potentially dependent. 
 
-An example can be found in the [American Journal of Epidemiology](https://academic.oup.com/aje/article-abstract/176/11/1051/178588), where this approach was used to investigate risk factors for child diarrhoea. 
-A special issue of [Preventive Veterinary Medicine](http://www.sciencedirect.com/science/journal/01675877/110/1) on graphical modelling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data. 
+An example can be found in the [American Journal of Epidemiology](https://academic.oup.com/aje/article-abstract/176/11/1051/178588), where this approach was used to investigate risk factors for child diarrhea. 
+A special issue of [Preventive Veterinary Medicine](http://www.sciencedirect.com/science/journal/01675877/110/1) on graphical modeling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data. 
 Introductions to this methodology can be found in [Emerging Themes in Epidemiology](https://link.springer.com/journal/12982) and in [Computers in Biology and Medicine](https://www.sciencedirect.com/science/article/pii/S0010482522005133) where it is compared to other approaches.
 
 ## What is an additive Bayesian network?
@@ -143,7 +143,7 @@ They provide a framework for representing data with multiple variables, known as
 ABN models are a graphical representation of (Bayesian) multivariate regression. 
 This form of statistical analysis enables the prediction of multiple outcomes from a given set of predictors while simultaneously accounting for the relationships between these outcomes.
 
-In other words, additive Bayesian network models extend the concept of generalised linear models (GLMs), which are typically used to predict a single outcome, to scenarios with multiple dependent variables. 
+In other words, additive Bayesian network models extend the concept of generalized linear models (GLMs), which are typically used to predict a single outcome, to scenarios with multiple dependent variables. 
 This makes them a powerful tool for understanding complex, multivariate datasets.
 
 ## The term Bayesian network is interpreted differently across various fields.
@@ -151,9 +151,9 @@ This makes them a powerful tool for understanding complex, multivariate datasets
 Bayesian network models often involve binary nodes, arguably the most frequently used type of Bayesian network. 
 These models typically use a contingency table instead of an additive parameter formulation. 
 This approach allows for mathematical elegance and enables key metrics like model goodness of fit and marginal posterior parameters to be estimated analytically (i.e., from a formula) rather than numerically (an approximation). 
-However, this parametrisation may not be parsimonious, and the interpretation of the model parameters is less straightforward than the usual Generalized Linear Model (GLM) type models, which are prevalent across all scientific disciplines.
+However, this parametrization may not be parsimonious, and the interpretation of the model parameters is less straightforward than the usual Generalized Linear Model (GLM) type models, which are prevalent across all scientific disciplines.
 
-While this is a crucial practical distinction, it’s a relatively low-level technical one, as the primary aspect of BN modelling is that it’s a form of graphical modelling – a model of the data’s joint probability distribution. 
+While this is a crucial practical distinction, it’s a relatively low-level technical one, as the primary aspect of BN modeling is that it’s a form of graphical modeling – a model of the data’s joint probability distribution. 
 This joint – multidimensional – aspect makes this methodology highly attractive for complex data analysis and sets it apart from more standard regression techniques, such as GLMs, GLMMs, etc., which are only one-dimensional as they assume all covariates are independent. 
 While this assumption is entirely reasonable in a classical experimental design scenario, it’s unrealistic for many observational studies in fields like medicine, veterinary science, ecology, and biology.
 
