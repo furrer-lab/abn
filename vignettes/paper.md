@@ -53,7 +53,7 @@ In the context of patient data, the study from @delucchi_bayesian_2022 has discu
 The `abn` package overcomes this limitation through its additive model formulation, which generalizes the usual (Bayesian) multivariable regression to accommodate multiple dependent variables.
 Additionally, the `abn` package offers a comprehensive suite of features for model selection, structure learning, and parameter estimation.
 It includes exact and greedy search algorithms for structure learning and allows for integrating prior expert knowledge into the model selection process by specifying structural constraints.
-A Bayesian and an information-theoretic model scoring approach are available for model selection, allowing users to choose between a Bayesian and frequentist paradigm.
+For model selection, a Bayesian and an information-theoretic model scoring approach are available, allowing users to choose between a Bayesian and frequentist paradigm.
 To our knowledge, this feature is not available in other software.
 Furthermore, it supports mixed-effect models to control one-layer clustering, making it suitable, e.g., for handling data from different sources.
 
@@ -109,7 +109,7 @@ devtools::install_github("furrer-lab/abn")
 
 The development of the `abn` package would not have been possible without the significant contributions of the former developers whose efforts have been instrumental in shaping this project. 
 We acknowledge the contributions of Fraser Iain Lewis, Marta Pittavino, Gilles Kratzer, and Kalina Cherneva, in particular.
-We want to extend our gratitude to the faculty staff at the [Department of Mathematical Modeling and Machine Learning from the University of Zurich](https://dm3l.uzh.ch/home) and the [Institute of Mathematics](https://www.math.uzh.ch/home) who maintain the research and teaching infrastructure.
+We extend our gratitude to the faculty staff at the [Department of Mathematical Modeling and Machine Learning](https://dm3l.uzh.ch/home), University of Zurich (UZH), and the [Department of Mathematics](https://www.math.uzh.ch/home), UZH, who maintain the research and teaching infrastructure.
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
 We want to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in realizing this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
 This work was conducted as part of M.D.'s PhD project, co-supervised by Prof. Dr. Sven Hirsch (ZHAW) and Prof. Dr. Reinhard Furrer (UZH).
