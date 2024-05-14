@@ -16,25 +16,28 @@ The package provides routines for structure learning and parameter estimation of
 
 # Installation
 
-The [`abn`](https://CRAN.R-project.org/package=abn) R package can easily be installed from [CRAN](https://CRAN.R-project.org/package=abn) using:
-
-```r
-install.packages("abn", dependencies = TRUE)
-```
-
 The most recent development version is available from [Github](https://github.com/furrer-lab/abn) and can be installed with:
 
 ```r
 devtools::install_github("furrer-lab/abn")
 ```
 
-It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html)) which can be done with:
+It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html) which can be done with:
 
 ```r
 renv::install("bioc::graph")
 renv::install("bioc::Rgraphviz")
 renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Suggests"))
 ```
+
+Please note that the `abn` package is currently unavailable on CRAN. 
+We are dedicated to providing a robust and reliable package, and we appreciate your understanding as we work towards making `abn` available on CRAN soon. [^1]
+
+[^1]: The `abn` package includes certain features, such as multiprocessing and integration with the INLA package, which are limited or available only on specific CRAN flavors. 
+While it is possible to relax the testing process by e.g. excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
+We have implemented a rigorous testing framework similar to CRAN's to validate these functionalities in our development process. 
+Our aim is to maximize the reliability of the `abn` package under various conditions and are dedicated to providing a robust and reliable package. 
+We appreciate your understanding as we work towards making `abn` available on CRAN soon.
 
 ## Additional libraries
 
