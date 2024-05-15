@@ -72,7 +72,7 @@ Its unique contribution is the implementation of mixed-effect BN models, thereby
 # Implementation
 As outlined in @kratzer_additive_2023, the package's comprehensive framework integrates the mixed-effects model for clustered data, considering data heterogeneity and grouping effects.
 However, this was confined to a Bayesian context and was only a preliminary implementation.
-With the release of `abn` major version 3, this was completed with an implementation under the information-theoretic ("mle") setting.
+With the release of `abn` major version 3, this was completed with an implementation under the information-theoretic (`method = "mle"`) setting.
 
 Analyzing hierarchical or grouped data, i.e., observations nested within higher-level units, requires statistical models with group-varying parameters (e.g., mixed-effect models). 
 The `abn` package facilitates single-layer clustering, where observations are grouped. 
