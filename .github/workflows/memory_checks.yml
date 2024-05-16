@@ -13,6 +13,7 @@ env:
 
 jobs:
   set_target:
+    if: ${{ github.event.label.name == 'memory::check' }}
     runs-on: ubuntu-latest
     outputs:
       target: ${{ steps.set_label.outputs.label }}
