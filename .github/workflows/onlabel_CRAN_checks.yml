@@ -13,14 +13,26 @@ env:
   BUILD_LOC: "./build"
 
 permissions:
-  contents: read
   packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
 
 jobs:
-  check_label_exist:
+  set_target:
+    if: ${{ github.event.label.name == 'CRAN::check' }}
     runs-on: ubuntu-latest
     outputs:
-      label_check: ${{ steps.set_label_check.outputs.label_check }}
+      target: ${{ steps.set_label.outputs.label }}
+    steps:
+      - id: set_label
+        run: |
+          echo "label=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  check_label_exist:
+    needs:
+      - set_target
+    runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
@@ -38,35 +50,12 @@ jobs:
         run: |
           gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
-      - id: set_label_check
-        run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
-
-  URL_check:
-    runs-on: ubuntu-latest
-    name: Run URL checks
-    # runs-on: ubuntu-latest
-    container:
-      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
-      - name: Check for broken urls and redirects
-        run: |
-            library(urlchecker)
-            uc=url_check("./")
-            print(uc)
-            # uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
-        shell: Rscript {0}
 
 
   R_CMD_check:
     runs-on: ubuntu-latest
+    need:
+      - set_target
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
@@ -126,9 +115,9 @@ jobs:
           R_KEEP_PKG_SOURCE: yes
 
   report_CRAN_checks:
-    if: ${{ (github.event.label.name == needs.R_CMD_check.outputs.label_check) && (success() || failure()) }}
     needs:
       - R_CMD_check
+      - check_label_exist
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -146,6 +135,7 @@ jobs:
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
           if [ ${{ needs.R_CMD_check.result }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
@@ -154,6 +144,8 @@ jobs:
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "On demand task outcome was ${{ steps.some_task.outcome }}"
           fi
