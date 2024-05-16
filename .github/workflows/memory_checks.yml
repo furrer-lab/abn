@@ -13,6 +13,7 @@ env:
 
 jobs:
   check_label_exist:
+    if: ${{ github.event.label.name == env.LABEL_CHECK }}
     runs-on: ubuntu-latest
     outputs:
       label_check: ${{ steps.set_label_check.outputs.label_check }}
@@ -37,6 +38,8 @@ jobs:
         run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   gather_tests:
+    needs:
+      - check_label_exist
     runs-on: ubuntu-latest
     outputs:
       testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
@@ -48,7 +51,6 @@ jobs:
   run_memory_check:
     if: github.event.label.name == needs.check_label_exist.outputs.label_check
     needs:
-      - check_label_exist
       - gather_tests
     runs-on: ubuntu-latest
     env:
