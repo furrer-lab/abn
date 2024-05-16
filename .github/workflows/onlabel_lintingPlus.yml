@@ -74,7 +74,6 @@ jobs:
         continue-on-error: true  # make sure the next steps run also on failure
 
   lint_project:
-    if: ${{ (github.event.label.name == needs.set_lint_target.outputs.label ) }}
     needs:
       - set_lint_target
     runs-on: ubuntu-latest
