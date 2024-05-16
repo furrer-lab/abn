@@ -22,34 +22,24 @@ permissions:
   repository-projects: write
 
 jobs:
-  set_lint_target:
+  set_target:
     # NOTE: Would be nice to not copy it here, however, since env is not accessible
     #       we would need a prev. job to set it up, which will succeed, leading the
     #       workflow to be shown as succeeded not skipped
-    if: ${{ github.event.label.name == 'linting::check' }}
+    if: ${{ ( github.event.label.name == 'linting::check' ) || ( github.event.label.name == 'URL::check' ) }}
     runs-on: ubuntu-latest
     outputs:
-      label: ${{ steps.set_label.outputs.label }}
+      lint_label: ${{ steps.set_label.outputs.lint_label }}
+      url_label: ${{ steps.set_label.outputs.url_label }}
     steps:
       - id: set_label
         run: |
-          echo "label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
-
-  set_URL_target:
-    if: ${{ github.event.label.name == 'URL::check' }}
-    runs-on: ubuntu-latest
-    outputs:
-      label: ${{ steps.set_label.outputs.label }}
-    steps:
-      - id: set_label
-        run: |
-          echo "label=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+          echo "lint_label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+          echo "url_label=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   check_label_exist:
-    if: ${{ ( github.event.label.name == needs.set_lint_target.outputs.label ) || ( github.event.label.name == needs.set_URL_target.outputs.label ) }}
     needs:
-      - set_lint_target
-      - set_URL_target
+      - set_target
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -74,8 +64,9 @@ jobs:
         continue-on-error: true  # make sure the next steps run also on failure
 
   lint_project:
+    if: ${{ ( github.event.label.name == needs.set_target.outputs.lint_label ) }}
     needs:
-      - set_lint_target
+      - set_target
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -115,14 +106,14 @@ jobs:
         run: |
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_CHECK }}
           if [ ${{ needs.lint_project.result }} == "success" ]; then
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LINT_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
           elif [ ${{ needs.lint_project.result }} == "failure" ]; then
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LINT_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
@@ -138,9 +129,9 @@ jobs:
 
   URL_check:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.label.name == needs.set_URL_target.outputs.label ) }}
+    if: ${{ (github.event.label.name == needs.set_target.outputs.url_label ) }}
     needs:
-      - set_URL_target
+      - set_target
     name: Run URL checks
     # runs-on: ubuntu-latest
     container:
