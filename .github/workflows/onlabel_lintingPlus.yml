@@ -29,7 +29,7 @@ jobs:
     if: ${{ github.event.label.name == 'linting::check' }}
     runs-on: ubuntu-latest
     outputs:
-      target: ${{ steps.set_label.outputs.label }}
+      label: ${{ steps.set_label.outputs.label }}
     steps:
       - id: set_label
         run: |
@@ -39,14 +39,14 @@ jobs:
     if: ${{ github.event.label.name == 'URL::check' }}
     runs-on: ubuntu-latest
     outputs:
-      target: ${{ steps.set_label.outputs.label }}
+      label: ${{ steps.set_label.outputs.label }}
     steps:
       - id: set_label
         run: |
           echo "label=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   check_label_exist:
-    if: ${{ (github.event.label.name == needs.set_lint_target.outputs.label) || (github.event.label.name == needs.set_URL_target.outputs.label)}}
+    if: ${{ ( github.event.label.name == needs.set_lint_target.outputs.label ) || ( github.event.label.name == needs.set_URL_target.outputs.label ) }}
     needs:
       - set_lint_target
       - set_URL_target
