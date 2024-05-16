@@ -14,6 +14,9 @@ env:
   MEMORY_LABEL_CHECK: 'memory::check'
   CHGLOG_RELEASE: git-chglog_0.15.4_linux_amd64
   CHGLOG_PATH: https://github.com/git-chglog/git-chglog/releases/download/v0.15.4
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  OWNER: ${{ github.repository_owner }}
+  REPO: ${{ github.event.repository.name }}
 
 permissions:
   packages: read
@@ -103,12 +106,9 @@ jobs:
          base: main  # NOTE: this should match the branch on which the tag was made
          # draft: true  # NOTE: this is not allowed on free private repos
          # TODO: Perform pckgdown build
+
   check_label_exist:
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      OWNER: ${{ github.repository_owner }}
-      REPO: ${{ github.event.repository.name }}
     steps:
       - name: Assert labels ${{ env.CRAN_LABEL_CHECK }} is defined
         run: |
@@ -145,5 +145,3 @@ jobs:
           gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
           gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
