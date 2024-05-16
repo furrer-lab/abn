@@ -23,6 +23,7 @@ jobs:
       with:
         fetch-depth: 0  # NOTE: This might be needed to assert that we get the full history
                         #       for the changelog.
+                        #
     - name: Register desired version
       id: release_version
       run: |
@@ -42,8 +43,30 @@ jobs:
         # now we substitute the clean tag
         sed -i -e "s/${{ github.ref_name }}/${{ steps.release_version.outputs.version}}/g" NEWS.md
         rm git-chglog
-    # TODO: update DESCRIPTION and configure.ac files
+
+    - name: Setting up R environment
+      uses: r-lib/actions/setup-r@v2
+      with:
+        use-public-rspm: true
+    - name: Install desc to update DESCRIPTION file
+      run: |
+        install.packages(c("desc"))
+      shell: Rscript {0}
+    - name: Update DESCRIPTION file
+      run: |
+        df = desc::description$new(file='DESCRIPTION')
+        df$set("Date", Sys.Date())
+        df$set("Version", ${{ steps.release_version.outputs.version }})
+        df$write()
+      shell: Rscript {0}
+
+    - name: Update configure.ac file
+      run: |
+        sed -i -e '/^AC_INIT/s/[0-9]\+.[0-9]\.[0-9]\+/${{ steps.release_version.outputs.version }}/g' configure.a0c
+      shell: bash
+
     - name: Create version release Pull Request
+      # NOTE: We might want to perform this step with gh cli natively
       uses: peter-evans/create-pull-request@v6
       with:
         branch: release-${{ steps.release_version.outputs.version }}
@@ -65,3 +88,5 @@ jobs:
           version-release
         base: main  # NOTE: this should match the branch on which the tag was made
         # draft: true  # NOTE: this is not allowed on free private repos
+    # TODO: Perform CRAN-like checks
+    # TODO: Perform pckgdown build
