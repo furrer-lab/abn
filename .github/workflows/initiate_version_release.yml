@@ -68,7 +68,7 @@ jobs:
        run: |
          df = desc::description$new(file='DESCRIPTION')
          df$set("Date", Sys.Date())
-         df$set("Version", ${{ steps.release_version.outputs.version }})
+         df$set("Version", "${{ steps.release_version.outputs.version }}")
          df$write()
        shell: Rscript {0}
 
