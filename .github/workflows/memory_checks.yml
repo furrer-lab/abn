@@ -19,7 +19,7 @@ jobs:
     steps:
       - id: set_label
         run: |
-          echo "label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+          echo "label=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   check_label_exist:
     if: ${{ github.event.label.name == needs.set_target.label }}
