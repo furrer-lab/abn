@@ -12,8 +12,19 @@ env:
   LABEL_FAILURE: 'memory::failed'
 
 jobs:
+  set_target:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.set_label.outputs.label }}
+    steps:
+      - id: set_label
+        run: |
+          echo "label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
   check_label_exist:
-    if: ${{ github.event.label.name == env.LABEL_CHECK }}
+    if: ${{ github.event.label.name == needs.set_target.label }}
+    needs:
+      - set_target
     runs-on: ubuntu-latest
     outputs:
       label_check: ${{ steps.set_label_check.outputs.label_check }}
@@ -38,8 +49,9 @@ jobs:
         run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   gather_tests:
+    if: ${{ github.event.label.name == needs.set_target.label }}
     needs:
-      - check_label_exist
+      - set_target
     runs-on: ubuntu-latest
     outputs:
       testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
@@ -48,8 +60,8 @@ jobs:
       - id: get_testfiles
         run: |
            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
+
   run_memory_check:
-    if: github.event.label.name == needs.check_label_exist.outputs.label_check
     needs:
       - gather_tests
     runs-on: ubuntu-latest
@@ -107,7 +119,7 @@ jobs:
         shell: bash
 
   report_memory_checks:
-    if: ${{ (github.event.label.name == needs.check_label_exist.outputs.label_check) && (success() || failure()) }}
+    if: ${{ (success() || failure()) }}
     needs:
       - run_memory_check
     runs-on: ubuntu-latest
