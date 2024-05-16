@@ -10,9 +10,9 @@ env:
   LINT_LABEL_CHECK: 'linting::check'
   LINT_LABEL_SUCCESS: 'linting::passed'
   LINT_LABEL_FAILURE: 'linting::failed'
-  URL_LABEL_CHECK: 'URLcheck::check'
-  URL_LABEL_SUCCESS: 'URLcheck::passed'
-  URL_LABEL_FAILURE: 'URLcheck::failed'
+  URL_LABEL_CHECK: 'URL::check'
+  URL_LABEL_SUCCESS: 'URL::passed'
+  URL_LABEL_FAILURE: 'URL::failed'
   BUILD_LOC: "./build"
 
 permissions:
@@ -22,8 +22,11 @@ permissions:
   repository-projects: write
 
 jobs:
-
   set_lint_target:
+    # NOTE: Would be nice to not copy it here, however, since env is not accessible
+    #       we would need a prev. job to set it up, which will succeed, leading the
+    #       workflow to be shown as succeeded not skipped
+    if: ${{ github.event.label.name == 'linting::check' }}
     runs-on: ubuntu-latest
     outputs:
       target: ${{ steps.set_label.outputs.label }}
@@ -31,7 +34,9 @@ jobs:
       - id: set_label
         run: |
           echo "label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
   set_URL_target:
+    if: ${{ github.event.label.name == 'URL::check' }}
     runs-on: ubuntu-latest
     outputs:
       target: ${{ steps.set_label.outputs.label }}
@@ -41,7 +46,7 @@ jobs:
           echo "label=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   check_label_exist:
-    if: ${{ (github.event.label.name == needs.set_lint_target.label) || (github.event.label.name == needs.set_URL_target.label)}}
+    if: ${{ (github.event.label.name == needs.set_lint_target.outputs.label) || (github.event.label.name == needs.set_URL_target.outputs.label)}}
     needs:
       - set_lint_target
       - set_URL_target
@@ -59,9 +64,9 @@ jobs:
           - 'linting::check'
           - 'linting::passed'
           - 'linting::failed'
-          - 'URLcheck::check'
-          - 'URLcheck::passed'
-          - 'URLcheck::failed'
+          - 'URL::check'
+          - 'URL::passed'
+          - 'URL::failed'
     steps:
       - name: Assert labels ${{ matrix.label }} is defined
         run: |
@@ -176,10 +181,13 @@ jobs:
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }}
           if [ ${{ needs.URL_check.result }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.URL_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
           elif [ ${{ needs.URL_check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.URL_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
