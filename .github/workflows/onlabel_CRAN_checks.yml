@@ -1,0 +1,207 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: On Label CRAN Checks
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'CRAN::check'
+  LABEL_SUCCESS: 'CRAN::passed'
+  LABEL_FAILURE: 'CRAN::failed'
+  BUILD_LOC: "./build"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  check_label_exist:
+    runs-on: ubuntu-latest
+    outputs:
+      label_check: ${{ steps.set_label_check.outputs.label_check }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert labels ${{ env.LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_SUCCESS }} is defined
+        run: |
+          gh label create ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_FAILURE }} is defined
+        run: |
+          gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - id: set_label_check
+        run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  URL_check:
+    runs-on: ubuntu-latest
+    name: Run URL checks
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./")
+            print(uc)
+            # uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
+
+  R_CMD_check:
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+    strategy:
+      fail-fast: false
+      matrix:
+        r-version: ['release' , 'devel', 'patched']  # ['3.6.3', '4.1.1']
+        os: ['debian', 'fedora']
+        compiler: ['gcc', 'clang']
+        exclude:
+          - os: 'fedora'
+            r-version: 'release'
+          - os: 'fedora'
+            r-version: 'patched'
+          - r-version: 'patched'
+            compiler: 'clang'
+          - r-version: 'release'
+            compiler: 'clang'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: rcmdcheck run
+        run: |
+            options(crayon.enabled = TRUE)
+            cat("LOGNAME=", Sys.info()[["user"]], "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
+            if (Sys.getenv("_R_CHECK_FORCE_SUGGESTS_", "") == "") Sys.setenv("_R_CHECK_FORCE_SUGGESTS_" = "false")
+            if (Sys.getenv("_R_CHECK_CRAN_INCOMING_", "") == "") Sys.setenv("_R_CHECK_CRAN_INCOMING_" = "false")
+            cat("check-dir-path=", file.path(getwd(), ("check")), "\n", file = Sys.getenv("GITHUB_OUTPUT"), sep = "", append = TRUE)
+            check_results <- rcmdcheck::rcmdcheck(".", args = (c("--no-manual", "--as-cran")), build_args = ("--no-manual"), error_on = ("error"), check_dir = ("check"))
+        shell: Rscript {0}
+        env:
+          BUILD_LOC: ./build
+          R_KEEP_PKG_SOURCE: yes
+      - name: rchmdchek show results
+        run: |
+          echo ::group::Show testthat output
+          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+          echo ::endgroup::
+        shell: bash --noprofile --norc -e -o pipefail {0}
+        env:
+          BUILD_LOC: ./build
+          R_KEEP_PKG_SOURCE: yes
+
+  report_CRAN_checks:
+    if: ${{ (github.event.label.name == needs.R_CMD_check.outputs.label_check) && (success() || failure()) }}
+    needs:
+      - R_CMD_check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        #TODO: Properly establish what has failead and what not
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }}
+          if [ ${{ needs.R_CMD_check.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.R_CMD_check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  test-coverage:
+  # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+  # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+    if: ${{ success() }}
+    needs: [R_CMD_check]
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::covr
+          needs: coverage
+
+      - name: Test coverage
+        run: |
+          covr::codecov(
+            quiet = FALSE,
+            clean = FALSE,
+            install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"), winslash = "/"), "package")
+          )
+        shell: Rscript {0}
+
+      - name: Show testthat output
+        if: always()
+        run: |
+          ## --------------------------------------------------------------------
+          find ${{ runner.temp }}/package -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-test-failures
+          path: ${{ runner.temp }}/package

@@ -10,9 +10,9 @@ env:
   LINT_LABEL_CHECK: 'linting::check'
   LINT_LABEL_SUCCESS: 'linting::passed'
   LINT_LABEL_FAILURE: 'linting::failed'
-  URL_LABEL_CHECK: 'linting::check'
-  URL_LABEL_SUCCESS: 'linting::passed'
-  URL_LABEL_FAILURE: 'linting::failed'
+  URL_LABEL_CHECK: 'URLcheck::check'
+  URL_LABEL_SUCCESS: 'URLcheck::passed'
+  URL_LABEL_FAILURE: 'URLcheck::failed'
   BUILD_LOC: "./build"
 
 permissions:
@@ -37,9 +37,9 @@ jobs:
           - 'linting::check'
           - 'linting::passed'
           - 'linting::failed'
-          - 'linting::check'
-          - 'linting::passed'
-          - 'linting::failed'
+          - 'URLcheck::check'
+          - 'URLcheck::passed'
+          - 'URLcheck::failed'
     steps:
       - name: Assert labels ${{ matrix.label }} is defined
         run: |
