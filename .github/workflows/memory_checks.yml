@@ -16,19 +16,16 @@ jobs:
     if: ${{ github.event.label.name == 'memory::check' }}
     runs-on: ubuntu-latest
     outputs:
-      target: ${{ steps.set_label.outputs.label }}
+      label: ${{ steps.set_label.outputs.label }}
     steps:
       - id: set_label
         run: |
           echo "label=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   check_label_exist:
-    if: ${{ github.event.label.name == needs.set_target.label }}
     needs:
       - set_target
     runs-on: ubuntu-latest
-    outputs:
-      label_check: ${{ steps.set_label_check.outputs.label_check }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
@@ -46,11 +43,8 @@ jobs:
         run: |
           gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
-      - id: set_label_check
-        run: echo "label_check=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
 
   gather_tests:
-    if: ${{ github.event.label.name == needs.set_target.label }}
     needs:
       - set_target
     runs-on: ubuntu-latest
