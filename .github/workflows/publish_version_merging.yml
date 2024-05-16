@@ -9,6 +9,8 @@ on:
 
 env:
   LABEL_PUBLISHED: 'release::published'
+  BUILD_LOC: "./build"
+  DOC_LOC: "./docs"
 
 jobs:
   build-release-content:
@@ -19,28 +21,42 @@ jobs:
     permissions:
       contents: write
     steps:
-     - uses: actions/checkout@v4
-     - name: Create build location
-       run: |
+      - uses: actions/checkout@v4
+      - name: Create build location
+        run: |
            mkdir ${{ env.BUILD_LOC }}
-       shell: bash
-     - name: Disable renv
-       run: |
+        shell: bash
+      - name: Disable renv
+        run: |
            renv::deactivate()
-       shell: Rscript {0}
-     - name: Change permissions of configure
-       run: |
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
            chmod +x configure
-       shell: bash
-     - name: Build the package
-       run: |
-           devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
-       shell: Rscript {0}
-     - name: Upload the built package as artifact
-       uses: actions/upload-artifact@v4
-       with:
-         name: package
-         path: ${{ env.BUILD_LOC }}/abn.tar.gz
+        shell: bash
+      - name: Build the package
+        run: |
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+        shell: Rscript {0}
+      # NOTE: This should go the the r-container
+      - name: Install dependencies for pkgdown
+        run: | 
+          install.packages(c("pkgdown"))
+        shell: Rscript {0}
+      - name: Build site
+        run: |
+          pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload the built package as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: ${{ env.BUILD_LOC }}/abn.tar.gz
+      - name: Upload pkgdown artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ${{ env.DDOC_LOC }}/
 
   release-version:
     needs: build-release-content
@@ -122,3 +138,7 @@ jobs:
             ${{ env.BUILD_LOC }}/abn.tar.gz \
             --clobber
             --repo ${{ env.OWNER }}/${{ env.REPO }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
