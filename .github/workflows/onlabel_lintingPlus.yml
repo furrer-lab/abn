@@ -22,7 +22,29 @@ permissions:
   repository-projects: write
 
 jobs:
+
+  set_lint_target:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.set_label.outputs.label }}
+    steps:
+      - id: set_label
+        run: |
+          echo "label=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+  set_URL_target:
+    runs-on: ubuntu-latest
+    outputs:
+      target: ${{ steps.set_label.outputs.label }}
+    steps:
+      - id: set_label
+        run: |
+          echo "label=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
   check_label_exist:
+    if: ${{ (github.event.label.name == needs.set_lint_target.label) || (github.event.label.name == needs.set_URL_target.label)}}
+    needs:
+      - set_lint_target
+      - set_URL_target
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,26 +68,10 @@ jobs:
           gh label create ${{ matrix.label }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
 
-  set_lint_label:
-    runs-on: ubuntu-latest
-    outputs:
-      label_check: ${{ steps.set_label_check.outputs.label_check }}
-    steps:
-      - id: set_label_check
-        run: echo "label_check=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
-
-  set_URL_label:
-    runs-on: ubuntu-latest
-    outputs:
-      label_check: ${{ steps.set_label_check.outputs.label_check }}
-    steps:
-      - id: set_label_check
-        run: echo "label_check=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
-
   lint_project:
-    if: ${{ (github.event.label.name == needs.set_lint_label.outputs.label_check) }}
+    if: ${{ (github.event.label.name == needs.set_lint_target.outputs.label ) }}
     needs:
-      - set_lint_label
+      - set_lint_target
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -87,9 +93,7 @@ jobs:
           LINTR_ERROR_ON_LINT: true
 
   report_lint:
-    if: ${{ (github.event.label.name == needs.set_lint_label.outputs.label_check) && (success() || failure()) }}
     needs:
-      - set_lint_label
       - lint_project
       - check_label_exist
     runs-on: ubuntu-latest
@@ -127,9 +131,9 @@ jobs:
 
   URL_check:
     runs-on: ubuntu-latest
-    if: ${{ (github.event.label.name == needs.set_URL_label.outputs.label_check) }}
+    if: ${{ (github.event.label.name == needs.set_URL_target.outputs.label ) }}
     needs:
-      - set_URL_label
+      - set_URL_target
     name: Run URL checks
     # runs-on: ubuntu-latest
     container:
@@ -152,9 +156,7 @@ jobs:
         shell: Rscript {0}
 
   report_URL_check:
-    if: ${{ (github.event.label.name == needs.set_URL_label.outputs.label_check) && (success() || failure()) }}
     needs:
-      - set_URL_label
       - URL_check
       - check_label_exist
     runs-on: ubuntu-latest
