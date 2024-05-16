@@ -54,7 +54,7 @@ jobs:
 
   R_CMD_check:
     runs-on: ubuntu-latest
-    need:
+    needs:
       - set_target
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
