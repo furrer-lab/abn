@@ -1,0 +1,191 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: On Label Linting and extra checks
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LINT_LABEL_CHECK: 'linting::check'
+  LINT_LABEL_SUCCESS: 'linting::passed'
+  LINT_LABEL_FAILURE: 'linting::failed'
+  URL_LABEL_CHECK: 'linting::check'
+  URL_LABEL_SUCCESS: 'linting::passed'
+  URL_LABEL_FAILURE: 'linting::failed'
+  BUILD_LOC: "./build"
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  check_label_exist:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # NOTE: would be nicer to not re-define them here, however env is not 
+        #       evaluated > would need to go thour the output of a previous job
+        label:
+          - 'linting::check'
+          - 'linting::passed'
+          - 'linting::failed'
+          - 'linting::check'
+          - 'linting::passed'
+          - 'linting::failed'
+    steps:
+      - name: Assert labels ${{ matrix.label }} is defined
+        run: |
+          gh label create ${{ matrix.label }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+
+  set_lint_label:
+    runs-on: ubuntu-latest
+    outputs:
+      label_check: ${{ steps.set_label_check.outputs.label_check }}
+    steps:
+      - id: set_label_check
+        run: echo "label_check=${{ env.LINT_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  set_URL_label:
+    runs-on: ubuntu-latest
+    outputs:
+      label_check: ${{ steps.set_label_check.outputs.label_check }}
+    steps:
+      - id: set_label_check
+        run: echo "label_check=${{ env.URL_LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  lint_project:
+    if: ${{ (github.event.label.name == needs.set_lint_label.outputs.label_check) }}
+    needs:
+      - set_lint_label
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install lintr
+        run: install.packages("lintr")
+        shell: Rscript {0}
+
+      - name: Lint root directory
+        run: lintr::lint_dir()
+        shell: Rscript {0}
+        env:
+          LINTR_ERROR_ON_LINT: true
+
+  report_lint:
+    if: ${{ (github.event.label.name == needs.set_lint_label.outputs.label_check) && (success() || failure()) }}
+    needs:
+      - set_lint_label
+      - lint_project
+      - check_label_exist
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report the linting status by label
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_CHECK }}
+          if [ ${{ needs.lint_project.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LINT_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.lint_project.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LINT_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.lint_project.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+
+  URL_check:
+    runs-on: ubuntu-latest
+    if: ${{ (github.event.label.name == needs.set_URL_label.outputs.label_check) }}
+    needs:
+      - set_URL_label
+    name: Run URL checks
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Check for broken urls and redirects
+        run: |
+            library(urlchecker)
+            uc=url_check("./")
+            print(uc)
+            # uc=url_check("./");print(uc);print(uc$Status); if(any(uc$Status=="Error") || any(uc$Status=="403")) {q("no", status=1, FALSE)}
+        shell: Rscript {0}
+
+  report_URL_check:
+    if: ${{ (github.event.label.name == needs.set_URL_label.outputs.label_check) && (success() || failure()) }}
+    needs:
+      - set_URL_label
+      - URL_check
+      - check_label_exist
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        #TODO: Properly establish what has failead and what not
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }}
+          if [ ${{ needs.URL_check.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.URL_LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.URL_check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT  }} --add-label ${{ env.URL_LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.URL_check.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
