@@ -74,7 +74,7 @@ jobs:
 
      - name: Update configure.ac file
        run: |
-         sed -i -e '/^AC_INIT/s/[0-9]\+.[0-9]\.[0-9]\+/${{ steps.release_version.outputs.version }}/g' configure.a0c
+         sed -i -e '/^AC_INIT/s/[0-9]\+.[0-9]\.[0-9]\+/${{ steps.release_version.outputs.version }}/g' configure.ac
        shell: bash
 
      - name: Create version release Pull Request
