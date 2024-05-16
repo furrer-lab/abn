@@ -122,6 +122,7 @@ jobs:
     if: ${{ (success() || failure()) }}
     needs:
       - run_memory_check
+      - check_label_exist
     runs-on: ubuntu-latest
     permissions:
       contents: write
