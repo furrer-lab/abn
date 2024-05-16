@@ -8,16 +8,29 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+-rc*"
 
 env:
+
+  CRAN_LABEL_CHECK: 'CRAN::check'
+  LINT_LABEL_CHECK: 'linting::check'
+  URL_LABEL_CHECK: 'URL::check'
+  MEMORY_LABEL_CHECK: 'memory::check'
   CHGLOG_RELEASE: git-chglog_0.15.4_linux_amd64
   CHGLOG_PATH: https://github.com/git-chglog/git-chglog/releases/download/v0.15.4
 
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
 jobs:
-  initiate-version-release:
+  initiate_version_release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
       repository-projects: write
+    outputs:
+      EVENT:  ${{ steps.release_pr.outputs.pull-request-number }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -66,6 +79,7 @@ jobs:
       shell: bash
 
     - name: Create version release Pull Request
+      id: release_pr
       # NOTE: We might want to perform this step with gh cli natively
       uses: peter-evans/create-pull-request@v6
       with:
@@ -90,3 +104,57 @@ jobs:
         # draft: true  # NOTE: this is not allowed on free private repos
     # TODO: Perform CRAN-like checks
     # TODO: Perform pckgdown build
+    #pull-request-number
+    #
+  check_label_exist:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+  CRAN_LABEL_CHECK: 'CRAN::check'
+  MEMORY_LABEL_CHECK: 'CRAN::check'
+  LINT_LABEL_CHECK: 'linting::check'
+  URL_LABEL_CHECK: 'URL::check'
+    steps:
+      - name: Assert labels ${{ env.CRAN_LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.CRAN_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.MEMORY_LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.MEMORY_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LINT_LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.URL_LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+
+  initiate_release_preparation:
+    runs_on: ubuntu-lastest
+    needs:
+      - check_label_exist
+      - initiate_version_release
+    permissions:
+      packages: read
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    steps:
+  CRAN_LABEL_CHECK: 'CRAN::check'
+  MEMORY_LABEL_CHECK: 'CRAN::check'
+  LINT_LABEL_CHECK: 'linting::check'
+  URL_LABEL_CHECK: 'URL::check'
+      - name: Flag the release PR for checks
+        run: |
+          gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.CRAN_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.MEMORY_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.LINT_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          gh pr edit ${{ needs.initiate_version_release.outputs.EVENT }} --add-label ${{ env.URL_LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+         shell: bash
+         env:
+           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
