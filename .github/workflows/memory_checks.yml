@@ -1,3 +1,5 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
 name: Optional Memory Checking
 
 on:
