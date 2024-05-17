@@ -37,6 +37,9 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - name: Assert labels ${{ env.LABEL_CHECK }} is defined
         run: |

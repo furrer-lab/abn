@@ -106,10 +106,12 @@ jobs:
            version-release
          base: main  # NOTE: this should match the branch on which the tag was made
          # draft: true  # NOTE: this is not allowed on free private repos
-         # TODO: Perform pckgdown build
 
   check_label_exist:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     steps:
       - name: Assert labels ${{ env.CRAN_LABEL_CHECK }} is defined
         run: |
