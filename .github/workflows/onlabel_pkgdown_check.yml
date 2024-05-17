@@ -14,7 +14,7 @@ env:
 
 jobs:
   set_target:
-    if: ${{ github.event.label.name == 'pkdown::check' }}
+    if: ${{ github.event.label.name == 'pkgdown::check' }}
     runs-on: ubuntu-latest
     outputs:
       label: ${{ steps.set_label.outputs.label }}
