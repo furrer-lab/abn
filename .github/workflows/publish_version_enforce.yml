@@ -10,6 +10,8 @@ on:
 
 env:
   LABEL_PUBLISHED: 'release::published'
+  BUILD_LOC: "./build"
+  DOC_LOC: "./docs"
 
 jobs:
   build-release-content:
@@ -42,9 +44,26 @@ jobs:
         with:
           name: package
           path: ${{ env.BUILD_LOC }}/abn.tar.gz
+
+      # NOTE: This should go the the r-container
+      - name: Install dependencies for pkgdown
+        run: | 
+          install.packages(c("pkgdown"))
+        shell: Rscript {0}
+      - name: Build site
+        run: |
+          pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
+        shell: Rscript {0}
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload pkgdown artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: ${{ env.DOC_LOC }}/
         
-  publishing_release:
+  release-version:
     # NOTE: Currently this workflow only runs if a release- branch has an open pull request
+    needs: build-release-content
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,9 +82,10 @@ jobs:
       - name: Determine associated Pull request
         id: get_pr
         run: |
-          echo "PR=`echo $(gh pr list --json 'number,headRefName'|jq --arg NAME ${{ github.ref_name }} '.[] | select(.headRefName | contains($NAME)) | .number')`" >> $GITHUB_OUTPUT
+          echo "PR=`echo $(gh pr list --repo ${{ env.OWNER }}/${{ env.REPO }} --json 'number,headRefName'|jq --arg NAME ${{ github.ref_name }} '.[] | select(.headRefName | contains($NAME)) | .number')`" >> $GITHUB_OUTPUT
       - name: Attempt to create label ${{ env.LABEL_PUBLISHED }}
         if: ${{ steps.get_pr.outputs.pr }}
+        id: present_label
         run: |
           gh label create ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
@@ -89,7 +109,7 @@ jobs:
       - name: Remove previous releases of the target tag, if existing  # 2
         if: ${{ (steps.published.outputs.labeled == 'false') && steps.get_pr.outputs.pr }}
         run: |
-          if script -q -e -c "gh release view ${{ steps.release_version.outputs.version }}"; then
+          if script -q -e -c "gh release view ${{ steps.release_version.outputs.version }} --repo ${{ env.OWNER }}/${{ env.REPO }}"; then
             # removing previous release along with associated tag
             gh release delete ${{ steps.release_version.outputs.version }} \
               --cleanup-tag -y \
@@ -117,12 +137,7 @@ jobs:
       - name: Adding the label ${{ env.LABEL_PUBLISHED }}  # 2
         if: ${{ (steps.published.outputs.labeled == 'false') && steps.get_pr.outputs.pr }}
         run: |
-          gh pr edit ${{ steps.get_pr.outputs.pr }} --add-label ${{ env.LABEL_PUBLISHED }}
-        shell: bash
-      - name: Adding the label ${{ env.LABEL_PUBLISHED }}
-        if: ${{ steps.published.outputs.labeled == 'false' }}
-        run: |
-          gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          gh pr edit ${{ steps.get_pr.outputs.pr }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         shell: bash
       - name: Get the built package
         uses: actions/download-artifact@v4
@@ -135,3 +150,6 @@ jobs:
             ${{ env.BUILD_LOC }}/abn.tar.gz \
             --clobber
             --repo ${{ env.OWNER }}/${{ env.REPO }}
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
