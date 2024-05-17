@@ -1,6 +1,6 @@
 # Workflow triggered when we have a new release candidate
 # This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
-name: Build pckgdown
+name: On Label pckgdown build
 
 on:
   pull_request:
