@@ -2,6 +2,7 @@ style: github
 template: CHANGELOG.tpl.md
 info:
   title: CHANGELOG
+  name: abn
   repository_url: https://github.com/furrer-lab/abn
 options:
   sort: "semver"
