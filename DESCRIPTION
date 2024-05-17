@@ -1,6 +1,6 @@
 Package: abn
 Title: Modelling Multivariate Data with Additive Bayesian Networks
-Version: 3.0.9
+Version: 3.0.8
 Date: 2024-05-17
 Authors@R: c(
     person("Matteo", "Delucchi", , "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"),
