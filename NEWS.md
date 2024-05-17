@@ -47,7 +47,7 @@
   * Improved documentation, fixed typos and added return values for each function.
   * Added Jonas Liechti as a contributor.
 
-# abn 3.0.6
+## abn 3.0.6
 
 2024-03-21 Matteo Delucchi
 
@@ -68,7 +68,7 @@
   * avoid examples and tests on CRAN that require INLA
   * Restructured the private developement repository to have only one public repo.
 
-# abn 3.0.5
+## abn 3.0.5
 
 2024-01-18 Matteo Delucchi
 
@@ -78,20 +78,20 @@
   * Fixed bug in test of `simulateAbn()` that was failing on CRAN.
   * Increase package availability by skipping tests on CRAN that require INLA. This also speeds up the CRAN checks.
 
-# abn 3.0.4
+## abn 3.0.4
 
 2023-11-03 Matteo Delucchi
 
   * Fixed format issues in source code that caused significant warnings with GCC and clang.
   * Temporary workaround to install the correct versions of INLA dependencies. This will be hopefully fixed in the next release of INLA.
 
-# abn 3.0.3
+## abn 3.0.3
 
 2023-11-03 Matteo Delucchi
 
   * Temporarily fixed tests on CRAN Fedora flavour.
 
-# abn 3.0.2
+## abn 3.0.2
 
 2023-10-23 Matteo Delucchi
 
@@ -101,14 +101,14 @@
   * New CoC and Licence files.
   * Updated examples in documentation.
 
-# abn 3.0.1
+## abn 3.0.1
 
 2023-09-29 Matteo Delucchi
 
   * Patched memory access error in source code.
   * Fixed reverse dependency to `mcmcabn()`.
 
-# abn 3.0.0
+## abn 3.0.0
 
 2023-09-01 Matteo Delucchi
 
@@ -124,7 +124,7 @@
   * Removed deprecated functions.
   * Refactoring here and there. Especially to harmonise `buildScoreCache()` and `fitAbn()` for both methods "mle" and "bayes".
 
-# abn 2.7-0
+## abn 2.7-0
 
 2022-04-02 Reinhard Furrer
 
@@ -140,7 +140,7 @@
   * Additional argument checking an cleaning of many error messages.
 
 
-  ## Internal changes:
+  ### Internal changes:
 
   * Option `error.verbose` properly propagated to C functions.
 	* New option `trace` passed to "lbfgsb".
@@ -148,7 +148,7 @@
 	* Some GSL error now caught at R level.
 	* Severe R and moderate C code cleaning.
 
-# abn 2.6.0
+## abn 2.6.0
 
 2021-06-08 Gilles Kratzer, Reinhard Furrer & Kalina Cherneva
 
@@ -166,7 +166,7 @@
   * Adapting authorship of package
   * Minor cleaning of `Examples` in the help files
 
-# abn 2.5.0
+## abn 2.5.0
 
 2021-04-23 Gilles Kratzer & Reinhard Furrer
 
@@ -176,7 +176,7 @@
   * Major changes in `plotAbn()`
   * Cleaning of several help files
 
-# abn 2.4.0
+## abn 2.4.0
 
 2020-10-31 Gilles Kratzer & Reinhard Furrer
 
@@ -273,87 +273,87 @@
 
   * New vignette uploaded.
 
-# abn 0.86
+## abn 0.86
 
 2015-12-22 Pittavino Marta
 
   * INLA routine updated, ERROR and NOTE addressed.
 
-# abn 0.85
+## abn 0.85
 
 2014-12-22 Pittavino Marta
 
   * Published Version v0.85 on CRAN
 
-# abn 0.85
+## abn 0.85
 
 2014-12-09 Pittavino Marta
 
   * cleanup file to delete additional Makevars added
 
-# abn 0.85
+## abn 0.85
 
 2014-12-08 Pittavino Marta
 
   * FOSS license --as-cran NOTE addressed, eliminated BuildVignettes NO in the DESCRIPTION file
 
-# abn 0.84
+## abn 0.84
 
 2014-12-06 Pittavino Marta
 
   * v0.84 submitted to CRAN
 
-# abn 0.84
+## abn 0.84
 
 2014-12-05 Pittavino Marta
 
   * dependencies --as-cran NOTE addressed, with .Rprofile
   * graphical issue with Sweave solved
 
-# abn 0.84
+## abn 0.84
 
 2014-12-04 Pittavino Marta
 
   * finished to edit vignette
 
-# abn 0.84
+## abn 0.84
 
 2014-11-23/24 Pittavino Marta
 
   * updating the vignette
 
-# abn 0.84
+## abn 0.84
 
 2014-11-03/04 Pittavino Marta
 
   * issue with Rd2pdf and LaTeX addressed
 
-# abn 0.84
+## abn 0.84
 
 2014-10-27 Pittavino Marta
 
   * installation of local version of abn to text and work with vignette
 
-# abn 0.84
+## abn 0.84
 
 2014-10-23 Pittavino Marta
 
   * confirmation of the change of maintainer
 
-# abn 0.84
+## abn 0.84
 
 2014-10-13 Pittavino Marta
 
   * updated Rclean for file .log and .status
   * check length characters in manual
 
-# abn 0.84
+## abn 0.84
 
 2014-10-06 Pittavino Marta
   * compressed Data with resaveRdaFiles(,compress=c("xz"))
   * solved installing issue (Rclean update)
 
-# abn 0.84
+## abn 0.84
 
 2014-10-03 Pittavino Marta
 
@@ -361,7 +361,7 @@
   * eliminate old and very old version
   * comment out require(Cairo) line-code
 
-# abn 0.84
+## abn 0.84
 
 2014-10-02 Reinhard Furrer
 
@@ -370,20 +370,20 @@
   * check if last amendments works
   * .gitignore create
 
-# abn 0.84
+## abn 0.84
 
 2014-09-29 Pittavino Marta
 
   * update version
   * rename R function as the one in manual
 
-# abn 0.83
+## abn 0.83
 
 2014-09-26 Pittavino Marta
 
   * update DESCRIPTION
 
-# abn 0.83
+## abn 0.83
 
 2014-09-19 Pittavino Marta
 
