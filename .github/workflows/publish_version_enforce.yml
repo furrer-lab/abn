@@ -71,10 +71,10 @@ jobs:
           path: ${{ env.BUILD_LOC }}/abn.tar.gz
 
       # NOTE: This should go the the r-container
-      - name: Install dependencies for pkgdown
-        run: | 
-          install.packages(c("pkgdown"))
-        shell: Rscript {0}
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, local::.
+          needs: website
       - name: Build site
         run: |
           pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
