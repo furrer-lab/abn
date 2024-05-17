@@ -104,7 +104,10 @@ jobs:
            Merging this Pull Request will create a release of the version **${{ steps.release_version.outputs.version }}**.
          labels: |
            version-release
-         base: main  # NOTE: this should match the branch on which the tag was made
+
+         # TODO: uncomment this line and delete the following one:
+         #base: main  # NOTE: this should match the branch on which the tag was made
+         base: streamline-release-process
          # draft: true  # NOTE: this is not allowed on free private repos
 
   check_label_exist:
