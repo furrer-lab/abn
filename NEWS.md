@@ -184,13 +184,13 @@
   * Update on citations
   * Update on ORCID number
 
-# abn 2.3.0
+## abn 2.3.0
 
 2020-10-22 Gilles Kratzer & Reinhard Furrer
 
   * Requirement for use of R>=4.0.0
 
-# abn 2.2.1
+## abn 2.2.1
 
 2020-06-13 Gilles Kratzer & Reinhard Furrer
 
@@ -198,7 +198,7 @@
   * Testing automatic (testhat.R in tests repository)
   * Updated version of the vignette
 
-# abn 2.2
+## abn 2.2
 
 2019-11-22 Gilles Kratzer & Reinhard Furrer
 
@@ -211,14 +211,14 @@
   * Typos in man help files corrected
   * Compiler flags that were not compatible with the Solaris OS
 
-# abn 2.1
+## abn 2.1
 
 2019-07-04 Gilles Kratzer & Reinhard Furrer
 
   * Compiler flags that were not compatible with the Solaris system
   * Note related to INLA
 
-# abn 2.0
+## abn 2.0
 
 2019-07-01 Gilles Kratzer & Reinhard Furrer
 
@@ -237,7 +237,7 @@
   * Dataset: adg
   * Multiple Bugs corrected
 
-# abn 1.2
+## abn 1.2
 
 2018-07-23 Gilles Kratzer
 
@@ -261,14 +261,14 @@
   * modification of existing functions:
   * mostprobable()
 
-# abn 1.0.2
+## abn 1.0.2
 
 2016-11-09 Gilles Kratzer
 
   * Default ban and retain matrix
   * Automatic testing procedure of the package
 
-# abn 1.0
+## abn 1.0
 
 2016-01-11 Pittavino Marta
 
