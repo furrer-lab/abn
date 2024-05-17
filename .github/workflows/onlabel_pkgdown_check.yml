@@ -77,7 +77,7 @@ jobs:
       - name: Upload pkgdown artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ${{ env.BUILD_LOC }}/abn.tar.gz
+          path: ${{ env.DOC_LOC }}
 
   report_pkgdown_build:
     if: ${{ (success() || failure()) }}
