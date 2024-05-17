@@ -15,7 +15,7 @@ env:
 
 jobs:
   build-release-content:
-    if: ${{ github.event.pull_request.merged && startsWith(github.head_ref, 'release-') }}
+    if: ${{ github.ref_name == startsWith('release-') }}  # only run on release- branches
     runs-on: ubuntu-latest
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
