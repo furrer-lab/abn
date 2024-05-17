@@ -52,15 +52,15 @@ jobs:
       - name: Upload the built package as artifact
         uses: actions/upload-artifact@v4
         with:
+          name: package
           path: ${{ env.BUILD_LOC }}/abn.tar.gz
       - name: Upload pkgdown artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ${{ env.DDOC_LOC }}/
+          path: ${{ env.DOC_LOC }}/
 
   release-version:
     needs: build-release-content
-    if: ${{ github.event.pull_request.merged && startsWith(github.head_ref, 'release-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -112,7 +112,7 @@ jobs:
         if: ${{ steps.published.outputs.labeled == 'false' }}
         # this gets the first the changes to the previous clean tag (including manual edits)
         run: |
-          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ steps.release_version.outputs.previous_version }}"*/{exit}' CHANGELOG.md | head -n -1 >> body.md
+          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ steps.release_version.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release
         if: ${{ steps.published.outputs.labeled == 'false' }}
         run: |
@@ -138,7 +138,6 @@ jobs:
             ${{ env.BUILD_LOC }}/abn.tar.gz \
             --clobber
             --repo ${{ env.OWNER }}/${{ env.REPO }}
-
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
