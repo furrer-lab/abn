@@ -1,5 +1,4 @@
 
-<a name="3.0.8"></a>
 # abn 3.0.8
 [diff](https://github.com/furrer-lab/abn/compare/3.0.7...3.0.8)
 
@@ -36,7 +35,6 @@
 * Merge pull request [#14](https://github.com/furrer-lab/abn/issues/14) from furrer-lab/dev-CRAN-submission-3.0.6
 * Merge pull request [#41](https://github.com/furrer-lab/abn/issues/41) from furrer-lab/7-pipeline-to-publish-pkgdown-site
 
-<a name="3.0.7"></a>
 # abn 3.0.7
 
 2024-03-27 Matteo Delucchi

@@ -93,6 +93,10 @@ jobs:
         with:
           extra-packages: any::pkgdown, local::.
           needs: website
+      # TODO: delete this 
+      - name: Show NEWS.md content
+        run: |
+          cat NEWS.md
       - name: Build site
         run: |
           pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
