@@ -129,7 +129,7 @@ jobs:
           fetch-depth: 0  # NOTE: This might be needed to assert that we get the full history
                           #       for the changelog.
       - name: Attempt to create label ${{ env.LABEL_PUBLISHED }}
-        if: ${{ needs.associated_pr.outputs.pr }}
+        if: ${{ needs.associated_pr.outputs.event }}
         id: present_label
         run: |
           gh label create ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
@@ -137,7 +137,7 @@ jobs:
       - name: Check if the pull request is labeled with ${{ env.LABEL_PUBLISHED }}  # 2
         id: published
         run: |
-          if $( gh pr view ${{ needs.associated_pr.outputs.pr }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
+          if $( gh pr view ${{ needs.associated_pr.outputs.event }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
             echo "LABELED=true" >> $GITHUB_OUTPUT
           else
             echo "LABELED=false" >> $GITHUB_OUTPUT
@@ -166,7 +166,7 @@ jobs:
         if: ${{ (steps.published.outputs.labeled == 'false') }}
         # this gets the first the changes to the previous clean tag (including manual edits)
         run: |
-          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ needs.associated_pr.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
+          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ needs.release_version.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release  # 2
         if: ${{ (steps.published.outputs.labeled == 'false') }}
         run: |
@@ -180,7 +180,7 @@ jobs:
       - name: Adding the label ${{ env.LABEL_PUBLISHED }}  # 2
         if: ${{ (steps.published.outputs.labeled == 'false') }}
         run: |
-          gh pr edit ${{ needs.associated_pr.outputs.pr }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          gh pr edit ${{ needs.associated_pr.outputs.event }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         shell: bash
       - name: Get the built package
         uses: actions/download-artifact@v4
