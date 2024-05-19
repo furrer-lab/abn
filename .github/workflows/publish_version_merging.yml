@@ -13,8 +13,39 @@ env:
   DOC_LOC: "./docs"
 
 jobs:
-  build-release-content:
+  associated_pr:
     if: ${{ github.event.pull_request.merged && startsWith(github.head_ref, 'release-') }}
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      pull-requests: read
+      repository-projects: read
+    outputs:
+      published: ${{ steps.published.outputs.labeled }}
+      event: ${{ github.event.number }}
+    steps:
+      - name: Check if the pull request is labeled with ${{ env.LABEL_PUBLISHED }}
+        id: published
+        run: |
+          if $( gh pr view ${{ github.event.number }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
+            echo "LABELED=true" >> $GITHUB_OUTPUT
+          else
+            echo "LABELED=false" >> $GITHUB_OUTPUT
+          fi
+      # NOTE: creating a step to check if the label is in the list of labels rather than failing below step
+      - name: Attempt to create label ${{ env.LABEL_PUBLISHED }}
+        if: ${{ steps.published.outputs.labeled == 'false' }}
+        run: |
+          gh label create ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+
+  build-release-content:
+    if: ${{ (needs.associated_pr.outputs.published == 'false') }}
+    needs:
+      - associated_pr
     runs-on: ubuntu-latest
     container:
       image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
@@ -45,6 +76,9 @@ jobs:
           path: ${{ env.BUILD_LOC }}/abn.tar.gz
 
   build-pkgdown-content:
+    if: ${{ (needs.associated_pr.outputs.published == 'false') }}
+    needs:
+      - associated_pr
     runs-on: ubuntu-latest
     # Only restrict concurrency for non-PR jobs
     concurrency:
@@ -78,6 +112,7 @@ jobs:
 
   release-version:
     needs: 
+      - associated_pr
       - build-release-content
       - build-pckgdown-content
     runs-on: ubuntu-latest
@@ -85,31 +120,17 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
-      EVENT: ${{ github.event.number }}  # This is either the issue or pr
     permissions:
       contents: write
       pull-requests: write
       repository-projects: write
+      pages: write  
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      # check if the pr is labeled as published already
-      - name: Check if the pull request is labeled with ${{ env.LABEL_PUBLISHED }}
-        id: published
-        run: |
-          if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
-            echo "LABELED=true" >> $GITHUB_OUTPUT
-          else
-            echo "LABELED=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Attempt to create label ${{ env.LABEL_PUBLISHED }}
-        if: ${{ steps.published.outputs.labeled == 'false' }}
-        run: |
-          gh label create ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-        continue-on-error: true  # make sure the next steps run also on failure
       - name: Get the version to release
-        if: ${{ steps.published.outputs.labeled == 'false' }}
         id: release_version
         run: |
           git fetch --filter=tree:0 origin +refs/tags/*:refs/tags/*
@@ -128,12 +149,10 @@ jobs:
             echo "No trace of a previous release."
           fi
       - name: Prepare Release note
-        if: ${{ steps.published.outputs.labeled == 'false' }}
         # this gets the first the changes to the previous clean tag (including manual edits)
         run: |
-          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ steps.release_version.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
+          awk '/# abn ${{ steps.release_version.outputs.version }}*/{a=1};a;/# abn ${{ steps.release_version.outputs.previous_version }}*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release
-        if: ${{ steps.published.outputs.labeled == 'false' }}
         run: |
           gh release create ${{ steps.release_version.outputs.version }} \
             --target ${{ github.event.pull_request.head.sha }} \
@@ -141,11 +160,6 @@ jobs:
             --title "${{ steps.release_version.outputs.version }}" \
             --notes-file body.md \
             --repo ${{ env.OWNER }}/${{ env.REPO }}
-      - name: Adding the label ${{ env.LABEL_PUBLISHED }}
-        if: ${{ steps.published.outputs.labeled == 'false' }}
-        run: |
-          gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-        shell: bash
       - name: Get the built package
         uses: actions/download-artifact@v4
         with:
@@ -154,9 +168,13 @@ jobs:
       - name: Upload additional artifacts to the release
         run: |
           gh release upload ${{ steps.release_version.outputs.version }} \
-            ${{ env.BUILD_LOC }}/abn.tar.gz \
-            --clobber
+            ./abn.tar.gz \
+            --clobber \
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
+      - name: Adding the label ${{ env.LABEL_PUBLISHED }}
+        run: |
+          gh pr edit ${{ needs.associated_pr.outputs.event }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        shell: bash
