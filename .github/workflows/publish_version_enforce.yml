@@ -162,7 +162,7 @@ jobs:
         if: ${{ (steps.published.outputs.labeled == 'false') }}
         # this gets the first the changes to the previous clean tag (including manual edits)
         run: |
-          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ needs.release_version.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
+          awk '/# abn ${{ steps.release_version.outputs.version }}*/{a=1};a;/# abn ${{ needs.release_version.outputs.previous_version }}*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release  # 2
         if: ${{ (steps.published.outputs.labeled == 'false') }}
         run: |
@@ -187,7 +187,7 @@ jobs:
         run: |
           gh release upload ${{ steps.release_version.outputs.version }} \
             ./abn.tar.gz \
-            --clobber
+            --clobber \
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Deploy to GitHub Pages
         id: deployment

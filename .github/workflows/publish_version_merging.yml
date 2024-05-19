@@ -109,7 +109,7 @@ jobs:
           gh label create ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
       - name: Get the version to release
-        if: ${{ steps.published.outputs.labeled == 'false' }}
+        if: ${{ (steps.published.outputs.labeled == 'false') }}
         id: release_version
         run: |
           git fetch --filter=tree:0 origin +refs/tags/*:refs/tags/*
@@ -128,12 +128,12 @@ jobs:
             echo "No trace of a previous release."
           fi
       - name: Prepare Release note
-        if: ${{ steps.published.outputs.labeled == 'false' }}
+        if: ${{ (steps.published.outputs.labeled == 'false') }}
         # this gets the first the changes to the previous clean tag (including manual edits)
         run: |
-          awk '/<a name="${{ steps.release_version.outputs.version }}".*/{a=1};a;/<a name="${{ steps.release_version.outputs.previous_version }}"*/{exit}' NEWS.md | head -n -1 >> body.md
+          awk '/# abn ${{ steps.release_version.outputs.version }}*/{a=1};a;/# abn ${{ needs.release_version.outputs.previous_version }}*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release
-        if: ${{ steps.published.outputs.labeled == 'false' }}
+        if: ${{ (steps.published.outputs.labeled == 'false') }}
         run: |
           gh release create ${{ steps.release_version.outputs.version }} \
             --target ${{ github.event.pull_request.head.sha }} \
@@ -154,8 +154,8 @@ jobs:
       - name: Upload additional artifacts to the release
         run: |
           gh release upload ${{ steps.release_version.outputs.version }} \
-            ${{ env.BUILD_LOC }}/abn.tar.gz \
-            --clobber
+            ./abn.tar.gz \
+            --clobber \
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Deploy to GitHub Pages
         id: deployment

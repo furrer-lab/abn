@@ -1,5 +1,4 @@
 {{ range .Versions }}
-<a name="{{ .Tag.Name }}"></a>
 # abn {{ .Tag.Name }}
 {{ if .Tag.Previous }}[diff]({{ $.Info.RepositoryURL }}/compare/{{ .Tag.Previous.Name }}...{{ .Tag.Name }}){{ else }}{{ .Tag.Name }}{{ end }}
 
