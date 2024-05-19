@@ -1,35 +1,3 @@
-
-# abn 3.0.8
-[diff](https://github.com/furrer-lab/abn/compare/3.0.7...3.0.8)
-
-> 2024-05-17
-
-### Feature
-
-* use labels to trigger checks in release PR
-* automated release
-* automate tagging an releasing
-
-### Fix
-
-* do not run on release- branches
-* typeo in running condition
-* typeo in the running condition
-
-### Reverts
-
-* Changed paper.Rmd to .md to be suppressed by pkgdown. Closing [#46](https://github.com/furrer-lab/abn/issues/46).
-
-### Pull Requests
-
-* Merge pull request [#88](https://github.com/furrer-lab/abn/issues/88) from furrer-lab/86-update-dev-environment-to-latest-r-440
-* Merge pull request [#85](https://github.com/furrer-lab/abn/issues/85) from furrer-lab/84-catch-empty-factor-levels-early-on
-* Merge pull request [#78](https://github.com/furrer-lab/abn/issues/78) from furrer-lab/75-avoid-publishing-pages-on-pull-requests
-* Merge pull request [#48](https://github.com/furrer-lab/abn/issues/48) from furrer-lab/46-remove-joss-paper-from-homepage
-* Merge pull request [#45](https://github.com/furrer-lab/abn/issues/45) from furrer-lab/dev-fix-CRAN-checks-v3.0.6
-* Merge pull request [#14](https://github.com/furrer-lab/abn/issues/14) from furrer-lab/dev-CRAN-submission-3.0.6
-* Merge pull request [#41](https://github.com/furrer-lab/abn/issues/41) from furrer-lab/7-pipeline-to-publish-pkgdown-site
-
 # abn v3.0.7
 
 2024-03-27 Matteo Delucchi
