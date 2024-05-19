@@ -114,7 +114,7 @@ jobs:
     needs: 
       - associated_pr
       - build-release-content
-      - build-pckgdown-content
+      - build-pkgdown-content
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
