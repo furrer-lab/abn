@@ -41,7 +41,7 @@ jobs:
       - name: Check if the pull request is labeled with ${{ env.LABEL_PUBLISHED }}  # 2
         id: published
         run: |
-          if $( gh pr view ${{ needs.associated_pr.outputs.event }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
+          if $( gh pr view ${{ steps.get_pr.outputs.pr }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_PUBLISHED }}); then
             echo "LABELED=true" >> $GITHUB_OUTPUT
           else
             echo "LABELED=false" >> $GITHUB_OUTPUT
