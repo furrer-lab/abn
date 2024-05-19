@@ -234,3 +234,5 @@ jobs:
           if [[ ${{ needs.URL_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
             echo 'URL status ok';
           else exit 1; fi
+
+  # NOTE: Currently for the linting there is not check that passes if the label linting::passed is present
