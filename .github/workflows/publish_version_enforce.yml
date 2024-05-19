@@ -27,7 +27,7 @@ jobs:
       repository-projects: write
     outputs:
       event: ${{ steps.get_pr.outputs.pr }}
-      published: ${{ steps.published.outputs.labeled
+      published: ${{ steps.published.outputs.labeled }}
     steps:
       - uses: actions/checkout@v4
         with:
