@@ -231,6 +231,6 @@ jobs:
     steps:
       - name: Assert that either checks passed on the label is present
         run: |
-          if [[ ${{ needs.URL_check.result}} == 'success' || ${{ needs.check_passed }} == 'true' ]]; then
+          if [[ ${{ needs.URL_check.result }} == 'success' || ${{ needs.check_passed.outputs.passed }} == 'true' ]]; then
             echo 'URL status ok';
           else exit 1; fi
