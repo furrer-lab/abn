@@ -1,6 +1,6 @@
 # Workflow triggered when we have a new release candidate
 # This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
-name: Optional Memory Checking
+name: On Label memory checking
 
 on:
   pull_request:
@@ -154,3 +154,45 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  record_passed_label:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      passed: ${{ steps.passed.outputs.PASSED}}
+    steps:
+      - name: Check if the pull request is labeled with ${{ env.LABEL_SUCCESS }}  # 2
+        id: passed
+        run: |
+          if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
+            echo "PASSED=true" >> $GITHUB_OUTPUT
+          else
+            echo "PASSED=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  memory_check_passed:
+    if: ${{ always() }}
+    needs:
+      - run_memory_check 
+      - record_passed_label
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert that either checks passed on the label is present
+        run: |
+          if [[ ${{ needs.run_memory_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
+            echo 'memory checks status ok';
+          else exit 1; fi

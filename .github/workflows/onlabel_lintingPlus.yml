@@ -193,7 +193,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
 
-  check_URL_passed:
+  record_passed_label:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -219,10 +219,10 @@ jobs:
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
 
   URL_passed:
-    if: ${{ success() || failure() }}
+    if: ${{ always() }}
     needs:
       - URL_check
-      - check_passed
+      - record_passed_label
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -231,6 +231,8 @@ jobs:
     steps:
       - name: Assert that either checks passed on the label is present
         run: |
-          if [[ ${{ needs.URL_check.result}} == 'success' || ${{ needs.check_passed }} == 'true' ]]; then
+          if [[ ${{ needs.URL_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
             echo 'URL status ok';
           else exit 1; fi
+
+  # NOTE: Currently for the linting there is not check that passes if the label linting::passed is present

@@ -155,6 +155,48 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
 
+  record_passed_label:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      passed: ${{ steps.passed.outputs.PASSED}}
+    steps:
+      - name: Check if the pull request is labeled with ${{ env.LABEL_SUCCESS }}  # 2
+        id: passed
+        run: |
+          if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
+            echo "PASSED=true" >> $GITHUB_OUTPUT
+          else
+            echo "PASSED=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  R_CMD_check_passed:
+    if: ${{ always() }}
+    needs:
+      - R_CMD_check
+      - record_passed_label
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert that either checks passed on the label is present
+        run: |
+          if [[ ${{ needs.R_CMD_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
+            echo 'R CMD check status ok';
+          else exit 1; fi
+
   test-coverage:
   # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
   # Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
