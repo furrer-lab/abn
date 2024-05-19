@@ -192,3 +192,45 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  check_URL_passed:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      passed: ${{ steps.passed.outputs.PASSED}}
+    steps:
+      - name: Check if the pull request is labeled with ${{ env.URL_LABEL_SUCCESS }}  # 2
+        id: passed
+        run: |
+          if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.URL_LABEL_SUCCESS }}); then
+            echo "PASSED=true" >> $GITHUB_OUTPUT
+          else
+            echo "PASSED=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  URL_passed:
+    if: ${{ success() || failure() }}
+    needs:
+      - URL_check
+      - check_passed
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert that either checks passed on the label is present
+        run: |
+          if [[ ${{ needs.URL_check.result}} == 'success' || ${{ needs.check_passed }} == 'true' ]]; then
+            echo 'URL status ok';
+          else exit 1; fi
