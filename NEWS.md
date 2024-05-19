@@ -16,17 +16,12 @@
 * typeo in running condition
 * typeo in the running condition
 
-### Wip
-
-* check all factor variables for empty levels.
-
 ### Reverts
 
 * Changed paper.Rmd to .md to be suppressed by pkgdown. Closing [#46](https://github.com/furrer-lab/abn/issues/46).
 
 ### Pull Requests
 
-* Merge pull request [#96](https://github.com/furrer-lab/abn/issues/96) from furrer-lab/release-3.0.9
 * Merge pull request [#88](https://github.com/furrer-lab/abn/issues/88) from furrer-lab/86-update-dev-environment-to-latest-r-440
 * Merge pull request [#85](https://github.com/furrer-lab/abn/issues/85) from furrer-lab/84-catch-empty-factor-levels-early-on
 * Merge pull request [#78](https://github.com/furrer-lab/abn/issues/78) from furrer-lab/75-avoid-publishing-pages-on-pull-requests
