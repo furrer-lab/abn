@@ -219,7 +219,7 @@ jobs:
           EVENT: ${{ github.event.number }}  # This is either the issue or pr
 
   URL_passed:
-    if: ${{ success() || failure() }}
+    if: ${{ always() }}
     needs:
       - URL_check
       - check_passed
