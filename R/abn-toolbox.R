@@ -657,6 +657,7 @@ scoreContribution <- function(object = NULL,
                               data.df = NULL,
                               data.dists = NULL,
                               verbose = FALSE){
+
     ## method abnCache
     if (!is.null(object)){
         if (inherits(object, "abnLearned")) {
