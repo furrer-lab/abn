@@ -31,7 +31,7 @@ jobs:
           else
             echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
           fi
-  get-changes:
+  get_changes:
     needs: should-run
     runs-on: ubuntu-latest
     outputs:
@@ -53,7 +53,7 @@ jobs:
 
   gather-tests:
     needs:
-      - get-changes
+      - get_changes
     runs-on: ubuntu-latest
     outputs:
       testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
@@ -63,8 +63,15 @@ jobs:
       # TODO: map the test file names with the list of CHANGED_R otherwise
       - id: get_testfiles
         run: |
-           echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
-           cat $GITHUB_OUTPUT
+          if [[ -z "${{ needs.get_changes.outputs.run_all }}" ]]; then
+            if [[ -n "${{ needs.get_changes.outputs.run_specific }}" ]]; then
+              echo "TESTFILES=$(${{ needs.get_changes.outputs.run_specific }} | sed -e 's/^/tests\/testthat\/test-/g' -e 's/,/,tests\/testthat\/test-/g' | sed 's/.*/[\0]/')" >> $GITHUB_OUTPUT
+            else:
+              echo "TESTFILES=[]" >> $GITHUB_OUTPUT
+          else
+            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
+          fi 
+          cat $GITHUB_OUTPUT
 
   build-install-test:
     if: ${{ !startsWith(github.event.head_commit.message, 'noT') }}
