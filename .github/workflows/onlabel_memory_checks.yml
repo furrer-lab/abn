@@ -133,7 +133,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Check if on demand tasks succeeded
-        #TODO: Properly establish what has failead and what not
         run: |
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
           if [ ${{ needs.run_memory_check.result }} == "success" ]; then

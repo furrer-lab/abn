@@ -26,8 +26,7 @@ permissions:
 
 jobs:
   initiate_version_release:
-    # TODO: uncomment this line:
-    # if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -105,10 +104,8 @@ jobs:
          labels: |
            version-release
 
-         # TODO: uncomment this line and delete the following one:
-         #base: main  # NOTE: this should match the branch on which the tag was made
-         base: streamline-release-process
-         # draft: true  # NOTE: this is not allowed on free private repos
+         base: main  # NOTE: this should match the branch on which the tag was made
+         draft: true  # NOTE: this is not allowed on free private repos
 
   check_label_exist:
     runs-on: ubuntu-latest
