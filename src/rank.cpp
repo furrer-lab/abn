@@ -18,5 +18,4 @@ int rank_cpp(arma::mat A)
   out = rank(A);
   //return
   return out;
-
 }
