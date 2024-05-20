@@ -6,37 +6,13 @@
 
 ### Feature
 
-* use labels to trigger checks in release PR
-* automated release
-* automate tagging an releasing
+* automated version release process
+* JOSS paper content
 
 ### Fix
 
-* wrong condition for on tag job
-* skip dont fail on empty list
-* forgot to add the variable to gh output
-* do not run on release- branches
-* typeo in running condition
-* typeo in the running condition
-
-### NoT
-
-* minor formatting
-* Merge branch 'main' into JOSSpaper
-
-### Suggest
-
-* rephrasing of shortcomings
-
-### Wip
-
-* check all factor variables for empty levels.
-
-### Reverts
-
-* to revert: trigger a test
-* better naming
-* Changed paper.Rmd to .md to be suppressed by pkgdown. Closing [#46](https://github.com/furrer-lab/abn/issues/46).
+* some checks should not run on release- branches
+* various typeos
 
 ### Pull Requests
 
