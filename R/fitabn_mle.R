@@ -744,6 +744,5 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
   } else {
     stop("Invalid `group.var`.")
   }#naming
-
   return(res)
 }
