@@ -65,11 +65,12 @@ jobs:
         run: |
           if [[ -z "${{ needs.get_changes.outputs.run_all }}" ]]; then
             if [[ -n "${{ needs.get_changes.outputs.run_specific }}" ]]; then
-              echo "TESTFILES=$(${{ needs.get_changes.outputs.run_specific }} | sed -e 's/^/tests\/testthat\/test-/g' -e 's/,/,tests\/testthat\/test-/g' | sed 's/.*/[\0]/')" >> $GITHUB_OUTPUT
-            else:
+              echo "TESTFILES=$(echo ${{ needs.get_changes.outputs.run_specific }} | sed -e 's/^R\//\"tests\/testthat\/test-/g' -e 's/,R\//,\"tests\/testthat\/test-/g' | sed -e 's/.R/.R\"/g' | sed 's/.*/[\0]/')" >> $GITHUB_OUTPUT
+            else
               echo "TESTFILES=[]" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]'))" >> $GITHUB_OUTPUT
+            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
           fi 
           cat $GITHUB_OUTPUT
 
