@@ -163,7 +163,6 @@ fit.control <-
     return(ctrl)
   }
 
-
 #' Fit an additive Bayesian network model
 #'
 #' @description Fits an additive Bayesian network to observed data and is equivalent to Bayesian or information-theoretic multi-dimensional regression modeling.
