@@ -23,11 +23,11 @@ authors:
 affiliations:
  - name: Department of Mathematical Modeling and Machine Learning, University of Zurich, Zürich, Switzerland
    index: 1
- - name: Centre of Computational Health, Institute for Computational Life Sciences, Zurich University of Applied Sciences (ZHAW), Wädenswil, Switzerland
+ - name: Centre for Computational Health, Institute of Computational Life Sciences, Zurich University of Applied Sciences (ZHAW), Wädenswil, Switzerland
    index: 2
  - name: www.T4D.ch, T4D GmbH, Zurich, Switzerland
    index: 3
-date: 17. Mai 2024
+date: 20. Mai 2024
 bibliography: paper.bib
 ---
 
@@ -111,7 +111,7 @@ The development of the `abn` package would not have been possible without the si
 We acknowledge the contributions of Fraser Iain Lewis, Marta Pittavino, Gilles Kratzer, and Kalina Cherneva, in particular.
 We extend our gratitude to the faculty staff at the [Department of Mathematical Modeling and Machine Learning](https://dm3l.uzh.ch/home), University of Zurich (UZH), and the [Department of Mathematics](https://www.math.uzh.ch/home), UZH, who maintain the research and teaching infrastructure.
 Our appreciation also goes to the UZH and the ZHAW for their financial support. 
-We want to highlight the funding from the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which was instrumental in realizing this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects.
+We want to highlight the funding from both the Zurich University of Applied Sciences (ZHAW) and the Digitalization Initiative of the Zurich Higher Education Institutions (DIZH), which were instrumental in realizing this project, particularly within the context of the "Modeling of multicentric and dynamic stroke health data" and "Stroke DynamiX" projects, respectively.
 This work was conducted as part of M.D.'s PhD project, co-supervised by Prof. Dr. Sven Hirsch (ZHAW) and Prof. Dr. Reinhard Furrer (UZH).
 
 # References
