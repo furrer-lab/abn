@@ -1,8 +1,11 @@
-name: Build a pdf for the paper
+name: Build JOSS paper pdf
 
 on:
   push:
-    branches: [JOSSpaper]
+    branches:
+      - JOSSpaper_noT
+      - JOSSpaper
+      - main
 
 jobs:
   paper:
