@@ -59,7 +59,8 @@ jobs:
       testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
     steps:
       - uses: actions/checkout@v4
-      - id: get_testfiles
+      - name: Identify tests to run
+        id: get_testfiles
         run: |
           if [[ -z "${{ needs.get_changes.outputs.run_all }}" ]]; then
             if [[ -n "${{ needs.get_changes.outputs.run_specific }}" ]]; then
