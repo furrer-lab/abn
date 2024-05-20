@@ -1,0 +1,130 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Runs on non-release pull requests
+
+on:
+  pull_request:
+    branches:
+      - "*"  # run for any pull request (see 1st job if condition for head name selection)
+jobs:
+  should-run:
+    if: ${{ (github.ref != 'refs/heads/main') && (!startsWith(github.head_ref, 'release-')) && (!startsWith(github.event.head_commit.message, 'noT')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Info
+        run: |
+          echo "Running development tests for branch ${{ github.head_ref }}"
+
+  get-target-container:
+    needs: should-run
+    runs-on: ubuntu-22.04
+    outputs:
+      CONTAINER: ${{ steps.container.outputs.container }}
+    steps:
+      - name: Get container
+        id: container
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [[ $BRANCH == *"__"* ]]; then
+            echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
+          else
+            echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
+          fi
+  get_changes:
+    needs: should-run
+    runs-on: ubuntu-latest
+    outputs:
+      run_all: ${{ steps.changed_files.outputs.changed_src }}
+      run_specific: ${{ steps.changed_files.outputs.changed_r }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+      EVENT: ${{ github.event.number }}  # This is either the issue or pr
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find changed files
+        id: changed_files
+        run: | 
+          echo "CHANGED_SRC=$(gh pr view ${{ env.EVENT }} --json 'files' --jq '.[].[] | select(.path | startswith("src/")) | .path' | xargs | sed -e 's/ /,/g')" >> $GITHUB_OUTPUT
+          echo "CHANGED_R=$(gh pr view ${{ env.EVENT }} --json 'files' --jq '.[].[] | select(.path | startswith("R/")) | .path' | xargs | sed -e 's/ /,/g')" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
+
+  gather-tests:
+    needs:
+      - get_changes
+    runs-on: ubuntu-latest
+    outputs:
+      testfiles: ${{ steps.get_testfiles.outputs.testfiles }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Identify tests to run
+        id: get_testfiles
+        run: |
+          if [[ -z "${{ needs.get_changes.outputs.run_all }}" ]]; then
+            if [[ -n "${{ needs.get_changes.outputs.run_specific }}" ]]; then
+              echo "TESTFILES=$(echo ${{ needs.get_changes.outputs.run_specific }} | sed -e 's/^R\//\"tests\/testthat\/test-/g' -e 's/,R\//,\"tests\/testthat\/test-/g' | sed -e 's/.R/.R\"/g' | sed 's/.*/[\0]/')" >> $GITHUB_OUTPUT
+            else
+              echo "TESTFILES=[]" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "TESTFILES=$(ls tests/testthat/test-*.R | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          fi 
+          cat $GITHUB_OUTPUT
+
+  build-install-test:
+    if: ${{ ( needs.gather-tests.outputs.testfiles != '[]' ) }}
+    needs:
+      - gather-tests
+      - get-target-container
+    runs-on: ubuntu-22.04
+    # name: Testing ${{ matrix.os }} (${{ matrix.compiler}}-${{ matrix.r-version }})
+    name: Testing in  ${{ needs.get-target-container.outputs.CONTAINER }}
+    # runs-on: ubuntu-latest
+    container:
+      image: ${{ vars.CONTAINER_SOURCE }}/${{ needs.get-target-container.outputs.CONTAINER }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    strategy:
+      fail-fast: false
+      matrix:
+        testfile: ${{ fromJson(needs.gather-tests.outputs.testfiles) }}
+    env:
+      R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+      BUILD_LOC: "./build"
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create build location
+        run: |
+            mkdir ${{ env.BUILD_LOC }}
+        shell: bash
+      - name: Disable renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+      - name: Change permissions of configure
+        run: |
+            chmod +x configure
+        shell: bash
+      - name: Install package dependencies
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+        shell: Rscript {0}
+      - name: Build the package
+        run: |
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+        shell: Rscript {0}
+      - name: Install it
+        run: |
+            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+        shell: Rscript {0}
+      - name: Running ${{ matrix.testfile }}
+        run: |
+            # since on a test failure devtools::test does not exit with
+            # non-zero state we test explicitly for failed tests and exit
+            # accordingly
+            res=devtools::test_active_file("${{ matrix.testfile }}");df=as.data.frame(res);if(sum(df$failed) > 0 || any(df$error)) {q("no", status=1, FALSE)}
+        shell: Rscript {0}

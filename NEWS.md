@@ -1,4 +1,4 @@
-# abn 3.0.7
+# abn v3.0.7
 
 2024-03-27 Matteo Delucchi
 
@@ -103,7 +103,7 @@
   * Additional argument checking an cleaning of many error messages.
 
 
-  ## Internal changes:
+  ### Internal changes:
 
   * Option `error.verbose` properly propagated to C functions.
 	* New option `trace` passed to "lbfgsb".

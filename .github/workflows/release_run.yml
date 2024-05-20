@@ -1,0 +1,28 @@
+# Workflow to check the state of the release banch
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Checking state of release branch
+
+on:
+  push:
+    branches:
+      - "release-[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  lint_project:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - name: Install lintr
+        run: install.packages("lintr")
+        shell: Rscript {0}
+      - name: Lint root directory
+        run: lintr::lint_dir()
+        shell: Rscript {0}
+        env:
+          LINTR_ERROR_ON_LINT: true

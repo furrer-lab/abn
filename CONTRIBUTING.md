@@ -113,3 +113,12 @@ branch named `"monoTestingBranch"` will also make you opt-out of testing.
 _Note:_ If you start a commit message with `"noT"` then the testing pipeline
 will also not run for this commit. In a commit message, however, the message
 has to start with `noT`, it will be ignored otherwise.
+
+### Memory Checks
+
+By default our testing pipelines do not perform checks for proper memory usage.
+However, if you are working on the C code, you have to option to run computationally
+more expensive (i.e. slower) memory checks.
+
+To run such checks, your development branch needs to have an open Pull request and you
+simply have to label the request with https://github.com/furrer-lab/abn/labels/memory%3A%3Acheck
