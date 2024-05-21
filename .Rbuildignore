@@ -8,6 +8,7 @@
 Makefile
 \.chglog
 ^CONTRIBUTING$
+\.lintr
 
 ^_pkgdown\.yml$
 ^docs$
