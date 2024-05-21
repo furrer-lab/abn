@@ -6,6 +6,7 @@
 \.gitignore
 \.git
 Makefile
+\.chglog
 
 ^_pkgdown\.yml$
 ^docs$
