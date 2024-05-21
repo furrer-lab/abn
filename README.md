@@ -404,7 +404,7 @@ The [abn website](https://r-bayesian-networks.org/) provides a comprehensive set
 
 - Friedman et al. (2003): [Being Bayesian about network structure. A Bayesian approach to structure discovery in Bayesian networks](https://doi.org/10.1023/A:1020249912095)
 
-- Friedman et al. (1999): [Data analysis with Bayesian networks: A bootstrap approach](https://arxiv.org/pdf/1301.6695.pdf)
+- Friedman et al. (1999): [Data analysis with Bayesian networks: A bootstrap approach](https://arxiv.org/abs/1301.6695)
 
 - Heckerman et al. (1995): [Learning Bayesian Networks – The Combination of Knowledge And Statistical-Data](http://maxchickering.com/publications/ml95.pdf)
 
