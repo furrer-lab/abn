@@ -7,7 +7,7 @@
 \.git
 Makefile
 \.chglog
-^CONTRIBUTING$
+^CONTRIBUTING\.md$
 \.lintr
 
 ^_pkgdown\.yml$
