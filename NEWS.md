@@ -1,4 +1,15 @@
 
+# abn 3.1.1
+[diff](https://github.com/furrer-lab/abn/compare/3.1.0...3.1.1)
+
+> 2024-05-22
+
+### Pull Requests
+
+* Merge pull request [#103](https://github.com/furrer-lab/abn/issues/103) from furrer-lab/101-add-chglog-and-linter-configurations-to-rbuildignore
+* Merge pull request [#99](https://github.com/furrer-lab/abn/issues/99) from furrer-lab/release-3.1.0
+
+
 # abn 3.1.0
 [diff](https://github.com/furrer-lab/abn/compare/3.0.7...3.1.0)
 
