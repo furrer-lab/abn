@@ -4,42 +4,19 @@
 
 > 2024-05-22
 
-### Pull Requests
-
-* Merge pull request [#103](https://github.com/furrer-lab/abn/issues/103) from furrer-lab/101-add-chglog-and-linter-configurations-to-rbuildignore
-* Merge pull request [#99](https://github.com/furrer-lab/abn/issues/99) from furrer-lab/release-3.1.0
-
+* Fixed URL in README
+* Added configuration for lintr
+* Removed non-standard files from being included in the package archive.
 
 # abn 3.1.0
 [diff](https://github.com/furrer-lab/abn/compare/3.0.7...3.1.0)
 
 > 2024-05-20
 
-### Feature
-
 * automated version release process
 * JOSS paper content
-
-### Fix
-
 * some checks should not run on release- branches
-* various typeos
-
-### Pull Requests
-
-* Merge pull request [#81](https://github.com/furrer-lab/abn/issues/81) from furrer-lab/streamline-release-process
-* Merge pull request [#37](https://github.com/furrer-lab/abn/issues/37) from furrer-lab/JOSSpaper_noT
-* Merge pull request [#98](https://github.com/furrer-lab/abn/issues/98) from furrer-lab/release-3.0.8
-* Merge pull request [#97](https://github.com/furrer-lab/abn/issues/97) from furrer-lab/release-3.0.8
-* Merge pull request [#96](https://github.com/furrer-lab/abn/issues/96) from furrer-lab/release-3.0.9
-* Merge pull request [#88](https://github.com/furrer-lab/abn/issues/88) from furrer-lab/86-update-dev-environment-to-latest-r-440
-* Merge pull request [#85](https://github.com/furrer-lab/abn/issues/85) from furrer-lab/84-catch-empty-factor-levels-early-on
-* Merge pull request [#78](https://github.com/furrer-lab/abn/issues/78) from furrer-lab/75-avoid-publishing-pages-on-pull-requests
-* Merge pull request [#49](https://github.com/furrer-lab/abn/issues/49) from furrer-lab/main
-* Merge pull request [#48](https://github.com/furrer-lab/abn/issues/48) from furrer-lab/46-remove-joss-paper-from-homepage
-* Merge pull request [#45](https://github.com/furrer-lab/abn/issues/45) from furrer-lab/dev-fix-CRAN-checks-v3.0.6
-* Merge pull request [#14](https://github.com/furrer-lab/abn/issues/14) from furrer-lab/dev-CRAN-submission-3.0.6
-* Merge pull request [#41](https://github.com/furrer-lab/abn/issues/41) from furrer-lab/7-pipeline-to-publish-pkgdown-site
+* various typos
 
 # abn v3.0.7
 
