@@ -148,7 +148,7 @@ jobs:
         run: |
           git fetch --filter=tree:0 origin +refs/tags/*:refs/tags/*
           echo "VERSION=$(echo ${{ github.ref_name }}|grep -Eo '[0-9]+.[0-9]+.[0-9]+')" >> $GITHUB_OUTPUT
-          echo "PREVIOUS_VERSION=`echo $(git tag --list | grep -E '[0-9]+.[0-9]+.[0-9]+$' | tail -n1)`" >> $GITHUB_OUTPUT
+          echo "PREVIOUS_VERSION=`echo $(git tag --list --sort=version:refname | grep -E '^[0-9]+.[0-9]+.[0-9]+$' | tail -n1)`" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
       - name: Remove previous releases of the target tag, if existing  # 2
         run: |
