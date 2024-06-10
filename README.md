@@ -48,10 +48,12 @@ The following system libraries are required to install the [abn](https://cran.r-
     - On Ubuntu, install the library with `sudo apt-get install libgsl-dev`.
     - On Fedora, install the library with `sudo dnf install gsl-devel`.
     - On macOS, install the library with `brew install gsl`.
+    - On Windows, download the binaries from the [GSL website](https://www.gnu.org/software/gsl/).
 - [JAGS](https://mcmc-jags.sourceforge.io/): Just Another Gibbs Sampler is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. It is required for the [abn](https://cran.r-project.org/package=abn) package to run simulations.
     - On Ubuntu, install the library with `sudo apt-get install jags`.
     - On Fedora, install the library with `sudo dnf install jags`.
     - On macOS, install the library with `brew install jags`.
+    - On Windows, download the installer from the [JAGS website](https://mcmc-jags.sourceforge.io/).
 
 ## Additional libraries
 
