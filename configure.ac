@@ -17,5 +17,11 @@ fi
 AC_SUBST(GSL_CFLAGS)
 AC_SUBST(GSL_LIBS)
 
+## Check for non-standard programs: JAGS
+AC_PATH_PROG([JAGS], [jags])
+if test "${JAGS}" = ""; then
+    AC_MSG_ERROR([jags not found, is JAGS installed?])
+fi
+
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT
