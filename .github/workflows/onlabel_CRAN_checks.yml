@@ -220,6 +220,7 @@ jobs:
 
       - name: Test coverage
         run: |
+          Sys.setenv(NOT_CRAN = "true")
           covr::codecov(
             quiet = FALSE,
             clean = FALSE,
