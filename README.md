@@ -4,7 +4,7 @@
 <!-- badges: start -->
 [![status](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812/status.svg)](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812)
 [![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
-![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)
+[![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)](https://app.codecov.io/gh/furrer-lab/abn)
 [![GitHub R package version](https://img.shields.io/github/r-package/v/furrer-lab/abn)](https://github.com/furrer-lab/abn/tags)
 ![cran](https://www.r-pkg.org/badges/version-ago/abn) 
 ![downloads](https://cranlogs.r-pkg.org/badges/grand-total/abn) 
