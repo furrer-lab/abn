@@ -44,11 +44,11 @@ jobs:
           # - {os: ubuntu-latest,  r: 'oldrel-4'}
 
     steps:
-      - name: install dependencies macos
-        if: ${{ matrix.config.os == 'macos-latest' }}
-        run: |
-          brew install gsl
-          brew install jags
+      # - name: install dependencies macos
+      #   if: ${{ matrix.config.os == 'macos-latest' }}
+      #   run: |
+      #     brew install gsl
+      #     brew install jags
 
       - uses: actions/checkout@v4
 

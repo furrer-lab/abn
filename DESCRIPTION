@@ -51,6 +51,7 @@ Imports:
     Rgraphviz,
     rjags,
     stringi
+    gsl
 Suggests: 
     bookdown,
     boot,
