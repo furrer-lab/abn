@@ -9,6 +9,8 @@ Makefile
 \.chglog
 ^CONTRIBUTING\.md$
 \.lintr
+^\.Rbuildignore$
+^\.codecov\.yml$
 
 ^_pkgdown\.yml$
 ^docs$
