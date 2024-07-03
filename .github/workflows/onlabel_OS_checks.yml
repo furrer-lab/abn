@@ -44,6 +44,12 @@ jobs:
           # - {os: ubuntu-latest,  r: 'oldrel-4'}
 
     steps:
+      - name: install dependencies macos
+        if: ${{ matrix.config.os == 'macos-latest' }}
+        run: |
+          brew install gsl
+          brew install jags
+
       - uses: actions/checkout@v4
 
       - uses: r-lib/actions/setup-pandoc@v2
@@ -53,6 +59,10 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+
+      # - name: install JAGS
+      #   run: |
+      #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
