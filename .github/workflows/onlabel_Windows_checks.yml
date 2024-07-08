@@ -11,7 +11,6 @@ env:
   LABEL_SUCCESS: 'windows::passed'
   LABEL_FAILURE: 'windows::failed'
   BUILD_LOC: "./build"
-  OS: 'windows-latest'
 
 permissions:
   packages: read
@@ -22,8 +21,8 @@ permissions:
 jobs:
   R-CMD-check:
     if: ${{ github.event.label.name == 'windows::check' }}
-    name: ${{ env.OS }} (${{ matrix.config.r }})
-    runs-on: ${{ env.OS }}
+    name: windows-latest (${{ matrix.config.r }})
+    runs-on: windows-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes

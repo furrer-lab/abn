@@ -11,7 +11,6 @@ env:
   LABEL_SUCCESS: 'macos::passed'
   LABEL_FAILURE: 'macos::failed'
   BUILD_LOC: "./build"
-  OS: 'macos-latest'
 
 permissions:
   packages: read
@@ -22,8 +21,8 @@ permissions:
 jobs:
   R-CMD-check:
     if: ${{ github.event.label.name == 'macos::check' }}
-    name: ${{ env.OS }} (${{ matrix.config.r }})
-    runs-on: ${{ env.OS }}
+    name: macos-latest (${{ matrix.config.r }})
+    runs-on: macos-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
