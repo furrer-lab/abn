@@ -62,7 +62,13 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-${{ env.JAGS_VERSION }}")
+      - name: install JAGS
+        run: |
+            Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-${{ env.JAGS_VERSION }}")
+            install.packages("rjags")
+        shell: Rscript {0}
+
+
       
       # - name: install JAGS
       #   run: |
