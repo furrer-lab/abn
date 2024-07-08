@@ -39,7 +39,6 @@ jobs:
           - {r: 'oldrel-3',}
 
     steps:
-
       - name: install dependencies macos
         run: |
           brew install gsl
