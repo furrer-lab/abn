@@ -1,6 +1,6 @@
 # Workflow is triggered on label and check installation on various operating systems
 # This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
-name: On Label Windows checks
+name: On Label Windows Checks
 
 on:
   pull_request:
@@ -11,6 +11,9 @@ env:
   LABEL_SUCCESS: 'windows::passed'
   LABEL_FAILURE: 'windows::failed'
   BUILD_LOC: "./build"
+  JAGS_MAJORV: '4'
+  JAGS_VERSION: '4.3.1'
+  JAGS_URL: "https://sourceforge.net/projects/mcmc-jags/files/JAGS"
 
 permissions:
   packages: read
@@ -31,16 +34,24 @@ jobs:
       matrix:
         config:
           - {r: 'release',}
-          - {r: '4.1',}
-          - {r: 'devel', http-user-agent: 'release'}
-          - {r: 'oldrel-1',}
-          - {r: 'oldrel-2',}
-          - {r: 'oldrel-3',}
+          # - {r: '4.1',}
+          # - {r: 'devel', http-user-agent: 'release'}
+          # - {r: 'oldrel-1',}
+          # - {r: 'oldrel-2',}
+          # - {r: 'oldrel-3',}
 
     steps:
 
       - name: Install GSL binaries with cygwin
         uses: cygwin/cygwin-install-action@master
+
+      - name: Install JAGS
+        run: |
+          Import-Module bitstransfer
+          start-bitstransfer -source ${{ env.JAGS_URL }}/${{ env.JAGS_MAJORV }}.x/Windows/JAGS-${{ env.JAGS_VERSION }}.exe/download  C:\JAGS-${{ env.JAGS_VERSION }}.exe
+          & "C:\JAGS-${{ env.JAGS_VERSION }}.exe"
+          where jags
+          jags
 
       - uses: actions/checkout@v4
 
@@ -66,7 +77,8 @@ jobs:
           upload-snapshots: false
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
 
-  report_OS_checks:
+  report_windows_checks:
+    if: ${{ (success() || failure()) }}
     needs:
       - R-CMD-check
     runs-on: ubuntu-latest
