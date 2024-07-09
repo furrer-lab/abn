@@ -22,10 +22,8 @@ AC_PATH_PROG([JAGS], [jags])
 AC_PATH_PROG([PKG_CONFIG], [pkg-config])
 if test "${JAGS}" != ""; then
 		## Try to fetch the paths for jags with pkg-config(1)
-		if test "${PKG_CONFIG} --modversion ${JAGS}" != ""; then
           JAGS_CFLAGS=`${PKG_CONFIG} --cflags --static ${JAGS}`
           JAGS_LIBS=`${PKG_CONFIG} --libs --static ${JAGS}`
-		fi
 else
     AC_MSG_ERROR([jags not found, is JAGS installed?])
 fi
