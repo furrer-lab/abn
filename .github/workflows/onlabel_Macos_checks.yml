@@ -43,6 +43,7 @@ jobs:
           brew install pkg-config
           brew install gsl
           brew install jags
+          brew install automake  # needed to run autoconf
           gsl-config --libs
           gsl-config --cflags
 
