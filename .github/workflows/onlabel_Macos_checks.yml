@@ -70,7 +70,8 @@ jobs:
           upload-snapshots: false
           build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
 
-  report_OS_checks:
+  report_macos_checks:
+    if: ${{ (success() || failure()) }}
     needs:
       - R-CMD-check
     runs-on: ubuntu-latest
