@@ -19,11 +19,10 @@ AC_SUBST(GSL_LIBS)
 
 ## Check for non-standard programs: JAGS
 AC_PATH_PROG([JAGS], [jags])
+AC_PATH_PROG([PKG_CONFIG], [pkg-config])
 if test "${JAGS}" != ""; then
-		AC_PATH_PROG([PKG_CONFIG], [pkg-config])
-
 		## Try to fetch the paths for jags with pkg-config(1)
-		if test "${PKG_CONFIG}" != ""; then
+		if test "${PKG_CONFIG} --modversion ${JAGS}" != ""; then
           JAGS_CFLAGS=`${PKG_CONFIG} --cflags --static ${JAGS}`
           JAGS_LIBS=`${PKG_CONFIG} --libs --static ${JAGS}`
 		fi
