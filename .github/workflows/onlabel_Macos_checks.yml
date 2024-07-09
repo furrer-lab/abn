@@ -57,14 +57,17 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # - name: install JAGS
+      # - name: install INLA
       #   run: |
       #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 
       - name: Configure ABN for installation
         run: |
-          autoconf
-          cat configure
+          pkg-config --modversion jags
+          pkg-config --cflags jags
+          pkg-config --libs jags
+          pkg-config --cflags --static jags
+          pkg-config --libs --static jags
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
