@@ -50,7 +50,7 @@ jobs:
           Import-Module bitstransfer
           New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}"
           start-bitstransfer -source ${{ env.JAGS_URL }}/${{ env.JAGS_MAJORV }}.x/Windows/JAGS-${{ env.JAGS_VERSION }}.exe/download  "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe"
-          & "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe"
+          Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe" -ArgumentList "/S" -PassThru
 
       - uses: actions/checkout@v4
 
