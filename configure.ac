@@ -30,6 +30,10 @@ if test "${JAGS}" != ""; then
 else
     AC_MSG_ERROR([jags not found, is JAGS installed?])
 fi
+#
+# Now substitute these variables in src/Makevars.in to create src/Makevars
+AC_SUBST(JAGS_CFLAGS)
+AC_SUBST(JAGS_LIBS)
 
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT

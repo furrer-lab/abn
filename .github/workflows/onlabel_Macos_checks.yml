@@ -63,11 +63,7 @@ jobs:
 
       - name: Configure ABN for installation
         run: |
-          pkg-config --modversion jags
-          pkg-config --cflags jags
-          pkg-config --libs jags
-          pkg-config --cflags --static jags
-          pkg-config --libs --static jags
+          autoconf
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
