@@ -57,9 +57,10 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
-      # - name: install INLA
-      #   run: |
-      #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+      - name: install rjags separately
+        run: |
+          install.packages('rjags', configure.args = '--enable-rpath')
+        shell: Rscript {0}
 
       - name: Configure ABN for installation
         run: |
