@@ -43,6 +43,8 @@ jobs:
           brew install pkg-config
           brew install gsl
           brew install jags
+          gsl-config --libs
+          gsl-config --cflags
 
       - uses: actions/checkout@v4
 
