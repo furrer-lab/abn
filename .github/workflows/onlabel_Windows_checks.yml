@@ -68,11 +68,9 @@ jobs:
             install.packages("rjags")
         shell: Rscript {0}
 
-
-      
-      # - name: install JAGS
-      #   run: |
-      #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+      - name: install JAGS
+        run: |
+            install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
