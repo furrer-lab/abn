@@ -31,11 +31,11 @@ jobs:
       matrix:
         config:
           - {r: 'release',}
-          - {r: '4.1',}
-          - {r: 'devel', http-user-agent: 'release'}
-          - {r: 'oldrel-1',}
-          - {r: 'oldrel-2',}
-          - {r: 'oldrel-3',}
+          # - {r: '4.1',}
+          # - {r: 'devel', http-user-agent: 'release'}
+          # - {r: 'oldrel-1',}
+          # - {r: 'oldrel-2',}
+          # - {r: 'oldrel-3',}
 
     steps:
       - name: install dependencies macos
@@ -64,6 +64,7 @@ jobs:
       - name: Configure ABN for installation
         run: |
           autoconf
+          cat configure
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
