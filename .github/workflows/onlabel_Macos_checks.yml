@@ -1,6 +1,6 @@
 # Workflow is triggered on label and check installation on various operating systems
 # This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
-name: On Label OS checks
+name: On Label Macos Checks
 
 on:
   pull_request:
@@ -40,6 +40,7 @@ jobs:
     steps:
       - name: install dependencies macos
         run: |
+          brew install pkg-config
           brew install gsl
           brew install jags
 
