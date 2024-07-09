@@ -65,6 +65,11 @@ jobs:
         run: |
           autoconf
 
+      - name: Debugging
+        run: |
+          pkg-config --cflags --static jags
+          pkg-config --libs --static jags
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
