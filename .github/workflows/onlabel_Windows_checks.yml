@@ -35,9 +35,9 @@ jobs:
         config:
           - {r: 'release',}
           # - {r: '4.1',}
-          # - {r: 'devel', http-user-agent: 'release'}
-          # - {r: 'oldrel-1',}
-          # - {r: 'oldrel-2',}
+          - {r: 'devel', http-user-agent: 'release'}
+          - {r: 'oldrel-1',}
+          - {r: 'oldrel-2',}
           # - {r: 'oldrel-3',}
 
     steps:
