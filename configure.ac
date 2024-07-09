@@ -19,7 +19,15 @@ AC_SUBST(GSL_LIBS)
 
 ## Check for non-standard programs: JAGS
 AC_PATH_PROG([JAGS], [jags])
-if test "${JAGS}" = ""; then
+if test "${JAGS}" != ""; then
+		AC_PATH_PROG([PKG_CONFIG], [pkg-config])
+
+		## Try to fetch the paths for jags with pkg-config(1)
+		if test "${PKG_CONFIG}" != ""; then
+          JAGS_CFLAGS=`${PKG_CONFIG} --cflags --static ${JAGS}`
+          JAGS_LIBS=`${PKG_CONFIG} --libs --static ${JAGS}`
+		fi
+else
     AC_MSG_ERROR([jags not found, is JAGS installed?])
 fi
 
