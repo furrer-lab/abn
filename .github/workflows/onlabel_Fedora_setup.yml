@@ -47,7 +47,7 @@ jobs:
           dnf -y install gcc
           dnf -y install gcc-c++
           dnf -y install gfortran
-          dnf -y install lapack*
+          dnf -y install lapack*  # is needed on fedora server
           dnf -y install blas*
           dnf -y install atlas*
 
@@ -78,12 +78,8 @@ jobs:
 
       - name: install rjags
         run: |
-            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
-
-            install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-            # install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+            install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
-
         shell: Rscript {0}
 
       # - uses: actions/checkout@v4
