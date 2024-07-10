@@ -21,9 +21,11 @@ permissions:
 
 jobs:
   setup-and-install:
+    runs-on: ubuntu-latest
+    container:
+      image: "fedora:latest"
     if: ${{ github.event.label.name == 'fedoraInstall::check' }}
     name: fedora-latest (${{ matrix.config.r }})
-    runs-on: fedora-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
