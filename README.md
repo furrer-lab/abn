@@ -33,11 +33,28 @@ Officially suppoorted is R version >= 4.2
     It is required to compile `abn`'s C/C++ code.
   
     ### Installation
-    
-    - On Ubuntu, install the library with `sudo apt-get install libgsl-dev`.
-    - On Fedora, install the library with `sudo dnf install gsl-devel`.
-    - On macOS, install the library with `brew install gsl`.
-    - On Windows, download the binaries from the [GSL website](https://www.gnu.org/software/gsl/).
+
+    - <details>
+        <summary>Ubuntu</summary>
+      </details>
+
+    - <details>
+        <summary>Fedora</summary>
+      </details>
+
+    - <details>
+        <summary>MacOS</summary>
+
+        With homebrew you can install the `GSL` binaries directly:
+
+        ```
+        brew install gsl
+        ```
+      </details>
+
+    - <details>
+        <summary>Windows</summary>
+      </details>
   
   </details>
 
@@ -54,7 +71,9 @@ Officially suppoorted is R version >= 4.2
 
         `JAGS` is available throught the Advanced Package Tool, `APT`, simply type:
 
-             sudo apt-get install jags
+        ```bash
+        sudo apt-get install jags
+        ```
 
       </details>
 
@@ -84,17 +103,36 @@ Officially suppoorted is R version >= 4.2
     - <details>
         <summary>MacOS</summary>
 
+        With homebrew you can install the `JAGS` binaries directly:
 
-        _TODO_
-
+        ```
+        brew install jags
+        ```
 
       </details>
 
     - <details>
         <summary>Windows</summary>
 
-        _TODO_ 
+        You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
+        The follwing instructions will download and install JAGS 4.3.1 in PowerShell:
 
+        ```
+        Import-Module bitstransfer
+        New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
+        start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
+        Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
+        ```
+
+        For some reason the R package `rjags` which uses `JAGS` and is a dependency of `abn` might not find the JAGS binaries.
+        In order to make sure `rjags` finds them, you sould set the environment varuable `JAGS_HOME` before installing `rjags`.
+
+        To do so, open your R session and type:
+
+        ```R
+        Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
+        install.packages("rjags")
+        ```
 
       </details>
   
