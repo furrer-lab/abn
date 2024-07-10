@@ -80,22 +80,18 @@ jobs:
       # - name: Configure abn for installation
       #   run: |
       #     autoconf
-      - name: R settting mirrors
-        run: |
-            options(repos=c(CRAN="https://cran.r-project.org", INLA="https://inla.r-inla-download.org/R/stable"))
-        shell: Rscript {0}
 
       - name: installing dependiecies from BiocManager
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE))
-              install.packages("BiocManager")
+              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
           BiocManager::install("Rgraphviz")
           BiocManager::install("graph")
         shell: Rscript {0}
 
       - name: Install abn from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="3.1.1")
+            devtools::install_github("furrer-lab/abn", ref="3.1.1", repos=c(CRAN="https://cran.r-project.org", INLA="https://inla.r-inla-download.org/R/stable"))
 
       # - name: Install package dependencies
       #   run: |
