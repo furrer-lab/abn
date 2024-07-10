@@ -36,10 +36,24 @@ Officially suppoorted is R version >= 4.2
 
     - <details>
         <summary>Ubuntu</summary>
+
+        `GSL` is available throught the Advanced Package Tool, `APT`, simply type:
+
+        ```bash
+        sudo apt-get install libgsl-dev
+        ```
+
       </details>
 
     - <details>
         <summary>Fedora</summary>
+
+        `GSL` is available throught Fedoras standart package manager, `DNF`, simply type:
+
+        ```bash
+        sudo dnf -y install gsl-devel
+        ```
+
       </details>
 
     - <details>
@@ -54,6 +68,17 @@ Officially suppoorted is R version >= 4.2
 
     - <details>
         <summary>Windows</summary>
+
+        In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installaiton process.
+        Eigher head over to the website, download and install the setup-x86_64.exe file, or use PowerShell:
+        
+        ```
+        Import-Module bitstransfer
+        New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
+        start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
+        Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
+        ```
+
       </details>
   
   </details>
