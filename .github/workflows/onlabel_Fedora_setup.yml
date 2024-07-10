@@ -44,16 +44,12 @@ jobs:
       - name: prepare fedora
         run: |
           dnf -y install wget
-
-      - name: install gcc
-        run: |
           dnf -y install gcc
-
-       # - name: install lapack blas and atlas
-       #   run: |
-       #     dnf -y install lapack*
-       #     dnf -y install blas*
-       #     dnf -y install atlas*
+          dnf -y install gcc-c++
+          dnf -y install gfortran
+          dnf -y install lapack*
+          dnf -y install blas*
+          dnf -y install atlas*
 
       - name: install GSL
         run: |
