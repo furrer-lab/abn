@@ -1,6 +1,6 @@
 # Workflow is triggered on label and check installation on various operating systems
 # This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
-name: On Label Windows Checks
+name: Windows Install
 
 on:
   pull_request:
@@ -50,7 +50,7 @@ jobs:
           Import-Module bitstransfer
           New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
           start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
-          Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
+          Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages=gsl --site=https://cygwin.mirror.constant.com" -PassThru
 
       - name: install JAGS
         run: |
