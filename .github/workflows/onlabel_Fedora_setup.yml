@@ -72,24 +72,23 @@ jobs:
       - name: install config and build dependencies
         run: |
           dnf -y install cmake
-          # dnf -y install autoconf
           dnf -y install R-devtools
+          # dnf -y install autoconf
 
       # - uses: actions/checkout@v4
 
       # - name: Configure abn for installation
       #   run: |
       #     autoconf
-
-      - name: installing INLA
+      - name: R settting mirrors
         run: |
-            install.packages("INLA", repos = "https://stat.ethz.ch/CRAN/", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+            options(repos=c(CRAN="https://cran.r-project.org", INLA="https://inla.r-inla-download.org/R/stable"))
         shell: Rscript {0}
 
       - name: installing dependiecies from BiocManager
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE))
-              install.packages("BiocManager", repos="https://stat.ethz.ch/CRAN/")
+              install.packages("BiocManager")
           BiocManager::install("Rgraphviz")
           BiocManager::install("graph")
         shell: Rscript {0}
@@ -100,7 +99,7 @@ jobs:
 
       # - name: Install package dependencies
       #   run: |
-      #       devtools::install_deps(pkg = '.', repos="https://stat.ethz.ch/CRAN/", dependencies = TRUE, upgrade='never')
+      #       devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
 
       # - name: installing abn from source
       #   run: |
