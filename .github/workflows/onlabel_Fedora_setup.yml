@@ -57,7 +57,7 @@ jobs:
 
       - name: install config and build dependencies
         run: |
-          dnf -y install cmake
+          # dnf -y install cmake
           dnf -y install R-devtools
           # dnf -y install autoconf
 
