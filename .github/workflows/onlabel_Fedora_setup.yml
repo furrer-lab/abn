@@ -7,9 +7,9 @@ on:
     types: [ labeled ]
 
 env:
-  LABEL_CHECK: 'fedora::check'
-  LABEL_SUCCESS: 'fedora::passed'
-  LABEL_FAILURE: 'fedora::failed'
+  LABEL_CHECK: 'fedoraInstall::check'
+  LABEL_SUCCESS: 'fedoraInstall::passed'
+  LABEL_FAILURE: 'fedoraInstall::failed'
   JAGS: '4.3.2'
   BUILD_LOC: "./build"
 
@@ -20,8 +20,8 @@ permissions:
   repository-projects: write
 
 jobs:
-  R-CMD-check:
-    if: ${{ github.event.label.name == 'fedora::check' }}
+  setup-and-install:
+    if: ${{ github.event.label.name == 'fedoraInstall::check' }}
     name: fedora-latest (${{ matrix.config.r }})
     runs-on: fedora-latest
     env:
@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {r: 'release', compiler: "clang"}
+          - {r: 'release'}
           # - {r: '4.1',}
           # - {r: 'devel', http-user-agent: 'release'}
           # - {r: 'oldrel-1',}
@@ -39,72 +39,81 @@ jobs:
           # - {r: 'oldrel-3',}
 
     steps:
-      - name: install lapack blas an atlas
+      - name: install gcc
         run: |
-          dnf -y install lapack*
-          dnf -y install blas*
-          dnf -y install atlas*
+          dnf -y install gcc
+
+       # - name: install lapack blas and atlas
+       #   run: |
+       #     dnf -y install lapack*
+       #     dnf -y install blas*
+       #     dnf -y install atlas*
+
+      - name: install GSL
+        run: |
+          dnf -y install gsl-devel
 
       - name: install JAGS
         run: |
-          wget https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/${{ env.JAGS }}.tar.gz/download /tmp/jags.tar.gz
+          wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-${{ env.JAGS }}.tar.gz/download
           cd /tmp
           tar -xf jags.tar.gz
-          cd /tmp/${{ env.JAGS }} 
-          if [ "${{ matrix.config.compiler}}" = "clang" ]; then RCC=/usr/bin/clang RCXX="/usr/bin/clang++ -std=gnu++17 -stdlib=libc++"; else RRCC=/usr/bin/gcc RCXX="/usr/bin/g++"; fi
-          LD="llvm-ld" CC="${RCC}" CXX="${RCXX}" ./configure --with-blas="-L/opt/R-devel/lib64/R/lib -lRblas" --with-lapack="-L/opt/R-devel/lib64/R/lib -lRlapack" --libdir=/usr/local/lib64
+          cd /tmp/JAGS-${{ env.JAGS }} 
+          ./configure --libdir=/usr/local/lib64
           make
           make install
 
-      - name: install rjags separately
+      - name: install R
         run: |
-          install.packages('rjags', configure.args = '--enable-rpath')
+          dnf -y install R
+
+      - name: install config and build dependencies
+        run: |
+          dnf -y install cmake
+          # dnf -y install autoconf
+          dnf -y install R-devtools
+
+      # - uses: actions/checkout@v4
+
+      # - name: Configure abn for installation
+      #   run: |
+      #     autoconf
+
+      - name: installing INLA
+        run: |
+            install.packages("INLA", repos = "", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
         shell: Rscript {0}
 
-      - name: install devtools
+      - name: installing dependiecies from BiocManager
         run: |
-          install.packages('devtools')
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+              install.packages("BiocManager", repos="")
+          BiocManager::install("Rgraphviz")
+          BiocManager::install("graph")
         shell: Rscript {0}
 
-
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-pandoc@v2
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true
-
-      - name: install rjags separately
+      - name: Install abn from GitHub
         run: |
-          install.packages('rjags', configure.args = '--enable-rpath')
+            devtools::install_github("furrer-lab/abn", ref="3.1.1")
+
+      # - name: Install package dependencies
+      #   run: |
+      #       devtools::install_deps(pkg = '.', repos="", dependencies = TRUE, upgrade='never')
+
+      # - name: installing abn from source
+      #   run: |
+      #     devtools::install('./')
+      #   shell: Rscript {0}
+
+      - name: Running testhat
+        run: |
+            res=devtools::test(abn)
         shell: Rscript {0}
 
-      - name: Configure ABN for installation
-        run: |
-          autoconf
-
-      - name: Debugging
-        run: |
-          pkg-config --cflags --static jags
-          pkg-config --libs --static jags
-
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          upload-snapshots: false
-          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
-
-  report_macos_checks:
+  report_Fedora_install:
     if: ${{ (success() || failure()) }}
     needs:
-      - R-CMD-check
+      - setup-and-install 
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -119,19 +128,19 @@ jobs:
       - name: Check if on demand tasks succeeded
         run: |
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-          if [ ${{ needs.R-CMD-check.result }} == "success" ]; then
+          if [ ${{ needs.setup-and-install.result }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
-          elif [ ${{ needs.R-CMD-check.result }} == "failure" ]; then
+          elif [ ${{ needs.setup-and-install.result }} == "failure" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ needs.R-CMD-check.outcome }}"
+            echo "On demand task outcome was ${{ needs.setup-and-installoutcome }}"
           fi
         shell: bash
         env:
