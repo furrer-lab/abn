@@ -75,6 +75,12 @@ jobs:
           make
           make install
 
+      - name: install rjags
+        run: |
+            install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+
+        shell: Rscript {0}
+
       # - uses: actions/checkout@v4
 
       # - name: Configure abn for installation
