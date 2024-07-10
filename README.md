@@ -17,6 +17,58 @@ The package provides routines for structure learning and parameter estimation of
 
 # Installation
 
+
+## R version support
+
+Officially suppoorted is R version >= 4.2
+
+## Dependencies
+
+`abn` has a few dependencies that need to be installed before installing the package itself:
+
+<details>
+<summary>GSL</summary>
+    [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
+    It is required to compile `abn`'s C/C++ code.
+
+    ### Installation
+    
+    - On Ubuntu, install the library with `sudo apt-get install libgsl-dev`.
+    - On Fedora, install the library with `sudo dnf install gsl-devel`.
+    - On macOS, install the library with `brew install gsl`.
+    - On Windows, download the binaries from the [GSL website](https://www.gnu.org/software/gsl/).
+</details>
+
+<details>
+<summary>JAGS</summary>
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation.
+    It is required in some simulations `abn` can perform.
+
+    ### Installation
+
+    - On Ubuntu, install the library with `sudo apt-get install jags`.
+    - ~~On Fedora, install the library with `sudo dnf install jags`.~~
+    - On macOS, install the library with `brew install jags`.
+    - On Windows, download the installer from the [JAGS website](https://mcmc-jags.sourceforge.io/).
+</details>
+
+<details>
+<summary>INLA</summary>
+    [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
+    `anb` uses INLA to fit some models. 
+
+    ### Installation
+
+    The installation is straight forward on common platforms, simply start an R session and run:
+
+    ```r
+    install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+    ```
+
+    If you run into trouble, please see also [INLA's installation instruction website](https://www.r-inla.org/download-install) for further details.
+</details>
+
+
 The most recent development version is available from [Github](https://github.com/furrer-lab/abn) and can be installed with:
 
 ```r
@@ -40,29 +92,7 @@ We have implemented a rigorous testing framework similar to CRAN's to validate t
 Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
 We appreciate your understanding as we work towards making `abn` available on CRAN soon.
 
-## Required System libraries
-
-The following system libraries are required to install the [abn](https://cran.r-project.org/package=abn) package:
-
-- [GSL](https://www.gnu.org/software/gsl/): The GNU Scientific Library is a numerical library for C/C++. It is required for the [abn](https://cran.r-project.org/package=abn) package to compile the C/C++ code.
-    - On Ubuntu, install the library with `sudo apt-get install libgsl-dev`.
-    - On Fedora, install the library with `sudo dnf install gsl-devel`.
-    - On macOS, install the library with `brew install gsl`.
-    - On Windows, download the binaries from the [GSL website](https://www.gnu.org/software/gsl/).
-- [JAGS](https://mcmc-jags.sourceforge.io/): Just Another Gibbs Sampler is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. It is required for the [abn](https://cran.r-project.org/package=abn) package to run simulations.
-    - On Ubuntu, install the library with `sudo apt-get install jags`.
-    - On Fedora, install the library with `sudo dnf install jags`.
-    - On macOS, install the library with `brew install jags`.
-    - On Windows, download the installer from the [JAGS website](https://mcmc-jags.sourceforge.io/).
-
 ## Additional libraries
-
-The following additional libraries are recommended to best profit from the [abn](https://cran.r-project.org/package=abn) features.
-
-- [INLA](https://www.r-inla.org/), which is an R package used for model fitting. It is hosted separately from CRAN and is easy to install on common platforms (see instructions on the INLA website). 
-```r
-install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-```
 
 - [Rgraphviz](https://www.bioconductor.org//packages/release/bioc/html/Rgraphviz.html) is used to produce plots of network graphs and is hosted on [Bioconductor](https://www.bioconductor.org/).
 ```r
@@ -70,8 +100,6 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 BiocManager::install("Rgraphviz", version = "3.8")
 ```
-
-- [JAGS](https://mcmc-jags.sourceforge.io/) is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. Its installation is platform-dependent and is, therefore, not covered here.
 
 # Quickstart
 
