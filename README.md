@@ -49,10 +49,54 @@ Officially suppoorted is R version >= 4.2
   
     ### Installation
   
-    - On Ubuntu, install the library with `sudo apt-get install jags`.
-    - ~~On Fedora, install the library with `sudo dnf install jags`.~~
-    - On macOS, install the library with `brew install jags`.
-    - On Windows, download the installer from the [JAGS website](https://mcmc-jags.sourceforge.io/).
+    - <details>
+        <summary>Ubuntu</summary>
+
+        `JAGS` is available throught the Advanced Package Tool, `APT`, simply type:
+
+             sudo apt-get install jags
+
+      </details>
+
+    - <details>
+        <summary>Fedora</summary>
+
+        `JAGS` must be installed from source.
+        Below are the steps to install `JAGS 4.3.2`.
+
+        ```bash
+        wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-4.3.2.tar.gz/download
+        cd /tmp
+        tar -xf jags.tar.gz
+        cd /tmp/JAGS-4.3.2 
+        ./configure --libdir=/usr/local/lib64
+        make
+        sudo make install
+        ```
+
+        **Note:**
+
+        If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`.
+        Omitting this argument will lead to `rjags` "not seeing" `jags`.
+
+      </details>
+
+    - <details>
+        <summary>MacOS</summary>
+
+
+        _TODO_
+
+
+      </details>
+
+    - <details>
+        <summary>Windows</summary>
+
+        _TODO_ 
+
+
+      </details>
   
   </details>
   
