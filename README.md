@@ -87,12 +87,14 @@ Below is a list of these dependencies with details on how to install and configu
   </details>
 
 - <details>
-    <summary><b>JAGS</b></summary>
+    <summary><b>JAGS & rjags</b></summary>
   
-    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation.
-    It is required in some simulations `abn` can perform.
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+    `JAGS` is required in some simulations `abn` can perform.
   
     ### Installation
+
+    In prinicple we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
   
     - <details>
         <summary>Ubuntu</summary>
@@ -126,6 +128,14 @@ Below is a list of these dependencies with details on how to install and configu
         If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`.
         Omitting this argument will lead to `rjags` "not seeing" `jags`.
 
+        It is recommended to directly install `rjags`, since `rjags` needs some special configuration on Fedora for it to link
+        properly to the `JAGS` library.
+        Open an R session and type:
+
+        ```R
+        install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+        ```
+
       </details>
 
     - <details>
@@ -135,6 +145,13 @@ Below is a list of these dependencies with details on how to install and configu
 
         ```
         brew install jags
+        ```
+
+        And now to install `rjags`, open an R session and type:
+
+        ```
+        install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+        library("rjags")
         ```
 
       </details>
@@ -152,14 +169,13 @@ Below is a list of these dependencies with details on how to install and configu
         Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
         ```
 
-        For some reason the R package `rjags` which uses `JAGS` and is a dependency of `abn` might not find the JAGS binaries.
-        In order to make sure `rjags` finds them, you sould set the environment varuable `JAGS_HOME` before installing `rjags`.
-
+        In order to make sure `rjags` finds `JAGS` we set the environment varuable `JAGS_HOME` before installing `rjags`.
         To do so, open your R session and type:
 
         ```R
         Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
-        install.packages("rjags")
+        install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
+        library("rjags")
         ```
 
       </details>
@@ -185,14 +201,14 @@ Below is a list of these dependencies with details on how to install and configu
   </details>
 
 - <details>
-    <summary><b>Rgraphviz & graph</b></summary>
+    <summary><b>Dependencies form BiocManager</b></summary>
   
     [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-    Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed explicitly:
+    Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
 
     ### Installation
   
-    The installation is straight forward on common platforms, simply start an R session and run:
+    The installation is straight forward on most common platforms, simply start an R session and run:
   
     ```r
     if (!requireNamespace("BiocManager", quietly = TRUE))
@@ -207,11 +223,18 @@ _Click on each dependency to see the specific installation instructions_
 
 ## Installing with GitHub
 
-The most recent development version is available from [Github](https://github.com/furrer-lab/abn) and can be installed with:
+From GitHub you can install any version and/or state of the `abn` repository you want.
+We recommend to not directly install `main`, but a specific version.
+Head over to our [version list](https://github.com/furrer-lab/abn/releases) to see which one is the latest version.
+Here we assume the version is `3.1.1`.
+
 
 ```r
-devtools::install_github("furrer-lab/abn")
+devtools::install_github("furrer-lab/abn", ref="3.1.1")
 ```
+
+> [!IMPORTANT]
+> I you are on `Fedora` you will need `cmake` for this to work.
 
 ## Installing with CRAN
 
