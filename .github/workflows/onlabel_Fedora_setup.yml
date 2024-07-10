@@ -78,6 +78,7 @@ jobs:
 
       - name: install rjags
         run: |
+            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
             install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
         shell: Rscript {0}
