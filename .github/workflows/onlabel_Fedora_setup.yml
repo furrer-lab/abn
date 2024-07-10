@@ -41,6 +41,10 @@ jobs:
           # - {r: 'oldrel-3',}
 
     steps:
+      - name: prepare fedora
+        run: |
+          dnf -y install wget
+
       - name: install gcc
         run: |
           dnf -y install gcc
