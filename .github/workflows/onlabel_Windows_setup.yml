@@ -62,7 +62,7 @@ jobs:
       - name: install rjags separately
         run: |
             Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-${{ env.JAGS_VERSION }}")
-            install.packages("rjags")
+            install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
         shell: Rscript {0}
 
       # - name: install INLA
