@@ -91,7 +91,8 @@ jobs:
 
       - name: Install abn from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="3.1.1", repos=c(CRAN="https://cran.r-project.org", INLA="https://inla.r-inla-download.org/R/stable"))
+            devtools::install_github("furrer-lab/abn", ref="3.1.1", update=None)
+        shell: Rscript {0}
 
       # - name: Install package dependencies
       #   run: |
