@@ -54,7 +54,8 @@ jobs:
 
       - name: install rjags
         run: |
-            install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+            #Sys.setenv(JAGS_HOME="/opt/homeberw/Cellar/jags/4.3.2")
+            install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
 
       - name: install INLA
