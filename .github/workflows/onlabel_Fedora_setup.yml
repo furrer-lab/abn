@@ -51,6 +51,16 @@ jobs:
           dnf -y install blas*
           dnf -y install atlas*
 
+      - name: install R
+        run: |
+          dnf -y install R
+
+      - name: install config and build dependencies
+        run: |
+          dnf -y install cmake
+          dnf -y install R-devtools
+          # dnf -y install autoconf
+
       - name: install GSL
         run: |
           dnf -y install gsl-devel
@@ -65,21 +75,13 @@ jobs:
           make
           make install
 
-      - name: install R
-        run: |
-          dnf -y install R
-
-      - name: install config and build dependencies
-        run: |
-          dnf -y install cmake
-          dnf -y install R-devtools
-          # dnf -y install autoconf
-
       # - uses: actions/checkout@v4
 
       # - name: Configure abn for installation
       #   run: |
       #     autoconf
+
+      # installing INLA separately (?)
 
       - name: installing dependiecies from BiocManager
         run: |
@@ -89,9 +91,9 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
-      - name: Install abn from GitHub
+      - name: install abn from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="3.1.1", update=None)
+            devtools::install_github("furrer-lab/abn", ref="3.1.1")
         shell: Rscript {0}
 
       # - name: Install package dependencies
@@ -108,7 +110,7 @@ jobs:
             res=devtools::test(abn)
         shell: Rscript {0}
 
-  report_Fedora_install:
+  report_Fedora_setup:
     if: ${{ (success() || failure()) }}
     needs:
       - setup-and-install 

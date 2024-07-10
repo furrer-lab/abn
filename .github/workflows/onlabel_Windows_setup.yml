@@ -7,9 +7,9 @@ on:
     types: [ labeled ]
 
 env:
-  LABEL_CHECK: 'windows::check'
-  LABEL_SUCCESS: 'windows::passed'
-  LABEL_FAILURE: 'windows::failed'
+  LABEL_CHECK: 'windowsInstall::check'
+  LABEL_SUCCESS: 'windowsInstall::passed'
+  LABEL_FAILURE: 'windowsInstall::failed'
   BUILD_LOC: "./build"
   JAGS_MAJORV: '4'
   JAGS_VERSION: '4.3.1'
@@ -22,8 +22,8 @@ permissions:
   repository-projects: write
 
 jobs:
-  R-CMD-check:
-    if: ${{ github.event.label.name == 'windows::check' }}
+  setup-and-install:
+    if: ${{ github.event.label.name == 'windowsInstall::check' }}
     name: windows-latest (${{ matrix.config.r }})
     runs-on: windows-latest
     env:
@@ -42,50 +42,46 @@ jobs:
 
     steps:
 
-      - name: Install GSL binaries with cygwin
-        uses: cygwin/cygwin-install-action@master
+      # - name: Install GSL binaries with cygwin
+      #   uses: cygwin/cygwin-install-action@master
 
-      - name: Install JAGS
+      - name: install GSL
+        run: |
+          Import-Module bitstransfer
+          New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
+          start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
+          Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
+
+      - name: install JAGS
         run: |
           Import-Module bitstransfer
           New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}"
           start-bitstransfer -source ${{ env.JAGS_URL }}/${{ env.JAGS_MAJORV }}.x/Windows/JAGS-${{ env.JAGS_VERSION }}.exe/download  "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe"
           Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe" -ArgumentList "/S" -PassThru
 
-      - uses: actions/checkout@v4
-
-      - uses: r-lib/actions/setup-pandoc@v2
-
-      - uses: r-lib/actions/setup-r@v2
-        with:
-          r-version: ${{ matrix.config.r }}
-          http-user-agent: ${{ matrix.config.http-user-agent }}
-          use-public-rspm: true
-
-      - name: install JAGS
+      - name: install rjags separately
         run: |
             Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-${{ env.JAGS_VERSION }}")
             install.packages("rjags")
         shell: Rscript {0}
 
-      - name: install JAGS
+      # - name: install INLA
+      #   run: |
+      #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+
+      - name: install abn from GitHub
         run: |
-            install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+            devtools::install_github("furrer-lab/abn", ref="3.1.1")
+        shell: Rscript {0}
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rcmdcheck
-          needs: check
-
-      - uses: r-lib/actions/check-r-package@v2
-        with:
-          upload-snapshots: false
-          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
-
-  report_windows_checks:
+      - name: Running testhat
+        run: |
+            res=devtools::test(abn)
+        shell: Rscript {0}
+  report_Windows_setup:
     if: ${{ (success() || failure()) }}
     needs:
-      - R-CMD-check
+      - setup-and-install 
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -100,19 +96,19 @@ jobs:
       - name: Check if on demand tasks succeeded
         run: |
           gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-          if [ ${{ needs.R-CMD-check.result }} == "success" ]; then
+          if [ ${{ needs.setup-and-install.result }} == "success" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
             exit 0
-          elif [ ${{ needs.R-CMD-check.result }} == "failure" ]; then
+          elif [ ${{ needs.setup-and-install.result }} == "failure" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
             exit 1
           else
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ needs.R-CMD-check.outcome }}"
+            echo "On demand task outcome was ${{ needs.setup-and-install.outcome }}"
           fi
         shell: bash
         env:
