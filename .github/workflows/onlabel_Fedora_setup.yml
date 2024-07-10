@@ -57,7 +57,7 @@ jobs:
 
       - name: install config and build dependencies
         run: |
-          # dnf -y install cmake
+          dnf -y install cmake
           dnf -y install R-devtools
           # dnf -y install autoconf
 
@@ -77,7 +77,9 @@ jobs:
 
       - name: install rjags
         run: |
+            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib/pkgconfig") 
             install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+            library("rjags")
 
         shell: Rscript {0}
 
@@ -92,7 +94,7 @@ jobs:
             install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
         shell: Rscript {0}
 
-      - name: installing dependiecies from BiocManager
+      - name: installing dependencies from BiocManager
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE))
               install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
@@ -116,6 +118,11 @@ jobs:
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
 
       - name: running testhat
         run: |
