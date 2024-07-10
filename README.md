@@ -24,50 +24,59 @@ Officially suppoorted is R version >= 4.2
 
 ## Dependencies
 
-`abn` has a few dependencies that need to be installed before installing the package itself:
+`abn` has a few **dependencies that need to be installed** before installing the package itself.
 
-<details>
-<summary>GSL</summary>
+- <details>
+    <summary><b>GSL</b></summary>
+
     [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
     It is required to compile `abn`'s C/C++ code.
-
+  
     ### Installation
     
     - On Ubuntu, install the library with `sudo apt-get install libgsl-dev`.
     - On Fedora, install the library with `sudo dnf install gsl-devel`.
     - On macOS, install the library with `brew install gsl`.
     - On Windows, download the binaries from the [GSL website](https://www.gnu.org/software/gsl/).
-</details>
+  
+  </details>
 
-<details>
-<summary>JAGS</summary>
+- <details>
+    <summary><b>JAGS</b></summary>
+  
     [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation.
     It is required in some simulations `abn` can perform.
-
+  
     ### Installation
-
+  
     - On Ubuntu, install the library with `sudo apt-get install jags`.
     - ~~On Fedora, install the library with `sudo dnf install jags`.~~
     - On macOS, install the library with `brew install jags`.
     - On Windows, download the installer from the [JAGS website](https://mcmc-jags.sourceforge.io/).
-</details>
-
-<details>
-<summary>INLA</summary>
+  
+  </details>
+  
+- <details>
+    <summary><b>INLA</b></summary>
+  
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
     `anb` uses INLA to fit some models. 
-
+  
     ### Installation
-
+  
     The installation is straight forward on common platforms, simply start an R session and run:
-
+  
     ```r
     install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
     ```
-
+  
     If you run into trouble, please see also [INLA's installation instruction website](https://www.r-inla.org/download-install) for further details.
-</details>
+  
+  </details>
 
+_Click on each dependency to see the specific installation instructions_
+
+## Installing with GitHub
 
 The most recent development version is available from [Github](https://github.com/furrer-lab/abn) and can be installed with:
 
@@ -75,13 +84,7 @@ The most recent development version is available from [Github](https://github.co
 devtools::install_github("furrer-lab/abn")
 ```
 
-It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html) which can be done with:
-
-```r
-renv::install("bioc::graph")
-renv::install("bioc::Rgraphviz")
-renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Suggests"))
-```
+## Installing with CRAN
 
 Please note that the `abn` package is currently unavailable on CRAN. 
 We are dedicated to providing a robust and reliable package, and we appreciate your understanding as we work towards making `abn` available on CRAN soon. [^1]
@@ -91,6 +94,19 @@ While it is possible to relax the testing process by, e.g., excluding tests of t
 We have implemented a rigorous testing framework similar to CRAN's to validate these functionalities in our development process. 
 Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
 We appreciate your understanding as we work towards making `abn` available on CRAN soon.
+
+## Installing from source
+
+_TODO_
+
+It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html) which can be done with:
+
+```r
+renv::install("bioc::graph")
+renv::install("bioc::Rgraphviz")
+renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Suggests"))
+```
+
 
 ## Additional libraries
 
