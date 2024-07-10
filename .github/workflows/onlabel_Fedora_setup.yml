@@ -81,15 +81,8 @@ jobs:
           echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
           /sbin/ldconfig
 
-      - name: show R info
-        run: |
-          sessionInfo()
-          Sys.getenv()
-        shell: Rscript {0}
-
       - name: install rjags
         run: |
-            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
             install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
         shell: Rscript {0}
