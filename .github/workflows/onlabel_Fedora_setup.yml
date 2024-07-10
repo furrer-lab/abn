@@ -77,7 +77,7 @@ jobs:
 
       - name: install rjags
         run: |
-            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib/pkgconfig") 
+            Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
             install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
 
@@ -104,7 +104,7 @@ jobs:
 
       - name: install abn from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="3.1.1")
+            devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "Suggests", "LinkingTo"))
         shell: Rscript {0}
 
       # - name: Install package dependencies
