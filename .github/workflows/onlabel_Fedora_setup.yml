@@ -57,6 +57,7 @@ jobs:
 
       - name: install config and build dependencies
         run: |
+          dnf -y install pkg-config
           dnf -y install cmake
           dnf -y install R-devtools
           # dnf -y install autoconf
@@ -78,7 +79,9 @@ jobs:
       - name: install rjags
         run: |
             Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
-            install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+
+            install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+            # install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
             library("rjags")
 
         shell: Rscript {0}
