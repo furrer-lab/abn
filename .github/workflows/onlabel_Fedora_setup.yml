@@ -76,6 +76,15 @@ jobs:
           make
           make install
 
+      - name: update linker path
+        run: |
+          /sbin/ldconfig
+
+      - name: show sessioninfo
+        run: |
+          sessioninfo()
+        shell: Rscript {0}
+
       - name: install rjags
         run: |
             Sys.setenv("PKG_CONFIG_PATH"="/usr/local/lib64/pkgconfig") 
