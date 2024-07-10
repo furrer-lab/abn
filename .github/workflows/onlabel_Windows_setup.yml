@@ -44,6 +44,10 @@ jobs:
 
       # - name: Install GSL binaries with cygwin
       #   uses: cygwin/cygwin-install-action@master
+      - name: prepare windows
+        run: |
+            install.packages("devtools", repos=c(CRAN="https://cran.r-project.org"))
+        shell: Rscript {0}
 
       - name: install GSL
         run: |
