@@ -76,8 +76,9 @@ jobs:
           make
           make install
 
-      - name: update linker path
+      - name: assert runtime linkage
         run: |
+          echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
           /sbin/ldconfig
 
       - name: show R info
