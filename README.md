@@ -125,12 +125,23 @@ Below is a list of these dependencies with details on how to install and configu
 
         **Note:**
 
-        If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`.
-        Omitting this argument will lead to `rjags` "not seeing" `jags`.
+        _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`._
+        _Omitting this argument will lead to `rjags` "not seeing" `jags`._
 
-        It is recommended to directly install `rjags`, since `rjags` needs some special configuration on Fedora for it to link
-        properly to the `JAGS` library.
-        Open an R session and type:
+
+        On Fedora 'rjags' might need some specicial configuration for it to link properly to the `JAGS` library.
+        Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
+
+        In order to add the `JAGS` library to the linker path, run the followig commands:
+
+        ```bash
+        sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
+        sudo /sbin/ldconfig
+        ``` 
+        **Note:**
+        _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
+
+        To install `rjags` open an R session and type:
 
         ```R
         install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
