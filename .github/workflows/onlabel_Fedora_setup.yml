@@ -80,9 +80,10 @@ jobs:
         run: |
           /sbin/ldconfig
 
-      - name: show sessioninfo
+      - name: show R info
         run: |
-          sessioninfo()
+          sessionInfo()
+          Sys.getenv()
         shell: Rscript {0}
 
       - name: install rjags
