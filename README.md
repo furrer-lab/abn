@@ -94,7 +94,7 @@ Below is a list of these dependencies with details on how to install and configu
   
     ### Installation
 
-    In prinicple we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
+    In prinicple, we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
   
     - <details>
         <summary>Ubuntu</summary>
@@ -149,7 +149,7 @@ Below is a list of these dependencies with details on how to install and configu
 
         And now to install `rjags`, open an R session and type:
 
-        ```
+        ```R
         install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
         library("rjags")
         ```
@@ -192,7 +192,7 @@ Below is a list of these dependencies with details on how to install and configu
   
     The installation is straight forward on common platforms, simply start an R session and run:
   
-    ```r
+    ```R
     install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
     ```
   
@@ -210,7 +210,7 @@ Below is a list of these dependencies with details on how to install and configu
   
     The installation is straight forward on most common platforms, simply start an R session and run:
   
-    ```r
+    ```R
     if (!requireNamespace("BiocManager", quietly = TRUE))
         install.packages("BiocManager")
     BiocManager::install("Rgraphviz")
@@ -229,7 +229,7 @@ Head over to our [version list](https://github.com/furrer-lab/abn/releases) to s
 Here we assume the version is `3.1.1`.
 
 
-```r
+```R
 devtools::install_github("furrer-lab/abn", ref="3.1.1")
 ```
 
