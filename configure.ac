@@ -19,19 +19,9 @@ AC_SUBST(GSL_LIBS)
 
 ## Check for non-standard programs: JAGS
 AC_PATH_PROG([JAGS], [jags])
-if test "${JAGS}" != ""; then
-		## Try to fetch the paths for jags with pkg-config(1)
-		if test "${PKG_CONFIG} --modversion ${JAGS}" != ""; then
-          JAGS_CFLAGS=`pkg-config --cflags --static jags`
-          JAGS_LIBS=`pkg-config --libs --static jags`
-		fi
-else
+if test "${JAGS}" = ""; then
     AC_MSG_ERROR([jags not found, is JAGS installed?])
 fi
-#
-# Now substitute these variables in src/Makevars.in to create src/Makevars
-AC_SUBST(JAGS_CFLAGS)
-AC_SUBST(JAGS_LIBS)
 
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT
