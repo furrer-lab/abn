@@ -19,7 +19,7 @@ permissions:
   repository-projects: write
 
 jobs:
-  setup-and_install:
+  setup-and-install:
     if: ${{ github.event.label.name == 'macosInstall::check' }}
     name: macos-latest (${{ matrix.config.r }})
     runs-on: macos-latest
