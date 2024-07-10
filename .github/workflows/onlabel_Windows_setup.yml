@@ -73,6 +73,14 @@ jobs:
       #   run: |
       #       install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 
+      - name: installing dependiecies from BiocManager
+        run: |
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
+          BiocManager::install("Rgraphviz")
+          BiocManager::install("graph")
+        shell: Rscript {0}
+
       - name: install abn from GitHub
         run: |
             devtools::install_github("furrer-lab/abn", ref="3.1.1")
