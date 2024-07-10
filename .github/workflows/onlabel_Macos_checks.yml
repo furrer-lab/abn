@@ -1,0 +1,119 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: On Label Macos Checks
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'macos::check'
+  LABEL_SUCCESS: 'macos::passed'
+  LABEL_FAILURE: 'macos::failed'
+  BUILD_LOC: "./build"
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  R-CMD-check:
+    if: ${{ github.event.label.name == 'macos::check' }}
+    name: macos-latest (${{ matrix.config.r }})
+    runs-on: macos-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {r: 'release',}
+          # - {r: '4.1',}
+          # - {r: 'devel', http-user-agent: 'release'}
+          # - {r: 'oldrel-1',}
+          # - {r: 'oldrel-2',}
+          # - {r: 'oldrel-3',}
+
+    steps:
+      - name: install dependencies macos
+        run: |
+          brew install pkg-config
+          brew install gsl
+          brew install jags
+          brew install automake  # needed to run autoconf
+          gsl-config --libs
+          gsl-config --cflags
+
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - name: install rjags separately
+        run: |
+          install.packages('rjags', configure.args = '--enable-rpath')
+        shell: Rscript {0}
+
+      - name: Configure ABN for installation
+        run: |
+          autoconf
+
+      - name: Debugging
+        run: |
+          pkg-config --cflags --static jags
+          pkg-config --libs --static jags
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: false
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+
+  report_macos_checks:
+    if: ${{ (success() || failure()) }}
+    needs:
+      - R-CMD-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          if [ ${{ needs.R-CMD-check.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.R-CMD-check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.R-CMD-check.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr

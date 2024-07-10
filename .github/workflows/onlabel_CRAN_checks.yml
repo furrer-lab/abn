@@ -87,10 +87,9 @@ jobs:
         run: |
             renv::deactivate()
         shell: Rscript {0}
-      - name: Change permissions of configure
+      - name: Configure ABN for installation
         run: |
-            chmod +x configure
-        shell: bash
+          autoconf
       - name: Install package dependencies
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
