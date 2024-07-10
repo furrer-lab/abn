@@ -25,6 +25,9 @@ Officially suppoorted is R version >= 4.2
 ## Dependencies
 
 `abn` has a few **dependencies that need to be installed** before installing the package itself.
+Some are C/C++ libraries and some are R packages that are not hosted on CRAN.
+
+Below is a list of these dependencies with details on how to install and configure them:
 
 - <details>
     <summary><b>GSL</b></summary>
@@ -181,6 +184,25 @@ Officially suppoorted is R version >= 4.2
   
   </details>
 
+- <details>
+    <summary><b>Rgraphviz & graph</b></summary>
+  
+    [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
+    Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed explicitly:
+
+    ### Installation
+  
+    The installation is straight forward on common platforms, simply start an R session and run:
+  
+    ```r
+    if (!requireNamespace("BiocManager", quietly = TRUE))
+        install.packages("BiocManager")
+    BiocManager::install("Rgraphviz")
+    BiocManager::install("graph")
+    ```
+  
+  </details>
+
 _Click on each dependency to see the specific installation instructions_
 
 ## Installing with GitHub
@@ -212,16 +234,6 @@ It is recommended to install `abn` within a virtual environment, e.g., using [re
 renv::install("bioc::graph")
 renv::install("bioc::Rgraphviz")
 renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Suggests"))
-```
-
-
-## Additional libraries
-
-- [Rgraphviz](https://www.bioconductor.org//packages/release/bioc/html/Rgraphviz.html) is used to produce plots of network graphs and is hosted on [Bioconductor](https://www.bioconductor.org/).
-```r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-BiocManager::install("Rgraphviz", version = "3.8")
 ```
 
 # Quickstart
