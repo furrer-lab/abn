@@ -70,9 +70,12 @@ jobs:
             devtools::install_github("furrer-lab/abn", ref="3.1.1")
         shell: Rscript {0}
 
-      - name: Running testhat
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: running testhat
         run: |
-            testthat::test_package('abn')
+            devtools::test('./')
         shell: Rscript {0}
 
 
