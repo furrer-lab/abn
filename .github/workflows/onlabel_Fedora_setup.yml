@@ -1,0 +1,139 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Fedora Install
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'fedora::check'
+  LABEL_SUCCESS: 'fedora::passed'
+  LABEL_FAILURE: 'fedora::failed'
+  JAGS: '4.3.2'
+  BUILD_LOC: "./build"
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  R-CMD-check:
+    if: ${{ github.event.label.name == 'fedora::check' }}
+    name: fedora-latest (${{ matrix.config.r }})
+    runs-on: fedora-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {r: 'release', compiler: "clang"}
+          # - {r: '4.1',}
+          # - {r: 'devel', http-user-agent: 'release'}
+          # - {r: 'oldrel-1',}
+          # - {r: 'oldrel-2',}
+          # - {r: 'oldrel-3',}
+
+    steps:
+      - name: install lapack blas an atlas
+        run: |
+          dnf -y install lapack*
+          dnf -y install blas*
+          dnf -y install atlas*
+
+      - name: install JAGS
+        run: |
+          wget https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/${{ env.JAGS }}.tar.gz/download /tmp/jags.tar.gz
+          cd /tmp
+          tar -xf jags.tar.gz
+          cd /tmp/${{ env.JAGS }} 
+          if [ "${{ matrix.config.compiler}}" = "clang" ]; then RCC=/usr/bin/clang RCXX="/usr/bin/clang++ -std=gnu++17 -stdlib=libc++"; else RRCC=/usr/bin/gcc RCXX="/usr/bin/g++"; fi
+          LD="llvm-ld" CC="${RCC}" CXX="${RCXX}" ./configure --with-blas="-L/opt/R-devel/lib64/R/lib -lRblas" --with-lapack="-L/opt/R-devel/lib64/R/lib -lRlapack" --libdir=/usr/local/lib64
+          make
+          make install
+
+      - name: install rjags separately
+        run: |
+          install.packages('rjags', configure.args = '--enable-rpath')
+        shell: Rscript {0}
+
+      - name: install devtools
+        run: |
+          install.packages('devtools')
+        shell: Rscript {0}
+
+
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: ${{ matrix.config.r }}
+          http-user-agent: ${{ matrix.config.http-user-agent }}
+          use-public-rspm: true
+
+      - name: install rjags separately
+        run: |
+          install.packages('rjags', configure.args = '--enable-rpath')
+        shell: Rscript {0}
+
+      - name: Configure ABN for installation
+        run: |
+          autoconf
+
+      - name: Debugging
+        run: |
+          pkg-config --cflags --static jags
+          pkg-config --libs --static jags
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::rcmdcheck
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: false
+          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+
+  report_macos_checks:
+    if: ${{ (success() || failure()) }}
+    needs:
+      - R-CMD-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          if [ ${{ needs.R-CMD-check.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.R-CMD-check.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.R-CMD-check.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
