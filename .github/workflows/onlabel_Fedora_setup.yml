@@ -87,13 +87,13 @@ jobs:
 
       - name: installing INLA
         run: |
-            install.packages("INLA", repos = "", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+            install.packages("INLA", repos = "https://stat.ethz.ch/CRAN/", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
         shell: Rscript {0}
 
       - name: installing dependiecies from BiocManager
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE))
-              install.packages("BiocManager", repos="")
+              install.packages("BiocManager", repos="https://stat.ethz.ch/CRAN/")
           BiocManager::install("Rgraphviz")
           BiocManager::install("graph")
         shell: Rscript {0}
@@ -104,7 +104,7 @@ jobs:
 
       # - name: Install package dependencies
       #   run: |
-      #       devtools::install_deps(pkg = '.', repos="", dependencies = TRUE, upgrade='never')
+      #       devtools::install_deps(pkg = '.', repos="https://stat.ethz.ch/CRAN/", dependencies = TRUE, upgrade='never')
 
       # - name: installing abn from source
       #   run: |
