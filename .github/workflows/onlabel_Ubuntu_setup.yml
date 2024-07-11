@@ -1,0 +1,180 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Ubuntu Install
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'ubuntuInstall::check'
+  LABEL_SUCCESS: 'ubuntuInstall::passed'
+  LABEL_FAILURE: 'ubuntuInstall::failed'
+  JAGS: '4.3.2'
+  BUILD_LOC: "./build"
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.label.name == 'ubuntuInstall::check' }}
+    name: ubuntu-latest (${{ matrix.config.r }})
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {r: 'release'}
+          # - {r: '4.1',}
+          # - {r: 'devel', http-user-agent: 'release'}
+          # - {r: 'oldrel-1',}
+          # - {r: 'oldrel-2',}
+          # - {r: 'oldrel-3',}
+
+    steps:
+      # - name: prepare fedora
+      #   run: |
+      #     apt-get -y install wget
+      #     apt-get -y install gcc
+      #     apt-get -y install gcc-c++
+      #     apt-get -y install gfortran
+      #     apt-get -y install lapack*  # is needed on fedora server
+      #     apt-get -y install blas*
+      #     apt-get -y install atlas*
+
+      - name: install R
+        run: |
+          apt-get -y install R
+
+      - name: install config and build dependencies
+        run: |
+          apt-get -y install pkg-config
+          apt-get -y install cmake
+          apt-get -y install R-devtools
+          # dnf -y install autoconf
+
+      - name: install GSL
+        run: |
+          apt-get -y install libgsl-dev
+
+      - name: install JAGS
+        run: |
+          apt-get -y install jags
+
+      - name: install rjags
+        run: |
+            install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
+
+      # - uses: actions/checkout@v4
+
+      # - name: Configure abn for installation
+      #   run: |
+      #     autoconf
+
+      - name: install INLA
+        run: |
+            install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+        shell: Rscript {0}
+
+      - name: installing dependencies from BiocManager
+        run: |
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
+          BiocManager::install("Rgraphviz")
+          BiocManager::install("graph")
+        shell: Rscript {0}
+
+      # - name: install abn from GitHub
+      #   run: |
+      #       devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"))
+      #   shell: Rscript {0}
+
+      # - name: Install package dependencies
+      #   run: |
+      #       devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+
+      # - name: installing abn from source
+      #   run: |
+      #     devtools::install('./')
+      #   shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: Configure ABN for installation
+        run: |
+          autoconf
+
+      - name: build, install and test
+        run: |
+          pkg.name <- "abn"
+          pkg.root <- normalizePath(file.path("./"), mustWork = TRUE)
+          tmp.lib <- tempfile()
+          tmp.out <- tempfile()
+          dir.create(tmp.lib)
+          dir.create(tmp.out)
+          owd <- setwd(tmp.out)
+          tools::Rcmd(c("build", pkg.root))
+          list.files(tmp.out)
+          tools::Rcmd(c("INSTALL", "-l", tmp.lib, "--install-tests", "*.tar.gz"))
+          tools::testInstalledPackage(pkg.name, lib.loc = tmp.lib, types = "tests")
+          list.files(tmp.out, recursive = TRUE)
+          unlink(tmp.out)
+          unlink(tmp.lib)
+        shell: Rscript {0}
+
+      # - name: running testhat
+      #   run: |
+      #       devtools::test('./')
+      #   shell: Rscript {0}
+
+  report_Ubuntu_setup:
+    if: ${{ (success() || failure()) }}
+    needs:
+      - setup-and-install 
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          if [ ${{ needs.setup-and-install.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.setup-and-install.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.setup-and-installoutcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
