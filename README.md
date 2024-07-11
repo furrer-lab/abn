@@ -32,8 +32,20 @@ Officially suppoorted is R version >= 4.2
 
 <details>
   <summary><b>Ubuntu</b></summary>
+ 
+  Most likely you have R installed already but if not run:
+ 
+  ```bash
+  apt-get install r-base
+  ```
 
-  _TODO_
+  To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
+ 
+  ```bash
+  apt-get install pkg-config
+  apt-get install cmake
+  apt-get install r-cran-devtools
+  ```
 
 </details>
 
@@ -51,6 +63,12 @@ Officially suppoorted is R version >= 4.2
   dnf install atlas*
   ```
  
+  Most likely you have R installed already but if not run:
+ 
+  ```bash
+  dnf install R
+  ```
+ 
   To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
  
   ```bash
@@ -63,12 +81,6 @@ Officially suppoorted is R version >= 4.2
  
   ```bash
   dnf install wget
-  ```
- 
-  Most likely you have R installed already but if not run:
- 
-  ```bash
-  dnf install R
   ```
 </details>
 
@@ -312,7 +324,7 @@ Below is a list of these dependencies with details on how to install and configu
 
 _Click on each dependency to see the specific installation instructions_
 
-## Installing with GitHub
+## Installing from GitHub (recommended)
 
 From GitHub you can install any version and/or state of the `abn` repository you want.
 We recommend to not directly install `main`, but a specific version.
@@ -327,10 +339,18 @@ devtools::install_github("furrer-lab/abn", ref="3.1.1")
 > [!IMPORTANT]
 > I you are on `Fedora` you will need `cmake` for this to work.
 
-## Installing with CRAN
+## Installing from CRAN
 
-Please note that the `abn` package is currently unavailable on CRAN. 
-We are dedicated to providing a robust and reliable package, and we appreciate your understanding as we work towards making `abn` available on CRAN soon. [^1]
+Note that when installing from CRAN you might not get the latest version of `abn`.
+If you want the latest version follow the instructions from [Installing from GitHub](#installing-from-github).
+
+In order to install the `abn` version on CRAN, open an R session and type:
+
+```R
+install.packages('abn')
+```
+
+`anb` has several dependencies that are not available on CRAN. This is also whey the the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) should be followed through before installing `abn` from CRAN. [^1]
 
 [^1]: The `abn` package includes certain features, such as multiprocessing and integration with the INLA package, which are limited or available only on specific CRAN flavors. 
 While it is possible to relax the testing process by, e.g., excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
@@ -338,9 +358,7 @@ We have implemented a rigorous testing framework similar to CRAN's to validate t
 Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
 We appreciate your understanding as we work towards making `abn` available on CRAN soon.
 
-## Installing from source
-
-_TODO_
+## Using a virtual environment
 
 It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html) which can be done with:
 
