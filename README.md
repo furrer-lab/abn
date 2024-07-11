@@ -31,6 +31,13 @@ Officially suppoorted is R version >= 4.2
 ## Prerequisites 
 
 <details>
+  <summary><b>Ubuntu</b></summary>
+
+  _TODO_
+
+</details>
+
+<details>
   <summary><b>Fedora</b></summary>
 
   You will need C/C++ and fortran compilers and various libraries:
@@ -44,7 +51,7 @@ Officially suppoorted is R version >= 4.2
   dnf install atlas*
   ```
  
-  To configure and build `abn` corretly we need `cmake` and 'pkg-config', as well as, the R devtools package:
+  To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
  
   ```bash
   dnf install pkg-config
@@ -63,6 +70,36 @@ Officially suppoorted is R version >= 4.2
   ```bash
   dnf install R
   ```
+</details>
+
+<details>
+  <summary><b>Macos</b></summary>
+
+  The installation process on MacOS relies on [Homebrew](https://brew.sh/), head over to their site to see the installation process or simply open a terminal and run:
+
+  ```bash
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  ```
+
+  To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
+ 
+  ```bash
+  brew install pkg-config
+  brew install automake  # needed to run autoconf
+  ```
+  
+  Finally, we will use `wget` to download `JAGS` later:
+ 
+  ```bash
+  brew install wget
+  ```
+
+  Most likely you have R installed already but if not run:
+ 
+  ```bash
+  brew install R
+  ```
+
 </details>
 
 ## Dependencies
