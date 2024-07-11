@@ -74,11 +74,16 @@ jobs:
 
       - name: install abn from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "Suggests", "LinkingTo"))
+            devtools::install_github("furrer-lab/abn", ref="3.1.1", type="source", dependencies=c("Depends", "Imports", "LinkingTo"))
         shell: Rscript {0}
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
+
+      # # Install from source
+      # - name: Configure ABN for installation
+      #   run: |
+      #     autoconf
 
       - name: deactivate the renv
         run: |
@@ -91,9 +96,6 @@ jobs:
         shell: Rscript {0}
 
 
-      # - name: Configure ABN for installation
-      #   run: |
-      #     autoconf
 
       # - name: Debugging
       #   run: |

@@ -50,13 +50,13 @@ Imports:
     Rcpp,
     Rgraphviz,
     rjags,
-    stringi
+    stringi,
+    entropy,
 Suggests: 
     bookdown,
     boot,
     brglm,
     devtools (>= 2.4.5),
-    entropy,
     ggplot2,
     gridExtra,
     INLA,
