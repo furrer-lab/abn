@@ -336,13 +336,10 @@ Here we assume the version is `3.1.1`.
 devtools::install_github("furrer-lab/abn", ref="3.1.1")
 ```
 
-> [!IMPORTANT]
-> I you are on `Fedora` you will need `cmake` for this to work.
-
 ## Installing from CRAN
 
 Note that when installing from CRAN you might not get the latest version of `abn`.
-If you want the latest version follow the instructions from [Installing from GitHub](#installing-from-github).
+If you want the latest version follow the instructions from [Installing from GitHub](#installing-from-github-recommended).
 
 In order to install the `abn` version on CRAN, open an R session and type:
 
