@@ -333,7 +333,7 @@ Here we assume the version is `3.1.1`.
 
 
 ```R
-devtools::install_github("furrer-lab/abn", ref="3.1.1")
+devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "LinkingTo"))
 ```
 
 ## Installing from CRAN
