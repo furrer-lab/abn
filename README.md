@@ -17,10 +17,53 @@ The package provides routines for structure learning and parameter estimation of
 
 # Installation
 
+`abn` and its installation process relies on various software that might, or might not, be present in your system.
+
+The [Prerequisites](#prerequisites) section contains information about software that is needed but (very) likely already installed in your system.
+In the [Dependencies](#dependencies) section you will find information about required software that is likely not already present.
+
+We recommend to go through both sections and follow the suggested installation process for your operating system before you try to install `abn`.
 
 ## R version support
 
 Officially suppoorted is R version >= 4.2
+
+## Prerequisites 
+
+<details>
+  <summary><b>Fedora</b></summary>
+
+  You will need C/C++ and fortran compilers and various libraries:
+ 
+  ```bash
+  dnf install gcc
+  dnf install gcc-c++
+  dnf install gfortran
+  dnf install lapack*  # is needed on fedora server
+  dnf install blas*
+  dnf install atlas*
+  ```
+ 
+  To configure and build `abn` corretly we need `cmake` and 'pkg-config', as well as, the R devtools package:
+ 
+  ```bash
+  dnf install pkg-config
+  dnf install cmake
+  dnf install R-devtools
+  ```
+ 
+  Finally, we will use `wget` to download `JAGS` later:
+ 
+  ```bash
+  dnf install wget
+  ```
+ 
+  Most likely you have R installed already but if not run:
+ 
+  ```bash
+  dnf install R
+  ```
+</details>
 
 ## Dependencies
 
