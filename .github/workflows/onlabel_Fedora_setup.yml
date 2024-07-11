@@ -132,10 +132,28 @@ jobs:
         run: |
           autoconf
 
-      - name: running testhat
+      - name: build, install and test
         run: |
-            devtools::test('./')
+          pkg.name <- "abn"
+          pkg.root <- normalizePath(file.path("./"), mustWork = TRUE)
+          tmp.lib <- tempfile()
+          tmp.out <- tempfile()
+          dir.create(tmp.lib)
+          dir.create(tmp.out)
+          owd <- setwd(tmp.out)
+          tools::Rcmd(c("build", pkg.root))
+          list.files(tmp.out)
+          tools::Rcmd(c("INSTALL", "-l", tmp.lib, "--install-tests", "*.tar.gz"))
+          tools::testInstalledPackage(pkg.name, lib.loc = tmp.lib, types = "tests")
+          list.files(tmp.out, recursive = TRUE)
+          unlink(tmp.out)
+          unlink(tmp.lib)
         shell: Rscript {0}
+
+      # - name: running testhat
+      #   run: |
+      #       devtools::test('./')
+      #   shell: Rscript {0}
 
   report_Fedora_setup:
     if: ${{ (success() || failure()) }}
