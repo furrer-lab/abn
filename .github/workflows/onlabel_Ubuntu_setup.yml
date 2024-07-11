@@ -39,6 +39,14 @@ jobs:
           # - {r: 'oldrel-3',}
 
     steps:
+
+      - name: debugging folder perms
+        run: |
+          whoami
+          groups
+          ls -al ~
+          ls -al /usr/local/lib
+
       # - name: prepare fedora
       #   run: |
       #     sudo apt-get -y install wget
