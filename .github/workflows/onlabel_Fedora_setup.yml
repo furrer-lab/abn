@@ -141,7 +141,7 @@ jobs:
           dir.create(tmp.lib)
           dir.create(tmp.out)
           owd <- setwd(tmp.out)
-          devtools::install_deps("./", upgrade="never", repos=c(CRAN="https://cran.r-project.org"))
+          devtools::install_deps(pkg.root, upgrade="never", repos=c(CRAN="https://cran.r-project.org"))
           tools::Rcmd(c("build", pkg.root))
           list.files(tmp.out)
           tools::Rcmd(c("INSTALL", "-l", tmp.lib, "--install-tests", "*.tar.gz"))
