@@ -339,7 +339,7 @@ Below is a list of these dependencies with details on how to install and configu
   </details>
 
 - <details>
-    <summary><b>Dependencies form BiocManager</b></summary>
+    <summary><b>Dependencies from BiocManager</b></summary>
   
     [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
     Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
