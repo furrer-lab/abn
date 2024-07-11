@@ -41,32 +41,32 @@ jobs:
     steps:
       # - name: prepare fedora
       #   run: |
-      #     apt-get -y install wget
-      #     apt-get -y install gcc
-      #     apt-get -y install gcc-c++
-      #     apt-get -y install gfortran
-      #     apt-get -y install lapack*  # is needed on fedora server
-      #     apt-get -y install blas*
-      #     apt-get -y install atlas*
+      #     sudo apt-get -y install wget
+      #     sudo apt-get -y install gcc
+      #     sudo apt-get -y install gcc-c++
+      #     sudo apt-get -y install gfortran
+      #     sudo apt-get -y install lapack*  # is needed on fedora server
+      #     sudo apt-get -y install blas*
+      #     sudo apt-get -y install atlas*
 
       - name: install R
         run: |
-          apt-get -y install R
+          sudo apt-get -y install r-base
 
       - name: install config and build dependencies
         run: |
-          apt-get -y install pkg-config
-          apt-get -y install cmake
-          apt-get -y install R-devtools
-          # dnf -y install autoconf
+          sudo apt-get -y install pkg-config
+          sudo apt-get -y install cmake
+          sudo apt-get -y install r-cran-devtools
+          # sudo apt-get -y install autoconf
 
       - name: install GSL
         run: |
-          apt-get -y install libgsl-dev
+          sudo apt-get -y install libgsl-dev
 
       - name: install JAGS
         run: |
-          apt-get -y install jags
+          sudo apt-get -y install jags
 
       - name: install rjags
         run: |
