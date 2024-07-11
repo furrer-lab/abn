@@ -106,10 +106,10 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
-      # - name: install abn from GitHub
-      #   run: |
-      #       devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"))
-      #   shell: Rscript {0}
+      - name: install from GitHub
+        run: |
+            devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"))
+        shell: Rscript {0}
 
       # - name: Install package dependencies
       #   run: |
@@ -128,7 +128,7 @@ jobs:
             renv::deactivate()
         shell: Rscript {0}
 
-      - name: Configure ABN for installation
+      - name: configure ABN for installation
         run: |
           autoconf
 
@@ -141,7 +141,7 @@ jobs:
           dir.create(tmp.lib)
           dir.create(tmp.out)
           owd <- setwd(tmp.out)
-          devtools::install_deps('./', upgrade='never' repos=c(CRAN="https://cran.r-project.org"))
+          devtools::install_deps("./", upgrade="never", repos=c(CRAN="https://cran.r-project.org"))
           tools::Rcmd(c("build", pkg.root))
           list.files(tmp.out)
           tools::Rcmd(c("INSTALL", "-l", tmp.lib, "--install-tests", "*.tar.gz"))

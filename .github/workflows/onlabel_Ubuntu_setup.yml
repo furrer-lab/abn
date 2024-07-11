@@ -80,12 +80,6 @@ jobs:
             library("rjags")
         shell: Rscript {0}
 
-      # - uses: actions/checkout@v4
-
-      # - name: Configure abn for installation
-      #   run: |
-      #     autoconf
-
       - name: install INLA
         run: |
             install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
@@ -99,19 +93,12 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
-      # - name: install abn from GitHub
-      #   run: |
-      #       devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"))
-      #   shell: Rscript {0}
 
-      # - name: Install package dependencies
-      #   run: |
-      #       devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+      - name: install abn from GitHub
+        run: |
+            devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", type="source", dependencies=c("Depends", "Imports", "LinkingTo"))
+        shell: Rscript {0}
 
-      # - name: installing abn from source
-      #   run: |
-      #     devtools::install('./')
-      #   shell: Rscript {0}
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
@@ -121,9 +108,14 @@ jobs:
             renv::deactivate()
         shell: Rscript {0}
 
-      - name: Configure ABN for installation
+      - name: configure ABN for installation
         run: |
           autoconf
+
+      - name: running testhat
+        run: |
+            devtools::test('./')
+        shell: Rscript {0}
 
       - name: build, install and test
         run: |
@@ -134,6 +126,7 @@ jobs:
           dir.create(tmp.lib)
           dir.create(tmp.out)
           owd <- setwd(tmp.out)
+          devtools::install_deps("./", upgrade="never", repos=c(CRAN="https://cran.r-project.org"))
           tools::Rcmd(c("build", pkg.root))
           list.files(tmp.out)
           tools::Rcmd(c("INSTALL", "-l", tmp.lib, "--install-tests", "*.tar.gz"))
