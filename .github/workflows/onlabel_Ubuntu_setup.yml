@@ -40,13 +40,6 @@ jobs:
 
     steps:
 
-      - name: debugging folder perms
-        run: |
-          whoami
-          groups
-          ls -al ~
-          ls -al /usr/local/lib
-
       # - name: prepare fedora
       #   run: |
       #     sudo apt-get -y install wget
@@ -75,6 +68,11 @@ jobs:
       - name: install JAGS
         run: |
           sudo apt-get -y install jags
+
+      - name: fixing folder perms for local lib
+        run: |
+          sudo chown root:adm -R /usr/local/lib/R
+          sudo chmod g+w -R /usr/local/lib/R
 
       - name: install rjags
         run: |
