@@ -93,6 +93,10 @@ jobs:
       #   run: |
       #     autoconf
 
+      - name: install INLA dependencies
+        run: |
+          dnf -y install udunits2-devel
+
       - name: install INLA
         run: |
             install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)

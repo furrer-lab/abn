@@ -292,6 +292,41 @@ Below is a list of these dependencies with details on how to install and configu
     `anb` uses INLA to fit some models. 
   
     ### Installation
+
+    INLA needs the [UDUNITS](https://www.unidata.ucar.edu/software/udunits/) C library which needs to be installed first:
+
+    - <details>
+        <summary>Ubuntu</summary>
+        
+        Install it with:
+
+        ```bash
+        apt-get install --no-install-recommends libudunits2-dev
+        ```
+
+      </details>
+
+    - <details>
+        <summary>Fedora</summary>
+        
+        Install it with:
+
+        ```bash
+        dnf -y install udunits2-devel
+        ```
+
+      </details>
+
+    - <details>
+        <summary>Macos</summary>
+        
+        Install it with:
+
+        ```bash
+        brew install udunits 
+        ```
+
+      </details>
   
     The installation is straight forward on common platforms, simply start an R session and run:
   

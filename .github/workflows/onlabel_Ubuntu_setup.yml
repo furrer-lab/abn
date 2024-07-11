@@ -80,6 +80,11 @@ jobs:
             library("rjags")
         shell: Rscript {0}
 
+
+      - name: install INLA dependencies
+        run: |
+          sudo apt-get install -y --no-install-recommends libudunits2-dev
+
       - name: install INLA
         run: |
             install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
