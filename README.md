@@ -317,6 +317,7 @@ Below is a list of these dependencies with details on how to install and configu
         apt-get install --no-install-recommends libudunits2-dev
         apt-get install libjpeg-dev
         apt-get install libgdal-dev
+        apt-get install libproj-dev
         ```
 
       </details>
@@ -330,6 +331,7 @@ Below is a list of these dependencies with details on how to install and configu
         dnf install udunits2-devel
         dnf install libjpeg-devel
         dnf install gdal-devel
+        dnf install proj-devel
         ```
 
       </details>
@@ -342,6 +344,7 @@ Below is a list of these dependencies with details on how to install and configu
         ```bash
         brew install udunits 
         brew install gdal  # needed for the R s2 package
+        brew install proj
         ```
 
       </details>
