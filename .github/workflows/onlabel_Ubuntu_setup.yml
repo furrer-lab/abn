@@ -65,6 +65,11 @@ jobs:
           sudo apt-get -y install r-cran-devtools
           # sudo apt-get -y install autoconf
 
+      - name: update R packages
+        run: |
+           update.packages(ask = FALSE, checkBuilt = TRUE)
+        shell: Rscript {0}
+
       - name: install GSL
         run: |
           sudo apt-get -y install libgsl-dev
