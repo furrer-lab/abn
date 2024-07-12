@@ -117,7 +117,7 @@ jobs:
 
       - name: install from CRAN
         run: |
-          install.packages('abn')
+          install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
           library('abn')
         shell: Rscript {0}
 
