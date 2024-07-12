@@ -93,7 +93,7 @@ jobs:
           dnf -y install openssl-devel  # s2 package
           dnf -y install libjpeg-devel  # jpeg package
           dnf -y install proj-devel     # sf package
-          dnf -y install geos-devel     # terra package
+          dnf -y install geos-devel     # sf package
           dnf -y install gdal-devel     # terra package
 
       - name: install INLA
