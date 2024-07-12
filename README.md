@@ -306,7 +306,7 @@ Below is a list of these dependencies with details on how to install and configu
   
     ### Installation
 
-    INLA needs the [UDUNITS](https://www.unidata.ucar.edu/software/udunits/) C library which needs to be installed first:
+    INLA relies on other R packages and thus needs some additinal installation steps to get some C libraries (i.e. [UDUNITS](https://www.unidata.ucar.edu/software/udunits/)) and other software:
 
     - <details>
         <summary>Ubuntu</summary>
@@ -337,6 +337,7 @@ Below is a list of these dependencies with details on how to install and configu
 
         ```bash
         brew install udunits 
+        brew install gdal  # needed for the R s2 package
         ```
 
       </details>
