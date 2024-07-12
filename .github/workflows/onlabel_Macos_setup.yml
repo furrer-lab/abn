@@ -62,7 +62,8 @@ jobs:
         run: |
           brew install udunits 
           brew install openssl@1.1  # s2 package
-          brew install gdal  # s2 package for fmesher
+          brew install gdal  # installs geos as dependency
+                             # for s2 fmesher terra)
           brew install proj  # sf package
 
       - name: install INLA
