@@ -52,6 +52,7 @@ Imports:
     rjags,
     stringi,
     entropy,
+    moments
 Suggests: 
     bookdown,
     boot,
@@ -64,7 +65,6 @@ Suggests:
     Matrix (>= 1.6.3),
     MatrixModels (>= 0.5.3),
     microbenchmark,
-    moments,
     R.rsp,
     RhpcBLASctl,
     rmarkdown,
