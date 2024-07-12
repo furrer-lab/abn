@@ -118,7 +118,8 @@ jobs:
 
       - name: install from GitHub
         run: |
-            devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          library('abn')
         shell: Rscript {0}
 
 
