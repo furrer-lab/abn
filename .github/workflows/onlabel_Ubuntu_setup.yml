@@ -62,6 +62,11 @@ jobs:
           sudo apt-get -y install r-cran-devtools
           # sudo apt-get -y install autoconf
 
+      - name: fixing folder perms for local lib
+        run: |
+          sudo chown root:adm -R /usr/local/lib/R
+          sudo chmod g+w -R /usr/local/lib/R
+
       - name: update R packages
         run: |
            update.packages(ask = FALSE, checkBuilt = TRUE)
@@ -75,11 +80,6 @@ jobs:
         run: |
           sudo apt-get -y install jags
 
-      - name: fixing folder perms for local lib
-        run: |
-          sudo chown root:adm -R /usr/local/lib/R
-          sudo chmod g+w -R /usr/local/lib/R
-
       - name: install rjags
         run: |
             install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
@@ -90,8 +90,8 @@ jobs:
       - name: install INLA dependencies
         run: |
           sudo apt-get install -y --no-install-recommends libudunits2-dev
-          sudo apt -y install libcurl4-openssl-dev
-          sudo apt-get -y install libssl-dev
+          sudo apt -y install libcurl4-openssl-dev  # rCurl for (for INLA)
+          sudo apt-get -y install libssl-dev  # s2 package
 
       - name: install INLA
         run: |
