@@ -95,6 +95,12 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
+      - name: install from CRAN
+        run: |
+          install.packages('abn')
+          library('abn'
+        shell: Rscript {0}
+
       - name: install abn from GitHub
         run: |
             devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
