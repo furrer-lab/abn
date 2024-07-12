@@ -96,8 +96,8 @@ jobs:
       - name: install INLA dependencies
         run: |
           dnf -y install udunits2-devel
-          dnf -y install libcurl-devel 
-          dnf -y install openssl-dev
+          dnf -y install libcurl-devel  # rCurls package (for INLA)
+          dnf -y install openssl-devel  # s2 package
 
       - name: install INLA
         run: |
