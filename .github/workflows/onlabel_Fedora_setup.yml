@@ -96,6 +96,7 @@ jobs:
       - name: install INLA dependencies
         run: |
           dnf -y install udunits2-devel
+          dnf -y install libcurl-devel 
 
       - name: install INLA
         run: |
