@@ -315,6 +315,8 @@ Below is a list of these dependencies with details on how to install and configu
 
         ```bash
         apt-get install --no-install-recommends libudunits2-dev
+        apt-get install libjpeg-dev
+        apt-get install libgdal-dev
         ```
 
       </details>
@@ -327,6 +329,7 @@ Below is a list of these dependencies with details on how to install and configu
         ```bash
         dnf insunits2-devel
         dnf install libjpeg-devel
+        dnf install gdal-devel
         ```
 
       </details>
