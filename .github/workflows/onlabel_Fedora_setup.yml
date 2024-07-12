@@ -97,6 +97,7 @@ jobs:
         run: |
           dnf -y install udunits2-devel
           dnf -y install libcurl-devel 
+          dnf -y install openssl-dev
 
       - name: install INLA
         run: |

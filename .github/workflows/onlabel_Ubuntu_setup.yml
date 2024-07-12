@@ -50,9 +50,6 @@ jobs:
       #     sudo apt-get -y install blas*
       #     sudo apt-get -y install atlas*
 
-      - name: prepare ubuntu
-        run: | 
-          sudo apt -y install libcurl4-openssl-dev
 
       - name: install R
         run: |
@@ -93,6 +90,8 @@ jobs:
       - name: install INLA dependencies
         run: |
           sudo apt-get install -y --no-install-recommends libudunits2-dev
+          sudo apt -y install libcurl4-openssl-dev
+          sudo apt-get -y install libssl-dev
 
       - name: install INLA
         run: |

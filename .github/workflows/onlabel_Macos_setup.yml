@@ -62,6 +62,7 @@ jobs:
       - name: install INLA dependencies
         run: |
           brew install udunits 
+          brew install openssl@1.1
 
       - name: install INLA
         run: |
