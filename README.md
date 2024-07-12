@@ -311,7 +311,7 @@ Below is a list of these dependencies with details on how to install and configu
     - <details>
         <summary>Ubuntu</summary>
         
-        Install it with:
+        Install with:
 
         ```bash
         apt-get install --no-install-recommends libudunits2-dev
@@ -322,10 +322,11 @@ Below is a list of these dependencies with details on how to install and configu
     - <details>
         <summary>Fedora</summary>
         
-        Install it with:
+        Install with:
 
         ```bash
-        dnf -y install udunits2-devel
+        dnf insunits2-devel
+        dnf install libjpeg-devel
         ```
 
       </details>
@@ -333,7 +334,7 @@ Below is a list of these dependencies with details on how to install and configu
     - <details>
         <summary>Macos</summary>
         
-        Install it with:
+        Install with:
 
         ```bash
         brew install udunits 

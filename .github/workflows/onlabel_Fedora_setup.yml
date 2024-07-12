@@ -98,6 +98,7 @@ jobs:
           dnf -y install udunits2-devel
           dnf -y install libcurl-devel  # rCurls package (for INLA)
           dnf -y install openssl-devel  # s2 package
+          dnf -y install libjpeg-devel  # jpeg package
 
       - name: install INLA
         run: |
