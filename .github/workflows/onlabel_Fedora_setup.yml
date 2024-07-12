@@ -142,6 +142,11 @@ jobs:
         run: |
           autoconf
 
+      - name: running testhat
+        run: |
+            devtools::test('./')
+        shell: Rscript {0}
+
       - name: build, install and test
         run: |
           pkg.name <- "abn"
