@@ -101,9 +101,11 @@ jobs:
             renv::deactivate()
         shell: Rscript {0}
 
-      - name: running testhat
+      - name: install from source
         run: |
-            devtools::test('./')
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
 
   report_Windows_setup:
