@@ -405,13 +405,46 @@ In order to install the `abn` version on CRAN, open an R session and type:
 install.packages('abn')
 ```
 
-`anb` has several dependencies that are not available on CRAN. This is also whey the the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) should be followed through before installing `abn` from CRAN. [^1]
+`anb` has several dependencies that are not available on CRAN. This is also whey the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) should be followed through before installing `abn` from CRAN. [^1]
 
 [^1]: The `abn` package includes certain features, such as multiprocessing and integration with the INLA package, which are limited or available only on specific CRAN flavors. 
 While it is possible to relax the testing process by, e.g., excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
 We have implemented a rigorous testing framework similar to CRAN's to validate these functionalities in our development process. 
 Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
 We appreciate your understanding as we work towards making `abn` available on CRAN soon.
+
+## Installing from source
+
+It is also possible to clone this repository and install `abn` from source.
+
+> [!NOTE]
+> Also in this case you need to first prepare your system by following the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) section.
+
+Installing from source is done with the following steps:
+
+1. Clone the repository and go to the root directory of the repo:
+
+   ```bash
+   git clone https://github.com/furrer-lab/abn
+   cd abn
+   ```
+
+2. Install the dependencies by opening an R session and typing:
+
+   ```R
+    devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+   ```
+
+3. Build the package by opening an R session and typing:
+
+   ```R
+   devtools::build(pkg = '.', path = '.build/abn.tar.gz')
+   ```
+4. Install the package by opening an R session and typing:
+
+   ```R
+   install.packages('.build/abn.tar.gz', repos=NULL, type="source")
+   ```
 
 ## Using a virtual environment
 
