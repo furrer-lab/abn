@@ -327,7 +327,7 @@ Below is a list of these dependencies with details on how to install and configu
         Install with:
 
         ```bash
-        dnf insunits2-devel
+        dnf install udunits2-devel
         dnf install libjpeg-devel
         dnf install gdal-devel
         ```
