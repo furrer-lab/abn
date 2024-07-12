@@ -62,7 +62,8 @@ jobs:
       - name: install INLA dependencies
         run: |
           brew install udunits 
-          brew install openssl@1.1
+          brew install openssl@1.1  # s2 package
+          brew install gdal  # s2 package for fmesher
 
       - name: install INLA
         run: |
