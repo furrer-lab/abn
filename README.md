@@ -33,6 +33,13 @@ Officially suppoorted is R version >= 4.2
 <details>
   <summary><b>Ubuntu</b></summary>
  
+  We will need `wget` and some R packages (i.e. Rcurl) need development header files for `curl` to fetch remote resources:
+
+  ```bash
+  apt-get install wget
+  apt -y install libcurl4-openssl-dev
+  ```
+
   Most likely you have R installed already but if not run:
  
   ```bash
@@ -77,10 +84,11 @@ Officially suppoorted is R version >= 4.2
   dnf install R-devtools
   ```
  
-  Finally, we will use `wget` to download `JAGS` later:
+  Finally, we will use `wget` to download `JAGS` later and the development headers of `curl` for `Rcurl`, a `INLA` dependency:
  
   ```bash
   dnf install wget
+  dnf install libcurl-devel 
   ```
 </details>
 
