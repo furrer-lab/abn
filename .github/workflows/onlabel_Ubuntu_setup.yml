@@ -64,6 +64,8 @@ jobs:
 
       - name: fixing folder perms for local lib
         run: |
+          sudo chown root:adm -R /usr/lib/R
+          sudo chmod g+w -R /usr/lib/R
           sudo chown root:adm -R /usr/local/lib/R
           sudo chmod g+w -R /usr/local/lib/R
 
