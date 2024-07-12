@@ -33,12 +33,6 @@ Officially suppoorted is R version >= 4.2
 <details>
   <summary><b>Ubuntu</b></summary>
  
-  We will need `wget` and some R packages (i.e. Rcurl) need development header files for `curl` to fetch remote resources:
-
-  ```bash
-  apt-get install wget
-  apt -y install libcurl4-openssl-dev
-  ```
 
   Most likely you have R installed already but if not run:
  
@@ -52,6 +46,15 @@ Officially suppoorted is R version >= 4.2
   apt-get install pkg-config
   apt-get install cmake
   apt-get install r-cran-devtools
+  ```
+
+  Finally, we will use `wget` to download `JAGS` later, as well as, the development headers of `curl` and `openssl`:
+
+  ```bash
+  apt-get install wget
+  apt-get install libcurl4-openssl-dev
+  apt-get install libssl-dev
+
   ```
 
 </details>
@@ -84,11 +87,12 @@ Officially suppoorted is R version >= 4.2
   dnf install R-devtools
   ```
  
-  Finally, we will use `wget` to download `JAGS` later and the development headers of `curl` for `Rcurl`, a `INLA` dependency:
+  Finally, we will use `wget` to download `JAGS` later, as well as, the development headers of `curl` and `openssl`:
  
   ```bash
   dnf install wget
   dnf install libcurl-devel 
+  dnf install openssl-devel
   ```
 </details>
 
@@ -108,10 +112,11 @@ Officially suppoorted is R version >= 4.2
   brew install automake  # needed to run autoconf
   ```
   
-  Finally, we will use `wget` to download `JAGS` later:
+  Finally, we will use `wget` to download `JAGS` later, as well as, the development headers `openssl`:
  
   ```bash
   brew install wget
+  brew install openssl@1.1
   ```
 
   Most likely you have R installed already but if not run:
