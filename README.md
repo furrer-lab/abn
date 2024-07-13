@@ -390,14 +390,15 @@ Head over to our [version list](https://github.com/furrer-lab/abn/releases) to s
 Here we assume the version is `3.1.1`.
 
 We use [devtools](https://github.com/r-lib/devtools) to install from GitHub.
-At this point `devtools` should already be installed in your system <details><summary>if not, install it first.</summary> Open an R session and type:
+At this point `devtools` should already be installed in your system.
+<details><summary>if not, install it first.</summary> Open an R session and type:
 
 ```R
 install.packages("devtools")
 ```
 </details>
 
-To install `abn` run this is your R session:
+To install `abn` run in your R session:
 
 ```R
 devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "LinkingTo"))
@@ -449,8 +450,9 @@ Installing from source is done with the following steps:
 3. Build the package by opening an R session and typing:
 
    ```R
-   devtools::build(pkg = '.', path = '.build/abn.tar.gz')
+   devtools::build(pkg = '.', path = '.build/abn.tar.gz', vignettes = FALSE)
    ```
+
 4. Install the package by opening an R session and typing:
 
    ```R
