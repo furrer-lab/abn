@@ -26,7 +26,7 @@ We recommend to go through both sections and follow the suggested installation p
 
 ## R version support
 
-Officially suppoorted is R version >= 4.2
+Officially suppoorted is R version >= 4.4
 
 ## Prerequisites 
 
