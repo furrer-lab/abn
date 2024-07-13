@@ -89,7 +89,7 @@ jobs:
         shell: Rscript {0}
       - name: Configure ABN for installation
         run: |
-          autoconf
+          autoreconf
       - name: Install package dependencies
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
