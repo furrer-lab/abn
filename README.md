@@ -459,16 +459,6 @@ Installing from source is done with the following steps:
    install.packages('.build/abn.tar.gz', repos=NULL, type="source")
    ```
 
-## Using a virtual environment
-
-It is recommended to install `abn` within a virtual environment, e.g., using [renv](https://rstudio.github.io/renv/articles/renv.html) which can be done with:
-
-```r
-renv::install("bioc::graph")
-renv::install("bioc::Rgraphviz")
-renv::install("abn", dependencies = c("Depends", "Imports", "LinkingTo", "Suggests"))
-```
-
 # Quickstart
 
 Explore the basics of data analysis using additive Bayesian networks with the [`abn` package](https://CRAN.R-project.org/package=abn) through our [simple example](vignettes/quick_start_example.Rmd).
