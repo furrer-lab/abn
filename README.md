@@ -444,7 +444,7 @@ Installing from source is done with the following steps:
 2. Install the dependencies by opening an R session and typing:
 
    ```R
-    devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
+    devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
    ```
 
 3. Build the package by opening an R session and typing:
