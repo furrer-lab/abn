@@ -16,6 +16,10 @@ It derives a directed acyclic graph (DAG) from empirical data that describes the
 The package provides routines for structure learning and parameter estimation of additive Bayesian network models.  
 
 # Installation
+[![Ubuntu Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml)
+[![Fedora Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml)
+[![Macos Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml)
+[![Windows Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml)
 
 `abn` and its installation process relies on various software that might, or might not, be present in your system.
 
