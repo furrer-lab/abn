@@ -129,12 +129,10 @@ jobs:
             renv::deactivate()
         shell: Rscript {0}
 
-      - uses: r-lib/actions/setup-pandoc@v2
-
       - name: install from source
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
-            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz')
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
 
