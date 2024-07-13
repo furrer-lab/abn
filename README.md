@@ -18,12 +18,12 @@ The package provides routines for structure learning and parameter estimation of
 # Installation
 [![Ubuntu Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml)
 [![Fedora Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml)
-[![Macos Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml)
+[![MacOS Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml)
 [![Windows Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml)
 
 `abn` and its installation process relies on various software that might, or might not, be present in your system.
 
-The [Prerequisites](#prerequisites) section contains information about software that is needed but (very) likely already installed in your system.
+The [Prerequisites](#prerequisites) section contains information about software that is needed but is (very) likely already installed in your system.
 In the [Dependencies](#dependencies) section you will find information about required software that is likely not already present.
 
 We recommend to go through both sections and follow the suggested installation process for your operating system before you try to install `abn`.
@@ -101,7 +101,7 @@ Officially suppoorted is R version >= 4.4
 </details>
 
 <details>
-  <summary><b>Macos</b></summary>
+  <summary><b>MacOS</b></summary>
 
   The installation process on MacOS relies on [Homebrew](https://brew.sh/), head over to their site to see the installation process or simply open a terminal and run:
 
@@ -238,7 +238,7 @@ Below is a list of these dependencies with details on how to install and configu
         _Omitting this argument will lead to `rjags` "not seeing" `jags`._
 
 
-        On Fedora 'rjags' might need some specicial configuration for it to link properly to the `JAGS` library.
+        On Fedora `rjags` might need some specicial configuration for it to link properly to the `JAGS` library.
         Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
 
         In order to add the `JAGS` library to the linker path, run the followig commands:
@@ -280,7 +280,7 @@ Below is a list of these dependencies with details on how to install and configu
         <summary>Windows</summary>
 
         You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
-        The follwing instructions will download and install JAGS 4.3.1 in PowerShell:
+        The follwing instructions will download and install `JAGS` 4.3.1 in PowerShell:
 
         ```
         Import-Module bitstransfer
@@ -306,11 +306,11 @@ Below is a list of these dependencies with details on how to install and configu
     <summary><b>INLA</b></summary>
   
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-    `anb` uses INLA to fit some models. 
+    `anb` uses `INLA` to fit some models. 
   
     ### Installation
 
-    INLA relies on other R packages and thus needs some additinal installation steps to get some C libraries (i.e. [UDUNITS](https://www.unidata.ucar.edu/software/udunits/)) and other software:
+    `INLA` relies on other R packages and thus needs some additinal installation steps to get some C libraries (i.e. [UDUNITS](https://www.unidata.ucar.edu/software/udunits/)) and other software:
 
     - <details>
         <summary>Ubuntu</summary>
@@ -343,7 +343,7 @@ Below is a list of these dependencies with details on how to install and configu
       </details>
 
     - <details>
-        <summary>Macos</summary>
+        <summary>MacOS</summary>
         
         Install with:
 
@@ -416,12 +416,12 @@ If you want the latest version follow the instructions from [Installing from Git
 In order to install the `abn` version on CRAN, open an R session and type:
 
 ```R
-install.packages('abn')
+install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
 ```
 
 `anb` has several dependencies that are not available on CRAN. This is also whey the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) should be followed through before installing `abn` from CRAN. [^1]
 
-[^1]: The `abn` package includes certain features, such as multiprocessing and integration with the INLA package, which are limited or available only on specific CRAN flavors. 
+[^1]: The `abn` package includes certain features, such as multiprocessing and integration with the `INLA` package, which are limited or available only on specific CRAN flavors. 
 While it is possible to relax the testing process by, e.g., excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
 We have implemented a rigorous testing framework similar to CRAN's to validate these functionalities in our development process. 
 Our aim is to maximize the reliability of the `abn` package under various conditions, and we are dedicated to providing a robust and reliable package. 
@@ -448,7 +448,7 @@ Installing from source is done with the following steps:
 2. Install the dependencies by opening an R session and typing:
 
    ```R
-    devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+   devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
    ```
 
 3. Build the package by opening an R session and typing:
