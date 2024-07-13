@@ -105,14 +105,14 @@ Officially suppoorted is R version >= 4.2
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   ```
 
-  To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
+  To configure and build `abn` correctly we need `cmake` and `pkg-config`:
  
   ```bash
   brew install pkg-config
   brew install automake  # needed to run autoconf
   ```
   
-  Finally, we will use `wget` to download `JAGS` later, as well as, the development headers `openssl`:
+  We will use `wget` to download `JAGS` later, as well as, the development headers `openssl`:
  
   ```bash
   brew install wget
@@ -385,10 +385,19 @@ _Click on each dependency to see the specific installation instructions_
 ## Installing from GitHub (recommended)
 
 From GitHub you can install any version and/or state of the `abn` repository you want.
-We recommend to not directly install `main`, but a specific version.
+We recommend to not directly install `main`, but to a specific version.
 Head over to our [version list](https://github.com/furrer-lab/abn/releases) to see which one is the latest version.
 Here we assume the version is `3.1.1`.
 
+We use [devtools](https://github.com/r-lib/devtools) to install from GitHub.
+At this point `devtools` should already be installed in your system <details><summary>if not, install it first.</summary> Open an R session and type:
+
+```R
+install.packages("devtools")
+```
+</details>
+
+To install `abn` run this is your R session:
 
 ```R
 devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "LinkingTo"))
@@ -419,6 +428,8 @@ It is also possible to clone this repository and install `abn` from source.
 
 > [!NOTE]
 > Also in this case you need to first prepare your system by following the [Prerequisites](#prerequisites) and [Dependencies](#dependencies) section.
+
+When installing from source 
 
 Installing from source is done with the following steps:
 
