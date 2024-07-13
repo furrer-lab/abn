@@ -101,6 +101,8 @@ jobs:
             renv::deactivate()
         shell: Rscript {0}
 
+      - uses: r-lib/actions/setup-pandoc@v2
+
       - name: install from source
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
