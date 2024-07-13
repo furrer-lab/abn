@@ -394,7 +394,7 @@ At this point `devtools` should already be installed in your system.
 <details><summary>if not, install it first.</summary> Open an R session and type:
 
 ```R
-install.packages("devtools")
+install.packages("devtools", repos=c(CRAN="https://cran.r-project.org"))
 ```
 </details>
 
