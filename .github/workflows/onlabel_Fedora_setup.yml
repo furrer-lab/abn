@@ -25,21 +25,10 @@ jobs:
     container:
       image: "fedora:latest"
     if: ${{ github.event.label.name == 'fedoraInstall::check' }}
-    name: fedora-latest (${{ matrix.config.r }})
+    name: fedora-latest R release
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-    strategy:
-      fail-fast: false
-      matrix:
-        config:
-          - {r: 'release'}
-          # - {r: '4.1',}
-          # - {r: 'devel', http-user-agent: 'release'}
-          # - {r: 'oldrel-1',}
-          # - {r: 'oldrel-2',}
-          # - {r: 'oldrel-3',}
-
     steps:
       - name: prepare fedora
         run: |
