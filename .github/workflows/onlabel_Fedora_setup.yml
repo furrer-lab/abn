@@ -3,13 +3,11 @@
 name: Fedora Install
 
 on:
-  pull_request:
-    types: [ labeled ]
+  push:
+    branches:
+      - "main"
 
 env:
-  LABEL_CHECK: 'fedoraInstall::check'
-  LABEL_SUCCESS: 'fedoraInstall::passed'
-  LABEL_FAILURE: 'fedoraInstall::failed'
   JAGS: '4.3.2'
   BUILD_LOC: "./build"
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -25,7 +23,6 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: "fedora:latest"
-    if: ${{ github.event.label.name == 'fedoraInstall::check' }}
     name: fedora-latest R release
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -125,40 +122,3 @@ jobs:
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
-
-  report_Fedora_setup:
-    if: ${{ (success() || failure()) }}
-    needs:
-      - setup-and-install 
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      repository-projects: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      OWNER: ${{ github.repository_owner }}
-      REPO: ${{ github.event.repository.name }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Check if on demand tasks succeeded
-        run: |
-          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-          if [ ${{ needs.setup-and-install.result }} == "success" ]; then
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
-            exit 0
-          elif [ ${{ needs.setup-and-install.result }} == "failure" ]; then
-            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          else
-            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ needs.setup-and-installoutcome }}"
-          fi
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          EVENT: ${{ github.event.number }}  # This is either the issue or pr
