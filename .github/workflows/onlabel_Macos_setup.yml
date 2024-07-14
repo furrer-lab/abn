@@ -11,6 +11,7 @@ env:
   LABEL_SUCCESS: 'macosInstall::passed'
   LABEL_FAILURE: 'macosInstall::failed'
   BUILD_LOC: "./build"
+  BRANCH: ${{ github.ref_name }}
 
 permissions:
   packages: read
@@ -76,7 +77,7 @@ jobs:
 
       - name: install from GitHub
         run: |
-          devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
           library('abn')
         shell: Rscript {0}
 

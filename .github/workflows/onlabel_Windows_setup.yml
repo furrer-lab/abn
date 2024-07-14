@@ -11,6 +11,7 @@ env:
   LABEL_SUCCESS: 'windowsInstall::passed'
   LABEL_FAILURE: 'windowsInstall::failed'
   BUILD_LOC: "./build"
+  BRANCH: ${{ github.ref_name }}
   JAGS_MAJORV: '4'
   JAGS_VERSION: '4.3.1'
   JAGS_URL: "https://sourceforge.net/projects/mcmc-jags/files/JAGS"
@@ -78,7 +79,7 @@ jobs:
 
       - name: install from GitHub
         run: |
-          devtools::install_github("furrer-lab/abn", ref="detailed-installation-instructions", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
           library('abn')
         shell: Rscript {0}
 
