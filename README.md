@@ -138,254 +138,237 @@ Some are C/C++ libraries and some are R packages that are not hosted on CRAN.
 
 Below is a list of these dependencies with details on how to install and configure them:
 
-- <details>
-    <summary><b>GSL</b></summary>
+<details>
+<summary><b>GSL</b></summary>
 
-    [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
-    It is required to compile `abn`'s C/C++ code.
-  
-    ### Installation
+[GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
+It is required to compile `abn`'s C/C++ code.
 
-    - <details>
-        <summary>Ubuntu</summary>
-
-        `GSL` is available throught the Advanced Package Tool, `APT`, simply type:
-
-        ```bash
-        sudo apt-get install libgsl-dev
-        ```
-
-      </details>
-
-    - <details>
-        <summary>Fedora</summary>
-
-        `GSL` is available throught Fedoras standart package manager, `DNF`, simply type:
-
-        ```bash
-        sudo dnf -y install gsl-devel
-        ```
-
-      </details>
-
-    - <details>
-        <summary>MacOS</summary>
-
-        With homebrew you can install the `GSL` binaries directly:
-
-        ```
-        brew install gsl
-        ```
-      </details>
-
-    - <details>
-        <summary>Windows</summary>
-
-        In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installaiton process.
-        Eigher head over to the website, download and install the setup-x86_64.exe file, or use PowerShell:
-        
-        ```
-        Import-Module bitstransfer
-        New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
-        start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
-        Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
-        ```
-
-      </details>
-  
-  </details>
+#### Installation
 
 - <details>
-    <summary><b>JAGS & rjags</b></summary>
+  <summary><b>Ubuntu</b></summary>
   
-    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
-    `JAGS` is required in some simulations `abn` can perform.
+  `GSL` is available throught the Advanced Package Tool, `APT`, simply type:
   
-    ### Installation
-
-    In prinicple, we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
-  
-    - <details>
-        <summary>Ubuntu</summary>
-
-        `JAGS` is available throught the Advanced Package Tool, `APT`, simply type:
-
-        ```bash
-        sudo apt-get install jags
-        ```
-
-      </details>
-
-    - <details>
-        <summary>Fedora</summary>
-
-        `JAGS` must be installed from source.
-        Below are the steps to install `JAGS 4.3.2`.
-
-        ```bash
-        wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-4.3.2.tar.gz/download
-        cd /tmp
-        tar -xf jags.tar.gz
-        cd /tmp/JAGS-4.3.2 
-        ./configure --libdir=/usr/local/lib64
-        make
-        sudo make install
-        ```
-
-        **Note:**
-
-        _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`._
-        _Omitting this argument will lead to `rjags` "not seeing" `jags`._
-
-
-        On Fedora `rjags` might need some specicial configuration for it to link properly to the `JAGS` library.
-        Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
-
-        In order to add the `JAGS` library to the linker path, run the followig commands:
-
-        ```bash
-        sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
-        sudo /sbin/ldconfig
-        ``` 
-        **Note:**
-        _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
-
-        To install `rjags` open an R session and type:
-
-        ```R
-        install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
-        ```
-
-      </details>
-
-    - <details>
-        <summary>MacOS</summary>
-
-        With homebrew you can install the `JAGS` binaries directly:
-
-        ```
-        brew install jags
-        ```
-
-        And now to install `rjags`, open an R session and type:
-
-        ```R
-        install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-        library("rjags")
-        ```
-
-      </details>
-
-    - <details>
-        <summary>Windows</summary>
-
-        You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
-        The follwing instructions will download and install `JAGS` 4.3.1 in PowerShell:
-
-        ```
-        Import-Module bitstransfer
-        New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
-        start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
-        Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
-        ```
-
-        In order to make sure `rjags` finds `JAGS` we set the environment varuable `JAGS_HOME` before installing `rjags`.
-        To do so, open your R session and type:
-
-        ```R
-        Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
-        install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
-        library("rjags")
-        ```
-
-      </details>
+  ```bash
+  sudo apt-get install libgsl-dev
+  ```
   
   </details>
-  
 - <details>
-    <summary><h3>INLA</h3></summary>
+  <summary><b>Fedora</b></summary>
   
-    [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-    `anb` uses `INLA` to fit some models. 
+  `GSL` is available throught Fedoras standart package manager, `DNF`, simply type:
   
-    ### Dependencies
-
-    `INLA` relies on various other R packages and C/C++ libraries.
-    It thus needs some additinal installation steps:
-
-    - <details>
-        <summary>Ubuntu</summary>
-        
-        Install with:
-
-        ```bash
-        apt-get install --no-install-recommends libudunits2-dev
-        apt-get install libjpeg-dev
-        apt-get install libgdal-dev
-        apt-get install libgeos-dev  # might not be needed
-        apt-get install libproj-dev
-        ```
-
-      </details>
-
-    - <details>
-        <summary>Fedora</summary>
-        
-        Install with:
-
-        ```bash
-        dnf install udunits2-devel
-        dnf install libjpeg-devel
-        dnf install gdal-devel
-        dnf install geos-devel
-        dnf install proj-devel
-        ```
-
-      </details>
-
-    - <details>
-        <summary>MacOS</summary>
-        
-        Install with:
-
-        ```bash
-        brew install udunits 
-        brew install gdal  # installs also geos as dependency
-        brew install proj
-        ```
-
-      </details>
-  
-    ### Installation
-
-    The installation is straight forward on common platforms, simply start an R session and run:
-  
-    ```R
-    install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-    ```
-  
-    If you run into trouble, please see also [INLA's installation instruction website](https://www.r-inla.org/download-install) for further details.
+  ```bash
+  sudo dnf -y install gsl-devel
+  ```
   
   </details>
+- <details>
+  <summary><b>MacOS</b></summary>
+  
+  With homebrew you can install the `GSL` binaries directly:
+  
+  ```
+  brew install gsl
+  ```
+  </details>
+- <details>
+  <summary><b>Windows</b></summary>
+  
+  In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installaiton process.
+  Eigher head over to the website, download and install the setup-x86_64.exe file, or use PowerShell:
+  
+  ```
+  Import-Module bitstransfer
+  New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
+  start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
+  Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
+  ```
+  </details>
+</details>
+<details><summary><b>JAGS & rjags</b></summary>
+[JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+`JAGS` is required in some simulations `abn` can perform.
+
+#### Installation
+
+In prinicple, we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
 
 - <details>
-    <summary><b>Dependencies from BiocManager</b></summary>
-  
-    [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-    Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
+  <summary><b>Ubuntu</b></summary>
 
-    ### Installation
-  
-    The installation is straight forward on most common platforms, simply start an R session and run:
-  
-    ```R
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-        install.packages("BiocManager")
-    BiocManager::install("Rgraphviz")
-    BiocManager::install("graph")
-    ```
-  
+  `JAGS` is available throught the Advanced Package Tool, `APT`, simply type:
+
+  ```bash
+  sudo apt-get install jags
+  ```
+
   </details>
+- <details>
+  <summary><b>Fedora</b></summary>
+
+  `JAGS` must be installed from source.
+  Below are the steps to install `JAGS 4.3.2`.
+
+  ```bash
+  wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-4.3.2.tar.gz/download
+  cd /tmp
+  tar -xf jags.tar.gz
+  cd /tmp/JAGS-4.3.2 
+  ./configure --libdir=/usr/local/lib64
+  make
+  sudo make install
+  ```
+
+  **Note:**
+
+  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`._
+  _Omitting this argument will lead to `rjags` "not seeing" `jags`._
+
+
+  On Fedora `rjags` might need some specicial configuration for it to link properly to the `JAGS` library.
+  Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
+
+  In order to add the `JAGS` library to the linker path, run the followig commands:
+
+  ```bash
+  sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
+  sudo /sbin/ldconfig
+  ``` 
+  **Note:**
+  _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
+
+  To install `rjags` open an R session and type:
+
+  ```R
+  install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+  ```
+
+  </details>
+- <details>
+  <summary>MacOS</summary>
+
+  With homebrew you can install the `JAGS` binaries directly:
+
+  ```
+  brew install jags
+  ```
+
+  And now to install `rjags`, open an R session and type:
+
+  ```R
+  install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+  library("rjags")
+  ```
+
+  </details>
+- <details>
+  <summary><b>Windows</b></summary>
+
+  You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
+  The follwing instructions will download and install `JAGS 4.3.1` in PowerShell:
+
+  ```
+  Import-Module bitstransfer
+  New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
+  start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
+  Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
+  ```
+
+  In order to make sure `rjags` finds `JAGS` we set the environment varuable `JAGS_HOME` before installing `rjags`.
+  To do so, open your R session and type:
+
+  ```R
+  Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
+  install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
+  library("rjags")
+  ```
+
+  </details>
+</details>
+<details>
+<summary><b>INLA</b></summary>
+
+[INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
+`anb` uses `INLA` to fit some models. 
+
+#### Dependencies
+
+`INLA` relies on various other R packages and C/C++ libraries.
+It thus needs some additinal installation steps:
+
+- <details>
+  <summary><b>Ubuntu</b></summary>
+    
+  Install with:
+
+  ```bash
+  apt-get install --no-install-recommends libudunits2-dev
+  apt-get install libjpeg-dev
+  apt-get install libgdal-dev
+  apt-get install libgeos-dev  # might not be needed
+  apt-get install libproj-dev
+  ```
+  </details>
+- <details>
+  <summary><b>Fedora</b></summary>
+  
+  Install with:
+
+  ```bash
+  dnf install udunits2-devel
+  dnf install libjpeg-devel
+  dnf install gdal-devel
+  dnf install geos-devel
+  dnf install proj-devel
+  ```
+
+  </details>
+- <details>
+  <summary><b>MacOS</b></summary>
+  
+  Install with:
+
+  ```bash
+  brew install udunits 
+  brew install gdal  # installs also geos as dependency
+  brew install proj
+  ```
+
+  </details>
+
+#### Installation
+
+The installation is straight forward on common platforms, simply start an R session and run:
+
+```R
+install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+```
+
+If you run into trouble, please see also [INLA's installation instruction website](https://www.r-inla.org/download-install) for further details.
+
+</details>
+<details>
+<summary><b>Dependencies from BiocManager</b></summary>
+
+[Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
+Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
+
+#### Installation
+
+The installation is straight forward on most common platforms, simply start an R session and run:
+
+```R
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("Rgraphviz")
+BiocManager::install("graph")
+```
+
+</details>
 
 _Click on each dependency to see the specific installation instructions_
 
