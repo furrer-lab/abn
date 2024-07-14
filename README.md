@@ -190,6 +190,7 @@ It is required to compile `abn`'s C/C++ code.
   </details>
 </details>
 <details><summary><b>JAGS & rjags</b></summary>
+
 [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
 `JAGS` is required in some simulations `abn` can perform.
 
@@ -249,7 +250,7 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
 
   </details>
 - <details>
-  <summary>MacOS</summary>
+  <summary><b>MacOS</b></summary>
 
   With homebrew you can install the `JAGS` binaries directly:
 
