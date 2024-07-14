@@ -308,9 +308,10 @@ Below is a list of these dependencies with details on how to install and configu
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
     `anb` uses `INLA` to fit some models. 
   
-    ### Installation
+    ### Dependencies
 
-    `INLA` relies on other R packages and thus needs some additinal installation steps to get some C libraries (i.e. [UDUNITS](https://www.unidata.ucar.edu/software/udunits/)) and other software:
+    `INLA` relies on various other R packages and C/C++ libraries.
+    It thus needs some additinal installation steps:
 
     - <details>
         <summary>Ubuntu</summary>
@@ -355,6 +356,8 @@ Below is a list of these dependencies with details on how to install and configu
 
       </details>
   
+    ### Installation
+
     The installation is straight forward on common platforms, simply start an R session and run:
   
     ```R
