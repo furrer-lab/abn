@@ -30,7 +30,7 @@ We recommend to go through both sections and follow the suggested installation p
 
 ## R version support
 
-Officially suppoorted is R version >= 4.4
+Officially supported is R version >= 4.4
 
 ## Prerequisites 
 
@@ -66,7 +66,7 @@ Officially suppoorted is R version >= 4.4
 <details>
   <summary><b>Fedora</b></summary>
 
-  You will need C/C++ and fortran compilers and various libraries:
+  You will need C/C++ and Fortran compilers and various libraries:
  
   ```bash
   dnf install gcc
@@ -149,7 +149,7 @@ It is required to compile `abn`'s C/C++ code.
 - <details>
   <summary><b>Ubuntu</b></summary>
   
-  `GSL` is available throught the Advanced Package Tool, `APT`, simply type:
+  `GSL` is available through the Advanced Package Tool, `APT`, simply type:
   
   ```bash
   sudo apt-get install libgsl-dev
@@ -159,7 +159,7 @@ It is required to compile `abn`'s C/C++ code.
 - <details>
   <summary><b>Fedora</b></summary>
   
-  `GSL` is available throught Fedoras standart package manager, `DNF`, simply type:
+  `GSL` is available through Fedoras standard package manager, `DNF`, simply type:
   
   ```bash
   sudo dnf -y install gsl-devel
@@ -169,7 +169,7 @@ It is required to compile `abn`'s C/C++ code.
 - <details>
   <summary><b>MacOS</b></summary>
   
-  With homebrew you can install the `GSL` binaries directly:
+  With Homebrew you can install the `GSL` binaries directly:
   
   ```
   brew install gsl
@@ -178,8 +178,8 @@ It is required to compile `abn`'s C/C++ code.
 - <details>
   <summary><b>Windows</b></summary>
   
-  In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installaiton process.
-  Eigher head over to the website, download and install the setup-x86_64.exe file, or use PowerShell:
+  In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installation process.
+  Either head over to the website, download and install the setup-x86_64.exe file, or use PowerShell:
   
   ```
   Import-Module bitstransfer
@@ -196,12 +196,12 @@ It is required to compile `abn`'s C/C++ code.
 
 #### Installation
 
-In prinicple, we could only install `JAGS` and have `rjags` be installed automatically as dependency when instlling `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everying works as expected:
+In principle, we could only install `JAGS` and have `rjags` be installed automatically as dependency when installing `abn`, however, there are situations where `rjags` cannot find the `JAGS` libraries or `jags` at runtime, and therefore we recommend installing `rjags` directly after `JAGS` so to make sure that everything works as expected:
 
 - <details>
   <summary><b>Ubuntu</b></summary>
 
-  `JAGS` is available throught the Advanced Package Tool, `APT`, simply type:
+  `JAGS` is available through the Advanced Package Tool, `APT`, simply type:
 
   ```bash
   sudo apt-get install jags
@@ -232,14 +232,14 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
 
   **Note:**
 
-  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when lauching `./configure`._
+  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`._
   _Omitting this argument will lead to `rjags` "not seeing" `jags`._
 
 
-  On Fedora `rjags` might need some specicial configuration for it to link properly to the `JAGS` library.
+  On Fedora `rjags` might need some special configuration for it to link properly to the `JAGS` library.
   Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
 
-  In order to add the `JAGS` library to the linker path, run the followig commands:
+  In order to add the `JAGS` library to the linker path, run the following commands:
 
   ```bash
   sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
@@ -258,7 +258,7 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
 - <details>
   <summary><b>MacOS</b></summary>
 
-  With homebrew you can install the `JAGS` binaries directly:
+  With Homebrew you can install the `JAGS` binaries directly:
 
   ```
   brew install jags
@@ -276,7 +276,7 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
   <summary><b>Windows</b></summary>
 
   You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
-  The follwing instructions will download and install `JAGS 4.3.1` in PowerShell:
+  The following instructions will download and install `JAGS 4.3.1` in PowerShell:
 
   ```
   Import-Module bitstransfer
@@ -285,7 +285,7 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
   Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
   ```
 
-  In order to make sure `rjags` finds `JAGS` we set the environment varuable `JAGS_HOME` before installing `rjags`.
+  In order to make sure `rjags` finds `JAGS` we set the environment variable `JAGS_HOME` before installing `rjags`.
   To do so, open your R session and type:
 
   ```R
@@ -305,7 +305,7 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
 #### Dependencies
 
 `INLA` relies on various other R packages and C/C++ libraries.
-It thus needs some additinal installation steps:
+It thus needs some additional installation steps:
 
 - <details>
   <summary><b>Ubuntu</b></summary>
@@ -355,7 +355,7 @@ The installation is straight forward on common platforms, simply start an R sess
 install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
 ```
 
-If you run into trouble, please see also [INLA's installation instruction website](https://www.r-inla.org/download-install) for further details.
+If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
 
 </details>
 <details>
