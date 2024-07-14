@@ -206,6 +206,12 @@ In prinicple, we could only install `JAGS` and have `rjags` be installed automat
   ```bash
   sudo apt-get install jags
   ```
+  And to install `rjags` open an R session and type:
+
+  ```R
+  install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+  library("rjags")
+  ```
 
   </details>
 - <details>
