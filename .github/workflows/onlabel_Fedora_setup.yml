@@ -31,6 +31,10 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
     steps:
+      - name: fixing folder perms for usr share
+        run: |
+          chmod -R a+w /usr/share
+
       - name: prepare fedora
         run: |
           dnf -y install wget
