@@ -25,3 +25,13 @@ fi
 
 AC_CONFIG_FILES([src/Makevars])
 AC_OUTPUT
+
+echo "
+  --------------------------------------------------
+  Configuration for ${PACKAGE_NAME} ${PACKAGE_VERSION}
+
+    cppflags: ${CPPFLAGS} ${PKG_CPPFLAGS}
+    libs:     ${PKG_LIBS}
+
+  --------------------------------------------------
+"

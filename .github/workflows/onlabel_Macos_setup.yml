@@ -1,0 +1,134 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Macos Install
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'macosInstall::check'
+  LABEL_SUCCESS: 'macosInstall::passed'
+  LABEL_FAILURE: 'macosInstall::failed'
+  BUILD_LOC: "./build"
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    if: ${{ github.event.label.name == 'macosInstall::check' }}
+    name: macos-latest R release
+    runs-on: macos-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - name: prepare macos
+        run: |
+          brew install R
+          brew install pkg-config
+          brew install automake  # needed to run autoconf
+
+      - name: install GSL
+        run: |
+          brew install gsl
+
+      - name: install JAGS
+        run: |
+          brew install jags
+
+      - name: install rjags
+        run: |
+            install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
+
+      - name: install INLA dependencies
+        run: |
+          brew install udunits 
+          brew install openssl@1.1  # s2 package
+          brew install gdal  # installs geos as dependency
+                             # for s2 fmesher terra)
+          brew install proj  # sf package
+
+      - name: install INLA
+        run: |
+            install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+        shell: Rscript {0}
+
+      - name: installing dependencies from BiocManager
+        run: |
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
+          BiocManager::install("Rgraphviz")
+          BiocManager::install("graph")
+        shell: Rscript {0}
+
+      - name: install from CRAN
+        run: |
+          install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
+          library('abn')
+        shell: Rscript {0}
+
+      - name: install from GitHub
+        run: |
+          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          library('abn')
+        shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: install from source
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
+            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+        shell: Rscript {0}
+
+  report_Macos_setup:
+    if: ${{ (success() || failure()) }}
+    needs:
+      - setup-and-install 
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          if [ ${{ needs.setup-and-install.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.setup-and-install.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ needs.setup-and-install.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
