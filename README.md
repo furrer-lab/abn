@@ -303,7 +303,7 @@ Below is a list of these dependencies with details on how to install and configu
   </details>
   
 - <details>
-    <summary><b>INLA</b></summary>
+    <summary><h3>INLA</h3></summary>
   
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
     `anb` uses `INLA` to fit some models. 
