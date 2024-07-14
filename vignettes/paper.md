@@ -40,7 +40,7 @@ Additive Bayesian Network (ABN) models extend the concept of generalized linear 
 This makes them a powerful tool for understanding complex, multivariate datasets.
 This package provides routines for structure learning and parameter estimation of ABN models.
 
-# Statment of need
+# Statement of need
 The increasing complexity of data in various fields, ranging from healthcare research to environmental science and ecology, has resulted in a need for a tool like `abn`.
 Researchers often face multivariate, tabular data where the relationships between variables are not straightforward. 
 BN analysis becomes essential when traditional statistical methods fail to analyze multivariate data with intricate relationships, as it models these relationships graphically for more straightforward data interpretation.
