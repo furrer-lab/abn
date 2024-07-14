@@ -12,7 +12,7 @@ env:
   LABEL_FAILURE: 'ubuntuInstall::failed'
   JAGS: '4.3.2'
   BUILD_LOC: "./build"
-  BRANCH: ${{ github.ref_name }}
+  BRANCH: ${{ github.head_ref || github.ref_name }}
 
 permissions:
   packages: read

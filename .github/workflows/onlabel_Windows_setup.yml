@@ -11,7 +11,7 @@ env:
   LABEL_SUCCESS: 'windowsInstall::passed'
   LABEL_FAILURE: 'windowsInstall::failed'
   BUILD_LOC: "./build"
-  BRANCH: ${{ github.ref_name }}
+  BRANCH: ${{ github.head_ref || github.ref_name }}
   JAGS_MAJORV: '4'
   JAGS_VERSION: '4.3.1'
   JAGS_URL: "https://sourceforge.net/projects/mcmc-jags/files/JAGS"
