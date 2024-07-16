@@ -112,7 +112,7 @@ jobs:
          labels: |
            version-release
 
-         base: ${{ github.head_ref || github.ref_name }}
+         base: main  # NOTE: this should match the branch on which the tag was made
          draft: true  # NOTE: this is not allowed on free private repos
 
   check_label_exist:
