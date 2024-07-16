@@ -1,4 +1,32 @@
 
+# abn 3.1.2
+[diff](https://github.com/furrer-lab/abn/compare/3.1.1...3.1.2)
+
+> 2024-07-16
+
+### Dev
+
+* running code coverage with all tests ([#119](https://github.com/furrer-lab/abn/issues/119))
+
+### Fix
+
+* detailed installation instructions ([#126](https://github.com/furrer-lab/abn/issues/126))
+
+### Fix
+
+* fetching correct tag for previous version
+
+### Reverts
+
+* avoid hardcoding branch
+
+### Pull Requests
+
+* Merge pull request [#118](https://github.com/furrer-lab/abn/issues/118) from furrer-lab/109-setup-sensible-code-coverage-report
+* Merge pull request [#115](https://github.com/furrer-lab/abn/issues/115) from furrer-lab/114-provide-guidance-on-prerequisite-for-installing-abn
+* Merge pull request [#110](https://github.com/furrer-lab/abn/issues/110) from furrer-lab/release-3.1.1
+
+
 # abn 3.1.1
 [diff](https://github.com/furrer-lab/abn/compare/3.1.0...3.1.1)
 
