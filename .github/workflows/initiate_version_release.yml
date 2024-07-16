@@ -48,6 +48,7 @@ jobs:
          echo "VERSION=`echo $(echo '${{ github.ref_name }}'|grep -Eo '[0-9]+.[0-9]+.[0-9]+')`" >> $GITHUB_OUTPUT
          echo "PREVIOUS_VERSION=`echo $(git tag --list --sort=version:refname | grep -E '^[0-9]+.[0-9]+.[0-9]+$' | tail -n1)`" >> $GITHUB_OUTPUT
          echo "AUTHOR=`echo $(git log -1 --pretty=%an)`" >> $GITHUB_OUTPUT
+
      - name: Get git-chglog and update CHANGELOG
        run: |
          wget ${{ env.CHGLOG_PATH }}/${{ env.CHGLOG_RELEASE}}.tar.gz  # get the binary for the chglog
@@ -63,10 +64,12 @@ jobs:
        uses: r-lib/actions/setup-r@v2
        with:
          use-public-rspm: true
+
      - name: Install desc to update DESCRIPTION file
        run: |
          install.packages(c("desc"))
        shell: Rscript {0}
+
      - name: Update DESCRIPTION file
        run: |
          df = desc::description$new(file='DESCRIPTION')
@@ -80,6 +83,11 @@ jobs:
          sed -i -e '/^AC_INIT/s/[0-9]\+.[0-9]\.[0-9]\+/${{ steps.release_version.outputs.version }}/g' configure.ac
        shell: bash
 
+     - name: Generate the configure file
+       run: |
+         sudo apt-get -y install autoconf
+         autoreconf
+
      - name: Create version release Pull Request
        id: release_pr
        # NOTE: We might want to perform this step with gh cli natively
@@ -92,6 +100,7 @@ jobs:
            NEWS.md
            DESCRIPTION
            configure.ac
+           configure
          delete-branch: true  # NOTE: No immediate delete after merge, instead branches with no diff are deleted
          title: Release version ${{ steps.release_version.outputs.version }}
          body: |
