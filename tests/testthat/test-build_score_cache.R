@@ -165,16 +165,16 @@ test_that("buildScoreCache()'s methods `bayes` and `mle` behave similarly", {
 
   ## test cache
   expect_equal(mycache.mle$children, mycache.bayes$children)
-  expect_equal(mycache.mle$node.defn, mycache.bayes$node.defn)
+  expect_equal(mycache.mle$node.defn, Matrix::Matrix(mycache.bayes$node.defn, sparse = TRUE))
   expect_equal(mycache.mle.1$children, mycache.bayes.1$children)
-  expect_equal(mycache.mle.1$node.defn, mycache.bayes.1$node.defn)
+  expect_equal(mycache.mle.1$node.defn, Matrix::Matrix(mycache.bayes.1$node.defn, sparse = TRUE))
   expect_equal(mycache.mle.2$children, mycache.bayes.2$children)
-  expect_equal(mycache.mle.2$node.defn, mycache.bayes.2$node.defn)
+  expect_equal(mycache.mle.2$node.defn, Matrix::Matrix(mycache.bayes.2$node.defn, sparse = TRUE))
 
   expect_equal(mycache.mle.3$children, mycache.bayes.3$children)
-  expect_equal(mycache.mle.3$node.defn, mycache.bayes.3$node.defn)
+  expect_equal(mycache.mle.3$node.defn, Matrix::Matrix(mycache.bayes.3$node.defn, sparse = TRUE))
   expect_equal(mycache.mle.4$children, mycache.bayes.4$children)
-  expect_equal(mycache.mle.4$node.defn, mycache.bayes.4$node.defn)
+  expect_equal(mycache.mle.4$node.defn, Matrix::Matrix(mycache.bayes.4$node.defn, sparse = TRUE))
 })
 
 test_that("buildScoreCache() is backward compatible", {
