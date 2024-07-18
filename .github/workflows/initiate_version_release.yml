@@ -91,7 +91,7 @@ jobs:
      - name: Update status badges in the readme file
        run: | 
          # updated the branch parameter for all badges
-         sed -i -e "s/?branch=release-${{ steps.release_version.outputs.previous_version}}/?branch=release-${{ steps.release_version.outputs.version}}/g" README.md
+         sed -i -e "s/?branch=release-[0-9]\+.[0-9]\.[0-9]\+/?branch=release-${{ steps.release_version.outputs.version}}/g" README.md
 
      - name: Create version release Pull Request
        id: release_pr
