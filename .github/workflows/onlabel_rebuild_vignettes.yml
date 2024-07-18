@@ -1,0 +1,161 @@
+# Workflow triggered when we have a new release candidate
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: On Label rebuild vignettes
+
+on:
+  pull_request:
+    types: [ labeled ]
+
+env:
+  LABEL_CHECK: 'rebuildVigns::check'
+  LABEL_SUCCESS: 'rebuildVigns::passed'
+  LABEL_FAILURE: 'rebuildVigns::failed'
+  DOC_LOC: "./docs"
+
+jobs:
+  set_target:
+    if: ${{ github.event.label.name == 'rebuildVigns::check' }}
+    runs-on: ubuntu-latest
+    outputs:
+      label: ${{ steps.set_label.outputs.label }}
+    steps:
+      - id: set_label
+        run: |
+          echo "label=${{ env.LABEL_CHECK  }}" >> "$GITHUB_OUTPUT"
+
+  check_label_exist:
+    needs:
+      - set_target
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Assert labels ${{ env.LABEL_CHECK }} is defined
+        run: |
+          gh label create ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_SUCCESS }} is defined
+        run: |
+          gh label create ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+      - name: Assert labels ${{ env.LABEL_FAILURE }} is defined
+        run: |
+          gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+        continue-on-error: true  # make sure the next steps run also on failure
+
+  vignette_build:
+    runs-on: ubuntu-latest
+    needs:
+      - set_target
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::knitr, local::.
+      - name: Rebuild Vignettes
+        run: |
+          source("vignettes/precompile.R")
+        shell: Rscript {0}
+      - uses: actions/upload-artifact@v4
+        with:
+          path: vignettes/
+      - name: Commit compiled vignettes to branch
+        run: |
+          git config --global user.name 'GitHub Vignette Bot'
+          git config --global user.email 'vignettebot@github.com'
+          git commit -am "Automated Vignette Compilation"
+          git push
+
+  report_vignette_build:
+    if: ${{ (success() || failure()) }}
+    needs:
+      - vignette_build
+      - check_label_exist
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check if on demand tasks succeeded
+        run: |
+          gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+          if [ ${{ needs.vignette_build.result }} == "success" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          elif [ ${{ needs.vignette_build.result }} == "failure" ]; then
+            gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+          fi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  record_passed_label:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      passed: ${{ steps.passed.outputs.PASSED}}
+    steps:
+      - name: Check if the pull request is labeled with ${{ env.LABEL_SUCCESS }}  # 2
+        id: passed
+        run: |
+          if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
+            echo "PASSED=true" >> $GITHUB_OUTPUT
+          else
+            echo "PASSED=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event.number }}  # This is either the issue or pr
+
+  vignette_build_passed:
+    if: ${{ always() }}
+    needs:
+      - vignette_build
+      - record_passed_label
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+    steps:
+      - name: Assert that either job passed or the label is present
+        run: |
+          if [[ ${{ needs.vignette_build.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
+            echo 'vignette_build status ok';
+          else exit 1; fi
+
