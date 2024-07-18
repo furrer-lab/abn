@@ -7,14 +7,14 @@ on:
     types: [ labeled ]
 
 env:
-  LABEL_CHECK: 'rebuildVigns::check'
-  LABEL_SUCCESS: 'rebuildVigns::passed'
-  LABEL_FAILURE: 'rebuildVigns::failed'
+  LABEL_CHECK: 'CompVignettes::build'
+  LABEL_SUCCESS: 'CompVignettes::passed'
+  LABEL_FAILURE: 'CompVignettes::failed'
   DOC_LOC: "./docs"
 
 jobs:
   set_target:
-    if: ${{ github.event.label.name == 'rebuildVigns::check' }}
+    if: ${{ github.event.label.name == 'CompVignettes::build' }}
     runs-on: ubuntu-latest
     outputs:
       label: ${{ steps.set_label.outputs.label }}
