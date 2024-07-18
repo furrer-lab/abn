@@ -409,7 +409,7 @@ buildScoreCache.mle <-
       # Function to generate all possible combinations of parents
       filteredCombinations <- function(x, m, bannedParents, retainedParents){
         # These are the parents that cannot change
-        fixedParents <- bannedParents | retainedParents | (fun.return(x, length(x) + 2) + 1) %% 2
+        fixedParents <- bannedParents | retainedParents | 1-fun.return(x, length(bannedParents)+1)
 
         # These are the parents that can change
         parentPossibleChoices <- which(fixedParents == 0)
@@ -418,8 +418,9 @@ buildScoreCache.mle <-
 
         # Generate all possible combinations of parents, taking account of banned, retained and maximum number of parents
         parentChoices <- generateBitPatterns(numPossibleChoices, min(m-numRetainedParents, numPossibleChoices)) == 1
+
         output <- t(apply(parentChoices, 1, function(pc){
-          combinedRow <- 1L*(retainedParents | fun.return(parentPossibleChoices[pc], length(x) + 2))
+          combinedRow <- 1L*(retainedParents | fun.return(parentPossibleChoices[pc], length(retainedParents) + 1))
           combinedRow
         }))
         output
