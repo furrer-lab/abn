@@ -72,6 +72,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with: 
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Disable renv
         run: |
             renv::deactivate()
