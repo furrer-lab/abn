@@ -94,8 +94,8 @@ jobs:
           path: vignettes/
       - name: Commit compiled vignettes to branch
         run: |
-          git config --global user.name 'GitHub Vignette Bot'
-          git config --global user.email 'vignettebot@github.com'
+          git config --global user.name 'abn-cicd-helper[bot]' # retrieved from: https://api.github.com/users/abn-cicd-helper[bot]
+          git config --global user.email '170275362+abn-cicd-helper[bot]@users.noreply.github.com'
           git commit -am "Automated Vignette Compilation"
           git push origin HEAD:${{ env.BRANCH }}
 
