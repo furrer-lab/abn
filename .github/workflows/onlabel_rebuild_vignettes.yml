@@ -11,6 +11,7 @@ env:
   LABEL_SUCCESS: 'CompVignettes::passed'
   LABEL_FAILURE: 'CompVignettes::failed'
   DOC_LOC: "./docs"
+  BRANCH: ${{ github.head_ref || github.ref_name }}
 
 jobs:
   set_target:
@@ -93,9 +94,8 @@ jobs:
         run: |
           git config --global user.name 'GitHub Vignette Bot'
           git config --global user.email 'vignettebot@github.com'
-          currentBranch=$(git branch --show-current)
           git commit -am "Automated Vignette Compilation"
-          git push origin HEAD:$currentBranch
+          git push origin HEAD:${{ env.BRANCH }}
 
   report_vignette_build:
     if: ${{ (success() || failure()) }}
