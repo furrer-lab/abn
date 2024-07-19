@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "128-fail-of-the-ubuntu-setup-due-to-testthat-failing-with-segfault-frowning_face" # for development
 
 env:
   JAGS: '4.3.2'
