@@ -59,14 +59,13 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
         r-version: ['release']
         os: ['debian']
         compiler: ['gcc']
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     permissions:
       contents: write
       id-token: write
