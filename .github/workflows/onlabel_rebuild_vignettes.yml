@@ -92,13 +92,12 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: vignettes/
-      - uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          author_email: '170275362+abn-cicd-helper[bot]@users.noreply.github.com'
-          author_name: 'abn-cicd-helper[bot]'
-          branch: ${{ env.BRANCH }}
-          message: 'Automated Vignette Compilation'
+      - name: Commit compiled vignettes to branch
+        run: |
+          git config --global user.name 'GitHub Vignette Bot'
+          git config --global user.email 'vignettebot@github.com'
+          git commit -am "Automated Vignette Compilation"
+          git push origin HEAD:${{ env.BRANCH }}
 
   report_vignette_build:
     if: ${{ (success() || failure()) }}
