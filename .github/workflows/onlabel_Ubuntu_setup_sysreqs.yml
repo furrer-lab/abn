@@ -84,6 +84,8 @@ jobs:
         run: |
           devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
           library('abn')
+          install.packages('devtools')
+          devtools::check()
         shell: Rscript {0}
 
       - name: fetch the repository from GitHub
