@@ -61,6 +61,7 @@ jobs:
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      EVENT: ${{ github.event.number }}
     strategy:
       fail-fast: false
       matrix:
@@ -74,6 +75,10 @@ jobs:
       - uses: actions/checkout@v4
         with: 
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout branch of PR
+        run: |
+          gh pr checkout ${{ env.EVENT }}
+          git status
       - name: Disable renv
         run: |
             renv::deactivate()
@@ -97,7 +102,9 @@ jobs:
           git config --global user.name 'GitHub Vignette Bot'
           git config --global user.email 'vignettebot@github.com'
           git config --global --add safe.directory /__w/abn/abn
+          git status
           git commit -am "Automated Vignette Compilation"
+          git status
           git push 
 
   report_vignette_build:
