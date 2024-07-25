@@ -105,8 +105,8 @@ jobs:
           git config --global user.name 'GitHub Vignette Bot'
           git config --global user.email 'vignettebot@github.com'
           git config --global --add safe.directory /__w/abn/abn
-          git status
-          git commit -am "Automated Vignette Compilation"
+          git add vignettes/*.Rmd
+          git commit -m "Automated Vignette Compilation"
           git status
           git push 
 
