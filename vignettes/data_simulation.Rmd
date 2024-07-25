@@ -12,7 +12,13 @@ vignette: >
 
 ``` r
 library(abn)
-#> Error in library(abn): there is no package called 'abn'
+#> abn version 3.1.1 (2024-05-22) is loaded.
+#> To cite the package 'abn' in publications call: citation('abn').
+#> 
+#> Attaching package: 'abn'
+#> The following object is masked from 'package:base':
+#> 
+#>     factorial
 ```
 
 In this vignette, we will simulate data from an additive Bayesian network and compare it to the original data.
@@ -26,7 +32,6 @@ We will use the `ex1.dag.data` data set and fit a model to it.
 ``` r
 # Load example data
 mydat <- ex1.dag.data
-#> Error in eval(expr, envir, enclos): object 'ex1.dag.data' not found
 
 # Set the distribution of each node
 mydists <- list(b1="binomial",
@@ -45,20 +50,27 @@ mycache <- buildScoreCache(data.df = mydat,
                            data.dists = mydists,
                            method = "bayes",
                            max.parents = 4)
-#> Error in buildScoreCache(data.df = mydat, data.dists = mydists, method = "bayes", : could not find function "buildScoreCache"
+#> Warning: package 'INLA' was built under R version 4.4.1
+#> Loading required package: Matrix
+#> Loading required package: sp
+#> This is INLA_24.06.27 built 2024-06-27 02:36:04 UTC.
+#>  - See www.r-inla.org/contact-us for how to get help.
+#>  - List available models/likelihoods/etc with inla.list.models()
+#>  - Use inla.doc(<NAME>) to access documentation
 
 # Structure learning
 mp.dag <- mostProbable(score.cache = mycache)
-#> Error in mostProbable(score.cache = mycache): could not find function "mostProbable"
+#> Step1. completed max alpha_i(S) for all i and S
+#> Total sets g(S) to be evaluated over: 1024
 
 # Estimate the parameters
 myfit <- fitAbn(object = mp.dag)
-#> Error in fitAbn(object = mp.dag): could not find function "fitAbn"
 
 # Plot the DAG
 plot(myfit)
-#> Error in eval(expr, envir, enclos): object 'myfit' not found
 ```
+
+![plot of chunk fit_model](fit_model-1.png)
 
 # Simulate new data
 
@@ -68,9 +80,18 @@ By default `simulateAbn()` synthesizes 1000 new data points.
 
 ``` r
 mydat_sim <- simulateAbn(object = myfit)
-#> Error in simulateAbn(object = myfit): could not find function "simulateAbn"
 str(mydat_sim)
-#> Error in eval(expr, envir, enclos): object 'mydat_sim' not found
+#> 'data.frame':	1000 obs. of  10 variables:
+#>  $ b1: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 2 2 2 2 ...
+#>  $ b2: Factor w/ 2 levels "0","1": 1 1 1 1 2 1 1 2 2 2 ...
+#>  $ b3: Factor w/ 2 levels "0","1": 2 1 2 1 1 1 2 1 2 2 ...
+#>  $ b4: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 2 2 2 2 ...
+#>  $ b5: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 1 2 2 2 ...
+#>  $ g1: num  0.796 -0.92 0.167 -2.602 -0.432 ...
+#>  $ g2: num  0.112 -0.708 -1.621 0.115 1.504 ...
+#>  $ g3: num  0.703 -0.891 0.206 -0.55 -1.458 ...
+#>  $ p1: num  0 1 1 0 0 0 1 0 1 0 ...
+#>  $ p2: num  17 7 6 16 9 12 7 9 5 9 ...
 ```
 
 In the background, the `simulateAbn()` function translates the `abnFit` object into a BUGS model and calls the `rjags` package to simulate new data.
@@ -96,7 +117,6 @@ We can compare the original and simulated data by plotting the distributions of 
 ``` r
 # order the columns of mydat equal to mydat_sim
 mydat <- mydat[, colnames(mydat_sim)]
-#> Error in eval(expr, envir, enclos): object 'mydat' not found
 ```
 
 
@@ -106,7 +126,6 @@ library(gridExtra)
 
 # Create a list of variables
 variables <- names(mydat)
-#> Error in eval(expr, envir, enclos): object 'mydat' not found
 
 # Initialize an empty list to store plots
 plots <- list()
@@ -143,7 +162,6 @@ for (i in seq_along(variables)) {
   # Combine the plots into a grid
   plots[[i]] <- arrangeGrob(p1, p2, ncol = 2)
 }
-#> Error in eval(expr, envir, enclos): object 'variables' not found
 ```
 
 
@@ -151,8 +169,9 @@ for (i in seq_along(variables)) {
 ``` r
 # Print all plots
 do.call(grid.arrange, c(plots, ncol = 1))
-#> Error in unit(rep(1, nrow), "null"): 'x' and 'units' must have length > 0
 ```
+
+![plot of chunk unnamed-chunk-3](unnamed-chunk-3-1.png)
 
 The plots show that the distributions of the original and simulated data are similar.
 
