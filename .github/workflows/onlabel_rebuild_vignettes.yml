@@ -93,6 +93,9 @@ jobs:
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
         shell: Rscript {0}
+      - name: Install ABN
+        run: |
+          R CMD INSTALL .
       - name: Rebuild Vignettes
         run: |
           source("vignettes/precompile.R")
