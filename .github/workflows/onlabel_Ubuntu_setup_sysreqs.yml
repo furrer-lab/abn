@@ -50,10 +50,6 @@ jobs:
            update.packages(ask = FALSE, checkBuilt = TRUE)
         shell: Rscript {0}
 
-      - name: install GSL
-        run: |
-          sudo apt-get -y install libgsl-dev
-
       - name: install JAGS
         run: |
           sudo apt-get -y install jags
