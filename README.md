@@ -30,7 +30,6 @@ The package provides routines for structure learning and parameter estimation of
 In order for `abn` to work correctly on your system some dependencies need to be installed first.
 The required steps to achieve this are specific to the operating system you are using and the following drop-down sections detail these steps for the most common ones: 
 
-
 <details>
 <summary><b><i>Ubuntu</i></b></summary>
 
