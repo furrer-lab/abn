@@ -10,8 +10,9 @@ vignette: >
 
 
 
-```r
+``` r
 library(abn)
+#> Error in library(abn): there is no package called 'abn'
 ```
 
 In this vignette, we will simulate data from an additive Bayesian network and compare it to the original data.
@@ -22,9 +23,10 @@ First, we will fit a model to the original data that we will use to simulate new
 We will use the `ex1.dag.data` data set and fit a model to it.
 
 
-```r
+``` r
 # Load example data
 mydat <- ex1.dag.data
+#> Error in eval(expr, envir, enclos): object 'ex1.dag.data' not found
 
 # Set the distribution of each node
 mydists <- list(b1="binomial",
@@ -43,20 +45,20 @@ mycache <- buildScoreCache(data.df = mydat,
                            data.dists = mydists,
                            method = "bayes",
                            max.parents = 4)
+#> Error in buildScoreCache(data.df = mydat, data.dists = mydists, method = "bayes", : could not find function "buildScoreCache"
 
 # Structure learning
 mp.dag <- mostProbable(score.cache = mycache)
-#> Step1. completed max alpha_i(S) for all i and S
-#> Total sets g(S) to be evaluated over: 1024
+#> Error in mostProbable(score.cache = mycache): could not find function "mostProbable"
 
 # Estimate the parameters
 myfit <- fitAbn(object = mp.dag)
+#> Error in fitAbn(object = mp.dag): could not find function "fitAbn"
 
 # Plot the DAG
 plot(myfit)
+#> Error in eval(expr, envir, enclos): object 'myfit' not found
 ```
-
-![plot of chunk fit_model](fit_model-1.png)
 
 # Simulate new data
 
@@ -64,20 +66,11 @@ Based on the `abnFit` object, we can simulate new data.
 By default `simulateAbn()` synthesizes 1000 new data points.
 
 
-```r
+``` r
 mydat_sim <- simulateAbn(object = myfit)
+#> Error in simulateAbn(object = myfit): could not find function "simulateAbn"
 str(mydat_sim)
-#> 'data.frame':	1000 obs. of  10 variables:
-#>  $ b1: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 2 2 2 2 ...
-#>  $ b2: Factor w/ 2 levels "0","1": 1 1 1 1 2 1 1 2 2 2 ...
-#>  $ b3: Factor w/ 2 levels "0","1": 2 1 2 1 1 1 2 1 2 2 ...
-#>  $ b4: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 2 2 2 2 ...
-#>  $ b5: Factor w/ 2 levels "0","1": 2 2 2 2 2 2 1 2 2 2 ...
-#>  $ g1: num  0.796 -0.92 0.167 -2.602 -0.432 ...
-#>  $ g2: num  0.112 -0.708 -1.621 0.115 1.504 ...
-#>  $ g3: num  0.703 -0.891 0.206 -0.55 -1.458 ...
-#>  $ p1: num  0 1 1 0 0 0 1 0 1 0 ...
-#>  $ p2: num  17 7 6 16 9 12 7 9 5 9 ...
+#> Error in eval(expr, envir, enclos): object 'mydat_sim' not found
 ```
 
 In the background, the `simulateAbn()` function translates the `abnFit` object into a BUGS model and calls the `rjags` package to simulate new data.
@@ -86,7 +79,7 @@ Especially for debugging purposes, it can be usefull to manually inspect the BUG
 This can be done by not running the simulation with `run.simulation = FALSE` and print the BUGS file to console with `verbose = TRUE`.
 
 
-```r
+``` r
 # Simulate new data and print the BUGS file to the console
 simulateAbn(object = myfit,
             run.simulation = FALSE,
@@ -100,18 +93,20 @@ To store the BUGS file for reproducibility or manual inspection, we can set the 
 We can compare the original and simulated data by plotting the distributions of the variables.
 
 
-```r
+``` r
 # order the columns of mydat equal to mydat_sim
 mydat <- mydat[, colnames(mydat_sim)]
+#> Error in eval(expr, envir, enclos): object 'mydat' not found
 ```
 
 
-```r
+``` r
 library(ggplot2)
 library(gridExtra)
 
 # Create a list of variables
 variables <- names(mydat)
+#> Error in eval(expr, envir, enclos): object 'mydat' not found
 
 # Initialize an empty list to store plots
 plots <- list()
@@ -148,16 +143,16 @@ for (i in seq_along(variables)) {
   # Combine the plots into a grid
   plots[[i]] <- arrangeGrob(p1, p2, ncol = 2)
 }
+#> Error in eval(expr, envir, enclos): object 'variables' not found
 ```
 
 
 
-```r
+``` r
 # Print all plots
 do.call(grid.arrange, c(plots, ncol = 1))
+#> Error in unit(rep(1, nrow), "null"): 'x' and 'units' must have length > 0
 ```
-
-![plot of chunk unnamed-chunk-3](unnamed-chunk-3-1.png)
 
 The plots show that the distributions of the original and simulated data are similar.
 

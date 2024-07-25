@@ -40,17 +40,20 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ## Load the data and specify the parameters
 
-```r
+
+``` r
 library(abn)
+#> Error in library(abn): there is no package called 'abn'
 library(microbenchmark)
 
 set.seed(123456)
 ```
 
 
-```r
+``` r
 # Prepare data and parameters
 df <- FCV[, -c(13)]
+#> Error in eval(expr, envir, enclos): object 'FCV' not found
 mydists <- list(FCV = "binomial",
                 FHV_1 = "binomial",
                 C_felis = "binomial",
@@ -81,7 +84,7 @@ We compare the following methods:
 - `bayesMulticoreFORK`: Bayesian estimation on 2 cores using FORK
 
 
-```r
+``` r
 # Benchmark
 res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
                                                data.dists = mydists,
@@ -124,14 +127,14 @@ res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
                                                                             ncores = ncores,
                                                                             cluster.type = "FORK")),
                times = 25)
+#> Error in buildScoreCache(data.df = df, data.dists = mydists, method = "bayes", : could not find function "buildScoreCache"
 ```
 
 
-```r
+``` r
 boxplot(res)
+#> Error in eval(expr, envir, enclos): object 'res' not found
 ```
-
-![plot of chunk benchmarkBoxPlot](benchmarkBoxPlot-1.png)
 
 The boxplot illustrates the time distribution for computing the score cache using different methods.
 
