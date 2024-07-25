@@ -47,7 +47,7 @@ jobs:
 
       - name: update R packages
         run: |
-           update.packages(c("devtools"), ask = FALSE, checkBuilt = TRUE)
+           update.packages(ask = FALSE, checkBuilt = TRUE)
         shell: Rscript {0}
 
       - name: install JAGS
