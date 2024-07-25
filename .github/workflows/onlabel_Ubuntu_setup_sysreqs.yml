@@ -88,17 +88,17 @@ jobs:
           devtools::check()
         shell: Rscript {0}
 
-      - name: fetch the repository from GitHub
-        uses: actions/checkout@v4
+      # - name: fetch the repository from GitHub
+      #   uses: actions/checkout@v4
 
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
+      # - name: deactivate the renv
+      #   run: |
+      #       renv::deactivate()
+      #   shell: Rscript {0}
 
-      - name: install from source
-        run: |
-            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
-            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
-            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
-        shell: Rscript {0}
+      # - name: install from source
+      #   run: |
+      #       devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+      #       devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
+      #       install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+      #   shell: Rscript {0}
