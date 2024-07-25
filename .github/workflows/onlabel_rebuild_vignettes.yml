@@ -61,6 +61,7 @@ jobs:
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       EVENT: ${{ github.event.number }}
     strategy:
       fail-fast: false
