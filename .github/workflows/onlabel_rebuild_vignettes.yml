@@ -98,7 +98,7 @@ jobs:
           git config --global user.email 'vignettebot@github.com'
           git config --global --add safe.directory /__w/abn/abn
           git commit -am "Automated Vignette Compilation"
-          git push origin HEAD:${{ env.BRANCH }}
+          git push 
 
   report_vignette_build:
     if: ${{ (success() || failure()) }}
