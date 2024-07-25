@@ -79,6 +79,7 @@ jobs:
       - name: Checkout branch of PR
         run: |
           apt-get update && apt-get install -y gh
+          git config --global --add safe.directory /__w/abn/abn
           gh pr checkout ${{ env.EVENT }}
           git status
       - name: Disable renv
