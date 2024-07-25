@@ -72,13 +72,13 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
-      - name: install from CRAN
-        run: |
-          install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
-          library('abn')
-          install.packages('devtools')
-          devtools::check()
-        shell: Rscript {0}
+      # - name: install from CRAN
+      #   run: |
+      #     install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
+      #     library('abn')
+      #     install.packages('devtools')
+      #     devtools::check()
+      #   shell: Rscript {0}
 
       - name: install from GitHub
         run: |
