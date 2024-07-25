@@ -68,33 +68,22 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
-      # - name: install from CRAN
-      #   run: |
-      #     install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
-      #     library('abn')
-      #     install.packages('devtools')
-      #     devtools::check()
-      #   shell: Rscript {0}
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
 
-      - name: install from GitHub
+      - name: deactivate the renv
         run: |
-          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
-          library('abn')
-          install.packages('devtools')
-          devtools::check()
+            renv::deactivate()
         shell: Rscript {0}
 
-      # - name: fetch the repository from GitHub
-      #   uses: actions/checkout@v4
+      - name: install from source
+        run: |
+            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
+            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+        shell: Rscript {0}
 
-      # - name: deactivate the renv
-      #   run: |
-      #       renv::deactivate()
-      #   shell: Rscript {0}
-
-      # - name: install from source
-      #   run: |
-      #       devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
-      #       devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
-      #       install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
-      #   shell: Rscript {0}
+      - name: Run checks
+        run: |
+          devtools::check()
+        shell: Rscript {0}
