@@ -10,8 +10,9 @@ vignette: >
 
 
 
-```r
+``` r
 library(abn)
+#> Error in library(abn): there is no package called 'abn'
 ```
 
 In this vignette, we will discuss the parameter learning in the context of additive Bayesian network modelling with the package `abn`.
@@ -33,9 +34,10 @@ Alternatively, with `fitAbn()` we can fit the parameters to a manually specified
 In this case, we need to provide the data, its distributions and the DAG as arguments to `fitAbn()`:
 
 
-```r
+``` r
 # Load an illustrative subset of the example data
 mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
+#> Error in eval(expr, envir, enclos): object 'ex0.dag.data' not found
 
 # Specify the distributions of the nodes
 mydists <- list(b1="binomial",
@@ -56,59 +58,30 @@ mydag <- matrix(data=c( 0,0,1,0,0,0,0, # b1<-b3
                         0,0,0,0,0,0,0 #
 ), byrow=TRUE,ncol=7)
 colnames(mydag) <- rownames(mydag) <- names(mydat)
+#> Error in eval(expr, envir, enclos): object 'mydat' not found
 ```
 
 Fit the model to calculate the log marginal likelihood goodness of fit:
 
 
-```r
+``` r
 myres.c <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
                   method = "bayes")
+#> Error in fitAbn(dag = mydag, data.df = mydat, data.dists = mydists, method = "bayes"): could not find function "fitAbn"
 plot(myres.c)
+#> Error in eval(expr, envir, enclos): object 'myres.c' not found
 ```
-
-![plot of chunk unnamed-chunk-3](unnamed-chunk-3-1.png)
 
 # Examine the parameter estimates
 
 We can examine the parameter estimates with the `print()` method for the class `abnFit`
 
 
-```r
+``` r
 print(myres.c)
-#> The ABN model was fitted using a Bayesian approach. The estimated modes (the highest posterior density values of the parameters) are:
-#> 
-#> $b1
-#> b1|(Intercept)          b1|b3 
-#>          0.217         -0.164 
-#> 
-#> $b2
-#> b2|(Intercept)          b2|b1 
-#>         0.0286         0.0465 
-#> 
-#> $b3
-#> b3|(Intercept) 
-#>         0.0267 
-#> 
-#> $g1
-#> g1|(Intercept)          g1|b4   g1|precision 
-#>        -0.0494         0.0915         1.0054 
-#> 
-#> $b4
-#> b4|(Intercept) 
-#>           0.16 
-#> 
-#> $p2
-#> p2|(Intercept) 
-#>           2.34 
-#> 
-#> $p4
-#> p4|(Intercept) 
-#>           2.32 
-#> 
-#> Number of nodes in the network:  7
+#> Error in eval(expr, envir, enclos): object 'myres.c' not found
 ```
 
 or by looking at the `coef` slot of the `abnFit` object returned by `fitAbn()`:
@@ -121,38 +94,44 @@ This is useful to assess the uncertainty in the parameter estimates and to check
 Now fit the model with `compute.fixed=TRUE` to calculate the marginal posterior distributions for all parameters:
 
 
-```r
+``` r
 myres.c2 <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
                   method = "bayes",
                   compute.fixed=TRUE)
+#> Error in fitAbn(dag = mydag, data.df = mydat, data.dists = mydists, method = "bayes", : could not find function "fitAbn"
 ```
 
 The `marginals` slot of the `abnFit` object returned by `fitAbn()` contains a list of all marginal posterior densities.
 We can plot some of the marginal posterior densities to assess the uncertainty in the parameter estimates:
 
 
-```r
+``` r
 library(ggplot2)
 library(gridExtra)
 
 df1 <- as.data.frame(myres.c2$marginals$b1[["b1|(Intercept)"]])
+#> Error in eval(expr, envir, enclos): object 'myres.c2' not found
 names(df1) <- c("x","y")
+#> Error: object 'df1' not found
 p1 <- ggplot(df1, aes(x=x, y=y)) +
   geom_line() +
   geom_point(shape = 43, color="green") +
   labs(x="b1|(Intercept)", title="Node b1, Intercept")
+#> Error in eval(expr, envir, enclos): object 'df1' not found
 
 df2 <- as.data.frame(myres.c2$marginals$g1[["g1|b4"]])
+#> Error in eval(expr, envir, enclos): object 'myres.c2' not found
 names(df2) <- c("x","y")
+#> Error: object 'df2' not found
 p2 <- ggplot(df2, aes(x=x, y=y)) +
   geom_line() +
   geom_point(shape = 43, color="orange") +
   labs(x="g1|b4", title="Node g1, parameter b4")
+#> Error in eval(expr, envir, enclos): object 'df2' not found
 
 grid.arrange(p1, p2, ncol=2)
+#> Error in eval(expr, envir, enclos): object 'p1' not found
 ```
-
-![plot of chunk unnamed-chunk-6](unnamed-chunk-6-1.png)
 Note that, by default, all variables are standardized (`centre = TRUE`).
