@@ -76,6 +76,8 @@ jobs:
         run: |
           install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
           library('abn')
+          install.packages('devtools')
+          devtools::check()
         shell: Rscript {0}
 
       - name: install from GitHub
