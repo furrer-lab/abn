@@ -51,8 +51,6 @@ Imports:
     Rgraphviz,
     rjags,
     stringi,
-    entropy,
-    moments
 Suggests: 
     bookdown,
     boot,
@@ -68,7 +66,10 @@ Suggests:
     R.rsp,
     RhpcBLASctl,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    entropy,
+    moments,
+    R6
 LinkingTo: 
     Rcpp,
     RcppArmadillo
