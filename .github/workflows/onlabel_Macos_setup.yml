@@ -74,7 +74,7 @@ jobs:
 
       - name: install from GitHub
         run: |
-          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=TRUE, local=FALSE)
           library('abn')
         shell: Rscript {0}
 
@@ -88,7 +88,7 @@ jobs:
 
       - name: install from source
         run: |
-            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+            devtools::install_deps(pkg = '.', dependencies=TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
