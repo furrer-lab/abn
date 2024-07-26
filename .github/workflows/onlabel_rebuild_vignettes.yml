@@ -81,7 +81,6 @@ jobs:
           apt-get update && apt-get install -y gh
           git config --global --add safe.directory /__w/abn/abn
           gh pr checkout ${{ env.EVENT }}
-          git status
       - name: Disable renv
         run: |
             renv::deactivate()
@@ -108,10 +107,12 @@ jobs:
           git config --global user.name 'GitHub Vignette Bot'
           git config --global user.email 'vignettebot@github.com'
           git config --global --add safe.directory /__w/abn/abn
-          git add vignettes/*
+          git add vignettes/
+          git status
           git commit -m "Automated Vignette Compilation"
           git status
           git push 
+          git status
 
   report_vignette_build:
     if: ${{ (success() || failure()) }}
