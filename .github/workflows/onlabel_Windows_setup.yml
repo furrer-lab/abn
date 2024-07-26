@@ -89,3 +89,8 @@ jobs:
             devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
             install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
         shell: Rscript {0}
+
+      - name: Run checks
+        run: |
+          devtools::check(vignettes = FALSE)
+        shell: Rscript {0}
