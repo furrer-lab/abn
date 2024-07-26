@@ -97,7 +97,7 @@ jobs:
           R CMD INSTALL .
       - name: Rebuild Vignettes
         run: |
-          source("precompile.R")
+          source("vignettes/precompile.R")
         shell: Rscript {0}
       - uses: actions/upload-artifact@v4
         with:
