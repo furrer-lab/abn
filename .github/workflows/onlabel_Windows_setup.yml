@@ -93,5 +93,5 @@ jobs:
 
       - name: Run checks
         run: |
-          devtools::check(vignettes = FALSE)
+          devtools::check(vignettes=FALSE, error_on="error")
         shell: Rscript {0}
