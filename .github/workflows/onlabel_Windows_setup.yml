@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "117-elaborate-if-inla-jags-and-gsl-can-be-installed-via-systemrequirements"
 
 env:
   BUILD_LOC: "./build"
