@@ -97,7 +97,8 @@ jobs:
           R CMD INSTALL .
       - name: Rebuild Vignettes
         run: |
-          source("vignettes/precompile.R")
+          cd vignettes
+          source("precompile.R")
         shell: Rscript {0}
       - uses: actions/upload-artifact@v4
         with:
@@ -107,6 +108,8 @@ jobs:
           git config --global user.name 'GitHub Vignette Bot'
           git config --global user.email 'vignettebot@github.com'
           git config --global --add safe.directory /__w/abn/abn
+          ls -la 
+          ls -la vignettes/
           git add vignettes/
           git status
           git commit -m "Automated Vignette Compilation"
