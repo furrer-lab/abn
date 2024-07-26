@@ -55,11 +55,6 @@ jobs:
             library("rjags")
         shell: Rscript {0}
 
-      - name: install INLA
-        run: |
-            install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-        shell: Rscript {0}
-
       - name: installing dependencies from BiocManager
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE))
