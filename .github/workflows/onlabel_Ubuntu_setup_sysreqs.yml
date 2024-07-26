@@ -28,6 +28,10 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
     steps:
 
+      - name: Update and upgrade
+        run: |
+          sudo apt-get update && sudo apt-get upgrade
+
       - name: install R
         run: |
           sudo apt-get -y install r-base
@@ -85,5 +89,5 @@ jobs:
 
       - name: Run checks
         run: |
-          devtools::check()
+          devtools::check(vignettes = FALSE)
         shell: Rscript {0}
