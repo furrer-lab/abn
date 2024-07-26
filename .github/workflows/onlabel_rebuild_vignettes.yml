@@ -101,7 +101,7 @@ jobs:
         shell: Rscript {0}
       - name: Copy Figures to Vignettes folder
         run: |
-          cp ./*.png vignettes/
+          mv ./*.png vignettes/
       - uses: actions/upload-artifact@v4
         with:
           path: vignettes/
