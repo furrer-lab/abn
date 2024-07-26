@@ -38,7 +38,8 @@ License: GPL (>= 3)
 URL: https://r-bayesian-networks.org/, https://github.com/furrer-lab/abn
 BugReports: https://github.com/furrer-lab/abn/issues
 Depends: 
-    R (>= 4.0.0)
+    R (>= 4.0.0),
+    R6
 Imports: 
     doParallel,
     foreach,
@@ -68,8 +69,7 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     entropy,
-    moments,
-    R6
+    moments
 LinkingTo: 
     Rcpp,
     RcppArmadillo
