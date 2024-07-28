@@ -44,11 +44,6 @@ jobs:
           sudo chown root:adm -R /usr/local/lib/R
           sudo chmod g+w -R /usr/local/lib/R
 
-      - name: update R packages
-        run: |
-           update.packages(ask = FALSE, checkBuilt = TRUE)
-        shell: Rscript {0}
-
       - name: install pak
         run: |
           install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
