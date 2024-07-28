@@ -95,7 +95,6 @@ jobs:
 
       - name: pak install from GitHub
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
           pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
           library('abn')
         shell: Rscript {0}
