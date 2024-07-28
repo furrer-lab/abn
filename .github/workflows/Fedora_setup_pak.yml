@@ -1,0 +1,110 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Fedora Install
+
+on:
+  push:
+    branches:
+      - "main"
+      - "117-elaborate-if-inla-jags-and-gsl-can-be-installed-via-systemrequirements"
+
+env:
+  JAGS: '4.3.2'
+  BUILD_LOC: "./build"
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    runs-on: ubuntu-latest
+    container:
+      image: "fedora:latest"
+    name: fedora-latest R release
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - name: prepare fedora
+        run: |
+          dnf -y install wget
+          dnf -y install gcc
+          dnf -y install gcc-c++
+          dnf -y install gfortran
+          dnf -y install lapack*  # is needed on fedora server
+          dnf -y install blas*
+          dnf -y install atlas*
+
+      - name: install R
+        run: |
+          dnf -y install R
+
+      - name: install config and build dependencies
+        run: |
+          dnf -y install pkg-config
+          dnf -y install cmake
+          dnf -y install R-devtools
+
+      - name: install GSL
+        run: |
+          dnf -y install gsl-devel
+
+      - name: install JAGS
+        run: |
+          wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-${{ env.JAGS }}.tar.gz/download
+          cd /tmp
+          tar -xf jags.tar.gz
+          cd /tmp/JAGS-${{ env.JAGS }} 
+          ./configure --libdir=/usr/local/lib64
+          make
+          make install
+
+      - name: assert runtime linkage
+        run: |
+          echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
+          /sbin/ldconfig
+
+      - name: install rjags
+        run: |
+            install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
+
+      - name: installing dependencies from BiocManager
+        run: |
+          if (!requireNamespace("BiocManager", quietly = TRUE))
+              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
+          BiocManager::install("Rgraphviz")
+          BiocManager::install("graph")
+        shell: Rscript {0}
+
+      - name: pak install from GitHub
+        run: |
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}")
+          library('abn')
+        shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: install from source
+        run: |
+            pak::local_install(dependencies=TRUE)
+        shell: Rscript {0}
+
+      - name: run the tests
+        run: |
+            pak::pak('r-lib/testthat')
+            testthat::test_local(path='tests', load_package='none')
+        shell: Rscript {0}
+
