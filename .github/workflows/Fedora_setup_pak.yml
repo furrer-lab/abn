@@ -47,6 +47,7 @@ jobs:
         run: |
           dnf -y install pkg-config
           dnf -y install cmake
+          dnf -y install libcurl-devel  # needef for pak
           dnf -y install R-devtools
 
       - name: install GSL
