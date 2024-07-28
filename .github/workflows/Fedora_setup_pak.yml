@@ -44,7 +44,7 @@ jobs:
 
       - name: install config and build dependencies
         run: |
-          dnf -y install libcurl-devel  # needef for pak
+          dnf -y install libcurl-devel  # needed for pak
 
       - name: install pak
         run: |

@@ -44,6 +44,10 @@ jobs:
           sudo chown root:adm -R /usr/local/lib/R
           sudo chmod g+w -R /usr/local/lib/R
 
+      - name: install config and build dependencies
+        run: |
+          sudo apt-get -y install libcurl4-openssl-dev  # needed for pak
+
       - name: install pak
         run: |
           install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
