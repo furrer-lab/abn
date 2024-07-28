@@ -88,6 +88,11 @@ jobs:
           BiocManager::install("graph")
         shell: Rscript {0}
 
+      - name: adding repo for INLA to pak
+        run: |
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+        shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
