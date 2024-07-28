@@ -49,6 +49,11 @@ jobs:
            update.packages(ask = FALSE, checkBuilt = TRUE)
         shell: Rscript {0}
 
+      - name: install pak
+        run: |
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+        shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
