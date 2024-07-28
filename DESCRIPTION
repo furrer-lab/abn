@@ -60,7 +60,7 @@ Suggests:
     gridExtra,
     INLA,
     knitr,
-    Matrix (== 1.6.3),
+    Matrix,
     MatrixModels (>= 0.5.3),
     microbenchmark,
     R.rsp,
