@@ -27,6 +27,7 @@ test_that("plot.abnDag() works.", {
 
 test_that("print.abnCache() works.", {
   skip_on_cran() # Skipped on CRAN because it requires the INLA package
+  data() # loading the internal data files
 
   ## Subset of the build-in dataset, see  ?ex0.dag.data
   mydat <- ex0.dag.data[,c("b1","b2","g1","g2","b3","g3")] ## take a subset of cols
