@@ -76,5 +76,6 @@ jobs:
       - name: run the tests
         run: |
             pak::pak('r-lib/testthat')
+            library("abn")
             testthat::test_local(path='tests', load_package='none')
         shell: Rscript {0}
