@@ -40,7 +40,8 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ## Load the data and specify the parameters
 
-```r
+
+``` r
 library(abn)
 library(microbenchmark)
 
@@ -48,7 +49,7 @@ set.seed(123456)
 ```
 
 
-```r
+``` r
 # Prepare data and parameters
 df <- FCV[, -c(13)]
 mydists <- list(FCV = "binomial",
@@ -81,7 +82,7 @@ We compare the following methods:
 - `bayesMulticoreFORK`: Bayesian estimation on 2 cores using FORK
 
 
-```r
+``` r
 # Benchmark
 res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
                                                data.dists = mydists,
@@ -127,7 +128,7 @@ res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
 ```
 
 
-```r
+``` r
 boxplot(res)
 ```
 
@@ -140,17 +141,10 @@ This is due to the efficient implementation of the score cache computation in th
 It leverages either an internal C/C++ implementation or INLA, an efficient implementation of the Bayesian approach. The method selection, by default, is automatic and depends on the specific use case.
 The frequentist approach on the other hand relies on other R packages, which introduces a higher overhead.
 
-The multicore approach is generally faster than the singlecore approach.
-This is particularly noticeable for the frequentist approach, where both multicore methods surpass the singlecore method in speed.
-The Bayesian approach is already highly efficient, so the gain from using multiple cores is not as pronounced.
-
-For the Bayesian approach, the FORK method is generally faster than the PSOCK method.
+The FORK method is generally faster than the PSOCK method, especially for the Bayesian approach.
 This is because the FORK method shares memory objects between the processes, leading to significant efficiencies with large objects.
 In contrast, the PSOCK method creates a set of independent R processes and communicates between them using sockets, which introduces a higher memory overhead.
-For this example, the difference to the single core approach is not significant, likely because the problem is not large enough to greatly benefit from parallelization.
-
-Interestingly, for the frequentist approach, the PSOCK method appears to be generally faster than the FORK method.
-This can occur when the overhead of copying large objects in memory outweighs the benefits of shared memory in the FORK method.
+For this example, PSOCK shows worse performance than FORK, likely because the problem is not large enough to greatly benefit from parallelization.
 
 In conclusion, while the Bayesian approach is generally faster than the frequentist approach, the speed up is larger in the frequentist approach.
 However, the choice between FORK and PSOCK depends on the operating system and the specific use case.

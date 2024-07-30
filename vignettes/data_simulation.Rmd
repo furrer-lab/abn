@@ -10,8 +10,15 @@ vignette: >
 
 
 
-```r
+``` r
 library(abn)
+#> abn version 3.1.1 (2024-05-22) is loaded.
+#> To cite the package 'abn' in publications call: citation('abn').
+#> 
+#> Attaching package: 'abn'
+#> The following object is masked from 'package:base':
+#> 
+#>     factorial
 ```
 
 In this vignette, we will simulate data from an additive Bayesian network and compare it to the original data.
@@ -22,7 +29,7 @@ First, we will fit a model to the original data that we will use to simulate new
 We will use the `ex1.dag.data` data set and fit a model to it.
 
 
-```r
+``` r
 # Load example data
 mydat <- ex1.dag.data
 
@@ -43,6 +50,13 @@ mycache <- buildScoreCache(data.df = mydat,
                            data.dists = mydists,
                            method = "bayes",
                            max.parents = 4)
+#> Warning: package 'INLA' was built under R version 4.4.1
+#> Loading required package: Matrix
+#> Loading required package: sp
+#> This is INLA_24.06.27 built 2024-06-27 02:36:04 UTC.
+#>  - See www.r-inla.org/contact-us for how to get help.
+#>  - List available models/likelihoods/etc with inla.list.models()
+#>  - Use inla.doc(<NAME>) to access documentation
 
 # Structure learning
 mp.dag <- mostProbable(score.cache = mycache)
@@ -64,7 +78,7 @@ Based on the `abnFit` object, we can simulate new data.
 By default `simulateAbn()` synthesizes 1000 new data points.
 
 
-```r
+``` r
 mydat_sim <- simulateAbn(object = myfit)
 str(mydat_sim)
 #> 'data.frame':	1000 obs. of  10 variables:
@@ -86,7 +100,7 @@ Especially for debugging purposes, it can be usefull to manually inspect the BUG
 This can be done by not running the simulation with `run.simulation = FALSE` and print the BUGS file to console with `verbose = TRUE`.
 
 
-```r
+``` r
 # Simulate new data and print the BUGS file to the console
 simulateAbn(object = myfit,
             run.simulation = FALSE,
@@ -100,13 +114,13 @@ To store the BUGS file for reproducibility or manual inspection, we can set the 
 We can compare the original and simulated data by plotting the distributions of the variables.
 
 
-```r
+``` r
 # order the columns of mydat equal to mydat_sim
 mydat <- mydat[, colnames(mydat_sim)]
 ```
 
 
-```r
+``` r
 library(ggplot2)
 library(gridExtra)
 
@@ -152,7 +166,7 @@ for (i in seq_along(variables)) {
 
 
 
-```r
+``` r
 # Print all plots
 do.call(grid.arrange, c(plots, ncol = 1))
 ```

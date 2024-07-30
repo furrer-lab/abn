@@ -10,7 +10,7 @@ vignette: >
 
 
 
-```r
+``` r
 library(abn)
 ```
 
@@ -33,7 +33,7 @@ Alternatively, with `fitAbn()` we can fit the parameters to a manually specified
 In this case, we need to provide the data, its distributions and the DAG as arguments to `fitAbn()`:
 
 
-```r
+``` r
 # Load an illustrative subset of the example data
 mydat <- ex0.dag.data[,c("b1","b2","b3","g1","b4","p2","p4")]
 
@@ -61,7 +61,7 @@ colnames(mydag) <- rownames(mydag) <- names(mydat)
 Fit the model to calculate the log marginal likelihood goodness of fit:
 
 
-```r
+``` r
 myres.c <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
@@ -76,7 +76,7 @@ plot(myres.c)
 We can examine the parameter estimates with the `print()` method for the class `abnFit`
 
 
-```r
+``` r
 print(myres.c)
 #> The ABN model was fitted using a Bayesian approach. The estimated modes (the highest posterior density values of the parameters) are:
 #> 
@@ -121,7 +121,7 @@ This is useful to assess the uncertainty in the parameter estimates and to check
 Now fit the model with `compute.fixed=TRUE` to calculate the marginal posterior distributions for all parameters:
 
 
-```r
+``` r
 myres.c2 <- fitAbn(dag = mydag,
                   data.df = mydat,
                   data.dists = mydists,
@@ -133,7 +133,7 @@ The `marginals` slot of the `abnFit` object returned by `fitAbn()` contains a li
 We can plot some of the marginal posterior densities to assess the uncertainty in the parameter estimates:
 
 
-```r
+``` r
 library(ggplot2)
 library(gridExtra)
 
