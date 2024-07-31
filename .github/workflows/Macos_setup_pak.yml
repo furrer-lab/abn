@@ -1,0 +1,106 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Macos Install
+
+on:
+  push:
+    branches:
+      - "main"
+      - "117-elaborate-if-inla-jags-and-gsl-can-be-installed-via-systemrequirements"
+
+env:
+  BUILD_LOC: "./build"
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    name: macos-latest R release
+    runs-on: macos-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - name: prepare macos
+        run: |
+          brew install R
+          brew install pkg-config
+          brew install automake  # needed to run autoconf
+
+      - name: install GSL
+        run: |
+          brew install gsl
+
+      - name: install JAGS
+        run: |
+          brew install jags
+
+      # - name: install rjags
+      #   run: |
+      #       install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+      #       library("rjags")
+      #   shell: Rscript {0}
+
+      - name: install INLA dependencies
+        run: |
+          brew install udunits 
+          brew install openssl@1.1  # s2 package
+          brew install gdal  # installs geos as dependency
+                             # for s2 fmesher terra)
+          brew install proj  # sf package
+
+      - name: install INLA
+        run: |
+            install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+        shell: Rscript {0}
+
+      - name: install pak
+        run: |
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+        shell: Rscript {0}
+
+      # - name: install from CRAN with pak
+      #   run: |
+      #     pak::pkg_install('abn', dependencies=TRUE)
+      #     library('abn')
+      #   shell: Rscript {0}
+
+      - name: pak install from GitHub
+        run: |
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
+          library('abn')
+        shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: install from source
+        run: |
+            pak::local_install(dependencies=TRUE)
+        shell: Rscript {0}
+
+      - name: run the tests
+        run: |
+            pak::pak('r-lib/testthat')
+            library("abn")
+            testthat::test_local(path='tests', load_package='none')
+        shell: Rscript {0}
+
+      - name: Show checks outcome
+        if: always()
+        run: |
+          echo ::group::Show testthat output
+          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+          echo ::endgroup::
+        shell: bash --noprofile --norc -e -o pipefail {0}
