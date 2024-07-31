@@ -73,6 +73,12 @@ jobs:
             library("rjags")
         shell: Rscript {0}
 
+      # - name: install from CRAN with pak
+      #   run: |
+      #     pak::pkg_install('abn', dependencies=TRUE)
+      #     library('abn')
+      #   shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
@@ -99,3 +105,11 @@ jobs:
             library("abn")
             testthat::test_local(path='tests', load_package='none')
         shell: Rscript {0}
+
+      - name: Show checks outcome
+        if: always()
+        run: |
+          echo ::group::Show testthat output
+          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+          echo ::endgroup::
+        shell: bash --noprofile --norc -e -o pipefail {0}
