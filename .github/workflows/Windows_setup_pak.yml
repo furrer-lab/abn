@@ -1,0 +1,98 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Windows Install
+
+on:
+  push:
+    branches:
+      - "main"
+      - "117-elaborate-if-inla-jags-and-gsl-can-be-installed-via-systemrequirements"
+
+env:
+  BUILD_LOC: "./build"
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+  JAGS_MAJORV: '4'
+  JAGS_VERSION: '4.3.1'
+  JAGS_URL: "https://sourceforge.net/projects/mcmc-jags/files/JAGS"
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    name: windows-latest R release
+    runs-on: windows-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+
+      - name: install pak
+        run: |
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+        shell: Rscript {0}
+
+      - name: install GSL
+        run: |
+          Import-Module bitstransfer
+          New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
+          start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
+          Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages=gsl --site=https://cygwin.mirror.constant.com" -PassThru
+
+      - name: install JAGS
+        run: |
+          Import-Module bitstransfer
+          New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}"
+          start-bitstransfer -source ${{ env.JAGS_URL }}/${{ env.JAGS_MAJORV }}.x/Windows/JAGS-${{ env.JAGS_VERSION }}.exe/download  "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe"
+          Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-${{ env.JAGS_VERSION }}\JAGS-${{ env.JAGS_VERSION }}.exe" -ArgumentList "/S" -PassThru
+
+      - name: install rjags separately
+        run: |
+            Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-${{ env.JAGS_VERSION }}")
+            install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
+
+      # - name: install from CRAN with pak
+      #   run: |
+      #     pak::pkg_install('abn', dependencies=TRUE)
+      #     library('abn')
+      #   shell: Rscript {0}
+
+      - name: pak install from GitHub
+        run: |
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
+          library('abn')
+        shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: install from source
+        run: |
+            pak::local_install(dependencies=TRUE)
+        shell: Rscript {0}
+
+      - name: run the tests
+        run: |
+            pak::pak('r-lib/testthat')
+            library("abn")
+            testthat::test_local(path='tests', load_package='none')
+        shell: Rscript {0}
+
+      - name: Show checks outcome
+        if: always()
+        run: |
+          echo ::group::Show testthat output
+          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
+          echo ::endgroup::
+        shell: bash --noprofile --norc -e -o pipefail {0}
