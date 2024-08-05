@@ -107,7 +107,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ```
   
   _**Note:**_
-  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.)
+  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.)_
   _Omitting this argument will lead to `rjags` "not seeing" `jags`._
   
   On Fedora `rjags` might need some special configuration for it to link properly to the `JAGS` library.
