@@ -37,8 +37,6 @@ The following paragraphs provide detailed instructions for the most common opera
 <details>
 <summary><b><i>Ubuntu</i></b></summary>
 
-#### Prerequisites 
-
 You presumably have R installed already, if not, open a terminal and type:
 
 ```bash
@@ -53,7 +51,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ```bash
   apt-get install libcurl4-openssl-dev
   ```
-  Now to install `pak` we start an R session and write:
+  Now, to install `pak` we start an R session and write:
 
   ```R
   install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
@@ -66,8 +64,6 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 <details>
 <summary><b><i>Fedora</i></b></summary>
 
-#### Prerequisites 
-
   You will need C/C++ and Fortran compilers and various libraries:
  
  
@@ -77,7 +73,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   dnf install R
   ```
 
-  _Note: You might need to prepend `sudo ` to this command._
+  _**Note:** You might need to prepend `sudo ` to this command._
 
   For the installation you need to have the R-package [pak](https://pak.r-lib.org/) installed.
   `pak` is installed like any other R-package, however, it relies on `curl` being installed on your system, so we make sure it is there:
@@ -85,7 +81,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ```bash
   dnf install libcurl-devel 
   ```
-  Now to install `pak` we start an R session and write:
+  Now, to install `pak` we start an R session and write:
 
   ```R
   install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
@@ -110,9 +106,9 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   sudo make install
   ```
   
-  > [!NOTE]
-  > If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.
-  > Omitting this argument will lead to `rjags` "not seeing" `jags`.
+  _**Note:**_
+  _If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.)
+  _Omitting this argument will lead to `rjags` "not seeing" `jags`._
   
   On Fedora `rjags` might need some special configuration for it to link properly to the `JAGS` library.
   Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
@@ -124,52 +120,11 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   sudo /sbin/ldconfig
   ``` 
 
-  **Note:**
+  _**Note:**_
   _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
-  
 
-- **JAGS & rjags**
+  With that you should be ready to [install `abn` from GitHub](#installing-from-github-recommended).
   
-  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
-  `JAGS` is required in some simulations `abn` can perform.
-
-  `JAGS` must be installed from source.
-  Below are the steps to install `JAGS 4.3.2`.
-  
-  ```bash
-  wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-4.3.2.tar.gz/download
-  cd /tmp
-  tar -xf jags.tar.gz
-  cd /tmp/JAGS-4.3.2 
-  ./configure --libdir=/usr/local/lib64
-  make
-  sudo make install
-  ```
-  
-  > [!NOTE]
-  > If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.
-  > Omitting this argument will lead to `rjags` "not seeing" `jags`.
-  
-  
-  On Fedora `rjags` might need some special configuration for it to link properly to the `JAGS` library.
-  Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
-  
-  In order to add the `JAGS` library to the linker path, run the following commands:
-  
-  ```bash
-  sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
-  sudo /sbin/ldconfig
-  ``` 
-
-  **Note:**
-  _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
-  
-  To install `rjags` open an R session and type:
-  
-  ```R
-  install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
-  ```
-
 </details>
 
 <details>
