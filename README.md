@@ -27,105 +27,39 @@ The package provides routines for structure learning and parameter estimation of
 
 ## Prior to installing
 
-In order for `abn` to work correctly on your system some dependencies need to be installed first.
-The required steps to achieve this are specific to the operating system you are using and the following drop-down sections detail these steps for the most common ones: 
+In order for `abn` to work correctly on your system some dependencies need to be installed.
+If you are on a Linux based system (most of) these dependencies are installed automatically for you when following the [pak](https://pak.r-lib.org/)-based installation procedure described in the [Installation section](#installing-from-github-recommended).
 
+For MacOS and Windows based system some more preparatory steps are required.
+
+The following paragraphs provide detailed instructions for the most common operating systems on the steps that need to be carried out prior to installing `abn`.
 
 <details>
 <summary><b><i>Ubuntu</i></b></summary>
 
 #### Prerequisites 
 
-Most likely you have R installed already but if not run:
+You presumably have R installed already, if not, open a terminal and type:
 
 ```bash
 apt-get install r-base
 ```
 
-To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
+_Note: You might need to prepend `sudo ` to this command._
 
-```bash
-apt-get install pkg-config
-apt-get install cmake
-apt-get install r-cran-devtools
-```
+All you need for the installation is to have the R-package [pak](https://pak.r-lib.org/) installed.
+`pak` is installed like any other R-package, however, it relies on `curl` being installed on your system, so we make sure it is there:
 
-Finally, we will use `wget` to download `JAGS` later, as well as, the development headers of `curl` and `openssl`:
-
-```bash
-apt-get install wget
-apt-get install libcurl4-openssl-dev
-apt-get install libssl-dev
-
-```
-
-#### Dependencies
-
-- **GSL**
-
-  [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
-  It is required to compile `abn`'s C/C++ code.
-
-  `GSL` is available through the Advanced Package Tool, `APT`, simply type:
-  
   ```bash
-  sudo apt-get install libgsl-dev
+  apt-get install libcurl4-openssl-dev
   ```
+  Now to install `pak` we start an R session and write:
 
-- **JAGS & rjags**
-  
-  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
-  `JAGS` is required in some simulations `abn` can perform.
-
-  `JAGS` is available through the Advanced Package Tool, `APT`, simply type:
-  
-  ```bash
-  sudo apt-get install jags
-  ```
-  And to install `rjags` open an R session and type:
-  
   ```R
-  install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
-  library("rjags")
+  install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
   ```
 
-- **INLA**
-
-  [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-  `anb` uses `INLA` to fit some models. 
-  
-  `INLA` relies on various other R packages and C/C++ libraries.
-  It thus needs some additional installation steps:
-  
-  ```bash
-  apt-get install --no-install-recommends libudunits2-dev
-  apt-get install libjpeg-dev
-  apt-get install libgdal-dev
-  apt-get install libgeos-dev  # might not be needed
-  apt-get install libproj-dev
-  ```
-
-  Now, to install `INLA` itself, simply start an R session and run:
-  
-  ```R
-  install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-  ```
-  
-  If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
-
-- **Dependencies from BiocManager**
-
-  [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-  Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
-
-  The installation is straight forward on most common platforms, simply start an R session and run:
-  
-  ```R
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager")
-  BiocManager::install("Rgraphviz")
-  BiocManager::install("graph")
-  ```
+  With that you should be ready to [install `abn` from GitHub](#installing-from-github-recommended).
 
 </details>
 
@@ -136,49 +70,63 @@ apt-get install libssl-dev
 
   You will need C/C++ and Fortran compilers and various libraries:
  
-  ```bash
-  dnf install gcc
-  dnf install gcc-c++
-  dnf install gfortran
-  dnf install lapack*  # is needed on fedora server
-  dnf install blas*
-  dnf install atlas*
-  ```
  
-  Most likely you have R installed already but if not run:
+  You presumably have R installed already, if not, open a terminal and type:
  
   ```bash
   dnf install R
   ```
- 
-  To configure and build `abn` correctly we need `cmake` and `pkg-config`, as well as, the R `devtools` package:
- 
+
+  _Note: You might need to prepend `sudo ` to this command._
+
+  For the installation you need to have the R-package [pak](https://pak.r-lib.org/) installed.
+  `pak` is installed like any other R-package, however, it relies on `curl` being installed on your system, so we make sure it is there:
+
   ```bash
-  dnf install pkg-config
-  dnf install cmake
-  dnf install R-devtools
-  ```
- 
-  Finally, we will use `wget` to download `JAGS` later, as well as, the development headers of `curl` and `openssl`:
- 
-  ```bash
-  dnf install wget
   dnf install libcurl-devel 
-  dnf install openssl-devel
+  ```
+  Now to install `pak` we start an R session and write:
+
+  ```R
+  install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
   ```
 
-#### Dependencies
+  There is one more thing we need to do before we can install `abn`:
 
-- **GSL**
+  **Install JAGS from source**
 
-  [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
-  It is required to compile `abn`'s C/C++ code.
+  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+  `JAGS` is required in some simulations `abn` can perform.
 
-  `GSL` is available through Fedoras standard package manager, `DNF`, simply type:
+  The steps needed to install `JAGS 4.3.2` are:
   
   ```bash
-  sudo dnf install gsl-devel
+  wget -O /tmp/jags.tar.gz https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Source/JAGS-4.3.2.tar.gz/download
+  cd /tmp
+  tar -xf jags.tar.gz
+  cd /tmp/JAGS-4.3.2 
+  ./configure --libdir=/usr/local/lib64
+  make
+  sudo make install
   ```
+  
+  > [!NOTE]
+  > If you are on a 64bit system (you likely are) mind the `--libdir=/usr/local/lib64` argument when launching `./configure`.
+  > Omitting this argument will lead to `rjags` "not seeing" `jags`.
+  
+  On Fedora `rjags` might need some special configuration for it to link properly to the `JAGS` library.
+  Also, it might be needed to add the path to the `JAGS` library to the linker path (see [rjags INSTALL file](https://github.com/cran/rjags/blob/master/INSTALL) for further details).
+  
+  In order to add the `JAGS` library to the linker path, run the following commands:
+  
+  ```bash
+  sudo echo "/usr/local/lib64" > /etc/ld.so.conf.d/jags.conf
+  sudo /sbin/ldconfig
+  ``` 
+
+  **Note:**
+  _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
+  
 
 - **JAGS & rjags**
   
@@ -220,44 +168,6 @@ apt-get install libssl-dev
   
   ```R
   install.packages("rjags", configure.args="--enable-rpath", repos=c(CRAN="https://cran.r-project.org"))
-  ```
-
-- **INLA**
-
-  [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-  `anb` uses `INLA` to fit some models. 
-  
-  `INLA` relies on various other R packages and C/C++ libraries.
-  It thus needs some additional installation steps:
-  
-  ```bash
-  dnf install udunits2-devel
-  dnf install libjpeg-devel
-  dnf install gdal-devel
-  dnf install geos-devel
-  dnf install proj-devel
-  ```
-
-  Now, to install `INLA` itself, simply start an R session and run:
-  
-  ```R
-  install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-  ```
-  
-  If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
-
-- **Dependencies from BiocManager**
-
-  [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-  Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
-
-  The installation is straight forward on most common platforms, simply start an R session and run:
-  
-  ```R
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager")
-  BiocManager::install("Rgraphviz")
-  BiocManager::install("graph")
   ```
 
 </details>
