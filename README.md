@@ -348,8 +348,6 @@ It is also possible to clone this repository and install `abn` from source.
 > [!NOTE]
 > Also in this case you need to first prepare your system by following the [Prior to installing](#prior-to-installing) section.
 
-When installing from source 
-
 Installing from source is done with the following steps:
 
 1. Clone the repository and go to the root directory of the repo:
