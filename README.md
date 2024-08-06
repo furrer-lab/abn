@@ -43,7 +43,7 @@ You presumably have R installed already, if not, open a terminal and type:
 apt-get install r-base
 ```
 
-_Note: You might need to prepend `sudo ` to this command._
+_**Note:** You might need to prepend `sudo ` to this command._
 
 All you need for the installation is to have the R-package [pak](https://pak.r-lib.org/) installed.
 `pak` is installed like any other R-package, however, it relies on `curl` being present on your system, so we make sure it is there:
@@ -289,20 +289,22 @@ We recommend to not directly install `main`, but to a specific version.
 Head over to our [version list](https://github.com/furrer-lab/abn/releases) to see which one is the latest version.
 Here we assume the version is `3.1.1`.
 
-We use [devtools](https://github.com/r-lib/devtools) to install from GitHub.
-At this point `devtools` should already be installed in your system.
-<details><summary>if not, install it first.</summary> Open an R session and type:
+We use [pak](https://pak.r-lib.org/) for the installation process.
+If you followed the [Prior to installing](#prior-to-installing) section `pak` should already be installed
+<details><summary>If not, install it first.</summary> Open an R session and type:
 
 ```R
-install.packages("devtools", repos=c(CRAN="https://cran.r-project.org"))
+install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
 ```
 </details>
 
 To install `abn` run in your R session:
 
 ```R
-devtools::install_github("furrer-lab/abn", ref="3.1.1", dependencies=c("Depends", "Imports", "LinkingTo"))
+pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
+pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
 ```
+_**Note:** The first command can be skipped or MacOS or Windows._
 
 ## Installing from CRAN
 
