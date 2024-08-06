@@ -127,14 +127,27 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 <details>
 <summary><b><i>MacOS</i></b></summary>
 
+  Most likely you have R installed already but if not run:
+ 
+  ```bash
+  brew install R
+  ```
 
-  The installation process on MacOS relies on [Homebrew](https://brew.sh/), head over to their site to see the installation process or simply open a terminal and run:
+  For the installation you need to have the R-package [pak](https://pak.r-lib.org/) installed.
+  `pak` is installed like any other R-package, we start an R session and write:
+
+  ```R
+  install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+  ```
+
+  We will install the system dependencies with [Homebrew](https://brew.sh/).
+  Head over to their site to see the installation process or simply open a terminal and run:
 
   ```bash
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   ```
 
-  To configure and build `abn` correctly we need `cmake` and `pkg-config`:
+  To correctly link to installed libraries and to build them, we need `pkg-config` and `automake`:
  
   ```bash
   brew install pkg-config
@@ -148,132 +161,133 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   brew install openssl@1.1
   ```
 
-  Most likely you have R installed already but if not run:
- 
-  ```bash
-  brew install R
-  ```
-
-
-#### Dependencies
-
-On MacOS we need to install some system dependencies separately:
-
-
-- **GSL**
-
-  [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
-  It is required to compile `abn`'s C/C++ code.
-
-  With Homebrew you can install the `GSL` binaries directly:
+  #### Dependencies
   
-  ```
-  brew install gsl
-  ```
-
-- **JAGS & rjags**
+  On MacOS we need to install some system dependencies separately:
   
-  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
-  `JAGS` is required in some simulations `abn` can perform.
-
-  With Homebrew you can install the `JAGS` binaries directly:
   
-  ```
-  brew install jags
-  ```
+  - **GSL**
   
-  And now to install `rjags`, open an R session and type:
+    [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
+    It is required to compile `abn`'s C/C++ code.
   
-  ```R
-  install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-  library("rjags")
-  ```
-
-- **INLA**
-
-  [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-  `anb` uses `INLA` to fit some models. 
+    With Homebrew you can install the `GSL` binaries directly:
+    
+    ```
+    brew install gsl
+    ```
   
-  `INLA` relies on various other R packages and C/C++ libraries.
-  It thus needs some additional installation steps:
+  - **JAGS & rjags**
+    
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+    `JAGS` is required in some simulations `abn` can perform.
   
-  ```bash
-  brew install udunits 
-  brew install gdal  # installs also geos as dependency
-  brew install proj
-  ```
-
-  Now, to install `INLA` itself, simply start an R session and run:
+    With Homebrew you can install the `JAGS` binaries directly:
+    
+    ```
+    brew install jags
+    ```
+    
+    And now to install `rjags`, open an R session and type:
+    
+    ```R
+    install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+    library("rjags")
+    ```
   
-  ```R
-  install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-  ```
+  - **INLA**
   
-  If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
+    [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
+    `anb` uses `INLA` to fit some models. 
+    
+    `INLA` relies on various other R packages and C/C++ libraries.
+    It thus needs some additional installation steps:
+    
+    ```bash
+    brew install udunits 
+    brew install gdal  # installs also geos as dependency
+    brew install proj
+    ```
+  
+    Now, to install `INLA` itself, simply start an R session and run:
+    
+    ```R
+    install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+    ```
+    
+    If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
 
 </details>
 
 <details>
 <summary><b><i>Windows</i></b></summary>
 
-#### Dependencies
+  For the installation you need to have the R-package [pak](https://pak.r-lib.org/) installed.
+  `pak` is installed like any other R-package, we start an R session and write:
 
-On Windows we need to install some system dependencies separately:
-
-
-- **GSL**
-
-  [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
-  It is required to compile `abn`'s C/C++ code.
-
-  In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installation process.
-  Either head over to the website, download and install the `setup-x86_64.exe` file or use PowerShell:
-  
-  ```
-  Import-Module bitstransfer
-  New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
-  start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
-  Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
-  ```
-
-- **JAGS & rjags**
-  
-  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
-  `JAGS` is required in some simulations `abn` can perform.
-
-  
-  You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
-  The following instructions will download and install `JAGS 4.3.1` in PowerShell:
-  
-  ```
-  Import-Module bitstransfer
-  New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
-  start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
-  Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
-  ```
-  
-  In order to make sure `rjags` finds `JAGS` we set the environment variable `JAGS_HOME` before installing `rjags`.
-  To do so, open your R session and type:
-  
   ```R
-  Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
-  install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
-  library("rjags")
+  install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
   ```
 
-- **INLA**
 
-  [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-  `anb` uses `INLA` to fit some models. 
-  
-  The installation is straight forward, simply start an R session and run:
-  
-  ```R
-  install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
-  ```
-  
-  If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
+  #### Dependencies
 
+  On Windows we need to install some system dependencies separately:
+
+
+  - **GSL**
+  
+    [GSL](https://www.gnu.org/software/gsl/), the _GNU Scientific Library_, is a numerical library for C/C++.
+    It is required to compile `abn`'s C/C++ code.
+  
+    In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installation process.
+    Either head over to the website, download and install the `setup-x86_64.exe` file or use PowerShell:
+    
+    ```
+    Import-Module bitstransfer
+    New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
+    start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
+    Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "/S" -PassThru
+    ```
+  
+  - **JAGS & rjags**
+    
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+    `JAGS` is required in some simulations `abn` can perform.
+  
+    
+    You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
+    The following instructions will download and install `JAGS 4.3.1` in PowerShell:
+    
+    ```
+    Import-Module bitstransfer
+    New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
+    start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
+    Start-Process -Wait -FilePath "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe" -ArgumentList "/S" -PassThru
+    ```
+    
+    In order to make sure `rjags` finds `JAGS` we set the environment variable `JAGS_HOME` before installing `rjags`.
+    To do so, open your R session and type:
+    
+    ```R
+    Sys.setenv(JAGS_HOME="C:/Program Files/JAGS/JAGS-4.3.1")
+    install.packages("rjags", repos=c(CRAN="https://cran.r-project.org"))
+    library("rjags")
+    ```
+  
+  - **INLA**
+  
+    [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
+    `anb` uses `INLA` to fit some models. 
+    
+    The installation is straight forward, simply start an R session and run:
+    
+    ```R
+    install.packages("INLA", repos = c(getOption("repos"), INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
+    ```
+    
+    If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
+  
 </details>
 
 _Click on your operating system to see the specific installation instructions_
