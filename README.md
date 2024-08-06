@@ -304,7 +304,7 @@ Head over to our [version list](https://github.com/furrer-lab/abn/releases) to s
 Here we assume the version is `3.1.1`.
 
 We use [pak](https://pak.r-lib.org/) for the installation process.
-If you followed the [Prior to installing](#prior-to-installing) section `pak` should already be installed
+If you followed the [Prior to installing](#prior-to-installing) section `pak` should already be installed.
 <details><summary>If not, install it first.</summary> Open an R session and type:
 
 ```R
@@ -316,23 +316,24 @@ To install `abn` run in your R session:
 
 ```R
 pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
-pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
+pak::pkg_install("furrer-lab/abn@3.1.1", dependencies=TRUE)
 ```
-_**Note:** The first command can be skipped or MacOS or Windows._
+_**Note:** The first command can be skipped on MacOS or Windows._
 
 ## Installing from CRAN
 
-Note that when installing from CRAN you might not get the latest version of `abn`.
-If you want the latest version follow the instructions from [Installing from GitHub](#installing-from-github-recommended).
+> [!NOTE]
+> When installing from CRAN you might not get the latest version of `abn`.
+> If you want the latest version follow the instructions from [Installing from GitHub](#installing-from-github-recommended).
 
 In order to install the `abn` version on CRAN, open an R session and type:
 
 ```R
-install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
+pak::pkg_install("abn", dependencies=TRUE)
 ```
 
 `anb` has several dependencies that are not available on CRAN.
-This is why the [Prior to installing](#prior-to-installing) section should be followed through before installing `abn` from CRAN. [^1]
+This is why we rely on [pak](https://pak.r-lib.org/) for the installation and the [Prior to installing](#prior-to-installing) section should be followed through before installing `abn` from CRAN. [^1]
 
 [^1]: The `abn` package includes certain features, such as multiprocessing and integration with the `INLA` package, which are limited or available only on specific CRAN flavors. 
 While it is possible to relax the testing process by, e.g., excluding tests of these functionalities, we believe that rigorous testing is important for reliable software development, especially for a package like `abn` that includes complex functionalities. 
@@ -358,22 +359,16 @@ Installing from source is done with the following steps:
    cd abn
    ```
 
-2. Install the dependencies by opening an R session and typing:
+2. Deactivate `abn`'s development environment (a [renv](https://rstudio.github.io/renv/articles/renv.html) virtual environment):
 
    ```R
-   devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
+   renv::deactivate()
    ```
 
-3. Build the package by opening an R session and typing:
+3. Build and install the local content with dependencies:
 
    ```R
-   devtools::build(pkg = '.', path = '.build/abn.tar.gz', vignettes = FALSE)
-   ```
-
-4. Install the package by opening an R session and typing:
-
-   ```R
-   install.packages('.build/abn.tar.gz', repos=NULL, type="source")
+   pak::local_install(dependencies=TRUE)
    ```
 
 # Quickstart
