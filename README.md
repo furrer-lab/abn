@@ -28,7 +28,7 @@ The package provides routines for structure learning and parameter estimation of
 ## Prior to installing
 
 In order for `abn` to work correctly on your system some dependencies need to be installed.
-If you are on a Linux based system (most of) these dependencies are installed automatically for you when following the [pak](https://pak.r-lib.org/)-based installation procedure described in the [Installation section](#installing-from-github-recommended).
+If you are on a Linux based system (most of) these dependencies are installed automatically for you when following the [pak](https://pak.r-lib.org/)-based installation procedure described in the [Installating from GitHub](#installing-from-github-recommended) section.
 
 For MacOS and Windows based system some more preparatory steps are required.
 
@@ -46,7 +46,7 @@ apt-get install r-base
 _Note: You might need to prepend `sudo ` to this command._
 
 All you need for the installation is to have the R-package [pak](https://pak.r-lib.org/) installed.
-`pak` is installed like any other R-package, however, it relies on `curl` being installed on your system, so we make sure it is there:
+`pak` is installed like any other R-package, however, it relies on `curl` being present on your system, so we make sure it is there:
 
   ```bash
   apt-get install libcurl4-openssl-dev
@@ -64,9 +64,6 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 <details>
 <summary><b><i>Fedora</i></b></summary>
 
-  You will need C/C++ and Fortran compilers and various libraries:
- 
- 
   You presumably have R installed already, if not, open a terminal and type:
  
   ```bash
@@ -121,7 +118,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ``` 
 
   _**Note:**_
-  _These commands might not be needed, you might first try to install `rjags` (see below) and only run them if you encounter a `configure: error: Runtime link error`._
+  _These commands might not be needed, you might first try to install the R-package `rjags` and only run them if you encounter a `configure: error: Runtime link error`._
 
   With that you should be ready to [install `abn` from GitHub](#installing-from-github-recommended).
   
@@ -129,8 +126,6 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 
 <details>
 <summary><b><i>MacOS</i></b></summary>
-
-#### Prerequisites 
 
 
   The installation process on MacOS relies on [Homebrew](https://brew.sh/), head over to their site to see the installation process or simply open a terminal and run:
@@ -161,6 +156,9 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 
 
 #### Dependencies
+
+On MacOS we need to install some system dependencies separately:
+
 
 - **GSL**
 
@@ -213,26 +211,15 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   
   If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
 
-- **Dependencies from BiocManager**
-
-  [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-  Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
-
-  The installation is straight forward on most common platforms, simply start an R session and run:
-  
-  ```R
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager")
-  BiocManager::install("Rgraphviz")
-  BiocManager::install("graph")
-  ```
-
 </details>
 
 <details>
 <summary><b><i>Windows</i></b></summary>
 
 #### Dependencies
+
+On Windows we need to install some system dependencies separately:
+
 
 - **GSL**
 
@@ -286,20 +273,6 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ```
   
   If you run into trouble, please see also [INLA's installation instructions](https://www.r-inla.org/download-install) for further details.
-
-- **Dependencies from BiocManager**
-
-  [Rgraphviz](https://www.bioconductor.org/packages/release/bioc/html/Rgraphviz.html) and [graph](https://bioconductor.org/packages/3.19/bioc/html/graph.html) are used to produce plots of network graphs.
-  Both packages are hosted on [Bioconductor](https://www.bioconductor.org/) and thus need to be installed with `BiocManager`:
-
-  The installation is straight forward on most common platforms, simply start an R session and run:
-  
-  ```R
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-      install.packages("BiocManager")
-  BiocManager::install("Rgraphviz")
-  BiocManager::install("graph")
-  ```
 
 </details>
 
