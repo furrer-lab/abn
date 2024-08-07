@@ -198,7 +198,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   - **INLA**
   
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-    `anb` uses `INLA` to fit some models. 
+    `abn` uses `INLA` to fit some models. 
     
     `INLA` relies on various other R packages and C/C++ libraries.
     It thus needs some additional installation steps:
@@ -278,7 +278,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   - **INLA**
   
     [INLA](https://www.r-inla.org/) is an R package that is not hosted on CRAN and thus needs to be installed separately.
-    `anb` uses `INLA` to fit some models. 
+    `abn` uses `INLA` to fit some models. 
     
     The installation is straight forward, simply start an R session and run:
     
@@ -332,7 +332,7 @@ In order to install the `abn` version on CRAN, open an R session and type:
 pak::pkg_install("abn", dependencies=TRUE)
 ```
 
-`anb` has several dependencies that are not available on CRAN.
+`abn` has several dependencies that are not available on CRAN.
 This is why we rely on [pak](https://pak.r-lib.org/) for the installation and the [Prior to installing](#prior-to-installing) section should be followed through before installing `abn` from CRAN. [^1]
 
 [^1]: The `abn` package includes certain features, such as multiprocessing and integration with the `INLA` package, which are limited or available only on specific CRAN flavors. 
