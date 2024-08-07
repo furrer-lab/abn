@@ -366,8 +366,10 @@ Installing from source is done with the following steps:
 3. Build and install the local content with dependencies:
 
    ```R
+   pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
    pak::local_install(dependencies=TRUE)
    ```
+  _**Note:** The first command can be skipped on MacOS or Windows._
 
 # Quickstart
 
