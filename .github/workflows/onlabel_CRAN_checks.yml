@@ -54,7 +54,6 @@ jobs:
           gh label create ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
         continue-on-error: true  # make sure the next steps run also on failure
 
-
   R_CMD_check:
     runs-on: ubuntu-latest
     needs:
