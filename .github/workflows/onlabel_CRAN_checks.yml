@@ -116,6 +116,7 @@ jobs:
           R_KEEP_PKG_SOURCE: yes
 
   report_CRAN_checks:
+    if: ${{ ( success() || failure() ) }}
     needs:
       - R_CMD_check
       - check_label_exist
