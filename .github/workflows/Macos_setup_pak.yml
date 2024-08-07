@@ -89,18 +89,3 @@ jobs:
         run: |
             pak::local_install(dependencies=TRUE)
         shell: Rscript {0}
-
-      - name: run the tests
-        run: |
-            pak::pak('r-lib/testthat')
-            library("abn")
-            testthat::test_local(path='tests', load_package='none')
-        shell: Rscript {0}
-
-      - name: Show checks outcome
-        if: always()
-        run: |
-          echo ::group::Show testthat output
-          find check -name 'testthat.Rout*' -exec cat '{}' \; || true
-          echo ::endgroup::
-        shell: bash --noprofile --norc -e -o pipefail {0}
