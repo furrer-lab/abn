@@ -315,7 +315,7 @@ install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
 To install `abn` run in your R session:
 
 ```R
-pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
+pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
 pak::pkg_install("furrer-lab/abn@3.1.1", dependencies=TRUE)
 ```
 _**Note:** The first command can be skipped on MacOS or Windows._
@@ -329,8 +329,10 @@ _**Note:** The first command can be skipped on MacOS or Windows._
 In order to install the `abn` version on CRAN, open an R session and type:
 
 ```R
+pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
 pak::pkg_install("abn", dependencies=TRUE)
 ```
+_**Note:** The first command can be skipped on MacOS or Windows._
 
 `abn` has several dependencies that are not available on CRAN.
 This is why we rely on [pak](https://pak.r-lib.org/) for the installation and the [Prior to installing](#prior-to-installing) section should be followed through before installing `abn` from CRAN. [^1]
@@ -366,7 +368,7 @@ Installing from source is done with the following steps:
 3. Build and install the local content with dependencies:
 
    ```R
-   pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
+   pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
    pak::local_install(dependencies=TRUE)
    ```
   _**Note:** The first command can be skipped on MacOS or Windows._
