@@ -18,17 +18,17 @@ It derives a directed acyclic graph (DAG) from empirical data that describes the
 The package provides routines for structure learning and parameter estimation of additive Bayesian network models.  
 
 # Installation
-[![Ubuntu Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Ubuntu_setup.yml)
-[![Fedora Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Fedora_setup.yml)
-[![MacOS Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Macos_setup.yml)
-[![Windows Install](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_Windows_setup.yml)
+[![Ubuntu Install](https://github.com/furrer-lab/abn/actions/workflows/Ubuntu_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/Ubuntu_setup.yml)
+[![Fedora Install](https://github.com/furrer-lab/abn/actions/workflows/Fedora_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/Fedora_setup.yml)
+[![MacOS Install](https://github.com/furrer-lab/abn/actions/workflows/Macos_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/Macos_setup.yml)
+[![Windows Install](https://github.com/furrer-lab/abn/actions/workflows/Windows_setup.yml/badge.svg?branch=main)](https://github.com/furrer-lab/abn/actions/workflows/Windows_setup.yml)
 
 `abn` and its installation process relies on various software that might, or might not, be present in your system.
 
 ## Prior to installing
 
 In order for `abn` to work correctly on your system some dependencies need to be installed.
-If you are on a Linux based system (most of) these dependencies are installed automatically for you when following the [pak](https://pak.r-lib.org/)-based installation procedure described in the [Installating from GitHub](#installing-from-github-recommended) section.
+If you are on a Linux based system (most of) these dependencies are installed automatically for you when following the [pak](https://pak.r-lib.org/)-based installation procedure described in the [Installing from GitHub](#installing-from-github-recommended) section.
 
 For MacOS and Windows based system some more preparatory steps are required.
 
