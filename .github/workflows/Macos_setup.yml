@@ -39,11 +39,11 @@ jobs:
         run: |
           brew install jags
 
-      - name: install rjags
-        run: |
-            install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-            library("rjags")
-        shell: Rscript {0}
+      # - name: install rjags
+      #   run: |
+      #       install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+      #       library("rjags")
+      #   shell: Rscript {0}
 
       - name: install INLA dependencies
         run: |
@@ -58,23 +58,21 @@ jobs:
             install.packages("INLA", repos = c(CRAN = "https://cran.r-project.org", INLA = "https://inla.r-inla-download.org/R/stable"), dep = TRUE)
         shell: Rscript {0}
 
-      - name: installing dependencies from BiocManager
+      - name: install pak
         run: |
-          if (!requireNamespace("BiocManager", quietly = TRUE))
-              install.packages("BiocManager", repos=c(CRAN="https://cran.r-project.org"))
-          BiocManager::install("Rgraphviz")
-          BiocManager::install("graph")
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
         shell: Rscript {0}
 
-      - name: install from CRAN
-        run: |
-          install.packages('abn', repos=c(CRAN="https://cran.r-project.org"))
-          library('abn')
-        shell: Rscript {0}
+      # - name: install from CRAN with pak
+      #   run: |
+      #     pak::pkg_install('abn', dependencies=TRUE)
+      #     library('abn')
+      #   shell: Rscript {0}
 
-      - name: install from GitHub
+      - name: pak install from GitHub
         run: |
-          devtools::install_github("furrer-lab/abn", ref="${{ env.BRANCH }}", dependencies=c("Depends", "Imports", "LinkingTo"), local=FALSE)
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
           library('abn')
         shell: Rscript {0}
 
@@ -88,7 +86,5 @@ jobs:
 
       - name: install from source
         run: |
-            devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never', repos=c(CRAN="https://cran.r-project.org"))
-            devtools::build(pkg = '.', path = '${{ env.BUILD_LOC }}/abn.tar.gz', vignettes = FALSE)
-            install.packages('${{ env.BUILD_LOC }}/abn.tar.gz', repos=NULL, type="source")
+            pak::local_install(dependencies=TRUE)
         shell: Rscript {0}

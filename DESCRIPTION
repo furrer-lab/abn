@@ -51,8 +51,6 @@ Imports:
     Rgraphviz,
     rjags,
     stringi,
-    entropy,
-    moments
 Suggests: 
     bookdown,
     boot,
@@ -62,13 +60,16 @@ Suggests:
     gridExtra,
     INLA,
     knitr,
-    Matrix (>= 1.6.3),
+    Matrix,
     MatrixModels (>= 0.5.3),
     microbenchmark,
     R.rsp,
     RhpcBLASctl,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    entropy,
+    moments,
+    R6
 LinkingTo: 
     Rcpp,
     RcppArmadillo
@@ -77,7 +78,7 @@ VignetteBuilder:
 Additional_repositories: https://inla.r-inla-download.org/R/stable/
 Config/testthat/edition: 3
 Encoding: UTF-8
-LazyData: true
+LazyData: TRUE
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.1
-SystemRequirements: Gnu Scientific Library version >= 1.12, jpeg, gdal, geos, proj
+SystemRequirements: pkg-config, cmake, gsl, jpeg, gdal, geos, proj, udunits-2, openssl, libcurl, jags

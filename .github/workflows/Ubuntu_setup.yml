@@ -1,0 +1,77 @@
+# Workflow is triggered on label and check installation on various operating systems
+# This action is adapted from https://github.com/t4d-gmbh/stubbed_versioning
+name: Ubuntu Install
+
+on:
+  push:
+    branches:
+      - "main"
+
+env:
+  BRANCH: ${{ github.head_ref || github.ref_name }}
+
+permissions:
+  packages: read
+  contents: write
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  setup-and-install:
+    runs-on: ubuntu-latest
+    name: ubuntu-latest R release
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+
+      - name: Update and upgrade
+        run: |
+          sudo apt-get update && sudo apt-get upgrade
+
+      - name: install R
+        run: |
+          sudo apt-get -y install r-base
+
+      - name: fixing folder perms for local lib
+        run: |
+          sudo chown root:adm -R /usr/lib/R
+          sudo chmod g+w -R /usr/lib/R
+          sudo chown root:adm -R /usr/local/lib/R
+          sudo chmod g+w -R /usr/local/lib/R
+
+      - name: install config and build dependencies
+        run: |
+          sudo apt-get -y install libcurl4-openssl-dev  # needed for pak
+
+      - name: install pak
+        run: |
+          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+        shell: Rscript {0}
+
+      # - name: install from CRAN with pak
+      #   run: |
+      #     pak::pkg_install('abn', dependencies=TRUE)
+      #     library('abn')
+      #   shell: Rscript {0}
+
+      - name: pak install from GitHub
+        run: |
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
+          library('abn')
+        shell: Rscript {0}
+
+      - name: fetch the repository from GitHub
+        uses: actions/checkout@v4
+
+      - name: deactivate the renv
+        run: |
+            renv::deactivate()
+        shell: Rscript {0}
+
+      - name: install from source
+        run: |
+            pak::local_install(dependencies=TRUE)
+        shell: Rscript {0}
