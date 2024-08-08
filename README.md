@@ -301,7 +301,7 @@ Officially supported is R version >= 4.4
 From GitHub you can install any version and/or state of the `abn` repository you want.
 We recommend to not directly install `main`, but to a specific version.
 Head over to our [version list](https://github.com/furrer-lab/abn/releases) to see which one is the latest version.
-Here we assume the version is `3.1.1`.
+Here we assume the version is `3.1.2`.
 
 We use [pak](https://pak.r-lib.org/) for the installation process.
 If you followed the [Prior to installing](#prior-to-installing) section `pak` should already be installed.
@@ -316,7 +316,7 @@ To install `abn` run in your R session:
 
 ```R
 pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
-pak::pkg_install("furrer-lab/abn@3.1.1", dependencies=TRUE)
+pak::pkg_install("furrer-lab/abn@3.1.2", dependencies=TRUE)
 ```
 _**Note:** The first command can be skipped on MacOS or Windows._
 
