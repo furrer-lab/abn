@@ -5,7 +5,7 @@
 <!-- WARNING: -->
 <!-- The ?branch=release-x.y.y is updated automatically by the initiate_version_release workflow -->
 [![status](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812/status.svg)](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812)
-[![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg?branch=release-3.1.1)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
+[![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg?branch=release-3.1.2)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)](https://app.codecov.io/gh/furrer-lab/abn)
 [![GitHub R package version](https://img.shields.io/github/r-package/v/furrer-lab/abn)](https://github.com/furrer-lab/abn/tags)
 ![cran](https://www.r-pkg.org/badges/version-ago/abn) 
@@ -315,7 +315,7 @@ install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
 To install `abn` run in your R session:
 
 ```R
-pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
+pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
 pak::pkg_install("furrer-lab/abn@3.1.1", dependencies=TRUE)
 ```
 _**Note:** The first command can be skipped on MacOS or Windows._
@@ -329,8 +329,10 @@ _**Note:** The first command can be skipped on MacOS or Windows._
 In order to install the `abn` version on CRAN, open an R session and type:
 
 ```R
+pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
 pak::pkg_install("abn", dependencies=TRUE)
 ```
+_**Note:** The first command can be skipped on MacOS or Windows._
 
 `abn` has several dependencies that are not available on CRAN.
 This is why we rely on [pak](https://pak.r-lib.org/) for the installation and the [Prior to installing](#prior-to-installing) section should be followed through before installing `abn` from CRAN. [^1]
@@ -366,7 +368,7 @@ Installing from source is done with the following steps:
 3. Build and install the local content with dependencies:
 
    ```R
-   pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/") 
+   pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
    pak::local_install(dependencies=TRUE)
    ```
   _**Note:** The first command can be skipped on MacOS or Windows._

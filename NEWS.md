@@ -1,4 +1,15 @@
 
+# abn 3.1.2
+[diff](https://github.com/furrer-lab/abn/compare/3.1.1...3.1.2)
+
+> 2024-08-07
+
+### Fix
+
+* Simplified installation process ([#143](https://github.com/furrer-lab/abn/issues/143), [#142](https://github.com/furrer-lab/abn/issues/142), [#141](https://github.com/furrer-lab/abn/issues/141), [#125](https://github.com/furrer-lab/abn/issues/125), [#124](https://github.com/furrer-lab/abn/issues/124), [#123](https://github.com/furrer-lab/abn/issues/123), [#117](https://github.com/furrer-lab/abn/issues/117), [#114](https://github.com/furrer-lab/abn/issues/114))
+* Minor fixes in JOSS paper ([#147](https://github.com/furrer-lab/abn/issues/147), [#129](https://github.com/furrer-lab/abn/issues/129))
+* Some fixes and improvements in automation pipelines ([#140](https://github.com/furrer-lab/abn/issues/140), [#138](https://github.com/furrer-lab/abn/issues/138), [#132](https://github.com/furrer-lab/abn/issues/132), [#127](https://github.com/furrer-lab/abn/issues/127), [#111](https://github.com/furrer-lab/abn/issues/111))
+
 # abn 3.1.1
 [diff](https://github.com/furrer-lab/abn/compare/3.1.0...3.1.1)
 
