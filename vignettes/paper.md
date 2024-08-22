@@ -99,11 +99,7 @@ Additional documentation and resources are available on the `abn` [website](http
 
 # Availability
 
-The latest version of the `abn` package is available on [GitHub](https://github.com/furrer-lab/abn) and can be installed using the `devtools` package:
-
-```r
-devtools::install_github("furrer-lab/abn")
-```
+The latest version of the `abn` package along with additional information on the installaiton process for various operating sytsems can be found on [GitHub](https://github.com/furrer-lab/abn).
 
 # Acknowledgments
 
