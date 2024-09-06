@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "150-fails-to-build-dependency-ragg-when-installing"
 
 env:
   BUILD_LOC: "./build"
