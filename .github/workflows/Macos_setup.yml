@@ -34,8 +34,14 @@ jobs:
       
       - name: temporal workaround for ragg
         run: |
-          brew search freetype@
-          brew install freetype#2.13.2
+          brew update
+          ls $(brew --prefix)/Library/Homebrew
+          ls $(brew --prefix)/Library/Homebrew/*/
+          curl -L https://raw.githubusercontent.com/Homebrew/homebrew-core/d28afc3bfdb5d24eab02157bfffcc9e17ed6666c/Formula/f/freetype.rb > $(brew --prefix)/Library/Formula/freetype.rb
+          brew install freetype
+
+          cat $(pwd)/freetype.rb
+          brew install --build-from-source $(pwd)/freetype.rb
 
       - name: install GSL
         run: |
