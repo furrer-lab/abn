@@ -61,6 +61,11 @@ jobs:
       #     library('abn')
       #   shell: Rscript {0}
 
+      - name: temporal workaround for ragg
+        run: |
+          pak::pak("r-lib/ragg@0bc4e8c")
+        shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
