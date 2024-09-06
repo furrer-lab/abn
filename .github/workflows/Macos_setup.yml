@@ -72,7 +72,7 @@ jobs:
       
       - name: temporal workaround for ragg
         run: |
-          pak::pak("r-lib/ragg#171")
+          pak::pak("r-lib/ragg@0bc4e8c")
         shell: Rscript {0}
 
       - name: pak install from GitHub
