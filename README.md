@@ -301,11 +301,11 @@ Officially supported is R version >= 4.4
 > [!WARNING]
 > Due to https://github.com/r-lib/ragg/issues/170 the R package [`ragg`](https://github.com/r-lib/ragg) does not build correctly.
 > Since `abn` depends on `ragg` the installation of `abn` might fail.
-> Therefore, we recommend installing a specific version of `ragg` as temporal fix:
+> Therefore, we recommend installing a specific version of `ragg` as a temporal fix:
 > ```R
 > pak::pak("r-lib/ragg@0bc4e8c")
 > ```
-> Simply run this command befor installing `abn` (see below) and you should be good to go.
+> Simply run this command before installing `abn` (see below) and you should be good to go.
 
 
 From GitHub you can install any version and/or state of the `abn` repository you want.
