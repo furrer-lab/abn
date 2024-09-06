@@ -31,17 +31,6 @@ jobs:
           brew install R
           brew install pkg-config
           brew install automake  # needed to run autoconf
-      
-      - name: temporal workaround for ragg
-        run: |
-          brew update
-          ls $(brew --prefix)/Library/Homebrew
-          ls $(brew --prefix)/Library/Homebrew/*/
-          curl -L https://raw.githubusercontent.com/Homebrew/homebrew-core/d28afc3bfdb5d24eab02157bfffcc9e17ed6666c/Formula/f/freetype.rb > $(brew --prefix)/Library/Formula/freetype.rb
-          brew install freetype
-
-          cat $(pwd)/freetype.rb
-          brew install --build-from-source $(pwd)/freetype.rb
 
       - name: install GSL
         run: |
@@ -80,6 +69,11 @@ jobs:
       #     pak::pkg_install('abn', dependencies=TRUE)
       #     library('abn')
       #   shell: Rscript {0}
+      
+      - name: temporal workaround for ragg
+        run: |
+          pak::pak("r-lib/ragg#171")
+        shell: Rscript {0}
 
       - name: pak install from GitHub
         run: |
