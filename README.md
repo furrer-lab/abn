@@ -298,6 +298,16 @@ Officially supported is R version >= 4.4
 
 ## Installing from GitHub (recommended)
 
+> [!WARNING]
+> Until verion of `1.3.3` is released (see https://github.com/r-lib/ragg/issues/174) the R package [`ragg`](https://github.com/r-lib/ragg) does not build correctly.
+> Since `abn` depends on `ragg` the installation of `abn` might fail.
+> Therefore, we recommend installing the developer versin of `ragg` as a temporal fix:
+> ```R
+> pak::pak("r-lib/ragg")
+> ```
+> Simply run this command before installing `abn` (see below) and you should be good to go.
+
+
 From GitHub you can install any version and/or state of the `abn` repository you want.
 We recommend to not directly install `main`, but to a specific version.
 Head over to our [version list](https://github.com/furrer-lab/abn/releases) to see which one is the latest version.
