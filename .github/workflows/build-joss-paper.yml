@@ -3,6 +3,7 @@ name: Build JOSS paper pdf
 on:
   push:
     branches:
+      - 152-paper-submission-next-steps
       - JOSSpaper_noT
       - JOSSpaper
       - main
