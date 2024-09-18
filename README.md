@@ -161,7 +161,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   brew install openssl@1.1
   ```
 
-  #### Dependencies
+  <ins>**Dependencies**</ins>
   
   On MacOS we need to install some system dependencies separately:
   
@@ -230,7 +230,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   ```
 
 
-  #### Dependencies
+  <ins>**Dependencies**</ins>
 
   On Windows we need to install some system dependencies separately:
 
@@ -243,7 +243,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
     In Windows `GSL` is available a.o. through [cygwin](https://cygwin.com/index.html), which has a straight forward installation process.
     Either head over to the website, download and install the `setup-x86_64.exe` file or use PowerShell:
     
-    ```
+    ```powershell
     Import-Module bitstransfer
     New-Item -ItemType Directory -Force -Path "C:\Program Files\cygwin"
     start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
@@ -259,7 +259,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
     You can either head over to the [JAGS download page](https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/), download and execute the installable, or use PowerShell.
     The following instructions will download and install `JAGS 4.3.1` in PowerShell:
     
-    ```
+    ```powershell
     Import-Module bitstransfer
     New-Item -ItemType Directory -Force -Path "C:\Program Files\JAGS\JAGS-4.3.1"
     start-bitstransfer -source https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Windows/JAGS-4.3.1.exe/download  "C:\Program Files\JAGS\JAGS-4.3.1\JAGS-4.3.1.exe"
