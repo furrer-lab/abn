@@ -21,13 +21,15 @@
 #' See also the files provided in the package directories \code{inst/bootstrapping_example} and \code{inst/old_vignette} for more details.
 #'
 #' @references
-#' Kratzer, Gilles, Fraser Lewis, Arianna Comin, Marta Pittavino, and Reinhard Furrer. “Additive Bayesian Network Modeling with the R Package Abn.” Journal of Statistical Software 105 (January 28, 2023): 1–41. https://doi.org/10.18637/jss.v105.i08.
+#' Kratzer G, Lewis F, Comin A, Pittavino M, Furrer R (2023). “Additive Bayesian Network Modeling with the R Package abn.” Journal of Statistical Software, 105(8), 1-41. https://doi.org/10.18637/jss.v105.i08.
 #'
-#' Kratzer, G., Lewis, F.I., Comin, A., Pittavino, M. and Furrer, R. (2019). "Additive Bayesian Network Modelling with the R Package abn". arXiv preprint arXiv:1911.09006.
+#' Delucchi M, Liechti J, Spinner G, Furrer R (2024). “abn: Additive Bayesian Networks.” Journal of Open Source Software, Accepted for publication. R package version 3.1.3, https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812.
 #'
 #' Lewis, F. I., and Ward, M. P. (2013). "Improving epidemiologic data analyses through multivariate regression modeling". Emerging themes in epidemiology, 10(1), 4.
 #'
-#' Kratzer, G., Pittavino, M, Lewis, F. I., and Furrer, R., (2017). "abn: an R package for modelling multivariate data using additive Bayesian networks". R package version 2.2.  https://CRAN.R-project.org/package=abn
+#' Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). "Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland". Frontiers in Veterinary Science, 7, 73.
+#'
+#' Delucchi M, Furrer R, Kratzer G, Lewis F, Liechti J, Pittavino M, Cherneva K (2024). "abn: Modelling Multivariate Data with Additive Bayesian Networks". R package version 3.1.3, https://CRAN.R-project.org/package=abn.
 #'
 #' @examples
 #' ## Citations:

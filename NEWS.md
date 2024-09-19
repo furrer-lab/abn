@@ -1,4 +1,11 @@
 
+# abn 3.1.3
+[diff](https://github.com/furrer-lab/abn/compare/3.1.2...3.1.3)
+
+> 2024-09-18
+
+* JOSS paper final edits ([#152](https://github.com/furrer-lab/abn/issues/152))
+
 # abn 3.1.2
 [diff](https://github.com/furrer-lab/abn/compare/3.1.1...3.1.2)
 

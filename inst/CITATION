@@ -1,3 +1,18 @@
+bibentry(bibtype = "Manual",
+    title = "abn: Modelling Multivariate Data with Additive Bayesian Networks",
+    author = c(person(given = "Matteo", family = "Delucchi", email = "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9327-1496")),
+               person(given = "Reinhard", family = "Furrer", email = "reinhard.furrer@math.uzh.ch", role = "aut", comment = c(ORCID = "0000-0002-6319-2332")),
+               person(given = "Gilles", family = "Kratzer", email = "gilles.kratzer@gmail.com", role = "aut", comment = c(ORCID = "0000-0002-5929-8935")),
+               person(given = "Fraser Iain", family = "Lewis", email = "fraser.iain.lewis@gmail.com", role = "aut", comment = c(ORCID = "0000-0003-4580-2712")),
+               person(given = "Jonas I.", family = "Liechti", email = "j-i-l@t4d.ch", role = "ctb", comment = c(ORCID = "0000-0003-3447-3060")),
+               person(given = "Marta", family = "Pittavino", email = "marta.pittavino@math.uzh.ch", role = "ctb", comment = c(ORCID = "0000-0002-1232-1034")),
+               person(given = "Kalina", family = "Cherneva", email = "kalinacherneva@gmail.com", role = "ctb")),
+    year = "2024",
+    note = "R package version 3.1.3",
+    url = "https://CRAN.R-project.org/package=abn",
+    header = "To cite the software implementation of the R package 'abn' use:"
+)
+
 bibentry(bibtype = "Article",
   title        = "Additive Bayesian Network Modeling with the R Package abn",
   author       = c(person(given = "Gilles", family = "Kratzer"),
@@ -12,6 +27,20 @@ bibentry(bibtype = "Article",
   pages        = "1--41",
   doi          = "10.18637/jss.v105.i08",
   header       = "To cite the methodology of the R package 'abn' use:"
+)
+
+bibentry(bibtype = "Article",
+         title = "abn: Additive Bayesian Networks",
+         author = c(person(given = "Matteo", family = "Delucchi", email = "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9327-1496")),
+                    person(given = "Jonas I.", family = "Liechti", email = "j-i-l@t4d.ch", role = "ctb", comment = c(ORCID = "0000-0003-3447-3060")),
+                    person(given = "Georg G.", family = "Spinner", role = "fnd", comment = c(ORCID = "0000-0001-9640-8155")),
+                    person(given = "Reinhard", family = "Furrer", email = "reinhard.furrer@math.uzh.ch", role = "aut", comment = c(ORCID = "0000-0002-6319-2332"))),
+          year = "2024",
+          journal = "Journal of Open Source Software",
+          volume = "Accepted for publication",
+          note = "R package version 3.1.3",
+          url = "https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812",
+          header = "To cite the application of mixed-effects ABN use:"
 )
 
 bibentry(bibtype = "Article",
@@ -30,18 +59,4 @@ bibentry(bibtype = "Article",
   header       = "To cite an example of a typical ABN analysis use:",
   textVersion  =
   paste("Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland. Frontiers in Veterinary Science, 7, 73")
-)
-
-bibentry(bibtype = "Manual",
-    title = "abn: Modelling Multivariate Data with Additive Bayesian Networks",
-    author = c(person(given = "Reinhard", family = "Furrer"),
-                person(given = "Gilles", family = "Kratzer"),
-                person(given = "Fraser Iain", family = "Lewis")),
-    year = "2023",
-    note = "R package version 2.7-2",
-    url = "https://CRAN.R-project.org/package=abn",
-    header       = "To cite the software implementation of the R package 'abn' use:",
-  textVersion  =
-  paste("Furrer, R., Kratzer, G. and Lewis, F.I. (2023). abn: Modelling Multivariate Data with Additive Bayesian Networks. R package version 2.7-2.
-  https://CRAN.R-project.org/package=abn")
 )
