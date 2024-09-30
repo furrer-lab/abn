@@ -1,5 +1,5 @@
 bibentry(bibtype = "Manual",
-    title = "abn: Modelling Multivariate Data with Additive Bayesian Networks",
+    title = "{abn}: Modelling Multivariate Data with {A}dditive {B}ayesian {N}etworks",
     author = c(person(given = "Matteo", family = "Delucchi", email = "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9327-1496")),
                person(given = "Reinhard", family = "Furrer", email = "reinhard.furrer@math.uzh.ch", role = "aut", comment = c(ORCID = "0000-0002-6319-2332")),
                person(given = "Gilles", family = "Kratzer", email = "gilles.kratzer@gmail.com", role = "aut", comment = c(ORCID = "0000-0002-5929-8935")),
@@ -14,7 +14,7 @@ bibentry(bibtype = "Manual",
 )
 
 bibentry(bibtype = "Article",
-  title        = "Additive Bayesian Network Modeling with the R Package abn",
+  title        = "{A}dditive {B}ayesian {N}etwork Modeling with the {R} Package {abn}",
   author       = c(person(given = "Gilles", family = "Kratzer"),
                    person(given = "Fraser", family = "Lewis"),
                    person(given = "Arianna", family = "Comin"),
@@ -30,7 +30,7 @@ bibentry(bibtype = "Article",
 )
 
 bibentry(bibtype = "Article",
-         title = "abn: Additive Bayesian Networks",
+         title = "{abn}: {A}dditive {B}ayesian {N}etworks",
          author = c(person(given = "Matteo", family = "Delucchi", email = "matteo.delucchi@math.uzh.ch", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-9327-1496")),
                     person(given = "Jonas I.", family = "Liechti", email = "j-i-l@t4d.ch", role = "ctb", comment = c(ORCID = "0000-0003-3447-3060")),
                     person(given = "Georg G.", family = "Spinner", role = "fnd", comment = c(ORCID = "0000-0001-9640-8155")),
@@ -44,7 +44,7 @@ bibentry(bibtype = "Article",
 )
 
 bibentry(bibtype = "Article",
-  title        = "Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland",
+  title        = "{B}ayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in {S}witzerland",
   author       = c(person(given = "Gilles", family = "Kratzer"),
                    person(given = "Fraser Iain", family = "Lewis"),
                    person(given = "Barbara", family = "Willi"),
