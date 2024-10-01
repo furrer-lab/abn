@@ -690,20 +690,22 @@ If you use `abn` in your research, please cite it as follows:
 
 ``` r
 > citation("abn")
+To cite the software implementation of the R package 'abn' use:
+
+  Delucchi M, Furrer R, Kratzer G, Lewis F, Liechti J, Pittavino M, Cherneva K (2024). _abn: Modelling Multivariate Data with Additive Bayesian Networks_. R package version 3.1.3, <https://CRAN.R-project.org/package=abn>.
+
 To cite the methodology of the R package 'abn' use:
 
-  Kratzer G, Lewis F, Comin A, Pittavino M, Furrer R (2023). “Additive Bayesian Network Modeling with the R Package abn.” _Journal of Statistical Software_,
-  *105*(8), 1-41. doi:10.18637/jss.v105.i08 <https://doi.org/10.18637/jss.v105.i08>.
+  Kratzer G, Lewis F, Comin A, Pittavino M, Furrer R (2023). “Additive Bayesian Network Modeling with the R Package abn.” _Journal of Statistical Software_, *105*(8), 1-41. doi:10.18637/jss.v105.i08 <https://doi.org/10.18637/jss.v105.i08>.
+
+To cite the application of mixed-effects ABN use:
+
+  Delucchi M, Liechti J, Spinner G, Furrer R (2024). “abn: Additive Bayesian Networks.” _Journal of Open Source Software_, *9*(101), 6822. R package version 3.1.3, <https://doi.org/10.21105/joss.06822>.
 
 To cite an example of a typical ABN analysis use:
 
-  Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). Bayesian Network
-  Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland. Frontiers in Veterinary Science, 7, 73
-
-To cite the software implementation of the R package 'abn' use:
-
-  Furrer, R., Kratzer, G. and Lewis, F.I. (2023). abn: Modelling Multivariate Data with Additive Bayesian Networks. R package version 2.7-2.
-  https://CRAN.R-project.org/package=abn
+  Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland. Frontiers
+  in Veterinary Science, 7, 73
 ```
 
 # License
@@ -719,6 +721,8 @@ Please note that the `abn` project is released with a [Contributor Code of Condu
 The [abn website](https://r-bayesian-networks.org/) provides a comprehensive set of documented case studies, numerical accuracy/quality assurance exercises, and additional documentation.
 
 ## Technical articles
+
+- Delucchi et al. (2024): [Additive Bayesian Networks. Journal of Open Source Software, 9(101), 6822](https://doi.org/10.21105/joss.06822)
 
 - Kratzer et al. (2023): [Additive Bayesian Network Modeling with the R Package abn](https://doi.org/10.18637/jss.v105.i08)
 

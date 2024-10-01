@@ -24,6 +24,7 @@ Makefile
 ^doc$
 ^revdep$
 ^LICENSE\.md$
+^CITATION.cff$
 ^data-raw$
 ^CODE_OF_CONDUCT\.md$
 ^\.github$
