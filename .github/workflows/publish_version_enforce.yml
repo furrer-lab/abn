@@ -53,7 +53,7 @@ jobs:
       - associated_pr
     runs-on: ubuntu-latest
     container:
-      image: ${{ vars.CONTAINER_SOURCE }}/debian/gcc/release/abn:latest
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian/gcc/release/abn:latest
     permissions:
       contents: write
     steps:
