@@ -1,7 +1,10 @@
 ---
 title: "Inference with ABN"
-output: html_document
-date: "2025-01-08"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Inference with ABN}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
