@@ -25,8 +25,7 @@ test_that("Markov blanket is correctly retrieved 2", {
   data.dists_wrongOrder <- list("b1" = "binomial", "b2" = "binomial", b3 = "binomial", g1 = "gaussian", g2 = "gaussian")
   data.dists_correctOrder <- list("g1" = "gaussian", "g2" = "gaussian", "b1" = "binomial", "b2" = "binomial", "b3" = "binomial")
 
-
-  # TODO: Check order of data.dists must be the same as in colnames(dag)
-  expect_equal(abn::mb(dag,node="b1",data.dists_correctOrder), c("g2", "b3", "b2"))
-  expect_error(abn::mb(dag,node="b1",data.dists_wrongOrder))
+  # Check order of data.dists must be the same as in colnames(dag) or will be sorted with a warning
+  expect_equal(abn::mb(dag,node="b1", data.dists_correctOrder), c("g2", "b3", "b2"))
+  expect_warning(abn::mb(dag,node="b1", data.dists_wrongOrder))
 })

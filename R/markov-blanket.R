@@ -42,7 +42,10 @@ mb <- function(dag, node, data.dists=NULL) {
     } else {
       # check order of variables in data.dists matches the order of variables in the dag
       if (!all(names(data.dists) == colnames(dag))) {
-        stop("Incorrect order of variables in data.dists to compute the Markov Blanket")
+        warning("Incorrect order of variables in data.dists to compute the Markov Blanket. The order of variables in data.dists will be fixed to match the order of variables in the DAG.")
+
+        # fix the order of variables in data.dists to match the order of variables in the dag
+        data.dists <- data.dists[colnames(dag)]
       }
     }
   } else {
