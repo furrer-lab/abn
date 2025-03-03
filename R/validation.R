@@ -41,8 +41,16 @@ createAbnDag <- function(dag,
                          data.df = NULL,
                          data.dists = NULL,
                          ...) {
+  # Check dag
+  if (is.null(dag)) {
+    stop("'dag' must be a matrix or a formula")
+  }
+
+  # Check data.dists
   if (!is.null(data.dists)) {
     data.dists <- validate_dists(data.dists, returnDists = TRUE)
+  } else {
+    # warning("No distribution provided. Will sample from the data.")
   }
 
   # Check data.df

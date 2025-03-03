@@ -58,11 +58,16 @@ test_that("odds() works", {
 
 test_that("compareDag() works", {
   a <- matrix(data=0, nrow=3, ncol=3)
+  colnames(a) <- rownames(a) <- c("a", "b", "c")
 
   a1 <- matrix(data=c(0, 0, 0, 1, 0, 0, 1, 0, 0), nrow=3, ncol=3)
+  colnames(a1) <- rownames(a1) <- c("a", "b", "c")
   a2 <- matrix(data=c(0, 0, 0, 1, 0, 0, 1, 1, 0), nrow=3, ncol=3)
+  colnames(a2) <- rownames(a2) <- c("a", "b", "c")
   b <- matrix(data=c(0, 0, 0, 1, 0, 1, 1, 0, 0), nrow=3, ncol=3)
+  colnames(b) <- rownames(b) <- c("a", "b", "c")
 
+  expect_no_error(compareDag(ref=a1, test=b, checkDAG = TRUE))
   expect_equal(suppressWarnings(compareDag(ref=a, test=b))$`Hamming-distance`, expected=3)
   expect_equal(compareDag(ref=a1, test=b)$`Hamming-distance`, expected=1)
   expect_equal(compareDag(ref=a1, test=b)$TPR, expected=1)
