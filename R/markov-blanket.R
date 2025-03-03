@@ -35,9 +35,24 @@ mb <- function(dag, node, data.dists=NULL) {
   # check if the dag is a valid dag
   dag <- check.valid.dag(dag = dag, data.df = NULL, is.ban.matrix = FALSE, group.var = NULL)
 
+  # check if variables in data.dists are in the dag
+  if (!is.null(data.dists)) {
+    if (!all(names(data.dists)%in%colnames(dag))) {
+      stop("Incorrect data.dists specification to compute the Markov Blanket")
+    } else {
+      # check order of variables in data.dists matches the order of variables in the dag
+      if (!all(names(data.dists) == colnames(dag))) {
+        stop("Incorrect order of variables in data.dists to compute the Markov Blanket")
+      }
+    }
+  } else {
+    stop("data.dists is required to compute the Markov Blanket.")
+  }
 
-    if (!all(node%in%colnames(dag)))
-        stop("Incorrect node specification 'node' to compute the Markov Blanket")
+  # check if the node is in the dag
+  if (!all(node%in%colnames(dag))) {
+    stop("Incorrect node specification 'node' to compute the Markov Blanket")
+  }
 
     ## as of older version.
     # row parent column children mb.node.final <- list()
