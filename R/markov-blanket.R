@@ -32,8 +32,9 @@
 #' mb(~a|b:c:e+b|c:d:f+e|f, node = "e", data.dists = dist)
 #' @keywords utilities
 mb <- function(dag, node, data.dists=NULL) {
+  # check if the dag is a valid dag
+  dag <- check.valid.dag(dag = dag, data.df = NULL, is.ban.matrix = FALSE, group.var = NULL)
 
-    dag <- validate_abnDag(dag,  data.df=data.dists, returnDAG=TRUE)
 
     if (!all(node%in%colnames(dag)))
         stop("Incorrect node specification 'node' to compute the Markov Blanket")
