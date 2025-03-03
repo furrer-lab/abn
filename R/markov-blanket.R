@@ -5,6 +5,7 @@
 #' @param dag a matrix or a formula statement (see details for format) defining the network structure, a directed acyclic graph (DAG).
 #' @param node a character vector of the nodes for which the Markov Blanket should be returned.
 #' @param data.dists a named list giving the distribution for each node in the network, see details.
+#' @param data.df a data frame containing the data for the nodes in the network. Only needed if \code{dag} is a formula statement.
 #'
 #' @details
 #' This function returns the Markov Blanket of a set of nodes given a DAG.
@@ -31,9 +32,9 @@
 #'
 #' mb(~a|b:c:e+b|c:d:f+e|f, node = "e", data.dists = dist)
 #' @keywords utilities
-mb <- function(dag, node, data.dists=NULL) {
+mb <- function(dag, node, data.dists=NULL, data.df=NULL) {
   # check if the dag is a valid dag
-  dag <- check.valid.dag(dag = dag, data.df = NULL, is.ban.matrix = FALSE, group.var = NULL)
+  dag <- check.valid.dag(dag = dag, data.df = data.df, is.ban.matrix = FALSE, group.var = NULL)
 
   # check if variables in data.dists are in the dag
   if (!is.null(data.dists)) {
