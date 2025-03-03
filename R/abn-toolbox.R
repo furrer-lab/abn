@@ -155,8 +155,8 @@ compareDag <- function(ref, test, node.names = NULL, checkDAG = TRUE) {
 
     ## check ref dag
     if (checkDAG) {
-        ref <- validate_abnDag(  ref, data.df=node.names, returnDAG=TRUE)
-        test <- validate_abnDag( test, data.df=node.names, returnDAG=TRUE)
+        ref <- check.valid.dag(dag = ref)
+        test <- check.valid.dag(dag = test)
     }
 
     if (any(dim(ref) != dim(test))) {
