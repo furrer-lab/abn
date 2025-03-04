@@ -2,9 +2,9 @@
 % Please edit documentation in R/PredictABN.R
 \name{plotPosteriorDistrib}
 \alias{plotPosteriorDistrib}
-\title{Plotting the posterior distribution}
+\title{Plot the posterior distribution}
 \usage{
-plotPosteriorDistrib(predictions, hypothesis, mydists, path)
+plotPosteriorDistrib(predictions, hypothesis, mydists)
 }
 \arguments{
 \item{predictions}{To fill.}
@@ -12,12 +12,10 @@ plotPosteriorDistrib(predictions, hypothesis, mydists, path)
 \item{hypothesis}{To fill.}
 
 \item{mydists}{To fill.}
-
-\item{path}{To fill.}
 }
 \value{
 None
 }
 \description{
-Plots the posterior distribution
+This functions plots the posterior distribution
 }

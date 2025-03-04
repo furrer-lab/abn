@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predict_node_from_children_poisson}
 \alias{predict_node_from_children_poisson}
-\title{Performing inference with ABN (downstream inference)}
+\title{Perform downstream inference with ABN}
 \usage{
 predict_node_from_children_poisson(
   data,
@@ -10,7 +10,7 @@ predict_node_from_children_poisson(
   myfit,
   node,
   evidence,
-  children,
+  child,
   parents,
   predictions
 )
@@ -26,17 +26,17 @@ predict_node_from_children_poisson(
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}
 
-\item{children}{The children of the node to predict.}
-
 \item{parents}{The children's parents of the node to predict.}
 
-\item{predictions}{The estimated predictions of the upstream nodes.}
+\item{predictions}{The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).}
+
+\item{children}{The children of the node to predict.}
 }
 \value{
 The predicted distribution of the node of interest.
 }
 \description{
-Main function to predict the distribution of a Poisson node given its children and its children's parents
+Main function to predict the distribution of a node given one of its Poisson child and its parents
 }
 \examples{
 # load a data set
@@ -67,11 +67,14 @@ graph <- graph_from_adjacency_matrix(t(dag))
 myfit <- fitAbn(object = mp.dag)
 myfit <- myfit$modes
 
-node <- "g2"
-children <- find_children(graph, node)[1]
-parents <- find_parents(graph, children)
-evidence <- list("p1" = 3, "b5" = "y")
+node <- "b1"
+child <- find_children(graph, node)[1]
+parents <- find_parents(graph, child)
+evidence <- list("p1" = 3, "p2" = 4)
+evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
 
-predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, children, parents)
+predictions <- list("b1" = c(0.5,0.5)) # a first estimate of the node b1
+
+predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, evidence, child, parents, predictions)
 predictions  # the predicted distribution of g2
 }

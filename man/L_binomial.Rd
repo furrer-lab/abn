@@ -2,22 +2,22 @@
 % Please edit documentation in R/PredictABN.R
 \name{L_binomial}
 \alias{L_binomial}
-\title{Computing the log-likelihood}
+\title{Compute the likelihood of a binomial variable}
 \usage{
 L_binomial(y, x, coef, continuous_part)
 }
 \arguments{
-\item{y}{To fill}
+\item{y}{The observed binary outcome (numeric 0 or 1)}
 
-\item{x}{To fill}
+\item{x}{A value for a parent of the binomial variable.}
 
-\item{coef}{To fill}
+\item{coef}{The coefficient that links \code{y} to \code{x}.}
 
-\item{continuous_part}{To fill}
+\item{continuous_part}{The rest of the equation (intercept and links between the parents of the child and the child).}
 }
 \value{
-To fill
+The value of the likelihood.
 }
 \description{
-Computes the log-likelihood of a binomial variable
+This function computes the likelihood of a binomial-distributed variable
 }

@@ -2,20 +2,20 @@
 % Please edit documentation in R/PredictABN.R
 \name{prior_gaussian}
 \alias{prior_gaussian}
-\title{Computing the prior}
+\title{Compute Gaussian prior density}
 \usage{
 prior_gaussian(x, mu, sigma2)
 }
 \arguments{
-\item{x}{To fill}
+\item{x}{The value at which the density is evaluated.}
 
-\item{mu}{To fill}
+\item{mu}{The expected value of the Gaussian distribution.}
 
-\item{sigma2}{To fill}
+\item{sigma2}{The variance of the Gaussian distribution.}
 }
 \value{
-To fill
+The density of the normal distribution at x.
 }
 \description{
-Computes the prior of a Gaussian variable
+This function calculates the density of a Gaussian distribution
 }

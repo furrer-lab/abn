@@ -2,18 +2,18 @@
 % Please edit documentation in R/PredictABN.R
 \name{prior_poisson}
 \alias{prior_poisson}
-\title{Computing the prior}
+\title{Compute Prior Probability for a Poisson Distribution}
 \usage{
 prior_poisson(x, lambda)
 }
 \arguments{
-\item{x}{To fill}
+\item{x}{The observed count (number of events, must be non-negative).}
 
-\item{lambda}{To fill}
+\item{lambda}{The expected number of events (rate parameter, must be positive).}
 }
 \value{
-To fill
+The probability of observing \code{x} events given rate \code{lambda}.
 }
 \description{
-Computes the prior of a Poisson variable
+This function calculates the probability mass function of a Poisson distribution
 }

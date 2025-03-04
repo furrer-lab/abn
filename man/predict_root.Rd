@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predict_root}
 \alias{predict_root}
-\title{Predicting a root node}
+\title{Predict a root node}
 \usage{
 predict_root(data, mydists, node)
 }
@@ -17,7 +17,7 @@ predict_root(data, mydists, node)
 The predicted distribution of the root node.
 }
 \description{
-Predicts a root node in the graph
+Predict a root node in the graph
 }
 \examples{
 # load a data set

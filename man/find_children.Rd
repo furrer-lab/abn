@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{find_children}
 \alias{find_children}
-\title{Finding the children of a node in a graph}
+\title{Find the children of a node in a graph}
 \usage{
 find_children(graph, node)
 }
@@ -15,7 +15,7 @@ find_children(graph, node)
 A vector containing the children of the node (labels of the nodes if the graph is labeled)
 }
 \description{
-Finds the children of a given node in a given graph.
+Find the children of a given node in a given graph.
 }
 \examples{
 g <- make_graph("Zachary") # undirected graph

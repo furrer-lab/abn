@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{plot_Abn}
 \alias{plot_Abn}
-\title{Plotting ABN fitted network}
+\title{Plot ABN fitted network}
 \usage{
 plot_Abn(dag, mydists, node, order)
 }
@@ -19,7 +19,7 @@ plot_Abn(dag, mydists, node, order)
 A graph object.
 }
 \description{
-Plots the ABN network with an emphasis on a specific node
+This function plots the ABN network with an emphasis on a specific node
 }
 \examples{
 # load a data set

@@ -1,6 +1,6 @@
-#' Performing inference with ABN
+#' Perform inference with ABN
 #'
-#' Main function to predict the distribution of one node in a fitted ABN graph
+#' Main function to predict the distribution of a node in a fitted ABN graph
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -44,7 +44,7 @@
 #' 
 #' predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
 #' str(predictions)
-#' predictions$predictions_hypothesis # the predicted distribution of g2
+#' predictions$prediction_hypothesis # the predicted distribution of g2
 #' @export
 #' 
 predictABN <- function(data, mydists, dag, myfit, hypothesis, evidence, plot = FALSE){
@@ -60,7 +60,7 @@ predictABN <- function(data, mydists, dag, myfit, hypothesis, evidence, plot = F
   node_order <- names(topo_sort(graph, mode="out"))
 
   # Step 0: check the evidence
-  evidence <- check_evidence(data, mydists, hypothesis,evidence)
+  evidence <- check_evidence(data, mydists, hypothesis, evidence)
 
   # Step 1: from top to bottom
   predictions <- list()
@@ -79,39 +79,17 @@ predictABN <- function(data, mydists, dag, myfit, hypothesis, evidence, plot = F
     predictions[[i]] <- prediction
   }
   
-  # Step 3: Plot the workflow and the posterior distribution
+  # Step 3: Plot the posterior distribution
   if (plot==TRUE){
-    path <- createDirectory(path = path, directory.name = directory.name)
-    
-    for (i in (1:length(node_order))){
-      plots <- plot_Abn(dag, mydists, node = node_order[i], "up")
-      png(paste0(path,"/graph",i,".png"), width = 800, height = 600)  
-      renderGraph(plots)
-      title(main = paste0("Step ",i,", node ",node_order[i],", up"), cex.main = 1.5, font.main = 2)
-      dev.off()  
-    }
-    
-    counter <- length(node_order)
-    for (i in (length(node_order):node_max)){
-      counter <- counter + 1
-      plots <- plot_Abn(dag, mydists, node = node_order[i], "down")
-      png(paste0(path,"/graph",counter,".png"), width = 800, height = 600) 
-      renderGraph(plots)
-      title(main = paste0("Step ",counter,", node ",node_order[i],", down"), cex.main = 1.5, font.main = 2)
-      dev.off()  
-    }
-    
-    createAnimation(path)
-    
-    g <- plotPosteriorDistrib(predictions,hypothesis,mydists,path)
+    g <- plotPosteriorDistrib(predictions,hypothesis,mydists)
     print(g)
   }
   return(list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions))
 }
 
-#' Checking the evidence
+#' Check the evidence
 #'
-#' Check the format of the evidence
+#' This function checks the format of the evidence
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -182,9 +160,9 @@ check_evidence <- function(data, mydists, hypothesis, evidence){
   return(evidence)
 }
 
-#' Performing inference with ABN (upstream inference)
+#' Perform upstream inference with ABN
 #'
-#' Main function to predict the distribution of one node given its parents only
+#' Main function to predict the distribution of a node given its parents only
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -192,7 +170,7 @@ check_evidence <- function(data, mydists, hypothesis, evidence){
 #' @param myfit Parameters of the network (can be the output of the function fitAbn()).
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the upstream nodes (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -225,14 +203,21 @@ check_evidence <- function(data, mydists, hypothesis, evidence){
 #' 
 #' node <- "g2"
 #' 
-#' evidence <- list("p1" = 3, "g3" = 5)
+#' evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
 #' 
 #' predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
 #' predictions  # the predicted distribution of g2
 #' @export
 #' 
-predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence, predictions = evidence){
+predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence, predictions = NULL){
   parents <- find_parents(graph, node)
+  if (is.null(predictions)){
+    if (!all(parents %in% names(evidence))){
+      # all parents are not evidence 
+      stop("Not enough information about the upstream nodes.")
+    }
+    predictions <- evidence
+  }
   if (mydists[[node]]=="poisson"){
     results <- predict_node_from_parent_poisson(data, mydists, myfit, node, evidence, parents, predictions)
   } else if (mydists[[node]]=="gaussian"){
@@ -243,9 +228,9 @@ predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence
   return(results)
 }
 
-#' Performing inference with ABN (downstream inference)
+#' Perform downstream inference with ABN 
 #'
-#' Main function to predict the distribution of one node given its children and its children's parents
+#' Main function to predict the distribution of a node given its children and the children's parents
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -253,7 +238,7 @@ predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence
 #' @param myfit Parameters of the network (can be the output of the function fitAbn()).
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the children and the children's parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -286,17 +271,35 @@ predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence
 #' 
 #' node <- "g2"
 #' 
-#' evidence <- list("p1" = 3, "b5" = "y")
+#' evidence <- list("g1" = 3, "b5" = "y")
 #' 
-#' predictions <- predict_node_from_children(data, mydists, graph, myfit, node, evidence)
+#' predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
+#' 
+#' predictions <- predict_node_from_children(data, mydists, graph, myfit, node, evidence, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children <- function(data, mydists, graph, myfit, node, evidence, predictions = evidence){
+predict_node_from_children <- function(data, mydists, graph, myfit, node, evidence, predictions){
+  if (!node %in% names(predictions)){
+    stop("Predictions must contain at least a first prediction of the node to predict.")
+  }
+  
+  children <- find_children(graph, node)
+  parents_children <- unique(unlist(sapply(children,function(l){
+    find_parents(graph, node = l)
+  })))
+
+  if (!all(c(children,parents_children) %in% names(predictions))){
+    nodes <- setdiff(c(children,parents_children),names(predictions))
+    if (!all(nodes %in% names(evidence))){
+      stop("Not enough information about the downstream nodes.")
+    }
+    predictions <- c(predictions,evidence)
+  }
+  
   if (node %in% names(evidence)){
     predictions[[node]]
   } else {
-    children <- find_children(graph, node)
 
     if (length(children)==0){
       # no children
@@ -340,7 +343,7 @@ predict_node_from_children <- function(data, mydists, graph, myfit, node, eviden
   }
 }
 
-#' Performing inference with ABN (upstream inference)
+#' Perform upstream inference with ABN 
 #'
 #' Main function to predict the distribution of a Poisson node given its parents only
 #'
@@ -350,7 +353,7 @@ predict_node_from_children <- function(data, mydists, graph, myfit, node, eviden
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -381,16 +384,27 @@ predict_node_from_children <- function(data, mydists, graph, myfit, node, eviden
 #' myfit <- fitAbn(object = mp.dag)
 #' myfit <- myfit$modes
 #' 
-#' node <- "p1"
+#' node <- "p2"
 #' parents <- find_parents(graph,node)
 #' 
-#' evidence <- list("g1" = 4, "g2" = 3, "g3" = 1, b3 = "y")
+#' evidence <- list("b1" = "y", "p1" = 3)
 #' 
 #' predictions <- predict_node_from_parent_poisson(data, mydists, myfit, node, evidence, parents)
 #' predictions  # the predicted distribution of p1
 #' @export
 #' 
-predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidence, parents, predictions = evidence){
+predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidence, parents, predictions = NULL){
+  if (is.null(predictions)){
+    if (!all(parents %in% names(evidence))){
+      # all parents are not evidence 
+      stop("Not enough information about the upstream nodes.")
+    }
+    predictions <- evidence
+  }
+  if (mydists[[node]] != "poisson"){
+    stop("The node to predict should follow a Poisson distribution.")
+  }
+  
   if (node %in% names(evidence)){
     # node is an evidence
     node_hat <- evidence[[node]]
@@ -456,7 +470,7 @@ predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidenc
   return(node_hat = node_hat)
 }
 
-#' Performing inference with ABN (upstream inference)
+#' Perform upstream inference with ABN 
 #'
 #' Main function to predict the distribution of a Gaussian node given its parents only
 #'
@@ -466,7 +480,7 @@ predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidenc
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -500,13 +514,23 @@ predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidenc
 #' node <- "g2"
 #' parents <- find_parents(graph,node)
 #' 
-#' evidence <- list("g3" = 1, b3 = "y")
+#' evidence <- list("p1" = 1, "g1" = 2, "b2" = "y")
 #' 
 #' predictions <- predict_node_from_parent_gaussian(data, mydists, myfit, node, evidence, parents)
 #' predictions  # the predicted distribution of g2
 #' @export
 #' 
-predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, evidence, parents, predictions = evidence){
+predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, evidence, parents, predictions = NULL){
+  if (is.null(predictions)){
+    if (!all(parents %in% names(evidence))){
+      # all parents are not evidence 
+      stop("Not enough information about the upstream nodes.")
+    }
+    predictions <- evidence
+  }
+  if (mydists[[node]] != "gaussian"){
+    stop("The node to predict should follow a Poisson distribution.")
+  }
   if (node %in% names(evidence)){
     # node is an evidence
     node_hat <- c(evidence[[node]],var(data[[node]]))
@@ -608,7 +632,7 @@ predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, eviden
   return(node_hat = node_hat)
 }
 
-#' Performing inference with ABN (upstream inference)
+#' Perform upstream inference with ABN 
 #'
 #' Main function to predict the distribution of a binomial node given its parents only
 #'
@@ -618,7 +642,7 @@ predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, eviden
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -649,16 +673,26 @@ predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, eviden
 #' myfit <- fitAbn(object = mp.dag)
 #' myfit <- myfit$modes
 #' 
-#' node <- "b2"
+#' node <- "b3"
 #' parents <- find_parents(graph,node)
 #' 
-#' evidence <- list("g2" = 4, "b1" = "y", "b3" = "y", "b4" = "y")
+#' evidence <- list("g1" = 4, "b1" = "y", "b2" = "y")
 #' 
 #' predictions <- predict_node_from_parent_binomial(data, mydists, myfit, node, evidence, parents)
 #' predictions  # the predicted distribution of b2
 #' @export
 #' 
-predict_node_from_parent_binomial <- function(data, mydists, myfit, node, evidence, parents, predictions = evidence){
+predict_node_from_parent_binomial <- function(data, mydists, myfit, node, evidence, parents, predictions = NULL){
+  if (is.null(predictions)){
+    if (!all(parents %in% names(evidence))){
+      # all parents are not evidence 
+      stop("Not enough information about the upstream nodes.")
+    }
+    predictions <- evidence
+  }
+  if (mydists[[node]] != "binomial"){
+    stop("The node to predict should follow a Poisson distribution.")
+  }
   if (node %in% names(evidence)){
     # node is an evidence
     node_hat <- evidence[[node]]
@@ -729,18 +763,18 @@ predict_node_from_parent_binomial <- function(data, mydists, myfit, node, eviden
   return(node_hat)
 }
 
-#' Performing inference with ABN (downstream inference)
+#' Perform downstream inference with ABN 
 #'
-#' Main function to predict the distribution of a Gaussian node given its children and its children's parents
+#' Main function to predict the distribution of a node given one of its Gaussian child and its parents
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
 #' @param myfit Parameters of the network (can be the output of the function fitAbn()).
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param children The children of the node to predict.
-#' @param parents The children's parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param child A child of the node to predict.
+#' @param parents The parents of the child.
+#' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -771,21 +805,47 @@ predict_node_from_parent_binomial <- function(data, mydists, myfit, node, eviden
 #' myfit <- fitAbn(object = mp.dag)
 #' myfit <- myfit$modes
 #' 
-#' node <- "g2"
-#' children <- find_children(graph, node)[1]
-#' parents <- find_parents(graph, children)
-#' evidence <- list("p1" = 3, "b5" = "y")
+#' node <- "g1"
+#' child <- find_children(graph, node)[2]
+#' parents <- find_parents(graph, child)
+#' evidence <- list("g2" = 3, "p1" = 3, "b2" = "y")
+#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
 #' 
-#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, children, parents)
+#' predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
+#' 
+#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evidence, children, parents, predictions){
-
+predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evidence, child, parents, predictions){
+  if (mydists[[child]] != "gaussian"){
+    stop("The child should follow a Gaussian distribution.")
+  }
+  if (!node %in% names(predictions)){
+    stop("Predictions must contain at least a first prediction of the node to predict.")
+  }
+  
+  if (!all(c(child,parents) %in% names(predictions))){
+    nodes <- setdiff(c(child,parents),names(predictions))
+    if (!all(nodes %in% names(evidence))){
+      stop("Not enough information about the downstream nodes.")
+    }
+    predictions <- c(predictions,evidence)
+  }
+  
+  gaussian_nodes <- intersect(names(which(mydists=="gaussian")),names(predictions))
+  if (length(gaussian_nodes)>0){
+    for (i in (1:length(gaussian_nodes))){
+      if (length(predictions[[gaussian_nodes[i]]])==1){
+        predictions[[gaussian_nodes[i]]] <- c(predictions[[gaussian_nodes[i]]][1],var(data[[gaussian_nodes[i]]]))
+      }
+    }
+  }
+    
   if (mydists[[node]] == "binomial"){
     p_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -813,14 +873,14 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
           numerator <-  function(x){
-            L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part)  * prior_binomial(x, p_prior[2])
+            L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part)  * prior_binomial(x, p_prior[2])
           }
           denominator <- numerator(0) + numerator(1)
           results <- c(numerator(0) / denominator,numerator(1) / denominator)
@@ -848,7 +908,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
             }
 
             numerator <-  function(x){
-              L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
+              L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
             }
             denominator <- numerator(0) + numerator(1)
             results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
@@ -876,7 +936,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
           }
 
           numerator <-  function(x){
-            L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
+            L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
           }
           denominator <- numerator(0) + numerator(1)
           results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
@@ -885,7 +945,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
       }
     } else {
       numerator <-  function(x){
-        L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part)  * prior_binomial(x, p_prior[2])
+        L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part)  * prior_binomial(x, p_prior[2])
       }
       denominator <- numerator(0) + numerator(1)
       results <- c(numerator(0) / denominator,numerator(1) / denominator)
@@ -894,7 +954,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
     mu_prior <- predictions[[node]][1]
     sigma_prior <- predictions[[node]][2]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -921,17 +981,17 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
-          denominator <- integrate(function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+          denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -Inf, upper = Inf)$value
-          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                                  lower = -Inf, upper = Inf)$value
-          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -Inf, upper = Inf)$value
           results <- c(numerator / denominator, numerator2 / denominator - (numerator / denominator)^2)
         } else {
@@ -958,11 +1018,11 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
               continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
             }
 
-            denominator <- integrate(function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+            denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -Inf, upper = Inf)$value
-            numerator <- integrate(function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -Inf, upper = Inf)$value
-            numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                     lower = -Inf, upper = Inf)$value
             results_tmp <- c(results_tmp,probas*(numerator / denominator))
             results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
@@ -990,11 +1050,11 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
             continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
           }
 
-          denominator <- integrate(function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+          denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -Inf, upper = Inf)$value
-          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                  lower = -Inf, upper = Inf)$value
-          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
+          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
                                   lower = -Inf, upper = Inf)$value
           results_tmp <- c(results_tmp,probas*(numerator / denominator))
           results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
@@ -1002,18 +1062,18 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
         results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
       }
     } else {
-      denominator <- integrate(function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+      denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                                lower = -Inf, upper = Inf)$value
-      numerator <- integrate(function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+      numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                              lower = -Inf, upper = Inf)$value
-      numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
+      numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                               lower = -Inf, upper = Inf)$value
       results <- c(numerator / denominator, numerator2 / denominator - (numerator / denominator)^2)
     }
   } else {
     lambda_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -1040,15 +1100,15 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
           max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_poisson(x, lambda_prior)))
-          numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_poisson(x, lambda_prior)))
+          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
+          numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
           results <- numerator / denominator
         } else {
           # at least one bin node is not an evidence
@@ -1073,8 +1133,8 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
               continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
             }
             max_x <- max(1000,4*lambda_prior)
-            denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-            numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
+            denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
+            numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
             results_tmp <- c(results_tmp,probas*(numerator / denominator))
           }
           results <- sum(results_tmp)
@@ -1100,24 +1160,24 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
           }
 
           max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-          numerator <- sum(sapply(0:max_x, function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
+          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
+          numerator <- sum(sapply(0:max_x, function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
           results_tmp <- c(results_tmp,probas*(numerator / denominator))
         }
         results <- sum(results_tmp)
       }
     } else {
       max_x <- max(1000,4*lambda_prior)
-      denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_poisson(x, lambda_prior)))
-      numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[children]][[1]], x, coef = eq[[node]], var = predictions[[children]][2],continuous_part) * prior_poisson(x, lambda_prior)))
+      denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
+      numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
       results <- numerator / denominator
     }
   }
 }
 
-#' Performing inference with ABN (downstream inference)
+#' Perform downstream inference with ABN 
 #'
-#' Main function to predict the distribution of a Poisson node given its children and its children's parents
+#' Main function to predict the distribution of a node given one of its Poisson child and its parents
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -1126,7 +1186,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param children The children of the node to predict.
 #' @param parents The children's parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -1157,22 +1217,48 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
 #' myfit <- fitAbn(object = mp.dag)
 #' myfit <- myfit$modes
 #' 
-#' node <- "g2"
-#' children <- find_children(graph, node)[1]
-#' parents <- find_parents(graph, children)
-#' evidence <- list("p1" = 3, "b5" = "y")
+#' node <- "b1"
+#' child <- find_children(graph, node)[1]
+#' parents <- find_parents(graph, child)
+#' evidence <- list("p1" = 3, "p2" = 4)
+#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+#'
+#' predictions <- list("b1" = c(0.5,0.5)) # a first estimate of the node b1
 #' 
-#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, children, parents)
+#' predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children_poisson <- function(data, mydists, myfit, node, evidence, children, parents, predictions){
-
+predict_node_from_children_poisson <- function(data, mydists, myfit, node, evidence, child, parents, predictions){
+  if (mydists[[child]] != "poisson"){
+    stop("The child should follow a Poisson distribution.")
+  }
+  if (!node %in% names(predictions)){
+    stop("Predictions must contain at least a first prediction of the node to predict.")
+  }
+  
+  if (!all(c(child,parents) %in% names(predictions))){
+    nodes <- setdiff(c(child,parents),names(predictions))
+    if (!all(nodes %in% names(evidence))){
+      stop("Not enough information about the downstream nodes.")
+    }
+    predictions <- c(predictions,evidence)
+  }
+  
+  gaussian_nodes <- intersect(names(which(mydists=="gaussian")),names(predictions))
+  if (length(gaussian_nodes)>0){
+    for (i in (1:length(gaussian_nodes))){
+      if (length(predictions[[gaussian_nodes[i]]])==1){
+        predictions[[gaussian_nodes[i]]] <- c(predictions[[gaussian_nodes[i]]][1],var(data[[gaussian_nodes[i]]]))
+      }
+    }
+  }
+  
   if (mydists[[node]] == "gaussian"){
     mu_prior <- predictions[[node]][1]
     sigma_prior <- predictions[[node]][2]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
@@ -1200,42 +1286,42 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
-          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -Inf, upper = Inf),TRUE)
           if (length(try.denominator)==1){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
           } else if (try.denominator$value == 0){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
           } else {
             denominator <- try.denominator$value
           }
 
-          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                  lower = -Inf, upper = Inf),TRUE)
           if (length(try.numerator)==1){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else if (try.numerator$value == 0){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else {
             numerator <- try.numerator$value
           }
-          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                          lower = -Inf, upper = Inf),TRUE)
           if (length(try.numerator2)==1){
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else if (try.numerator2$value == 0){ 
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                     lower = -10, upper = 10)$value
           } else {
             numerator2 <- try.numerator2$value
@@ -1265,37 +1351,37 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
               continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
             }
 
-            try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                              lower = -Inf, upper = Inf),TRUE)
             if (length(try.denominator)==1){
-              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                        lower = -10, upper = 10)$value
             } else if (try.denominator$value == 0){ 
-              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                        lower = -10, upper = 10)$value
             } else {
               denominator <- try.denominator$value
             }
 
-            try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                            lower = -Inf, upper = Inf),TRUE)
             if (length(try.numerator)==1){
-              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
             } else if (try.numerator$value == 0){ 
-              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
             } else {
               numerator <- try.numerator$value
             }
 
-            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                            lower = -Inf, upper = Inf),TRUE)
             if (length(try.numerator2)==1){
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
             } else if (try.numerator2$value==0){
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                       lower = -10, upper = 10)$value
             } else {
               numerator2 <- try.numerator2$value
@@ -1326,42 +1412,42 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
             continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
           }
 
-          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                            lower = -Inf, upper = Inf),TRUE)
           if (length(try.denominator)==1){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
           } else if (try.denominator$value == 0){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -10, upper = 10)$value
           } else {
             denominator <- try.denominator$value
           }
 
-          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                          lower = -Inf, upper = Inf),TRUE)
           if (length(try.numerator)==1){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else if (try.numerator$value==0){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else {
             numerator <- try.numerator$value
           }
 
-          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                          lower = -Inf, upper = Inf),TRUE)
           if (length(try.numerator2)==1){
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
           } else if (try.numerator2$value==0){
-            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10), TRUE)
             if (length(try.numerator2)==1){
               numerator2 <- 0
             } else {
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
                                           lower = -10, upper = 10)$value
             }
           } else {
@@ -1384,28 +1470,28 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
         return(results)
       }
     } else {
-      try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+      try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                        lower = -Inf, upper = Inf),TRUE)
       if (length(try.denominator)==1){
-        denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+        denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                  lower = -10, upper = 10)$value
       } else {
         denominator <- try.denominator$value
       }
 
-      try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+      try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -Inf, upper = Inf),TRUE)
       if (length(try.numerator)==1){
-        numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+        numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                lower = -10, upper = 10)$value
       } else {
         numerator <- try.numerator$value
       }
 
-      try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+      try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                      lower = -Inf, upper = Inf),TRUE)
       if (length(try.numerator2)==1){
-        numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
+        numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
                                lower = -10, upper = 10)$value
       } else {
         numerator2 <- try.numerator2$value
@@ -1415,7 +1501,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
   } else if (mydists[[node]] == "binomial"){
     p_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -1443,14 +1529,14 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
           numerator <-  function(x){
-            exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]],continuous_part))  * prior_binomial(x, p_prior[2])
+            exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part))  * prior_binomial(x, p_prior[2])
           }
 
           denominator <- numerator(0) + numerator(1)
@@ -1479,7 +1565,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
             }
 
             numerator <-  function(x){
-              exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
+              exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
             }
             denominator <- numerator(0) + numerator(1)
             results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
@@ -1507,7 +1593,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
           }
 
           numerator <-  function(x){
-            exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
+            exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
           }
           denominator <- numerator(0) + numerator(1)
           results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
@@ -1516,7 +1602,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
       }
     } else {
       numerator <-  function(x){
-        exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]],continuous_part)) * prior_binomial(x, p_prior[2])
+        exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part)) * prior_binomial(x, p_prior[2])
       }
       denominator <- numerator(0) + numerator(1)
       results <- c(numerator(0) / denominator,numerator(1) / denominator)
@@ -1529,7 +1615,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
   } else {
     lambda_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -1556,25 +1642,25 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
         if (length(bin.nodes.evidence)==length(bin.nodes)){
           # all bin nodes are evidence
           max_x <- max(1000,4*lambda_prior)
-          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
+          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
           #if (length(try.denominator)==1){
-            denominator <- sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
+            denominator <- sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
           #} else if (try.denominator$value == 0){
-          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
+          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
           #} else {
           #  denominator <- try.denominator$value
           #}
 
-          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
+          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
           #if (length(try.numerator)==1){
-            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
+            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
           #} else {
           #  numerator <- try.numerator$value
           #}
@@ -1603,16 +1689,16 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
             }
 
             max_x <- max(1000,4*lambda_prior)
-            #try.denominator <- try(sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
+            #try.denominator <- try(sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
             #if (length(try.denominator)==1){
-              denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+              denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
             #} else {
             #  denominator <- try.denominator$value
             #}
 
-            #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
+            #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
             #if (length(try.numerator)==1){
-              numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+              numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
             #} else {
             #  numerator <- try.numerator$value
             #}
@@ -1642,20 +1728,20 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
           }
 
           max_x <- max(1000,4*lambda_prior)
-          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
+          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
           #if (length(try.denominator)==1){
-            denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+            denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
           #} else if (try.denominator$value == 0){
-          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
           #} else {
           #  denominator <- try.denominator$value
           #}
 
-          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
+          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
           #if (length(try.numerator)==1){
-            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
           #} else if (try.numerator$value==0){
-          #  numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
+          #  numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
           #} else {
           #  numerator <- try.numerator$value
           #}
@@ -1666,16 +1752,16 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
       }
     } else {
       max_x <- max(1000,4*lambda_prior)
-      #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
+      #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
       #if (length(try.denominator)==1){
-        denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
+        denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
       #} else {
       #  denominator <- try.denominator$value
       #}
 
-      #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
+      #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
       #if (length(try.numerator)==1){
-        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[children]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
+        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
       #} else {
       #  numerator <- try.numerator$value
       #}
@@ -1685,9 +1771,9 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
   }
 }
 
-#' Performing inference with ABN (downstream inference)
+#' Perform downstream inference with ABN 
 #'
-#' Main function to predict the distribution of a binomial node given its children and its children's parents
+#' Main function to predict the distribution of a node given one of its binomial child and its parents
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -1696,7 +1782,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param children The children of the node to predict.
 #' @param parents The children's parents of the node to predict.
-#' @param predictions The estimated predictions of the upstream nodes.
+#' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -1727,21 +1813,47 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
 #' myfit <- fitAbn(object = mp.dag)
 #' myfit <- myfit$modes
 #' 
-#' node <- "g2"
-#' children <- find_children(graph, node)[1]
-#' parents <- find_parents(graph, children)
-#' evidence <- list("p1" = 3, "b5" = "y")
+#' node <- "g1"
+#' child <- find_children(graph, node)[1]
+#' parents <- find_parents(graph, child)
+#' evidence <- list("b3" = "y",  "b1" = "y", "b2" = "y")
+#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+#'
+#' predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 #' 
-#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, children, parents)
+#' predictions <- predict_node_from_children_binomial(data, mydists, myfit, node, evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children_binomial <- function(data, mydists, myfit, node, evidence, children, parents, predictions){
-
+predict_node_from_children_binomial <- function(data, mydists, myfit, node, evidence, child, parents, predictions){
+  if (mydists[[child]] != "binomial"){
+    stop("The child should follow a Gaussian distribution.")
+  }
+  if (!node %in% names(predictions)){
+    stop("Predictions must contain at least a first prediction of the node to predict.")
+  }
+  
+  if (!all(c(child,parents) %in% names(predictions))){
+    nodes <- setdiff(c(child,parents),names(predictions))
+    if (!all(nodes %in% names(evidence))){
+      stop("Not enough information about the downstream nodes.")
+    }
+    predictions <- c(predictions,evidence)
+  }
+  
+  gaussian_nodes <- intersect(names(which(mydists=="gaussian")),names(predictions))
+  if (length(gaussian_nodes)>0){
+    for (i in (1:length(gaussian_nodes))){
+      if (length(predictions[[gaussian_nodes[i]]])==1){
+        predictions[[gaussian_nodes[i]]] <- c(predictions[[gaussian_nodes[i]]][1],var(data[[gaussian_nodes[i]]]))
+      }
+    }
+  }
+  
   if (mydists[[node]] == "binomial"){
     p_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -1762,12 +1874,12 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
     names(continuous_part) <- c()
 
-    if (children %in% names(evidence)){
+    if (child %in% names(evidence)){
       p_pred <- c(0,0)
-      names(p_pred) <- levels(data[[children]])
-      p_pred[grep(predictions[[children]],names(p_pred))] <- 1
+      names(p_pred) <- levels(data[[child]])
+      p_pred[grep(predictions[[child]],names(p_pred))] <- 1
     } else {
-      p_pred <- predictions[[children]]
+      p_pred <- predictions[[child]]
     }
     
     if (length(bin.nodes)>0){
@@ -1777,7 +1889,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
@@ -1878,7 +1990,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     mu_prior <- predictions[[node]][1]
     sigma_prior <- predictions[[node]][2]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -1898,12 +2010,12 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
     names(continuous_part) <- c()
 
-    if (children %in% names(evidence)){
+    if (child %in% names(evidence)){
       p_prior <- c(0,0)
-      names(p_prior) <- levels(data[[children]])
-      p_prior[grep(predictions[[children]],names(p_prior))] <- 1
+      names(p_prior) <- levels(data[[child]])
+      p_prior[grep(predictions[[child]],names(p_prior))] <- 1
     } else {
-      p_prior <- predictions[[children]]
+      p_prior <- predictions[[child]]
     }
 
     if (length(bin.nodes)>0){
@@ -1912,7 +2024,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
@@ -2030,7 +2142,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
   } else {
     lambda_prior <- predictions[[node]]
 
-    eq <- myfit[[children]]
+    eq <- myfit[[child]]
     names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
     bin.nodes <- intersect(names(which(mydists=="binomial")),parents)
@@ -2051,12 +2163,12 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
     names(continuous_part) <- c()
 
-    if (children %in% names(evidence)){
+    if (child %in% names(evidence)){
       p_prior <- c(0,0)
-      names(p_prior) <- levels(data[[children]])
-      p_prior[grep(predictions[[children]],names(p_prior))] <- 1
+      names(p_prior) <- levels(data[[child]])
+      p_prior[grep(predictions[[child]],names(p_prior))] <- 1
     } else {
-      p_prior <- predictions[[children]]
+      p_prior <- predictions[[child]]
     }
 
     if (length(bin.nodes)>0){
@@ -2065,7 +2177,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
         # at least one bin nodes is an evidence
         predictions_tmp <- predictions[bin.nodes.evidence]
         predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(predictions_tmp[[1]])-1
+          as.numeric(l[1])-1
         })
         continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
 
@@ -2152,9 +2264,9 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
   }
 }
 
-#' Finding the parents of a node in a graph
+#' Find the parents of a node in a graph
 #'
-#' Finds the parents of a given node in a given graph.
+#' Find the parents of a given node in a given graph.
 #'
 #' @param graph A directed graph (igraph object).
 #' @param node A node of the graph (either a node label or a number)
@@ -2192,9 +2304,9 @@ find_parents <- function(graph,node){
   return(parents)
 }
 
-#' Finding the children of a node in a graph
+#' Find the children of a node in a graph
 #'
-#' Finds the children of a given node in a given graph.
+#' Find the children of a given node in a given graph.
 #'
 #' @param graph A directed graph (igraph object).
 #' @param node A node of the graph (either a node label or a number)
@@ -2232,9 +2344,9 @@ find_children <- function(graph,node){
   return(children)
 }
 
-#' Predicting a root node
+#' Predict a root node
 #'
-#' Predicts a root node in the graph
+#' Predict a root node in the graph
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -2268,15 +2380,15 @@ predict_root <- function(data, mydists, node){
   }
 }
 
-#' Computing the log-likelihood 
+#' Compute the log-likelihood of a Poisson variable
 #'
-#' Computes the log-likelihood of a Poisson variable
-#'
-#' @param y To fill
-#' @param x To fill
-#' @param coef To fill
-#' @param continuous_part To fill
-#' @return To fill
+#' This function computes the log-likelihood of a Poisson-distributed variable
+#' 
+#' @param y The observed count for the Poisson-distributed variable (must be non-negative).
+#' @param x A value for a parent of the Poisson variable.
+#' @param coef The coefficient that links `y` to `x`.
+#' @param continuous_part The intercept and any additional contributions from other parents of `y`.
+#' @return The value of the log-likelihood.
 #' @export
 LogL_poisson <- function(y, x, coef, continuous_part){
   lambda <- exp(coef*x + continuous_part)
@@ -2285,29 +2397,29 @@ LogL_poisson <- function(y, x, coef, continuous_part){
   y * log(lambda) - lambda - lgamma(y + 1)
 }
 
-#' Computing the prior
+#' Compute Gaussian prior density
 #'
-#' Computes the prior of a Gaussian variable
+#' This function calculates the density of a Gaussian distribution
 #'
-#' @param x To fill
-#' @param mu To fill
-#' @param sigma2 To fill
-#' @return To fill
+#' @param x The value at which the density is evaluated.
+#' @param mu The expected value of the Gaussian distribution.
+#' @param sigma2 The variance of the Gaussian distribution.
+#' @return The density of the normal distribution at x.
 #' @export
 prior_gaussian <- function(x, mu, sigma2){
   dnorm(x, mean=mu, sd=sqrt(sigma2))
 }
 
-#' Computing the log-likelihood 
+#' Compute the likelihood of a Gaussian variable
 #'
-#' Computes the log-likelihood of a Gaussian variable
+#' This function computes the likelihood of a Gaussian-distributed variable
 #'
-#' @param y To fill
-#' @param x To fill
-#' @param coef To fill
-#' @param var To fill
-#' @param continuous_part To fill
-#' @return To fill
+#' @param y The observed value for the Gaussian-distributed variable.
+#' @param x A value for a parent of the Gaussian variable.
+#' @param coef The coefficient that links `y` to `x`.
+#' @param var The variance of the Gaussian variable.
+#' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
+#' @return The value of the likelihood.
 #' @export
 L_gaussian <- function(y, x, coef, var, continuous_part){
   mu <-  coef*x + continuous_part
@@ -2315,27 +2427,27 @@ L_gaussian <- function(y, x, coef, var, continuous_part){
   dnorm(y, mean = mu, sd=sqrt(sigma2))
 }
 
-#' Computing the prior
+#' Compute prior probability for a binomial prior distribution
 #'
-#' Computes the prior of a binomial variable
+#' This function calculates the probability mass function of a binomial distribution
 #'
-#' @param x To fill
-#' @param p To fill
-#' @return To fill
+#' @param x The observed outcome (0 or 1).
+#' @param p The probability of sucess (between 0 and 1).
+#' @return The probability of observing x given sucess probability p.
 #' @export
 prior_binomial <- function(x, p){
   dbinom(x, size=1, prob=p)
 }
 
-#' Computing the log-likelihood 
+#' Compute the likelihood of a binomial variable
 #'
-#' Computes the log-likelihood of a binomial variable
+#' This function computes the likelihood of a binomial-distributed variable
 #'
-#' @param y To fill
-#' @param x To fill
-#' @param coef To fill
-#' @param continuous_part To fill
-#' @return To fill
+#' @param y The observed binary outcome (numeric 0 or 1)
+#' @param x A value for a parent of the binomial variable.
+#' @param coef The coefficient that links `y` to `x`.
+#' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
+#' @return The value of the likelihood.
 #' @export
 L_binomial <- function(y, x, coef, continuous_part){
   mu <- 1 / (1 + exp(-(continuous_part + coef * x )))
@@ -2346,34 +2458,69 @@ L_binomial <- function(y, x, coef, continuous_part){
   }
 }
 
-#' Computing the prior
+#' Compute Prior Probability for a Poisson Distribution
 #'
-#' Computes the prior of a Poisson variable
+#' This function calculates the probability mass function of a Poisson distribution
 #'
-#' @param x To fill
-#' @param lambda To fill
-#' @return To fill
+#' @param x The observed count (number of events, must be non-negative).
+#' @param lambda The expected number of events (rate parameter, must be positive).
+#' @return The probability of observing `x` events given rate `lambda`.
 #' @export
 prior_poisson <- function(x,lambda){
   dpois(x,lambda)
 }
 
-#' Evaluating the performances
+#' Evaluate the performances
 #'
-#' Evaluates the performances of the predictions
+#' This function evaluates the performances of the ABN inference procedure
 #'
-#' @param observations To fill
-#' @param predictions To fill
-#' @param distribution To fill
-#' @param compare.distrib To fill
-#' @return To fill
+#' @param observations The observed values of a given node.
+#' @param predictions A list containing the predicted distributions of the same given node.
+#' @param distribution The distribution of the predicted node.
+#' @param compare.distrib TRUE/FALSE if we want to compare the distributions instead of comparing each sample separately.
+#' @return A list of performances.
+#' 
+#' @examples
+#' # load a data set
+#' data <- ex1.dag.data 
+#' 
+#' # define the distributions of the node
+#' mydists <- list(b1="binomial", 
+#' p1="poisson", 
+#' g1="gaussian", 
+#' b2="binomial", 
+#' p2="poisson", 
+#' b3="binomial", 
+#' g2="gaussian", 
+#' b4="binomial", 
+#' b5="binomial", 
+#' g3="gaussian") 
+#' 
+#' # infer the graph using ABN
+#' max.par <- 4 # set the same max parents for all nodes
+#' mycache <- buildScoreCache(data.df = data, 
+#'                           data.dists = mydists,
+#'                           method = "bayes",max.parents = max.par) 
+#' mp.dag <- mostProbable(score.cache = mycache)
+#' dag <- mp.dag$dag
+#' 
+#' # infer the parameters of the network
+#' myfit <- fitAbn(object = mp.dag)
+#' myfit <- myfit$modes
+#' 
+#' hypothesis <- "g2"
+#' 
+#' evidence <- as.list(data[1,-which(colnames(data) == hypothesis)])
+#' 
+#' predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
+#' 
+#' observations <- data[1,"g2"]
+#' distribution <- "gaussian" # the distribution of g2
+#' 
+#' EvaluatePerf(observations, predictions = predictions$prediction_hypothesis, distribution)
+#' 
 #' @export
 EvaluatePerf <- function(observations,predictions,distribution, compare.distrib = FALSE){
-  # observations: true values
-  # predictions: predicted values
-  # distribution: "poisson", "binomial", or "gaussian"
-  # plot.distrib: if we want to compare the distributions instead of comparing by samples 
-  
   if (compare.distrib == TRUE){
     predictions <- rep(list(predictions), length(observations))
   }
@@ -2382,9 +2529,15 @@ EvaluatePerf <- function(observations,predictions,distribution, compare.distrib 
   pred.NA <- sapply(predictions, function(l){
     is.na(l[[1]])
   })
-  predictions <- predictions[!pred.NA]
-  observations <- observations[!pred.NA]
+  if (length(which(pred.NA==TRUE))>0){
+    predictions <- predictions[!pred.NA]
+    observations <- observations[!pred.NA]
+  }
   n <- length(observations)
+  
+  if (n==1){
+    predictions <- list(predictions)
+  }
 
   if (distribution == "gaussian"){
     # SPE
@@ -2470,9 +2623,9 @@ EvaluatePerf <- function(observations,predictions,distribution, compare.distrib 
   return(Scores)
 }
 
-#' Plotting ABN fitted network
+#' Plot ABN fitted network
 #'
-#' Plots the ABN network with an emphasis on a specific node
+#' This function plots the ABN network with an emphasis on a specific node
 #'
 #' @param dag An adjacency matrix (can be the output of the function mostProbable()).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -2564,9 +2717,9 @@ plot_Abn <- function (dag, mydists, node, order){
   return(graph=am.graph)
 }
 
-#' Plotting the procedure's workflow
+#' Plot the procedure's workflow
 #'
-#' Plots and saves an animated gif that represents the procedure's workflow.
+#' This function plots and saves an animated gif that represents the procedure's workflow.
 #'
 #' @param dag An adjacency matrix (can be the output of the function mostProbable()).
 #' @param mydists A list containing the distributions of the nodes of the graph.
@@ -2630,9 +2783,9 @@ plot_workflow <- function(dag, mydists, hypothesis, path = NULL, directory.name 
   createAnimation(path)
 }
 
-#' Creating a directory
+#' Create a directory
 #'
-#' Creates a directory situated in a particular path 
+#' This function creates a directory situated in a particular path 
 #'
 #' @param path A valid path.
 #' @param directory.name The name of the directory that will be created in this path.
@@ -2662,9 +2815,9 @@ createDirectory <- function(path = NULL, directory.name = NULL){
   return(path)
 }
 
-#' Creating an animation 
+#' Create an animated gif
 #'
-#' Creates an animated gif file based on png files
+#' This function creates an animated gif file based on png files
 #'
 #' @param path A valid path to a repository that contains the png to combine in a gif.
 #' @return None
@@ -2686,17 +2839,16 @@ createAnimation <- function(path = NULL){
     image_write(paste0(path,"/",file.name,".gif"))  
 }
 
-#' Plotting the posterior distribution
+#' Plot the posterior distribution
 #'
-#' Plots the posterior distribution
+#' This functions plots the posterior distribution
 #'
 #' @param predictions To fill.
 #' @param hypothesis To fill.
 #' @param mydists To fill.
-#' @param path To fill.
 #' @return None
 #' @export
-plotPosteriorDistrib <- function(predictions, hypothesis, mydists, path){
+plotPosteriorDistrib <- function(predictions, hypothesis, mydists){
   if (mydists[[hypothesis]]=="gaussian"){
     samples <- rnorm(1000, mean = predictions[[hypothesis]][1], sd = sqrt(predictions[[hypothesis]][2]))
     posterior_df <- data.frame(samples)
@@ -2729,6 +2881,5 @@ plotPosteriorDistrib <- function(predictions, hypothesis, mydists, path){
            y = "Probability") +
       theme_minimal()
   }
-  ggsave(paste0(path,"/PosteriorDistrib.png"),plot=g,bg="white")
   return(g)
 }

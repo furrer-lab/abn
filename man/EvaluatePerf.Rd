@@ -2,22 +2,62 @@
 % Please edit documentation in R/PredictABN.R
 \name{EvaluatePerf}
 \alias{EvaluatePerf}
-\title{Evaluating the performances}
+\title{Evaluate the performances}
 \usage{
 EvaluatePerf(observations, predictions, distribution, compare.distrib = FALSE)
 }
 \arguments{
-\item{observations}{To fill}
+\item{observations}{The observed values of a given node.}
 
-\item{predictions}{To fill}
+\item{predictions}{A list containing the predicted distributions of the same given node.}
 
-\item{distribution}{To fill}
+\item{distribution}{The distribution of the predicted node.}
 
-\item{compare.distrib}{To fill}
+\item{compare.distrib}{TRUE/FALSE if we want to compare the distributions instead of comparing each sample separately.}
 }
 \value{
-To fill
+A list of performances.
 }
 \description{
-Evaluates the performances of the predictions
+This function evaluates the performances of the ABN inference procedure
+}
+\examples{
+# load a data set
+data <- ex1.dag.data 
+
+# define the distributions of the node
+mydists <- list(b1="binomial", 
+p1="poisson", 
+g1="gaussian", 
+b2="binomial", 
+p2="poisson", 
+b3="binomial", 
+g2="gaussian", 
+b4="binomial", 
+b5="binomial", 
+g3="gaussian") 
+
+# infer the graph using ABN
+max.par <- 4 # set the same max parents for all nodes
+mycache <- buildScoreCache(data.df = data, 
+                          data.dists = mydists,
+                          method = "bayes",max.parents = max.par) 
+mp.dag <- mostProbable(score.cache = mycache)
+dag <- mp.dag$dag
+
+# infer the parameters of the network
+myfit <- fitAbn(object = mp.dag)
+myfit <- myfit$modes
+
+hypothesis <- "g2"
+
+evidence <- as.list(data[1,-which(colnames(data) == hypothesis)])
+
+predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
+
+observations <- data[1,"g2"]
+distribution <- "gaussian" # the distribution of g2
+
+EvaluatePerf(observations, predictions = predictions$prediction_hypothesis, distribution)
+
 }

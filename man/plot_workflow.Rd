@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{plot_workflow}
 \alias{plot_workflow}
-\title{Plotting the procedure's workflow}
+\title{Plot the procedure's workflow}
 \usage{
 plot_workflow(dag, mydists, hypothesis, path = NULL, directory.name = NULL)
 }
@@ -21,7 +21,7 @@ plot_workflow(dag, mydists, hypothesis, path = NULL, directory.name = NULL)
 An animated gif that represents the procedure's workflow.
 }
 \description{
-Plots and saves an animated gif that represents the procedure's workflow.
+This function plots and saves an animated gif that represents the procedure's workflow.
 }
 \examples{
 # load a data set

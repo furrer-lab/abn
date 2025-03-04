@@ -2,18 +2,18 @@
 % Please edit documentation in R/PredictABN.R
 \name{prior_binomial}
 \alias{prior_binomial}
-\title{Computing the prior}
+\title{Compute prior probability for a binomial prior distribution}
 \usage{
 prior_binomial(x, p)
 }
 \arguments{
-\item{x}{To fill}
+\item{x}{The observed outcome (0 or 1).}
 
-\item{p}{To fill}
+\item{p}{The probability of sucess (between 0 and 1).}
 }
 \value{
-To fill
+The probability of observing x given sucess probability p.
 }
 \description{
-Computes the prior of a binomial variable
+This function calculates the probability mass function of a binomial distribution
 }

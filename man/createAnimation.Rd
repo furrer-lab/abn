@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{createAnimation}
 \alias{createAnimation}
-\title{Creating an animation}
+\title{Create an animated gif}
 \usage{
 createAnimation(path = NULL)
 }
@@ -13,5 +13,5 @@ createAnimation(path = NULL)
 None
 }
 \description{
-Creates an animated gif file based on png files
+This function creates an animated gif file based on png files
 }

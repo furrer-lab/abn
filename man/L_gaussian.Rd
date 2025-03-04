@@ -2,24 +2,24 @@
 % Please edit documentation in R/PredictABN.R
 \name{L_gaussian}
 \alias{L_gaussian}
-\title{Computing the log-likelihood}
+\title{Compute the likelihood of a Gaussian variable}
 \usage{
 L_gaussian(y, x, coef, var, continuous_part)
 }
 \arguments{
-\item{y}{To fill}
+\item{y}{The observed value for the Gaussian-distributed variable.}
 
-\item{x}{To fill}
+\item{x}{A value for a parent of the Gaussian variable.}
 
-\item{coef}{To fill}
+\item{coef}{The coefficient that links \code{y} to \code{x}.}
 
-\item{var}{To fill}
+\item{var}{The variance of the Gaussian variable.}
 
-\item{continuous_part}{To fill}
+\item{continuous_part}{The rest of the equation (intercept and links between the parents of the child and the child).}
 }
 \value{
-To fill
+The value of the likelihood.
 }
 \description{
-Computes the log-likelihood of a Gaussian variable
+This function computes the likelihood of a Gaussian-distributed variable
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predict_node_from_children}
 \alias{predict_node_from_children}
-\title{Performing inference with ABN (downstream inference)}
+\title{Perform downstream inference with ABN}
 \usage{
 predict_node_from_children(
   data,
@@ -11,7 +11,7 @@ predict_node_from_children(
   myfit,
   node,
   evidence,
-  predictions = evidence
+  predictions
 )
 }
 \arguments{
@@ -27,13 +27,13 @@ predict_node_from_children(
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}
 
-\item{predictions}{The estimated predictions of the upstream nodes.}
+\item{predictions}{The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the children and the children's parents are evidence).}
 }
 \value{
 The predicted distribution of the node of interest.
 }
 \description{
-Main function to predict the distribution of one node given its children and its children's parents
+Main function to predict the distribution of a node given its children and the children's parents
 }
 \examples{
 # load a data set
@@ -66,8 +66,10 @@ myfit <- myfit$modes
 
 node <- "g2"
 
-evidence <- list("p1" = 3, "b5" = "y")
+evidence <- list("g1" = 3, "b5" = "y")
 
-predictions <- predict_node_from_children(data, mydists, graph, myfit, node, evidence)
+predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
+
+predictions <- predict_node_from_children(data, mydists, graph, myfit, node, evidence, predictions)
 predictions  # the predicted distribution of g2
 }

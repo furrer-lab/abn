@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{check_evidence}
 \alias{check_evidence}
-\title{Checking the evidence}
+\title{Check the evidence}
 \usage{
 check_evidence(data, mydists, hypothesis, evidence)
 }
@@ -19,7 +19,7 @@ check_evidence(data, mydists, hypothesis, evidence)
 A list containing the evidence in the right format
 }
 \description{
-Check the format of the evidence
+This function checks the format of the evidence
 }
 \examples{
 # load a data set

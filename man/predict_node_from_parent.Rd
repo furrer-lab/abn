@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predict_node_from_parent}
 \alias{predict_node_from_parent}
-\title{Performing inference with ABN (upstream inference)}
+\title{Perform upstream inference with ABN}
 \usage{
 predict_node_from_parent(
   data,
@@ -11,7 +11,7 @@ predict_node_from_parent(
   myfit,
   node,
   evidence,
-  predictions = evidence
+  predictions = NULL
 )
 }
 \arguments{
@@ -27,13 +27,13 @@ predict_node_from_parent(
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}
 
-\item{predictions}{The estimated predictions of the upstream nodes.}
+\item{predictions}{The estimated predictions of the upstream nodes (can be empty if the parents of the node to predict are evidence).}
 }
 \value{
 The predicted distribution of the node of interest.
 }
 \description{
-Main function to predict the distribution of one node given its parents only
+Main function to predict the distribution of a node given its parents only
 }
 \examples{
 # load a data set
@@ -66,7 +66,7 @@ myfit <- myfit$modes
 
 node <- "g2"
 
-evidence <- list("p1" = 3, "g3" = 5)
+evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
 
 predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
 predictions  # the predicted distribution of g2

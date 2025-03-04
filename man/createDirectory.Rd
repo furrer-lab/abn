@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{createDirectory}
 \alias{createDirectory}
-\title{Creating a directory}
+\title{Create a directory}
 \usage{
 createDirectory(path = NULL, directory.name = NULL)
 }
@@ -15,7 +15,7 @@ createDirectory(path = NULL, directory.name = NULL)
 A path corresponding to this created repository
 }
 \description{
-Creates a directory situated in a particular path
+This function creates a directory situated in a particular path
 }
 \examples{
 path <- createDirectory(path = NULL, directory.name = "test")

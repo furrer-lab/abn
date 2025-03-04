@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predictABN}
 \alias{predictABN}
-\title{Performing inference with ABN}
+\title{Perform inference with ABN}
 \usage{
 predictABN(data, mydists, dag, myfit, hypothesis, evidence, plot = FALSE)
 }
@@ -25,7 +25,7 @@ predictABN(data, mydists, dag, myfit, hypothesis, evidence, plot = FALSE)
 A list containing the predicted distribution of the hypothesis and predicted distributions of the upstream nodes.
 }
 \description{
-Main function to predict the distribution of one node in a fitted ABN graph
+Main function to predict the distribution of a node in a fitted ABN graph
 }
 \examples{
 # load a data set
@@ -61,5 +61,5 @@ evidence <- list("p1" = 3)
 
 predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
 str(predictions)
-predictions$predictions_hypothesis # the predicted distribution of g2
+predictions$prediction_hypothesis # the predicted distribution of g2
 }

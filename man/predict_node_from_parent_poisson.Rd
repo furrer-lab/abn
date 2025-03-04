@@ -2,7 +2,7 @@
 % Please edit documentation in R/PredictABN.R
 \name{predict_node_from_parent_poisson}
 \alias{predict_node_from_parent_poisson}
-\title{Performing inference with ABN (upstream inference)}
+\title{Perform upstream inference with ABN}
 \usage{
 predict_node_from_parent_poisson(
   data,
@@ -11,7 +11,7 @@ predict_node_from_parent_poisson(
   node,
   evidence,
   parents,
-  predictions = evidence
+  predictions = NULL
 )
 }
 \arguments{
@@ -27,7 +27,7 @@ predict_node_from_parent_poisson(
 
 \item{parents}{The parents of the node to predict.}
 
-\item{predictions}{The estimated predictions of the upstream nodes.}
+\item{predictions}{The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).}
 }
 \value{
 The predicted distribution of the node of interest.
@@ -64,10 +64,10 @@ graph <- graph_from_adjacency_matrix(t(dag))
 myfit <- fitAbn(object = mp.dag)
 myfit <- myfit$modes
 
-node <- "p1"
+node <- "p2"
 parents <- find_parents(graph,node)
 
-evidence <- list("g1" = 4, "g2" = 3, "g3" = 1, b3 = "y")
+evidence <- list("b1" = "y", "p1" = 3)
 
 predictions <- predict_node_from_parent_poisson(data, mydists, myfit, node, evidence, parents)
 predictions  # the predicted distribution of p1

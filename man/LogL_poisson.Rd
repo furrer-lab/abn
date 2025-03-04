@@ -2,22 +2,22 @@
 % Please edit documentation in R/PredictABN.R
 \name{LogL_poisson}
 \alias{LogL_poisson}
-\title{Computing the log-likelihood}
+\title{Compute the log-likelihood of a Poisson variable}
 \usage{
 LogL_poisson(y, x, coef, continuous_part)
 }
 \arguments{
-\item{y}{To fill}
+\item{y}{The observed count for the Poisson-distributed variable (must be non-negative).}
 
-\item{x}{To fill}
+\item{x}{A value for a parent of the Poisson variable.}
 
-\item{coef}{To fill}
+\item{coef}{The coefficient that links \code{y} to \code{x}.}
 
-\item{continuous_part}{To fill}
+\item{continuous_part}{The intercept and any additional contributions from other parents of \code{y}.}
 }
 \value{
-To fill
+The value of the log-likelihood.
 }
 \description{
-Computes the log-likelihood of a Poisson variable
+This function computes the log-likelihood of a Poisson-distributed variable
 }
