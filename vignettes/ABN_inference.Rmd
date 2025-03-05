@@ -1,7 +1,6 @@
 ---
 title: "Inference with ABN"
-output: bookdown::html_document2:
-  mathjax: default
+output: rmarkdown::html_vignette
 bibliography: references.bib  
 vignette: >
   %\VignetteIndexEntry{Inference with ABN}

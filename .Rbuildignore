@@ -40,3 +40,4 @@ Makefile
 ^inst/figures/.*\.svg$
 ^inst/figures/abn_logo.png$
 ^inst/figures/abn_logo_white.png$
+^Meta$

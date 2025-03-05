@@ -58,7 +58,7 @@ mycache <- buildScoreCache(data.df = data,
                           method = "bayes",max.parents = max.par) 
 mp.dag <- mostProbable(score.cache = mycache)
 dag <- mp.dag$dag
-graph <- graph_from_adjacency_matrix(t(dag))
+graph <- igraph::graph_from_adjacency_matrix(t(dag))
 
 # infer the parameters of the network
 myfit <- fitAbn(object = mp.dag)

@@ -10,6 +10,7 @@
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param plot TRUE/FALSE to indicate if the predicted distribution has to be plotted.
 #' @return A list containing the predicted distribution of the hypothesis and predicted distributions of the upstream nodes.
+#' @import igraph
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -172,6 +173,7 @@ check_evidence <- function(data, mydists, hypothesis, evidence){
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param predictions The estimated predictions of the upstream nodes (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -195,7 +197,7 @@ check_evidence <- function(data, mydists, hypothesis, evidence){
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -239,6 +241,7 @@ predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the children and the children's parents are evidence).
+#' @import igraph
 #' @return The predicted distribution of the node of interest.
 #' @examples
 #' # load a data set
@@ -263,7 +266,7 @@ predict_node_from_parent <- function(data, mydists, graph, myfit, node, evidence
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -355,6 +358,7 @@ predict_node_from_children <- function(data, mydists, graph, myfit, node, eviden
 #' @param parents The parents of the node to predict.
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -378,7 +382,7 @@ predict_node_from_children <- function(data, mydists, graph, myfit, node, eviden
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -482,6 +486,7 @@ predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidenc
 #' @param parents The parents of the node to predict.
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -505,7 +510,7 @@ predict_node_from_parent_poisson <- function(data, mydists, myfit, node, evidenc
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -644,6 +649,7 @@ predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, eviden
 #' @param parents The parents of the node to predict.
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -667,7 +673,7 @@ predict_node_from_parent_gaussian <- function(data, mydists, myfit, node, eviden
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -776,6 +782,7 @@ predict_node_from_parent_binomial <- function(data, mydists, myfit, node, eviden
 #' @param parents The parents of the child.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph 
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -799,7 +806,7 @@ predict_node_from_parent_binomial <- function(data, mydists, myfit, node, eviden
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -1184,10 +1191,11 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
 #' @param myfit Parameters of the network (can be the output of the function fitAbn()).
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param children The children of the node to predict.
-#' @param parents The children's parents of the node to predict.
+#' @param child A child of the node to predict.
+#' @param parents The parents of the child.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph 
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -1211,7 +1219,7 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -1754,14 +1762,14 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
       max_x <- max(1000,4*lambda_prior)
       #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
       #if (length(try.denominator)==1){
-        denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
+        denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
       #} else {
       #  denominator <- try.denominator$value
       #}
 
       #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
       #if (length(try.numerator)==1){
-        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)))
+        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
       #} else {
       #  numerator <- try.numerator$value
       #}
@@ -1780,10 +1788,11 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
 #' @param myfit Parameters of the network (can be the output of the function fitAbn()).
 #' @param node Temporary node to predict. 
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param children The children of the node to predict.
-#' @param parents The children's parents of the node to predict.
+#' @param child A child of the node to predict.
+#' @param parents The parents of the child.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @import igraph 
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -1807,7 +1816,7 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
 #'                           method = "bayes",max.parents = max.par) 
 #' mp.dag <- mostProbable(score.cache = mycache)
 #' dag <- mp.dag$dag
-#' graph <- graph_from_adjacency_matrix(t(dag))
+#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
@@ -2271,8 +2280,9 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
 #' @param graph A directed graph (igraph object).
 #' @param node A node of the graph (either a node label or a number)
 #' @return A vector containing the parents of the node (labels of the nodes if the graph is labeled)
+#' @import igraph 
 #' @examples
-#' g <- make_graph("Zachary") # undirected graph
+#' g <- igraph::make_graph("Zachary") # undirected graph
 #' find_parents(g, node = 1) # neighbors of the node 1
 #' @export
 find_parents <- function(graph,node){
@@ -2311,8 +2321,9 @@ find_parents <- function(graph,node){
 #' @param graph A directed graph (igraph object).
 #' @param node A node of the graph (either a node label or a number)
 #' @return A vector containing the children of the node (labels of the nodes if the graph is labeled)
+#' @import igraph
 #' @examples
-#' g <- make_graph("Zachary") # undirected graph
+#' g <- igraph::make_graph("Zachary") # undirected graph
 #' find_children(g, node = 1) # neighbors of the node 1
 #' @export
 find_children <- function(graph,node){
@@ -2648,10 +2659,19 @@ EvaluatePerf <- function(observations,predictions,distribution, compare.distrib 
 #' b5="binomial", 
 #' g3="gaussian") 
 #' 
+#' # infer the graph using ABN
+#' max.par <- 4 # set the same max parents for all nodes
+#' mycache <- buildScoreCache(data.df = data, 
+#'                           data.dists = mydists,
+#'                           method = "bayes",max.parents = max.par) 
+#' mp.dag <- mostProbable(score.cache = mycache)
+#' dag <- mp.dag$dag
+#' 
 #' node <- "b4"
 #' order <- "up"
 #' plot_node <- plot_Abn(dag, mydists, node, order)
 #' plot_node
+#' @import igraph
 #' @export
 plot_Abn <- function (dag, mydists, node, order){ 
   if (!all(colnames(dag) %in% names(mydists))){
@@ -2727,6 +2747,7 @@ plot_Abn <- function (dag, mydists, node, order){
 #' @param path A valid path to save the plots
 #' @param directory.name The name of the directory that will be created to save the plots.
 #' @return An animated gif that represents the procedure's workflow.
+#' @import igraph 
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 
@@ -2821,6 +2842,11 @@ createDirectory <- function(path = NULL, directory.name = NULL){
 #'
 #' @param path A valid path to a repository that contains the png to combine in a gif.
 #' @return None
+#' @importFrom magick image_join
+#' @importFrom magick image_read
+#' @importFrom magick image_animate
+#' @importFrom magick image_write
+#' @importFrom purrr map
 #' @export
 createAnimation <- function(path = NULL){
   png_files <- list.files(path,
@@ -2847,7 +2873,8 @@ createAnimation <- function(path = NULL){
 #' @param hypothesis Node to predict. 
 #' @param mydists A list containing the distributions of the nodes of the graph.
 #' @return None
-#'
+#' @import ggplot2
+#' 
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data 

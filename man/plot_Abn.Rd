@@ -37,6 +37,14 @@ b4="binomial",
 b5="binomial", 
 g3="gaussian") 
 
+# infer the graph using ABN
+max.par <- 4 # set the same max parents for all nodes
+mycache <- buildScoreCache(data.df = data, 
+                          data.dists = mydists,
+                          method = "bayes",max.parents = max.par) 
+mp.dag <- mostProbable(score.cache = mycache)
+dag <- mp.dag$dag
+
 node <- "b4"
 order <- "up"
 plot_node <- plot_Abn(dag, mydists, node, order)
