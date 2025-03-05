@@ -7,15 +7,51 @@
 plotPosteriorDistrib(predictions, hypothesis, mydists)
 }
 \arguments{
-\item{predictions}{To fill.}
+\item{predictions}{A list containing the predicted distributions of nodes of the graphs.}
 
-\item{hypothesis}{To fill.}
+\item{hypothesis}{Node to predict.}
 
-\item{mydists}{To fill.}
+\item{mydists}{A list containing the distributions of the nodes of the graph.}
 }
 \value{
 None
 }
 \description{
 This functions plots the posterior distribution
+}
+\examples{
+# load a data set
+data <- ex1.dag.data 
+
+# define the distributions of the node
+mydists <- list(b1="binomial", 
+p1="poisson", 
+g1="gaussian", 
+b2="binomial", 
+p2="poisson", 
+b3="binomial", 
+g2="gaussian", 
+b4="binomial", 
+b5="binomial", 
+g3="gaussian") 
+
+# infer the graph using ABN
+max.par <- 4 # set the same max parents for all nodes
+mycache <- buildScoreCache(data.df = data, 
+                          data.dists = mydists,
+                          method = "bayes",max.parents = max.par) 
+mp.dag <- mostProbable(score.cache = mycache)
+dag <- mp.dag$dag
+
+# infer the parameters of the network
+myfit <- fitAbn(object = mp.dag)
+myfit <- myfit$modes
+
+hypothesis <- "g2"
+evidence <- list()
+
+predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
+
+plotPosteriorDistrib(predictions$predictions, hypothesis, mydists)
+
 }
