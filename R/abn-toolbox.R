@@ -441,8 +441,14 @@ simulateDag <-
         )
       names(data.dists) <- node.name
     } else {
+      # Are the distributions of the right type?
       data.dists <-
         validate_dists(data.dists = data.dists, returnDists = TRUE)
+
+      # Check if for each node a distribution is provided
+      if (length(data.dists) != nvars) {
+        stop("The number of distributions provided does not match the number of nodes.")
+      }
     }
 
     ## simulate dag

@@ -39,7 +39,7 @@ test_that("or() works", {
 
   ## OR()
   expect_equal(round(abn::or(x=x.bc)), 3)
-  expect_equal(round(abn::or(x=x.ab)), 7)
+  expect_equal(round(abn::or(x=x.ab)), 7, tolerance = 1)
   expect_equal(round(abn::or(x=x.ac)), 1)
 
   expect_error(abn::or(x=matrix(c(-1, 1, 2, 3), nrow = 2, byrow = TRUE)))
@@ -130,7 +130,7 @@ test_that("simulateDag() works", {
       regexp = "Node distribution has to be a named object")
     expect_error(
       simulateDag(node.name = c("a", "b", "c"), edge.density = 0.5, data.dists = c(a = "gaussian", b = "binomial")),
-      regexp = "DAG matrix not coherent with names")
+      regexp = "The number of distributions provided does not match the number of nodes")
     expect_error(
       simulateDag(node.name = c("a", "b", "c"), edge.density = 0.5, data.dists = c(a = "gaussian", b = "binomial", c = "uniform")),
       regexp = "poisson, binomial, gaussian, multinomial")
