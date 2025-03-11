@@ -148,15 +148,15 @@ odds <- function(x) {
 #'                          1,0,0,
 #'                          1,0,0), nrow = 3, ncol = 3)
 #'
-#' colnames(test.m) <- rownames(test.m) <- colnames(ref.m) <- colnames(ref.m) <- c("a", "b", "c")
+#' colnames(test.m) <- rownames(test.m) <- colnames(ref.m) <- rownames(ref.m) <- c("a", "b", "c")
 #'
 #' unlist(compareDag(ref = ref.m, test = test.m))
 compareDag <- function(ref, test, node.names = NULL, checkDAG = TRUE) {
 
     ## check ref dag
     if (checkDAG) {
-        ref <- validate_abnDag(  ref, data.df=node.names, returnDAG=TRUE)
-        test <- validate_abnDag( test, data.df=node.names, returnDAG=TRUE)
+        ref <- check.valid.dag(dag = ref)
+        test <- check.valid.dag(dag = test)
     }
 
     if (any(dim(ref) != dim(test))) {
@@ -441,8 +441,14 @@ simulateDag <-
         )
       names(data.dists) <- node.name
     } else {
+      # Are the distributions of the right type?
       data.dists <-
         validate_dists(data.dists = data.dists, returnDists = TRUE)
+
+      # Check if for each node a distribution is provided
+      if (length(data.dists) != nvars) {
+        stop("The number of distributions provided does not match the number of nodes.")
+      }
     }
 
     ## simulate dag

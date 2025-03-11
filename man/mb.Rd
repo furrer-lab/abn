@@ -4,7 +4,7 @@
 \alias{mb}
 \title{Compute the Markov blanket}
 \usage{
-mb(dag, node, data.dists = NULL)
+mb(dag, node, data.dists = NULL, data.df = NULL)
 }
 \arguments{
 \item{dag}{a matrix or a formula statement (see details for format) defining the network structure, a directed acyclic graph (DAG).}
@@ -12,6 +12,8 @@ mb(dag, node, data.dists = NULL)
 \item{node}{a character vector of the nodes for which the Markov Blanket should be returned.}
 
 \item{data.dists}{a named list giving the distribution for each node in the network, see details.}
+
+\item{data.df}{a data frame containing the data for the nodes in the network. Only needed if \code{dag} is a formula statement.}
 }
 \value{
 character vector of node names from the Markov blanket.
@@ -22,7 +24,21 @@ This function computes the Markov blanket of a set of nodes given a DAG (Directe
 \details{
 This function returns the Markov Blanket of a set of nodes given a DAG.
 
-The \code{dag} can be provided using a formula statement (similar to glm). A typical formula is \code{ ~ node1|parent1:parent2 + node2:node3|parent3}. The formula statement have to start with \code{~}. In this example, node1 has two parents (parent1 and parent2). node2 and node3 have the same parent3. The parents names have to exactly match those given in \code{name}. \code{:} is the separtor between either children or parents, \code{|} separates children (left side) and parents (right side), \code{+} separates terms, \code{.} replaces all the variables in \code{name}.
+The \code{dag} can be provided as a matrix where the rows and columns are the nodes names.
+The matrix should be binary, where 1 indicates an edge from the column node (parent) to the row node (child).
+The diagonal of the matrix should be 0 and the matrix should be acyclic.
+The nodes names should be the same as the names of the distributions in \code{data.dists}.
+
+Alternatively, the \code{dag} can be provided using a formula statement (similar to glm).
+This requires the \code{data.dists} and \code{data.df} arguments to be provided.
+A typical formula is \code{ ~ node1|parent1:parent2 + node2:node3|parent3}.
+The formula statement have to start with \code{~}.
+In this example, \code{node1} has two parents (\code{parent1} and \code{parent2}).
+\code{node2} and \code{node3} are children of the same parent (\code{parent3}).
+The parents names have to exactly match those given in \code{name}.
+\code{:} is the separator between either children or parents,
+\code{|} separates children (left side) and parents (right side),
+\code{+} separates terms, \code{.} replaces all the variables in \code{name}.
 }
 \examples{
 ## Defining distribution and dag
@@ -36,9 +52,7 @@ dag <- matrix(c(0,1,1,0,1,0,
                 0,0,0,0,0,0), nrow = 6L, ncol = 6L, byrow = TRUE)
 colnames(dag) <- rownames(dag) <- names(dist)
 
-mb(dag, node = "b")
-mb(dag, node = c("b","e"))
-
-mb(~a|b:c:e+b|c:d:f+e|f, node = "e", data.dists = dist)
+mb(dag, node = "b", data.dists = dist)
+mb(dag, node = c("b","e"), data.dists = dist)
 }
 \keyword{utilities}

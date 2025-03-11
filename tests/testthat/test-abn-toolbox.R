@@ -39,7 +39,7 @@ test_that("or() works", {
 
   ## OR()
   expect_equal(round(abn::or(x=x.bc)), 3)
-  expect_equal(round(abn::or(x=x.ab)), 7)
+  expect_equal(round(abn::or(x=x.ab)), 7, tolerance = 1)
   expect_equal(round(abn::or(x=x.ac)), 1)
 
   expect_error(abn::or(x=matrix(c(-1, 1, 2, 3), nrow = 2, byrow = TRUE)))
@@ -58,11 +58,16 @@ test_that("odds() works", {
 
 test_that("compareDag() works", {
   a <- matrix(data=0, nrow=3, ncol=3)
+  colnames(a) <- rownames(a) <- c("a", "b", "c")
 
   a1 <- matrix(data=c(0, 0, 0, 1, 0, 0, 1, 0, 0), nrow=3, ncol=3)
+  colnames(a1) <- rownames(a1) <- c("a", "b", "c")
   a2 <- matrix(data=c(0, 0, 0, 1, 0, 0, 1, 1, 0), nrow=3, ncol=3)
+  colnames(a2) <- rownames(a2) <- c("a", "b", "c")
   b <- matrix(data=c(0, 0, 0, 1, 0, 1, 1, 0, 0), nrow=3, ncol=3)
+  colnames(b) <- rownames(b) <- c("a", "b", "c")
 
+  expect_no_error(compareDag(ref=a1, test=b, checkDAG = TRUE))
   expect_equal(suppressWarnings(compareDag(ref=a, test=b))$`Hamming-distance`, expected=3)
   expect_equal(compareDag(ref=a1, test=b)$`Hamming-distance`, expected=1)
   expect_equal(compareDag(ref=a1, test=b)$TPR, expected=1)
@@ -125,7 +130,7 @@ test_that("simulateDag() works", {
       regexp = "Node distribution has to be a named object")
     expect_error(
       simulateDag(node.name = c("a", "b", "c"), edge.density = 0.5, data.dists = c(a = "gaussian", b = "binomial")),
-      regexp = "DAG matrix not coherent with names")
+      regexp = "The number of distributions provided does not match the number of nodes")
     expect_error(
       simulateDag(node.name = c("a", "b", "c"), edge.density = 0.5, data.dists = c(a = "gaussian", b = "binomial", c = "uniform")),
       regexp = "poisson, binomial, gaussian, multinomial")

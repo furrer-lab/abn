@@ -11,7 +11,8 @@ plotAbn(dag, data.dists=NULL, markov.blanket.node=NULL, fitted.values=NULL,
                node.fillcolor=c("lightblue", "brown3", "chartreuse3"),
                node.fillcolor.list=NULL,
                node.shape=c("circle", "box", "ellipse", "diamond"),
-               plot=TRUE , ...)
+               plot=TRUE,
+               data.df=NULL, ...)
 }
 \arguments{
 \item{dag}{a matrix or a formula statement (see details for format) defining
@@ -55,6 +56,8 @@ used for the Markov blanket and node of the Markov blanket.}
 
 \item{plot}{logical variable, if set to \code{TRUE} then the graph is plotted.}
 
+\item{data.df}{NULL or a data frame containing the data for the nodes in the network. Only needed if \code{dag} is a formula statement. If dag is an object of class \code{abnFit}, then \code{data.df} is used from there.}
+
 \item{...}{arguments passed to the plotting function.}
 }
 \value{
@@ -93,6 +96,14 @@ edge_strength <- matrix(c(0, 0.5, 0.5, 0.7, 0.1, 0,
 ## Naming of the matrix
 colnames(edge_strength) <- rownames(edge_strength) <- names(dist)
 
+## Random Data
+df <- data.frame(a = rnorm(100),
+                b = rnorm(100),
+                c = rnorm(100),
+                d = rnorm(100),
+                e = rbinom(100, 1, 0.5),
+                f = rbinom(100, 1, 0.5))
+
 ## Plot form a matrix
 plotAbn(dag = edge_strength,
         data.dists = dist)
@@ -100,28 +111,33 @@ plotAbn(dag = edge_strength,
 ## Edge strength
 plotAbn(dag = ~ a | b:c:d:e + b | c:d:f + c | d:e + d | e + e | f,
         data.dists = dist,
-        edge.strength = edge_strength)
+        edge.strength = edge_strength,
+        data.df = df)
 
 ## Plot from a formula for a different DAG!
 plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
-        data.dists = dist)
+        data.dists = dist,
+        data.df = df)
 
 ## Markov blanket
 plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
         data.dists = dist,
-        markov.blanket.node = "e")
+        markov.blanket.node = "e",
+        data.df = df)
 
 ## Change col for all edges
 tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
                data.dists = dist,
-               plot = FALSE)
+               plot = FALSE,
+               data.df = df)
 graph::edgeRenderInfo(tmp) <- list(col = "blue")
 Rgraphviz::renderGraph(tmp)
 
 ## Change lty for individual ones. Named vector is necessary
 tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
                data.dists = dist,
-               plot = FALSE)
+               plot = FALSE,
+               data.df = df)
 edgelty <- rep(c("solid", "dotted"), c(6, 1))
 names(edgelty) <- names(graph::edgeRenderInfo(tmp, "col"))
 graph::edgeRenderInfo(tmp) <- list(lty = edgelty)
