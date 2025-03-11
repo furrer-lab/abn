@@ -79,7 +79,7 @@ ref.m <- matrix(data = c(0,0,0,
                          1,0,0,
                          1,0,0), nrow = 3, ncol = 3)
 
-colnames(test.m) <- rownames(test.m) <- colnames(ref.m) <- colnames(ref.m) <- c("a", "b", "c")
+colnames(test.m) <- rownames(test.m) <- colnames(ref.m) <- rownames(ref.m) <- c("a", "b", "c")
 
 unlist(compareDag(ref = ref.m, test = test.m))
 }

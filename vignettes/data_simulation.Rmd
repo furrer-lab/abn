@@ -50,10 +50,9 @@ mycache <- buildScoreCache(data.df = mydat,
                            data.dists = mydists,
                            method = "bayes",
                            max.parents = 4)
-#> Warning: package 'INLA' was built under R version 4.4.1
+#> Warning: package 'INLA' was built under R version 4.4.2
 #> Loading required package: Matrix
-#> Loading required package: sp
-#> This is INLA_24.06.27 built 2024-06-27 02:36:04 UTC.
+#> This is INLA_24.12.11 built 2024-12-11 19:58:26 UTC.
 #>  - See www.r-inla.org/contact-us for how to get help.
 #>  - List available models/likelihoods/etc with inla.list.models()
 #>  - Use inla.doc(<NAME>) to access documentation
