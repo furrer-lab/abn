@@ -4,8 +4,10 @@ test_that("Parsing DAG as formula works", {
 
 
   dist <- list(a="gaussian", b="gaussian", c="gaussian", d="gaussian", e="gaussian", f="gaussian")
-  m.formula.1 <- createAbnDag(dag=~a | b:c + b | c:d + a | e:f, data.dists=dist)$dag
-  m.formula.2 <- createAbnDag(dag=~a | ., data.dists=dist)$dag
+  df.1 <- data.frame(a=1, b=1, c=1, d=1, e=1, f=1)
+  m.formula.1 <- createAbnDag(dag=~a | b:c + b | c:d + a | e:f, data.dists=dist, data.df = df.1)$dag
+
+  m.formula.2 <- createAbnDag(dag=~a | ., data.dists=dist, data.df = df.1)$dag
   m.true.1 <- matrix(data=c(0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                             0, 0, 0, 0, 0), nrow=6, ncol=6, byrow=TRUE)
   m.true.2 <- matrix(data=c(0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -20,8 +22,8 @@ test_that("Parsing DAG as formula works", {
   # distribution (gaussian)
   dist <- list(Ozone="gaussian", Solar.R="gaussian", Wind="gaussian", Temp="gaussian", Month="gaussian", Day="gaussian")
   names(dist) <- colnames(df)
-  m.formula.1 <- createAbnDag(dag=~Ozone | Solar.R, data.dists=dist)$dag
-  m.formula.2 <- createAbnDag(dag=~Solar.R | ., data.dists=dist)$dag
+  m.formula.1 <- createAbnDag(dag=~Ozone | Solar.R, data.dists=dist, data.df = df)$dag
+  m.formula.2 <- createAbnDag(dag=~Solar.R | ., data.dists=dist, data.df = df)$dag
   m.true.1 <- matrix(data=c(0, 1, 0, 0, 0, 0, rep(0, 30)), nrow=6, ncol=6, byrow=TRUE)
   m.true.2 <- matrix(data=c(0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, rep(0, 24)), nrow=6, ncol=6, byrow=TRUE)
   colnames(m.true.1) <- rownames(m.true.1) <- colnames(m.true.2) <- rownames(m.true.2) <- names(dist)
