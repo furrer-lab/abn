@@ -9,7 +9,8 @@
 #'                node.fillcolor=c("lightblue", "brown3", "chartreuse3"),
 #'                node.fillcolor.list=NULL,
 #'                node.shape=c("circle", "box", "ellipse", "diamond"),
-#'                plot=TRUE , ...)
+#'                plot=TRUE,
+#'                data.df=NULL, ...)
 #'
 #' @param dag a matrix or a formula statement (see details for format) defining
 #' the network structure, a Directed Acyclic Graph (DAG).

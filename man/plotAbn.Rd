@@ -11,7 +11,8 @@ plotAbn(dag, data.dists=NULL, markov.blanket.node=NULL, fitted.values=NULL,
                node.fillcolor=c("lightblue", "brown3", "chartreuse3"),
                node.fillcolor.list=NULL,
                node.shape=c("circle", "box", "ellipse", "diamond"),
-               plot=TRUE , ...)
+               plot=TRUE,
+               data.df=NULL, ...)
 }
 \arguments{
 \item{dag}{a matrix or a formula statement (see details for format) defining
