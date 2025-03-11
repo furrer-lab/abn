@@ -41,8 +41,8 @@
 #'                 0,0,0,0,0,0), nrow = 6L, ncol = 6L, byrow = TRUE)
 #' colnames(dag) <- rownames(dag) <- names(dist)
 #'
-#' mb(dag, node = "b")
-#' mb(dag, node = c("b","e"))
+#' mb(dag, node = "b", data.dists = dist)
+#' mb(dag, node = c("b","e"), data.dists = dist)
 #' @keywords utilities
 mb <- function(dag, node, data.dists=NULL, data.df=NULL) {
   # check if the dag is a valid dag

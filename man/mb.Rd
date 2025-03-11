@@ -52,7 +52,7 @@ dag <- matrix(c(0,1,1,0,1,0,
                 0,0,0,0,0,0), nrow = 6L, ncol = 6L, byrow = TRUE)
 colnames(dag) <- rownames(dag) <- names(dist)
 
-mb(dag, node = "b")
-mb(dag, node = c("b","e"))
+mb(dag, node = "b", data.dists = dist)
+mb(dag, node = c("b","e"), data.dists = dist)
 }
 \keyword{utilities}
