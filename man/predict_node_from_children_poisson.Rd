@@ -26,11 +26,11 @@ predict_node_from_children_poisson(
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}
 
-\item{parents}{The children's parents of the node to predict.}
+\item{child}{A child of the node to predict.}
+
+\item{parents}{The parents of the child.}
 
 \item{predictions}{The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).}
-
-\item{children}{The children of the node to predict.}
 }
 \value{
 The predicted distribution of the node of interest.
@@ -61,7 +61,7 @@ mycache <- buildScoreCache(data.df = data,
                           method = "bayes",max.parents = max.par) 
 mp.dag <- mostProbable(score.cache = mycache)
 dag <- mp.dag$dag
-graph <- graph_from_adjacency_matrix(t(dag))
+graph <- igraph::graph_from_adjacency_matrix(t(dag))
 
 # infer the parameters of the network
 myfit <- fitAbn(object = mp.dag)

@@ -18,6 +18,6 @@ A vector containing the children of the node (labels of the nodes if the graph i
 Find the children of a given node in a given graph.
 }
 \examples{
-g <- make_graph("Zachary") # undirected graph
+g <- igraph::make_graph("Zachary") # undirected graph
 find_children(g, node = 1) # neighbors of the node 1
 }

@@ -18,6 +18,6 @@ A vector containing the parents of the node (labels of the nodes if the graph is
 Find the parents of a given node in a given graph.
 }
 \examples{
-g <- make_graph("Zachary") # undirected graph
+g <- igraph::make_graph("Zachary") # undirected graph
 find_parents(g, node = 1) # neighbors of the node 1
 }
