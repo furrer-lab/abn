@@ -874,82 +874,43 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
-
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          numerator <-  function(x){
-            L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part)  * prior_binomial(x, p_prior[2])
-          }
-          denominator <- numerator(0) + numerator(1)
-          results <- c(numerator(0) / denominator,numerator(1) / denominator)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            numerator <-  function(x){
-              L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
-            }
-            denominator <- numerator(0) + numerator(1)
-            results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
-          }
-          results <- c(sum(results_tmp),1-sum(results_tmp))
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          numerator <-  function(x){
-            L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp)  * prior_binomial(x, p_prior[2])
-          }
-          denominator <- numerator(0) + numerator(1)
-          results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
-        }
-        results <- c(sum(results_tmp),1-sum(results_tmp))
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        numerator <-  function(x){
+          L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals))  * prior_binomial(x, p_prior[2])
+        }
+        
+        denominator <- numerator(0) + numerator(1)
+        
+        numerator(0) / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values * combination_probabilities),1-sum(proba_cond_values * combination_probabilities))
     } else {
       numerator <-  function(x){
         L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part)  * prior_binomial(x, p_prior[2])
@@ -983,91 +944,46 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -Inf, upper = Inf)$value
-          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
-                                 lower = -Inf, upper = Inf)$value
-          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -Inf, upper = Inf)$value
-          results <- c(numerator / denominator, numerator2 / denominator - (numerator / denominator)^2)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-          results_tmp2 <- c()
-          
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -Inf, upper = Inf)$value
-            numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -Inf, upper = Inf)$value
-            numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                    lower = -Inf, upper = Inf)$value
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-            results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
-          }
-          results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        results_tmp2 <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -Inf, upper = Inf)$value
-          numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                 lower = -Inf, upper = Inf)$value
-          numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior),
-                                  lower = -Inf, upper = Inf)$value
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
-        }
-        results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior),
+                                 lower = -Inf, upper = Inf)$value
+        
+        numerator <- integrate(function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior),
+                               lower = -Inf, upper = Inf)$value
+        
+        numerator2 <- integrate(function(x) x^2*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior),
+                                lower = -Inf, upper = Inf)$value
+        
+        c(numerator/denominator,numerator2/denominator)
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values[1,] * combination_probabilities),sum(proba_cond_values[2,] * combination_probabilities)- (sum(proba_cond_values[1,] * combination_probabilities))^2)
     } else {
       denominator <- integrate(function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_gaussian(x, mu_prior, sigma_prior),
                                lower = -Inf, upper = Inf)$value
@@ -1102,77 +1018,41 @@ predict_node_from_children_gaussian <- function(data, mydists, myfit, node, evid
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
-          numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
-          results <- numerator / denominator
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-            max_x <- max(1000,4*lambda_prior)
-            denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-            numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          }
-          results <- sum(results_tmp)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-          numerator <- sum(sapply(0:max_x, function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part_tmp) * prior_poisson(x, lambda_prior)))
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-        }
-        results <- sum(results_tmp)
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        max_x <- max(1000,4*lambda_prior)
+        
+        denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior)))
+        numerator <- sum(sapply(0:max_x,function(x) x*L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior)))
+        results <- numerator / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- sum(proba_cond_values * combination_probabilities)
     } else {
       max_x <- max(1000,4*lambda_prior)
       denominator <- sum(sapply(0:max_x,function(x) L_gaussian(y = predictions[[child]][[1]], x, coef = eq[[node]], var = predictions[[child]][2],continuous_part) * prior_poisson(x, lambda_prior)))
@@ -1289,193 +1169,83 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
-      bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
+      probabilities <- predictions[bin.nodes]
+      
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -Inf, upper = Inf),TRUE)
-          if (length(try.denominator)==1){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-          } else if (try.denominator$value == 0){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-          } else {
-            denominator <- try.denominator$value
-          }
-
-          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                 lower = -Inf, upper = Inf),TRUE)
-          if (length(try.numerator)==1){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -10, upper = 10)$value
-          } else if (try.numerator$value == 0){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -10, upper = 10)$value
-          } else {
-            numerator <- try.numerator$value
-          }
-          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                         lower = -Inf, upper = Inf),TRUE)
-          if (length(try.numerator2)==1){
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -10, upper = 10)$value
-          } else if (try.numerator2$value == 0){ 
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                    lower = -10, upper = 10)$value
-          } else {
-            numerator2 <- try.numerator2$value
-          }
-          results <- c(numerator / denominator, numerator2 / denominator)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-          results_tmp2 <- c()
-          
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                             lower = -Inf, upper = Inf),TRUE)
-            if (length(try.denominator)==1){
-              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                       lower = -10, upper = 10)$value
-            } else if (try.denominator$value == 0){ 
-              denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                       lower = -10, upper = 10)$value
-            } else {
-              denominator <- try.denominator$value
-            }
-
-            try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                           lower = -Inf, upper = Inf),TRUE)
-            if (length(try.numerator)==1){
-              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-            } else if (try.numerator$value == 0){ 
-              numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-            } else {
-              numerator <- try.numerator$value
-            }
-
-            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                           lower = -Inf, upper = Inf),TRUE)
-            if (length(try.numerator2)==1){
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-            } else if (try.numerator2$value==0){
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                      lower = -10, upper = 10)$value
-            } else {
-              numerator2 <- try.numerator2$value
-            }
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-            results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
-          }
-          results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
+      }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
       } else {
-        results_tmp <- c()
-        results_tmp2 <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                           lower = -Inf, upper = Inf),TRUE)
-          if (length(try.denominator)==1){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-          } else if (try.denominator$value == 0){
-            denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                     lower = -10, upper = 10)$value
-          } else {
-            denominator <- try.denominator$value
-          }
-
-          try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
                                          lower = -Inf, upper = Inf),TRUE)
-          if (length(try.numerator)==1){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+        
+        if (length(try.denominator)==1){
+          denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
-          } else if (try.numerator$value==0){
-            numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
+        } else if (try.denominator$value == 0){
+          denominator <- integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
                                    lower = -10, upper = 10)$value
-          } else {
-            numerator <- try.numerator$value
-          }
-
-          try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                         lower = -Inf, upper = Inf),TRUE)
-          if (length(try.numerator2)==1){
-            numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -10, upper = 10)$value
-          } else if (try.numerator2$value==0){
-            try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                   lower = -10, upper = 10), TRUE)
-            if (length(try.numerator2)==1){
-              numerator2 <- 0
-            } else {
-              numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_gaussian(x, mu_prior, sigma_prior),
-                                          lower = -10, upper = 10)$value
-            }
-          } else {
-            numerator2 <- try.numerator2$value
-          }
-          
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
+        } else {
+          denominator <- try.denominator$value
         }
-        results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
-        if (length(which(is.na(results)))>0){
-          warning(paste0("Numerical issues with the computation of the variance of node ",node,". The expectation and the variance will not be updated."))
-          results[1] <- predictions[[node]][1]
-          results[2] <- predictions[[node]][2]
-        } else if  (results[2]<=1e-2){
-          warning(paste0("Numerical issues with the computation of the variance of node ",node,". The expectation and the variance will not be updated."))
-          results[1] <- predictions[[node]][1]
-          results[2] <- predictions[[node]][2]
+        
+        try.numerator <- try(integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                       lower = -Inf, upper = Inf),TRUE)
+        if (length(try.numerator)==1){
+          numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                 lower = -10, upper = 10)$value
+        } else if (try.numerator$value == 0){
+          numerator <- integrate(function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                 lower = -10, upper = 10)$value
+        } else {
+          numerator <- try.numerator$value
         }
-        return(results)
+        
+        try.numerator2 <- try(integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],  continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                        lower = -Inf, upper = Inf),TRUE)
+        if (length(try.numerator2)==1){
+          numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],  continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                  lower = -10, upper = 10)$value
+        } else if (try.numerator2$value == 0){ 
+          numerator2 <- integrate(function(x) x^2*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],  continuous_part + sum(b_vals))) * prior_gaussian(x, mu_prior, sigma_prior),
+                                  lower = -10, upper = 10)$value
+        } else {
+          numerator2 <- try.numerator2$value
+        }
+        
+        
+        results <- c(numerator / denominator,numerator2 / denominator)
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values[1,] * combination_probabilities),sum(proba_cond_values[2,] * combination_probabilities) -sum(proba_cond_values[1,] * combination_probabilities)^2)  
+        
+      if (length(which(is.na(results)))>0){
+        warning(paste0("Numerical issues with the computation of the variance of node ",node,". The expectation and the variance will not be updated."))
+        results[1] <- predictions[[node]][1]
+        results[2] <- predictions[[node]][2]
+      } else if  (results[2]<=1e-2){
+        warning(paste0("Numerical issues with the computation of the variance of node ",node,". The expectation and the variance will not be updated."))
+        results[1] <- predictions[[node]][1]
+        results[2] <- predictions[[node]][2]
       }
     } else {
       try.denominator <- try(integrate(function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_gaussian(x, mu_prior, sigma_prior),
@@ -1531,83 +1301,44 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
 
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          numerator <-  function(x){
-            exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part))  * prior_binomial(x, p_prior[2])
-          }
-
-          denominator <- numerator(0) + numerator(1)
-          results <- c(numerator(0) / denominator,numerator(1) / denominator)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            numerator <-  function(x){
-              exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
-            }
-            denominator <- numerator(0) + numerator(1)
-            results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
-          }
-          results <- c(sum(results_tmp),1-sum(results_tmp))
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          numerator <-  function(x){
-            exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part_tmp))  * prior_binomial(x, p_prior[2])
-          }
-          denominator <- numerator(0) + numerator(1)
-          results_tmp <- c(results_tmp,probas*numerator(0) / denominator)
-        }
-        results <- c(sum(results_tmp),1-sum(results_tmp))
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        numerator <-  function(x){
+          exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part + sum(b_vals)))  * prior_binomial(x, p_prior[2])
+        }
+        
+        denominator <- numerator(0) + numerator(1)
+        
+        numerator(0) / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values * combination_probabilities),1-sum(proba_cond_values * combination_probabilities))
     } else {
       numerator <-  function(x){
         exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]],continuous_part)) * prior_binomial(x, p_prior[2])
@@ -1645,135 +1376,45 @@ predict_node_from_children_poisson <- function(data, mydists, myfit, node, evide
     names(continuous_part) <- c()
 
     if (length(bin.nodes)>0){
-      bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
+      probabilities <- predictions[bin.nodes]
+      
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          max_x <- max(1000,4*lambda_prior)
-          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
-          #if (length(try.denominator)==1){
-            denominator <- sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
-          #} else if (try.denominator$value == 0){
-          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
-          #} else {
-          #  denominator <- try.denominator$value
-          #}
-
-          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior))))
-          #if (length(try.numerator)==1){
-            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x,lambda_prior)))
-          #} else {
-          #  numerator <- try.numerator$value
-          #}
-          results <- numerator / denominator
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            max_x <- max(1000,4*lambda_prior)
-            #try.denominator <- try(sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
-            #if (length(try.denominator)==1){
-              denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-            #} else {
-            #  denominator <- try.denominator$value
-            #}
-
-            #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
-            #if (length(try.numerator)==1){
-              numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-            #} else {
-            #  numerator <- try.numerator$value
-            #}
-
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          }
-          results <- sum(results_tmp)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          max_x <- max(1000,4*lambda_prior)
-          #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
-          #if (length(try.denominator)==1){
-            denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-          #} else if (try.denominator$value == 0){
-          #  denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-          #} else {
-          #  denominator <- try.denominator$value
-          #}
-
-          #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior))),TRUE)
-          #if (length(try.numerator)==1){
-            numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-          #} else if (try.numerator$value==0){
-          #  numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part_tmp)) * prior_poisson(x, lambda_prior)))
-          #} else {
-          #  numerator <- try.numerator$value
-          #}
-
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-        }
-        results <- sum(results_tmp)
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        max_x <- max(1000,4*lambda_prior)
+        denominator <- sum(sapply(0:max_x, function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_poisson(x,lambda_prior)))
+        
+        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part + sum(b_vals))) * prior_poisson(x,lambda_prior)))
+        
+        results <- numerator / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- sum(proba_cond_values * combination_probabilities)
     } else {
       max_x <- max(1000,4*lambda_prior)
-      #try.denominator <- try(sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
-      #if (length(try.denominator)==1){
-        denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
-      #} else {
-      #  denominator <- try.denominator$value
-      #}
-
-      #try.numerator <- try(sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior))),TRUE)
-      #if (length(try.numerator)==1){
-        numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
-      #} else {
-      #  numerator <- try.numerator$value
-      #}
-
+      denominator <- sum(sapply(0:max_x,function(x) exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
+      numerator <- sum(sapply(0:max_x,function(x) x*exp(LogL_poisson(y = predictions[[child]], x, coef = eq[[node]], continuous_part)) * prior_poisson(x, lambda_prior)),na.rm=TRUE)
       results <- numerator / denominator
     }
   }
@@ -1892,97 +1533,47 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     }
     
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
-
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          numerator <-  function(x,y){
-            L_binomial(y, x, coef = eq[[node]], continuous_part)  * prior_binomial(x, p_prior[2])
-          }
-          
-          numerator2 <- function(x){
-            numerator(x,0)*p_pred[1] + numerator(x,1)*p_pred[2]
-          }
-          
-          denominator <- numerator2(0) + numerator2(1)
-          results <- c(numerator2(0) / denominator,numerator2(1) / denominator)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            numerator <-  function(x,y){
-              L_binomial(y, x, coef = eq[[node]], continuous_part_tmp)  * prior_binomial(x, p_prior[2])
-            }
-            
-            numerator2 <- function(x){
-              numerator(x,0)*p_pred[1] + numerator(x,1)*p_pred[2]
-            }
-
-            denominator <- numerator2(0) + numerator2(1)
-            results_tmp <- c(results_tmp,probas*numerator2(0) / denominator)
-          }
-          results <- c(sum(results_tmp),1-sum(results_tmp))
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          numerator <-  function(x,y){
-            L_binomial(y, x, coef = eq[[node]], continuous_part_tmp)  * prior_binomial(x, p_prior[2])
-          }
-
-          numerator2 <- function(x){
-            numerator(x,0)*p_pred[1] + numerator(x,1)*p_pred[2]
-          }
-          
-          denominator <- numerator2(0) + numerator2(1)
-          results_tmp <- c(results_tmp,probas*numerator2(0) / denominator)
-        }
-        results <- c(sum(results_tmp),1-sum(results_tmp))
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        numerator <-  function(x,y){
+          L_binomial(y, x, coef = eq[[node]], continuous_part + sum(b_vals))  * prior_binomial(x, p_prior[2])
+        }
+        
+        numerator2 <- function(x){
+          numerator(x,0)*p_pred[1] + numerator(x,1)*p_pred[2]
+        }
+        
+        denominator <- numerator2(0) + numerator2(1)
+        
+        numerator2(0) / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values*combination_probabilities),1-sum(proba_cond_values*combination_probabilities))
     } else {
       numerator <-  function(x,y){
         L_binomial(y, x, coef = eq[[node]], continuous_part)  * prior_binomial(x, p_prior[2])
@@ -1994,6 +1585,7 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
       
       denominator <- numerator2(0) + numerator2(1)
       results <- c(numerator2(0) / denominator,numerator2(1) / denominator)
+      names(results) <- levels(data[[node]])
     }
   } else if (mydists[[node]]=="gaussian"){
     mu_prior <- predictions[[node]][1]
@@ -2028,111 +1620,52 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     }
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          denominator <- sum(c(integrate(function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                         lower = -Inf, upper = Inf)$value,
-                               integrate(function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                         lower = -Inf, upper = Inf)$value))
-          numerator <- sum(c(integrate(function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                       lower = -Inf, upper = Inf)$value,
-                             integrate(function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                       lower = -Inf, upper = Inf)$value))
-          numerator2 <- sum(c(integrate(function(x) x^2*L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                        lower = -Inf, upper = Inf)$value,
-                              integrate(function(x) x^2*L_binomial(y = 1, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                        lower = -Inf, upper = Inf)$value))
-          results <- c(numerator / denominator, numerator2 / denominator - (numerator / denominator)^2)
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-          results_tmp2 <- c()
-          
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            denominator <- sum(c(integrate(function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                           lower = -Inf, upper = Inf)$value,
-                                 integrate(function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                           lower = -Inf, upper = Inf)$value))
-            numerator <- sum(c(integrate(function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                         lower = -Inf, upper = Inf)$value,
-                               integrate(function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                         lower = -Inf, upper = Inf)$value))
-            numerator2 <- sum(c(integrate(function(x) x^2*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                          lower = -Inf, upper = Inf)$value,
-                                integrate(function(x) x^2*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                          lower = -Inf, upper = Inf)$value))
-            
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-            results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
-          }
-          results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        results_tmp2 <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          denominator <- sum(c(integrate(function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                         lower = -Inf, upper = Inf)$value,
-                               integrate(function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                         lower = -Inf, upper = Inf)$value))
-          numerator <- sum(c(integrate(function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                       lower = -Inf, upper = Inf)$value,
-                             integrate(function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                       lower = -Inf, upper = Inf)$value))
-          numerator2 <- sum(c(integrate(function(x) x^2*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
-                                        lower = -Inf, upper = Inf)$value,
-                              integrate(function(x) x^2*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
-                                        lower = -Inf, upper = Inf)$value))
-          
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          results_tmp2 <- c(results_tmp2,probas*(numerator2 / denominator))
-        }
-        results <- c(sum(results_tmp),sum(results_tmp2)- (sum(results_tmp))^2)
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        denominator <- sum(c(integrate(function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
+                                       lower = -Inf, upper = Inf)$value,
+                             integrate(function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
+                                       lower = -Inf, upper = Inf)$value))
+        
+        numerator <- sum(c(integrate(function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
+                                     lower = -Inf, upper = Inf)$value,
+                           integrate(function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
+                                     lower = -Inf, upper = Inf)$value))
+        
+        numerator2 <- sum(c(integrate(function(x) x^2*L_binomial(y = 0, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
+                                      lower = -Inf, upper = Inf)$value,
+                            integrate(function(x) x^2*L_binomial(y = 1, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[2],
+                                      lower = -Inf, upper = Inf)$value))
+        
+        c(numerator / denominator, numerator2 / denominator)
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- c(sum(proba_cond_values[1,] * combination_probabilities),sum(proba_cond_values[2,] * combination_probabilities)- (sum(proba_cond_values[1,] * combination_probabilities))^2) 
     } else {
       denominator <- sum(c(integrate(function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_gaussian(x, mu_prior, sigma_prior) * p_prior[1],
                                lower = -Inf, upper = Inf)$value,
@@ -2181,87 +1714,44 @@ predict_node_from_children_binomial <- function(data, mydists, myfit, node, evid
     }
 
     if (length(bin.nodes)>0){
+      probabilities <- predictions[bin.nodes]
+      
       bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
       if (length(bin.nodes.evidence)>0){
         # at least one bin nodes is an evidence
-        predictions_tmp <- predictions[bin.nodes.evidence]
-        predictions_tmp <- lapply(predictions_tmp,function(l){
-          as.numeric(l[1])-1
-        })
-        continuous_part <- continuous_part + sum(eq[bin.nodes.evidence]*unlist(predictions_tmp))
-
-        if (length(bin.nodes.evidence)==length(bin.nodes)){
-          # all bin nodes are evidence
-          max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(c(sum(sapply(0:max_x, function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                               sum(sapply(0:max_x, function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-          numerator <- sum(c(sum(sapply(0:max_x, function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                             sum(sapply(0:max_x, function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-
-          results <- numerator / denominator
-        } else {
-          # at least one bin node is not an evidence
-          bin.nodes_tmp <- setdiff(bin.nodes,bin.nodes.evidence)
-          results_tmp <- c()
-
-          # Generate all combinations of 0 and 1 for binary nodes
-          combinations <- expand.grid(rep(list(0:1), length(bin.nodes_tmp)))
-
-          for (i in 1:nrow(combinations)){
-            combination_tmp <- as.numeric(combinations[i,])
-
-            # Compute the marginal probability for this combination
-            probas <- 1
-            for (idx in (1:length(bin.nodes_tmp))) {
-              probas <- probas * predictions[[bin.nodes_tmp[idx]]][combination_tmp[idx] + 1]
-            }
-
-            # Update the continuous part with contributions from all binary nodes
-            continuous_part_tmp <- continuous_part
-            for (idx in (1:length(bin.nodes_tmp))) {
-              continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes_tmp[idx]] * combination_tmp[idx]
-            }
-
-            max_x <- max(1000,4*lambda_prior)
-            denominator <- sum(c(sum(sapply(0:max_x, function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                                 sum(sapply(0:max_x, function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-            numerator <- sum(c(sum(sapply(0:max_x, function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                               sum(sapply(0:max_x, function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-
-            results_tmp <- c(results_tmp,probas*(numerator / denominator))
-          }
-          results <- sum(results_tmp)
+        for (i in (1:length(bin.nodes.evidence))){
+          proba_tmp <- c(0,0)
+          names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+          proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+          probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
         }
-      } else {
-        results_tmp <- c()
-        # Generate all combinations of 0 and 1 for binary nodes
-        combinations <- expand.grid(rep(list(0:1), length(bin.nodes)))
-
-        for (i in 1:nrow(combinations)){
-          combination_tmp <- as.numeric(combinations[i,])
-
-          # Compute the marginal probability for this combination
-          probas <- 1
-          for (idx in (1:length(bin.nodes))) {
-            probas <- probas * predictions[[bin.nodes[idx]]][combination_tmp[idx] + 1]
-          }
-
-          # Update the continuous part with contributions from all binary nodes
-          continuous_part_tmp <- continuous_part
-          for (idx in (1:length(bin.nodes))) {
-            continuous_part_tmp <- continuous_part_tmp + eq[bin.nodes[idx]] * combination_tmp[idx]
-          }
-
-          max_x <- max(1000,4*lambda_prior)
-          denominator <- sum(c(sum(sapply(0:max_x, function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                               sum(sapply(0:max_x, function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-          numerator <- sum(c(sum(sapply(0:max_x, function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[1])),
-                             sum(sapply(0:max_x, function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part_tmp) * prior_poisson(x, lambda_prior) * p_prior[2]))))
-
-          results_tmp <- c(results_tmp,probas*(numerator / denominator))
-        }
-        results <- sum(results_tmp)
       }
+      
+      combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
+      names(combinations) <- bin.nodes
+      combinations <- as.matrix(combinations)
+      if (length(bin.nodes)>1){
+        combinations_tmp <- combinations %*% diag(eq[bin.nodes])
+      } else {
+        combinations_tmp <- combinations %*% eq[bin.nodes]
+      }
+      
+      proba_cond_values <- apply(combinations_tmp, 1, function(b_vals) {
+        max_x <- max(1000,4*lambda_prior)
+        denominator <- sum(c(sum(sapply(0:max_x, function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior) * p_prior[1])),
+                             sum(sapply(0:max_x, function(x) L_binomial(y = 1, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior) * p_prior[2]))))
+        numerator <- sum(c(sum(sapply(0:max_x, function(x) x*L_binomial(y = 0, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior) * p_prior[1])),
+                           sum(sapply(0:max_x, function(x) x*L_binomial(y = 1, x, coef = eq[[node]], continuous_part + sum(b_vals)) * prior_poisson(x, lambda_prior) * p_prior[2]))))
+        
+        
+        numerator / denominator
+      })
+      
+      combination_probabilities <- apply(combinations, 1, function(b_vals) {
+        prod(sapply(1:length(b_vals), function(i) probabilities[[i]][b_vals[i] + 1]))
+      })
+      
+      results <- sum(proba_cond_values * combination_probabilities)
     } else {
       max_x <- max(1000,4*lambda_prior)
       denominator <- sum(c(sum(sapply(0:max_x, function(x) L_binomial(y = 0, x, coef = eq[[node]], continuous_part) * prior_poisson(x, lambda_prior) * p_prior[1])),
