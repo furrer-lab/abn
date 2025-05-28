@@ -41,6 +41,12 @@ jobs:
           start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
           Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages=gsl --site=https://cygwin.mirror.constant.com" -PassThru
 
+      - name: GSL troubleshoot
+        run: |
+          echo "cygcheck -cd |grep gsl"
+          echo "cygcheck -c libgsl-devel"
+          echo "cygcheck -l libgsl-devel"
+          
       - name: install JAGS
         run: |
           Import-Module bitstransfer
