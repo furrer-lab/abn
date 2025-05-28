@@ -48,7 +48,6 @@ jobs:
           cygcheck -l libgsl-devel
           echo "-------------\n"
           echo "$GITHUB_CONTEXT"
-        shell: bash
           
       - name: install JAGS
         run: |
