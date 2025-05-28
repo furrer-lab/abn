@@ -37,6 +37,7 @@ jobs:
           dnf -y install lapack*  # is needed on fedora server
           dnf -y install blas*
           dnf -y install atlas*
+          dnf -y install awk
 
       - name: install R
         run: |
