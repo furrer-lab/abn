@@ -43,9 +43,12 @@ jobs:
 
       - name: GSL troubleshoot
         run: |
-          echo "cygcheck -cd |grep gsl"
-          echo "cygcheck -c libgsl-devel"
-          echo "cygcheck -l libgsl-devel"
+          cygcheck -cd |grep gsl
+          cygcheck -c libgsl-devel
+          cygcheck -l libgsl-devel
+          echo "-------------\n"
+          echo "$GITHUB_CONTEXT"
+        shell: bash
           
       - name: install JAGS
         run: |
