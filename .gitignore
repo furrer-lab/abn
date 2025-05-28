@@ -5,6 +5,7 @@ inst/doc
 
 .Rproj.user
 .Rhistory
+.Renviron
 *.o
 *.so
 config.log
