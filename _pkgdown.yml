@@ -112,7 +112,6 @@ reference:
   - print.abnHeuristic
   - print.abnHillClimber
   - print.abnMostprobable
-  - validate_abnDag
   - validate_dists
   - var33
 
