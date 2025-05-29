@@ -48,6 +48,17 @@ jobs:
           cygcheck -l libgsl-devel
           echo "-------------\n"
           echo "$GITHUB_CONTEXT"
+          echo "-------------\n"
+          echo "GSL version:"
+          gsl-config --version
+          echo "GSL prefix:"
+          gsl-config --prefix
+          echo "GSL cflags:"
+          gsl-config --cflags
+          echo "GSL libs:"
+          gsl-config --libs
+          echo "LIB_GSL:"
+          echo $env:LIB_GSL
           
       - name: install JAGS
         run: |
