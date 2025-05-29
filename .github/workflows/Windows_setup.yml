@@ -43,9 +43,6 @@ jobs:
 
       - name: GSL troubleshoot
         run: |
-          cygcheck -cd |grep gsl
-          cygcheck -c libgsl-devel
-          cygcheck -l libgsl-devel
           echo "-------------\n"
           echo "$GITHUB_CONTEXT"
           echo "-------------\n"
