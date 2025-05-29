@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - "main"
-
+      - "187-issue-with-ragg-within-the-installation-workflow-for-windows"
 env:
   BUILD_LOC: "./build"
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -41,6 +41,23 @@ jobs:
           start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
           Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages=gsl --site=https://cygwin.mirror.constant.com" -PassThru
 
+      # - name: GSL troubleshoot
+      #   run: |
+      #     cygcheck -cd |grep gsl
+      #     cygcheck -c libgsl-devel
+      #     cygcheck -l libgsl-devel
+      #     echo "-------------\n"
+      #     echo "$GITHUB_CONTEXT"
+      #     echo "-------------\n"
+      #     echo "GSL DLLs in Cygwin:"
+      #     Get-ChildItem "C:\cygwin64\bin\cyggsl*" -ErrorAction SilentlyContinue
+      #     echo "GSL include directory:"
+      #     Get-ChildItem "C:\cygwin64\usr\include\gsl" -ErrorAction SilentlyContinue
+      #     echo "GSL lib directory:"
+      #     Get-ChildItem "C:\cygwin64\lib\libgsl*" -ErrorAction SilentlyContinue
+      #     echo "LIB_GSL:"
+      #     echo $env:LIB_GSL
+          
       - name: install JAGS
         run: |
           Import-Module bitstransfer
@@ -60,11 +77,6 @@ jobs:
       #     pak::pkg_install('abn', dependencies=TRUE)
       #     library('abn')
       #   shell: Rscript {0}
-
-      - name: temporal workaround for ragg
-        run: |
-          pak::pak("r-lib/ragg")
-        shell: Rscript {0}
 
       - name: pak install from GitHub
         run: |
