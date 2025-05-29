@@ -49,14 +49,12 @@ jobs:
           echo "-------------\n"
           echo "$GITHUB_CONTEXT"
           echo "-------------\n"
-          echo "GSL version:"
-          gsl-config --version
-          echo "GSL prefix:"
-          gsl-config --prefix
-          echo "GSL cflags:"
-          gsl-config --cflags
-          echo "GSL libs:"
-          gsl-config --libs
+          echo "GSL DLLs in Cygwin:"
+          Get-ChildItem "C:\cygwin64\bin\cyggsl*" -ErrorAction SilentlyContinue
+          echo "GSL include directory:"
+          Get-ChildItem "C:\cygwin64\usr\include\gsl" -ErrorAction SilentlyContinue
+          echo "GSL lib directory:"
+          Get-ChildItem "C:\cygwin64\lib\libgsl*" -ErrorAction SilentlyContinue
           echo "LIB_GSL:"
           echo $env:LIB_GSL
           
