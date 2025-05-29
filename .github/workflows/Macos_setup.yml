@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "187-issue-with-ragg-within-the-installation-workflow-for-windows"
 
 env:
   BUILD_LOC: "./build"
@@ -69,10 +70,10 @@ jobs:
       #     library('abn')
       #   shell: Rscript {0}
       
-      - name: temporal workaround for ragg
-        run: |
-          pak::pak("r-lib/ragg")
-        shell: Rscript {0}
+      # - name: temporal workaround for ragg
+      #   run: |
+      #     pak::pak("r-lib/ragg")
+      #   shell: Rscript {0}
 
       - name: pak install from GitHub
         run: |
