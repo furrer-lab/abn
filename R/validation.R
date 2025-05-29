@@ -62,11 +62,6 @@ createAbnDag <- function(dag,
     stop("'data.df' must be a data.frame or NULL")
   }
 
-  if (is.null(dimnames(dag))) {
-    dag <- provideDimnames(dag, base = list(letters))
-    validate_abnDag(dag)
-  }
-
   out <- list(dag = dag,
               data.df = data.df,
               data.dists = data.dists)
