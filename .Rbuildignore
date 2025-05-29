@@ -12,7 +12,7 @@ Makefile
 \.lintr
 ^\.Rbuildignore$
 ^\.codecov\.yml$
-\.codecov.yml
+^codecov\.yml$
 
 ^_pkgdown\.yml$
 ^docs$
