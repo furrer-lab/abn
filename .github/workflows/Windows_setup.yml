@@ -53,9 +53,9 @@ jobs:
           echo "GSL lib directory:"
           Get-ChildItem "C:\cygwin64\lib\libgsl*" -ErrorAction SilentlyContinue
           echo "LIB_GSL:"
-          echo $env:LIB_GSL
+          echo "${env:LIB_GSL}"
           echo "GSL_LIBS:"
-          echo $env:GSL_LIBS
+          echo "${env:GSL_LIBS}"
           
       - name: install JAGS
         run: |
