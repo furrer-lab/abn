@@ -111,8 +111,8 @@ jobs:
         shell: bash
       - name: Install system dependencies
         run: |
-            sudo apt-get update
-            sudo apt-get install -y libabsl-dev # Abseil is required for R package s2
+            apt-get update
+            apt-get install -y libabsl-dev # Abseil is required for R package s2
         shell: bash
       - name: Install package dependencies
         run: |
