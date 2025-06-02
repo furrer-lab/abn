@@ -69,7 +69,8 @@ Suggests:
     testthat (>= 3.0.0),
     entropy,
     moments,
-    R6
+    R6,
+    fmesher
 LinkingTo: 
     Rcpp,
     RcppArmadillo
