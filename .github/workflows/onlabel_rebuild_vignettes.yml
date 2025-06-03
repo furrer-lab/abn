@@ -85,11 +85,6 @@ jobs:
       - name: Configure ABN for installation
         run: |
           autoreconf
-      - name: Install system dependencies
-        run: |
-            apt-get update
-            apt-get install -y libabsl-dev # Abseil is required for R package s2
-        shell: bash
       - name: Install package dependencies
         run: |
             devtools::install_deps(pkg = '.', dependencies = TRUE, upgrade='never')
