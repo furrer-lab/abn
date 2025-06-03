@@ -50,7 +50,7 @@ Imports:
     Rcpp,
     Rgraphviz,
     rjags,
-    stringi,
+    stringi
 Suggests: 
     bookdown,
     boot,

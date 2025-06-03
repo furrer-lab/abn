@@ -4,7 +4,7 @@
 <!-- badges: start -->
 <!-- WARNING: -->
 <!-- The ?branch=release-x.y.y is updated automatically by the initiate_version_release workflow -->
-[![status](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812/status.svg)](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812)
+[![status](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812/status.svg)](https://joss.theoj.org/papers/10.21105/joss.06822)
 [![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg?branch=release-3.1.4)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)](https://app.codecov.io/gh/furrer-lab/abn)
 [![GitHub R package version](https://img.shields.io/github/r-package/v/furrer-lab/abn)](https://github.com/furrer-lab/abn/tags)
@@ -88,7 +88,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
 
   **Install JAGS from source**
 
-  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+  [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/package=rjags) is R's interface to the `JAGS` library.
   `JAGS` is required in some simulations `abn` can perform.
 
   The steps needed to install `JAGS 4.3.2` are:
@@ -179,7 +179,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   
   - **JAGS & rjags**
     
-    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/package=rjags) is R's interface to the `JAGS` library.
     `JAGS` is required in some simulations `abn` can perform.
   
     With Homebrew you can install the `JAGS` binaries directly:
@@ -252,7 +252,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   
   - **JAGS & rjags**
     
-    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/web/packages/rjags/index.html) is R's interface to the `JAGS` library.
+    [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/package=rjags) is R's interface to the `JAGS` library.
     `JAGS` is required in some simulations `abn` can perform.
   
     
@@ -447,9 +447,9 @@ The particular type of Bayesian network models considered here are **additive Ba
 These are rather different, mathematically speaking, from the standard form of Bayesian network models (for binary or categorical data) presented in the academic literature, which typically use an analytically elegant but arguably interpretation-wise opaque contingency table parametrization. 
 An additive Bayesian network model is simply a **multidimensional regression model**, e.g., directly analogous to generalized linear modeling but with all variables potentially dependent. 
 
-An example can be found in the [American Journal of Epidemiology](https://academic.oup.com/aje/article-abstract/176/11/1051/178588), where this approach was used to investigate risk factors for child diarrhea. 
-A special issue of [Preventive Veterinary Medicine](http://www.sciencedirect.com/science/journal/01675877/110/1) on graphical modeling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data. 
-Introductions to this methodology can be found in [Emerging Themes in Epidemiology](https://link.springer.com/journal/12982) and in [Computers in Biology and Medicine](https://www.sciencedirect.com/science/article/pii/S0010482522005133) where it is compared to other approaches.
+An example can be found in the [American Journal of Epidemiology](https://doi.org/10.1093/aje/kws183), where this approach was used to investigate risk factors for child diarrhea. 
+A special issue of **Preventive Veterinary Medicine** on graphical modeling features several articles that use [abn](https://CRAN.R-project.org/package=abn) to fit epidemiological data (e.g., [Ludwig et al., 2013](https://doi.org/10.1016/j.prevetmed.2013.02.005)). 
+Introductions to this methodology can be found in [Emerging Themes in Epidemiology](https://link.springer.com/journal/12982) and in [Computers in Biology and Medicine](https://doi.org/10.1016/j.compbiomed.2022.105740) where it is compared to other approaches.
 
 ## What is an additive Bayesian network?
 
