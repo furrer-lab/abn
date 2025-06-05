@@ -9,10 +9,14 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+# Only evaluate if microbenchmark is available
+dependenciesAvailable <- requireNamespace("microbenchmark", quietly = TRUE)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = ""
+  fig.path = "",
+  eval = dependenciesAvailable
 )
 ```
 
