@@ -43,7 +43,6 @@ We will use the `microbenchmark` package to measure the time it takes to compute
 
 ``` r
 library(abn)
-library(microbenchmark)
 
 set.seed(123456)
 ```
@@ -83,53 +82,62 @@ We compare the following methods:
 
 
 ``` r
-# Benchmark
-res <- microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
-                                               data.dists = mydists,
-                                               method = "mle",
-                                               max.parents = maxparents,
-                                               control = build.control(method = "mle",
-                                                                       ncores = 1)),
-               mleMulticorePSOCK = buildScoreCache(data.df = df,
-                                                   data.dists = mydists,
-                                                   method = "mle",
-                                                   max.parents = maxparents,
-                                                   control = build.control(method = "mle",
-                                                                           ncores = ncores,
-                                                                           cluster.type = "PSOCK")),
-               mleMulticoreFORK = buildScoreCache(data.df = df,
-                                                  data.dists = mydists,
-                                                  method = "mle",
-                                                  max.parents = maxparents,
-                                                  control = build.control(method = "mle",
-                                                                          ncores = ncores,
-                                                                          cluster.type = "FORK")),
-               bayesSinglecore = buildScoreCache(data.df = df,
-                                                 data.dists = mydists,
-                                                 method = "bayes",
-                                                 max.parents = maxparents,
-                                                 control = build.control(method = "bayes",
-                                                                         ncores = 1)),
-               bayesMulticorePSOCK = buildScoreCache(data.df = df,
-                                                     data.dists = mydists,
-                                                     method = "bayes",
-                                                     max.parents = maxparents,
-                                                     control = build.control(method = "bayes",
-                                                                             ncores = ncores,
-                                                                             cluster.type = "PSOCK")),
-               bayesMulticoreFORK = buildScoreCache(data.df = df,
-                                                    data.dists = mydists,
-                                                    method = "bayes",
-                                                    max.parents = maxparents,
-                                                    control = build.control(method = "bayes",
-                                                                            ncores = ncores,
-                                                                            cluster.type = "FORK")),
-               times = 25)
+res <- NULL
+if (requireNamespace("microbenchmark", quietly = TRUE)) {
+  # Benchmark
+  res <- microbenchmark::microbenchmark(mleSinglecore = buildScoreCache(data.df = df,
+                                                                        data.dists = mydists,
+                                                                        method = "mle",
+                                                                        max.parents = maxparents,
+                                                                        control = build.control(method = "mle",
+                                                                                                ncores = 1)),
+                                        mleMulticorePSOCK = buildScoreCache(data.df = df,
+                                                                            data.dists = mydists,
+                                                                            method = "mle",
+                                                                            max.parents = maxparents,
+                                                                            control = build.control(method = "mle",
+                                                                                                    ncores = ncores,
+                                                                                                    cluster.type = "PSOCK")),
+                                        mleMulticoreFORK = buildScoreCache(data.df = df,
+                                                                           data.dists = mydists,
+                                                                           method = "mle",
+                                                                           max.parents = maxparents,
+                                                                           control = build.control(method = "mle",
+                                                                                                   ncores = ncores,
+                                                                                                   cluster.type = "FORK")),
+                                        bayesSinglecore = buildScoreCache(data.df = df,
+                                                                          data.dists = mydists,
+                                                                          method = "bayes",
+                                                                          max.parents = maxparents,
+                                                                          control = build.control(method = "bayes",
+                                                                                                  ncores = 1)),
+                                        bayesMulticorePSOCK = buildScoreCache(data.df = df,
+                                                                              data.dists = mydists,
+                                                                              method = "bayes",
+                                                                              max.parents = maxparents,
+                                                                              control = build.control(method = "bayes",
+                                                                                                      ncores = ncores,
+                                                                                                      cluster.type = "PSOCK")),
+                                        bayesMulticoreFORK = buildScoreCache(data.df = df,
+                                                                             data.dists = mydists,
+                                                                             method = "bayes",
+                                                                             max.parents = maxparents,
+                                                                             control = build.control(method = "bayes",
+                                                                                                     ncores = ncores,
+                                                                                                     cluster.type = "FORK")),
+                                        times = 25)
+} else {
+  message("The microbenchmark package is not available. Skipping benchmarking.")
+}
 ```
 
 
 ``` r
-boxplot(res)
+if (!is.null(res)) {
+  boxplot(res)
+} else {
+  message("No benchmarking results to plot.")
+}
 ```
 
 ![plot of chunk benchmarkBoxPlot](benchmarkBoxPlot-1.png)
