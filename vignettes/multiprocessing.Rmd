@@ -5,7 +5,7 @@ vignette: >
   %\VignetteIndexEntry{Parallelisation}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  %\VignetteDepends{abn, microbenchmark}
+  %\VignetteDepends{abn}
 ---
 
 
