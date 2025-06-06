@@ -1,4 +1,10 @@
 
+# abn 3.1.7
+[diff](https://github.com/furrer-lab/abn/compare/3.1.3...3.1.7)
+
+> 2025-06-06
+
+
 # abn 3.1.6
 [diff](https://github.com/furrer-lab/abn/compare/3.1.3...3.1.6)
 
