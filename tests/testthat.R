@@ -9,7 +9,12 @@
 library(testthat)
 library(abn)
 
-require(RhpcBLASctl)
-omp_set_num_threads(2)
+# Set the number of threads for BLAS and OpenMP if possible
+if (requireNamespace("RhpcBLASctl", quietly = TRUE)) {
+  RhpcBLASctl::blas_set_num_threads(2)
+} else {
+  # E.g., on CRAN noSuggests environment, RhpcBLASctl is not available
+  message("RhpcBLASctl is not available, BLAS thread control will not be set.")
+}
 
 test_check("abn")
