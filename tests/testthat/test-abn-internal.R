@@ -135,6 +135,8 @@ test_that("Distribution of variables is properly assessed.", {
 })
 
 test_that("check.valid.buildControls() works properly", {
+  skip_on_cran() # Skipped on CRAN because it requires a thight control of omp_num_threads
+
   verbose <- TRUE
   for (method in c("bayes", "mle")) {
     expect_error({
