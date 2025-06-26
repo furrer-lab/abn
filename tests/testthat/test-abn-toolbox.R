@@ -145,6 +145,8 @@ test_that("simulateDag() works", {
 })
 
 test_that("skewness() works", {
+  skip_if_not_installed("moments")
+
   data <- c(19.09, 19.55, 17.89, 17.73, 25.15, 27.27, 25.24, 21.05, 21.65, 20.92, 22.61, 15.71, 22.04, 22.6, 24.25)
   expect_equal(abn:::skewness(x=data), moments::skewness(x=data))
 })
