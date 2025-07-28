@@ -520,13 +520,13 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     if(qr(X)$rank/ncol(X)!=1 & as.character(data.dists[i])=="binomial"){
       # if collinear, iteratively remove last variable from predictors and retry with internal IRLS.
       Y <- as.numeric(as.character(Y))
-      fit <- tryCatch(irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),error=function(e){
+      fit <- tryCatch(irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),error=function(e){
         while((qr(X)$rank/ncol(X))!=1){
           X <- X[,-1]
           num.na <- num.na+1
           if(is.null(ncol(X))) X <- as.matrix(X)
         }
-        list(irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),num.na)
+        list(irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),num.na)
       })
       num.na <- fit[[2]]
       fit <- fit[[1]]
@@ -535,20 +535,20 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       switch(as.character(data.dists[i]),
              "binomial"={
                Y <- as.numeric(as.character(Y))
-               fit <- tryCatch(irls_binomial_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),
+               fit <- tryCatch(irls_binomial_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),
                                error=function(e){
-                                 irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+                                 irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
                                }
                )
                if(is.na(sum(fit[[1]]))) {
-                 fit <- irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+                 fit <- irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
                }
              },
              "gaussian"={
-               fit <- irls_gaussian_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+               fit <- irls_gaussian_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "poisson"={
-               fit <- irls_poisson_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+               fit <- irls_poisson_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "multinomial"={
                tmp <- multinom(formula = Y~-1+X,Hess = FALSE,trace=FALSE)
