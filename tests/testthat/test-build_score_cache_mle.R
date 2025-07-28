@@ -289,6 +289,32 @@ test_that("buildScoreCache.mle() corresponds with simulation results", {
   }
 })
 
+test_that("buildScoreCache.mle() without group.var and all 4 distribution types", {
+  if(.Platform$OS.type == "unix") {
+    if (requireNamespace("Matrix", quietly = TRUE)) {
+      # load data
+      load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+      # load(file = "testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+
+
+      # build cache
+      expect_no_error({
+        mycache <- buildScoreCache(data.df = data$data,
+                                   data.dists = data$dists,
+                                   method = "mle",
+                                   max.parents = data$max.parents,
+                                   group.var = NULL,
+                                   debugging = FALSE,
+                                   verbose = FALSE)
+      })
+    } else {
+      skip("Package Matrix is required for this test.")
+    }
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
+  }
+})
+
 test_that("forLoopContent() works as expected.", {
   # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
   load(file = "testdata/forLoopContent_data.Rdata")
