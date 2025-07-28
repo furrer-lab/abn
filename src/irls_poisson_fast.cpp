@@ -1,21 +1,11 @@
 #define ARMA_WARN_LEVEL 1
 #include <RcppArmadillo.h>
+#include <Rmath.h> // lgammafn
 
 //[[Rcpp::depends(RcppArmadillo)]]
 
 using namespace Rcpp;
 using namespace R;
-
-//' @title Fast Factorial
-//' @description Calculate the factorial in C##
-//' @keywords internal
-//' @returns a double
-//' @export
-// [[Rcpp::export]]
-double factorial_fast(double n)
-{
-  return (n == 1.0 || n == 0.0) ? 1 : factorial_fast(n - 1.0) * n;
-}
 
 //' @title Fast Iterative Reweighed Least Square algorithm for Poissons
 //' @description IRLS to estimate network score of Poisson nodes.
@@ -53,10 +43,12 @@ Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double 
   arma::vec f(nobs);
   arma::vec gprime(nobs);
   arma::vec z(nobs);
+  arma::vec f(nobs);
 
-  for (int i = 0; i < maxit; ++i) {
-    // // print out i
-    // Rcpp::Rcout << "i: " << i << std::endl;
+  // Pre-calculate the log-factorial term using a stable function
+  for (int j = 0; j < nobs; ++j) {
+    f[j] = R::lgammafn(b[j] + 1.0); // Equivalent to lfactorial(b[j]) in R
+  }
 
     eta = A * x;
     // // print out eta
