@@ -50,9 +50,29 @@ Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double 
     f[j] = R::lgammafn(b[j] + 1.0); // Equivalent to lfactorial(b[j]) in R
   }
 
-    eta = A * x;
-    // // print out eta
-    // Rcpp::Rcout << "eta: " << eta << std::endl;
+  // Initial values calculation to avoid division by zero
+  arma::vec mu = b + 0.1;
+  arma::vec eta_init = arma::log(mu);
+  arma::vec W_init = arma::exp(eta_init);
+  arma::vec z_init = eta_init + (b - W_init) / W_init;
+
+  // Check if initial values are finite and stable
+  if (!W_init.is_finite() || !z_init.is_finite()) {
+    Rcpp::warning("Initial values for W or z are not finite. Starting with x = 0.");
+    x.zeros(A.n_cols, 1);
+  } else {
+    arma::mat varmatrix_init = A.t() * (W_init % A.each_col());
+    if (varmatrix_init.has_nan() || varmatrix_init.has_inf()) {
+      Rcpp::warning("Initial varmatrix is unstable. Starting with x = 0.");
+      x.zeros(A.n_cols, 1);
+    } else {
+      x = arma::solve(varmatrix_init, A.t() * (W_init % z_init), arma::solve_opts::likely_sympd);
+      if (!x.is_finite()) {
+        Rcpp::warning("Solving for initial x resulted in non-finite values. Starting with x = 0.");
+        x.zeros(A.n_cols, 1);
+      }
+    }
+  }
 
     W = exp(eta);
     // // print out W
