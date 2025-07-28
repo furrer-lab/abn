@@ -161,13 +161,21 @@ test_that("buildScoreCache.mle() with Poisson nodes", {
 })
 
 test_that("buildScoreCache.mle() works with two Poisson nodes",{
-  mydists <- list(a="poisson",
-                  b="poisson")
-  a <- rpois(1000, lambda = 1)
-  z <- exp(1+2*a)
-  b <- rpois(1000, lambda = z)
-  mydf <- data.frame("a" = a,
-                     "b" = as.integer(b))
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      # Poisson with two nodes
+      mydists <- list(a = "poisson",
+                      b = "poisson")
+      a <- rpois(1000, lambda = 1)
+      z <- exp(1+2*a)
+      b <- rpois(1000, lambda = z)
+      mydf <- data.frame("a" = a,
+                         "b" = as.integer(b))
+    },
+    file = "/dev/null")
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
+  }
   mycache.mle <- buildScoreCache(data.df = mydf,
                                  data.dists = mydists,
                                  method = "mle",
