@@ -180,7 +180,7 @@ test_that("buildScoreCache.mle() works with two Poisson nodes",{
                                  data.dists = mydists,
                                  method = "mle",
                                  max.parents = 1,
-                                 verbose = TRUE)
+                                 verbose = FALSE)
 
   # mLik
   expect_equal(mycache.mle$mlik[1], as.numeric(logLik(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
