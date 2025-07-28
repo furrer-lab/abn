@@ -149,9 +149,12 @@ Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double 
   double ssr = arma::dot(e, e);
 
   return Rcpp::List::create(
+    Rcpp::Named("coefficients") = x,
     Rcpp::Named("loglik") = ll,
     Rcpp::Named("aic") = aic,
     Rcpp::Named("bic") = bic,
-    Rcpp::Named("mdl") = mdl
+    Rcpp::Named("mdl") = mdl,
+    Rcpp::Named("sse") = ssr,
+    Rcpp::Named("varcov") = varmatrix
   );
 }

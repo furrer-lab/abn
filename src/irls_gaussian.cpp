@@ -58,7 +58,7 @@ return Rcpp::List::create(
     Rcpp::Named("aic") = aic,
   Rcpp::Named("bic") = bic,
   Rcpp::Named("mdl") = mdl,
-  Rcpp::Named("sse") = ssr
-  //Rcpp::Named("varcov") = varmatrix
+  Rcpp::Named("sse") = ssr,
+  Rcpp::Named("varcov") = varmatrix
 );
 }

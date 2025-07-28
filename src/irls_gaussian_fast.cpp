@@ -88,9 +88,12 @@ bic = - 2 * ll + log(n) * df;
 mdl = 1;
 
 return Rcpp::List::create(
+  Rcpp::Named("coefficients") = x,
   Rcpp::Named("loglik") = ll,
   Rcpp::Named("aic") = aic,
   Rcpp::Named("bic") = bic,
-  Rcpp::Named("mdl") = mdl
+  Rcpp::Named("mdl") = mdl,
+  Rcpp::Named("sse") = ssr,
+  Rcpp::Named("varcov") = varmatrix
 );
 }
