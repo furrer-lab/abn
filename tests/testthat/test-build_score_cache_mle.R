@@ -160,6 +160,34 @@ test_that("buildScoreCache.mle() with Poisson nodes", {
   }
 })
 
+test_that("buildScoreCache.mle() works with two Poisson nodes",{
+  mydists <- list(a="poisson",
+                  b="poisson")
+  a <- rpois(1000, lambda = 1)
+  z <- exp(1+2*a)
+  b <- rpois(1000, lambda = z)
+  mydf <- data.frame("a" = a,
+                     "b" = as.integer(b))
+  mycache.mle <- buildScoreCache(data.df = mydf,
+                                 data.dists = mydists,
+                                 method = "mle",
+                                 max.parents = 1,
+                                 verbose = TRUE)
+
+  # mLik
+  expect_equal(mycache.mle$mlik[1], as.numeric(logLik(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$mlik[2], as.numeric(logLik(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$mlik[3], as.numeric(logLik(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+  # AIC
+  expect_equal(mycache.mle$aic[1], as.numeric(AIC(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$aic[2], as.numeric(AIC(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$aic[3], as.numeric(AIC(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+  # BIC
+  expect_equal(mycache.mle$bic[1], as.numeric(BIC(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$bic[2], as.numeric(BIC(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$bic[3], as.numeric(BIC(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+})
+
 test_that("buildScoreCache.mle() with Multinomial nodes", {
   if(.Platform$OS.type == "unix") {
     capture.output({
