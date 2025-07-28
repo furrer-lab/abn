@@ -138,6 +138,15 @@ Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double 
   aic = -2 * ll + 2 * df;
   bic = -2 * ll + log(nobs) * df;
   mdl = 1;
+  // Calculate the variance-covariance matrix
+  varmatrix = A.t() * (exp(eta) % A.each_col());
+  if (varmatrix.has_nan() || varmatrix.has_inf()) {
+    Rcpp::warning("Variance-covariance matrix is unstable. Returning NaN.");
+    varmatrix.fill(NAN);
+  }
+  // Calculate the sum of squared errors
+  arma::vec e = (b - eta);
+  double ssr = arma::dot(e, e);
 
   return Rcpp::List::create(
     Rcpp::Named("loglik") = ll,

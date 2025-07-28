@@ -30,7 +30,7 @@ double ll;
 double aic;
 double bic;
 double mdl;
-
+double ssr;
 
 
 arma::vec W(nobs);
@@ -131,7 +131,13 @@ bic = - 2 * ll + log(nobs) * df;
 // mdl = (n/2) * log((accu(b.t()*b))/n) + 0.5 * log(n);
 // }
 
-mdl = 1;
+// MDL calculation is not standard, using a placeholder value NA
+mdl = NA_REAL;
+
+// sse
+arma::vec e;
+e = (b - A*x);
+ssr = arma::accu(e.t()*e);
 
 //return
 return Rcpp::List::create(

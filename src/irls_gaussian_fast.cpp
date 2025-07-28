@@ -14,6 +14,7 @@ Rcpp::List irls_gaussian_cpp_fast(arma::mat A, arma::vec b, double maxit, double
 
 //Def
 arma::mat x;
+arma::mat varmatrix;
 x.zeros(A.n_cols,1);
 
 arma::mat gprime;
@@ -30,7 +31,8 @@ double bic;
 double mdl;
 
 //coefficients
-x = arma::solve(A.t() * (gprime % A.each_col()), A.t() * (gprime % b));
+varmatrix = A.t() * (gprime % A.each_col());
+x = arma::solve(varmatrix, A.t() * (gprime % b), arma::solve_opts::likely_sympd);
 
 //loglik
 e = (b - A*x);

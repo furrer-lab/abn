@@ -17,7 +17,7 @@ Rcpp::List irls_gaussian_cpp(arma::mat A, arma::mat b, double maxit, double tol)
 //Def
 arma::mat x;
 x.zeros(A.n_cols,1);
-//arma::mat varmatrix;
+arma::mat varmatrix;
 
 arma::mat gprime;
 gprime.ones(A.n_rows,1);
@@ -35,11 +35,13 @@ df = A.n_cols + 1;
 //coefficients
 x = arma::solve(A.t() * (gprime % A.each_col()), A.t() * (gprime % b));
 
-//varmatrix = arma::solve(A,A,arma::solve_opts::no_approx);
+// varmatrix
+varmatrix = A.t() * (gprime % A.each_col());
+
 
 //loglik
 e = (b - A*x);
-ssr = accu(e.t()*e);
+ssr = arma::accu(e.t()*e);
 n=A.n_rows;
 
 ll = 0.5 * ( - n * (log(2 * arma::datum::pi) + 1 - log(n) + log(ssr)));
