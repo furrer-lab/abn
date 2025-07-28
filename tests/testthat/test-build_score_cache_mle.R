@@ -301,8 +301,8 @@ test_that("buildScoreCache.mle() without group.var and all 4 distribution types"
   if(.Platform$OS.type == "unix") {
     if (requireNamespace("Matrix", quietly = TRUE)) {
       # load data
-      load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
-      # load(file = "testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+      # load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+      load(file = "testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
 
 
       # build cache
