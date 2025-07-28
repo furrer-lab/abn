@@ -653,8 +653,11 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
            "poisson"={
              fit$coefficients <- cbind(t(rep(NA,num.na)),t(fit$coefficients))
              res[["coef"]] <- fit$coefficients
-
-             res[["var"]] <- as.matrix(sqrt(diag(solve(fit$varcov))))
+             res[["var"]] <- tryCatch(as.matrix(sqrt(diag(solve(fit$varcov)))),
+                                      error=function(e){
+                                        as.matrix(sqrt(diag(solve(fit$varcov, tol = 1e-25))))
+                                      }
+             )
              res[["var"]] <- matrix(data = cbind(t(rep(NA,num.na)),t(res[["var"]])),nrow = 1)
            },
            "multinomial"={
