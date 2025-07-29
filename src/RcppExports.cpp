@@ -142,17 +142,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// factorial_fast
-double factorial_fast(double n);
-RcppExport SEXP _abn_factorial_fast(SEXP nSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< double >::type n(nSEXP);
-    rcpp_result_gen = Rcpp::wrap(factorial_fast(n));
-    return rcpp_result_gen;
-END_RCPP
-}
 // irls_poisson_cpp_fast
 Rcpp::List irls_poisson_cpp_fast(arma::mat A, arma::vec b, double maxit, double tol);
 RcppExport SEXP _abn_irls_poisson_cpp_fast(SEXP ASEXP, SEXP bSEXP, SEXP maxitSEXP, SEXP tolSEXP) {
@@ -208,7 +197,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_abn_irls_gaussian_cpp_fast", (DL_FUNC) &_abn_irls_gaussian_cpp_fast, 4},
     {"_abn_factorial", (DL_FUNC) &_abn_factorial, 1},
     {"_abn_irls_poisson_cpp", (DL_FUNC) &_abn_irls_poisson_cpp, 4},
-    {"_abn_factorial_fast", (DL_FUNC) &_abn_factorial_fast, 1},
     {"_abn_irls_poisson_cpp_fast", (DL_FUNC) &_abn_irls_poisson_cpp_fast, 4},
     {"_abn_mi_cpp", (DL_FUNC) &_abn_mi_cpp, 1},
     {"_abn_rank_cpp", (DL_FUNC) &_abn_rank_cpp, 1},

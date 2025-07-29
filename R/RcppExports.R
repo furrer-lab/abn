@@ -98,15 +98,6 @@ irls_poisson_cpp <- function(A, b, maxit, tol) {
     .Call(`_abn_irls_poisson_cpp`, A, b, maxit, tol)
 }
 
-#' @title Fast Factorial
-#' @description Calculate the factorial in C##
-#' @keywords internal
-#' @returns a double
-#' @export
-factorial_fast <- function(n) {
-    .Call(`_abn_factorial_fast`, n)
-}
-
 #' @title Fast Iterative Reweighed Least Square algorithm for Poissons
 #' @description IRLS to estimate network score of Poisson nodes.
 #' @keywords internal

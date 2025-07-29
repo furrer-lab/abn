@@ -29,6 +29,7 @@ double ll;
 double aic;
 double bic;
 double mdl;
+double ssr;
 
 arma::vec W(nobs);
 arma::vec unit(nobs);
@@ -124,14 +125,23 @@ bic = - 2 * ll + log(nobs) * df;
 // mdl = (n/2) * log((accu(b.t()*b))/n) + 0.5 * log(n);
 // }
 
+// sse
+arma::vec e;
+e = (b - A*x);
+ssr = arma::accu(e.t()*e);
+
+// MDL placeholder
 mdl = 1;
 
 //return
 return Rcpp::List::create(
+  Rcpp::Named("coefficients") = x,
   Rcpp::Named("loglik") = ll,
   Rcpp::Named("aic") = aic,
   Rcpp::Named("bic") = bic,
-  Rcpp::Named("mdl") = mdl
+  Rcpp::Named("mdl") = mdl,
+  Rcpp::Named("sse") = ssr,
+  Rcpp::Named("varcov") = varmatrix
 );
 
 }
