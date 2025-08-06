@@ -71,7 +71,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-        with: 
+        with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout branch of PR
         run: |
@@ -110,7 +110,7 @@ jobs:
           git add vignettes/
           git add *.png
           git commit -m "Automated Vignette Compilation"
-          git push 
+          git push
 
   report_vignette_build:
     if: ${{ (success() || failure()) }}
@@ -135,15 +135,15 @@ jobs:
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
-            exit 0
+            exit 0;
           elif [ ${{ needs.vignette_build.result }} == "failure" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            exit 1;
           else
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}";
           fi
         shell: bash
         env:
@@ -167,9 +167,9 @@ jobs:
         id: passed
         run: |
           if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
-            echo "PASSED=true" >> $GITHUB_OUTPUT
+            echo "PASSED=true" >> $GITHUB_OUTPUT;
           else
-            echo "PASSED=false" >> $GITHUB_OUTPUT
+            echo "PASSED=false" >> $GITHUB_OUTPUT;
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -188,7 +188,30 @@ jobs:
     steps:
       - name: Assert that either job passed or the label is present
         run: |
-          if [[ ${{ needs.vignette_build.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
-            echo 'vignette_build status ok';
-          else exit 1; fi
+          # First, check if the workflow was triggered by the correct label.
+          # If not, the relevant jobs were likely skipped, and we should not fail the workflow.
+          if [[ "${{ github.event.label.name }}" != "${{ env.LABEL_CHECK }}" ]]; then
+            echo "Workflow not triggered by '${{ env.LABEL_CHECK }}' label (actual label: '${{ github.event.label.name }}')."
+            echo "Skipping status assertion and exiting gracefully."
+            exit 0
+          fi
+
+          # If triggered by the correct label, proceed with the status check.
+          vignette_build_RESULT="${{ needs.vignette_build.result }}"
+          PASSED_LABEL_EXISTS="${{ needs.record_passed_label.outputs.passed }}"
+
+          echo "Verifying R CMD check status..."
+          echo "  - vignette_build job result: ${vignette_build_RESULT}"
+          echo "  - '${{ env.LABEL_SUCCESS }}' label found on PR: ${PASSED_LABEL_EXISTS}"
+
+          if [[ "${vignette_build_RESULT}" == 'success' ]]; then
+            echo "=> Success: vignette_build job passed."
+            exit 0
+          elif [[ "${PASSED_LABEL_EXISTS}" == 'true' ]]; then
+            echo "=> Success: Although vignette_build job result was '${vignette_build_RESULT}', the '${{ env.LABEL_SUCCESS }}' label already exists on the PR."
+            exit 0
+          else
+            echo "=> Failure: vignette_build job result was '${vignette_build_RESULT}' and the '${{ env.LABEL_SUCCESS }}' label was not found."
+            exit 1
+          fi
 

@@ -76,9 +76,9 @@ jobs:
           pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
       - name: Upload pkgdown artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.DOC_LOC }}
 
@@ -105,15 +105,15 @@ jobs:
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
-            exit 0
+            exit 0;
           elif [ ${{ needs.pkgdown_build.result }} == "failure" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            exit 1;
           else
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}";
           fi
         shell: bash
         env:
@@ -137,9 +137,9 @@ jobs:
         id: passed
         run: |
           if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
-            echo "PASSED=true" >> $GITHUB_OUTPUT
+            echo "PASSED=true" >> $GITHUB_OUTPUT;
           else
-            echo "PASSED=false" >> $GITHUB_OUTPUT
+            echo "PASSED=false" >> $GITHUB_OUTPUT;
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
