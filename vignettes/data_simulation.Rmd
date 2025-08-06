@@ -12,7 +12,7 @@ vignette: >
 
 ``` r
 library(abn)
-#> abn version 3.1.5 (2025-06-03) is loaded.
+#> abn version 3.1.9 (2025-06-26) is loaded.
 #> To cite the package 'abn' in publications call: citation('abn').
 #> 
 #> Attaching package: 'abn'
@@ -50,9 +50,9 @@ mycache <- buildScoreCache(data.df = mydat,
                            data.dists = mydists,
                            method = "bayes",
                            max.parents = 4)
-#> Warning: package 'INLA' was built under R version 4.4.2
+#> Warning: package 'INLA' was built under R version 4.5.0
 #> Loading required package: Matrix
-#> This is INLA_24.12.11 built 2024-12-11 19:58:26 UTC.
+#> This is INLA_25.06.07 built 2025-06-11 18:54:45 UTC.
 #>  - See www.r-inla.org/contact-us for how to get help.
 #>  - List available models/likelihoods/etc with inla.list.models()
 #>  - Use inla.doc(<NAME>) to access documentation
