@@ -192,9 +192,32 @@ jobs:
     steps:
       - name: Assert that either checks passed or the label is present
         run: |
-          if [[ ${{ needs.R_CMD_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
-            echo 'R CMD check status ok';
-          else exit 1; fi
+          # First, check if the workflow was triggered by the correct label.
+          # If not, the relevant jobs were likely skipped, and we should not fail the workflow.
+          if [[ "${{ github.event.label.name }}" != "${{ env.LABEL_CHECK }}" ]]; then
+            echo "Workflow not triggered by '${{ env.LABEL_CHECK }}' label (actual label: '${{ github.event.label.name }}')."
+            echo "Skipping status assertion and exiting gracefully."
+            exit 0
+          fi
+
+          # If triggered by the correct label, proceed with the status check.
+          R_CMD_CHECK_RESULT="${{ needs.R_CMD_check.result }}"
+          PASSED_LABEL_EXISTS="${{ needs.record_passed_label.outputs.passed }}"
+
+          echo "Verifying R CMD check status..."
+          echo "  - R_CMD_check job result: ${R_CMD_CHECK_RESULT}"
+          echo "  - '${{ env.LABEL_SUCCESS }}' label found on PR: ${PASSED_LABEL_EXISTS}"
+
+          if [[ "${R_CMD_CHECK_RESULT}" == 'success' ]]; then
+            echo "=> Success: R_CMD_check job passed."
+            exit 0
+          elif [[ "${PASSED_LABEL_EXISTS}" == 'true' ]]; then
+            echo "=> Success: Although R_CMD_check job result was '${R_CMD_CHECK_RESULT}', the '${{ env.LABEL_SUCCESS }}' label already exists on the PR."
+            exit 0
+          else
+            echo "=> Failure: R_CMD_check job result was '${R_CMD_CHECK_RESULT}' and the '${{ env.LABEL_SUCCESS }}' label was not found."
+            exit 1
+          fi
 
   test-coverage:
   # Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
