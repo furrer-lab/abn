@@ -60,6 +60,7 @@ bibentry(bibtype = "Article",
   year         = "2020",
   journal      = "Frontiers in Veterinary Science",
   header       = "To cite an example of a typical ABN analysis use:",
+  url = "https://doi.org/10.3389/fvets.2020.00073",
   textVersion  =
   paste("Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland. Frontiers in Veterinary Science, 7, 73")
 )
