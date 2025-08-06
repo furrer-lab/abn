@@ -192,6 +192,29 @@ jobs:
     steps:
       - name: Assert that either checks passed on the label is present
         run: |
-          if [[ ${{ needs.run_memory_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
-            echo 'memory checks status ok';
-          else exit 1; fi
+          # First, check if the workflow was triggered by the correct label.
+          # If not, the relevant jobs were likely skipped, and we should not fail the workflow.
+          if [[ "${{ github.event.label.name }}" != "${{ env.LABEL_CHECK }}" ]]; then
+            echo "Workflow not triggered by '${{ env.LABEL_CHECK }}' label (actual label: '${{ github.event.label.name }}')."
+            echo "Skipping status assertion and exiting gracefully."
+            exit 0
+          fi
+
+          # If triggered by the correct label, proceed with the status check.
+          run_memory_check_RESULT="${{ needs.run_memory_check.result }}"
+          PASSED_LABEL_EXISTS="${{ needs.record_passed_label.outputs.passed }}"
+
+          echo "Verifying R CMD check status..."
+          echo "  - run_memory_check job result: ${run_memory_check_RESULT}"
+          echo "  - '${{ env.LABEL_SUCCESS }}' label found on PR: ${PASSED_LABEL_EXISTS}"
+
+          if [[ "${run_memory_check_RESULT}" == 'success' ]]; then
+            echo "=> Success: run_memory_check job passed."
+            exit 0
+          elif [[ "${PASSED_LABEL_EXISTS}" == 'true' ]]; then
+            echo "=> Success: Although run_memory_check job result was '${run_memory_check_RESULT}', the '${{ env.LABEL_SUCCESS }}' label already exists on the PR."
+            exit 0
+          else
+            echo "=> Failure: run_memory_check job result was '${run_memory_check_RESULT}' and the '${{ env.LABEL_SUCCESS }}' label was not found."
+            exit 1
+          fi
