@@ -190,7 +190,7 @@ jobs:
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
     steps:
-      - name: Assert that either checks passed on the label is present
+      - name: Assert that either checks passed or the label is present
         run: |
           if [[ ${{ needs.R_CMD_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
             echo 'R CMD check status ok';
