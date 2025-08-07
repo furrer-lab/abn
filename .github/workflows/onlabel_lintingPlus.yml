@@ -51,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # NOTE: would be nicer to not re-define them here, however env is not 
+        # NOTE: would be nicer to not re-define them here, however env is not
         #       evaluated > would need to go thour the output of a previous job
         label:
           - 'linting::check'
@@ -231,8 +231,31 @@ jobs:
     steps:
       - name: Assert that either checks passed on the label is present
         run: |
-          if [[ ${{ needs.URL_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
-            echo 'URL status ok';
-          else exit 1; fi
+          # First, check if the workflow was triggered by the correct label.
+          # If not, the relevant jobs were likely skipped, and we should not fail the workflow.
+          if [[ "${{ github.event.label.name }}" != "${{ env.LABEL_CHECK }}" ]]; then
+            echo "Workflow not triggered by '${{ env.LABEL_CHECK }}' label (actual label: '${{ github.event.label.name }}')."
+            echo "Skipping status assertion and exiting gracefully."
+            exit 0
+          fi
+
+          # If triggered by the correct label, proceed with the status check.
+          URL_check_RESULT="${{ needs.URL_check.result }}"
+          PASSED_LABEL_EXISTS="${{ needs.record_passed_label.outputs.passed }}"
+
+          echo "Verifying R CMD check status..."
+          echo "  - URL_check job result: ${URL_check_RESULT}"
+          echo "  - '${{ env.LABEL_SUCCESS }}' label found on PR: ${PASSED_LABEL_EXISTS}"
+
+          if [[ "${URL_check_RESULT}" == 'success' ]]; then
+            echo "=> Success: URL_check job passed."
+            exit 0
+          elif [[ "${PASSED_LABEL_EXISTS}" == 'true' ]]; then
+            echo "=> Success: Although URL_check job result was '${URL_check_RESULT}', the '${{ env.LABEL_SUCCESS }}' label already exists on the PR."
+            exit 0
+          else
+            echo "=> Failure: URL_check job result was '${URL_check_RESULT}' and the '${{ env.LABEL_SUCCESS }}' label was not found."
+            exit 1
+          fi
 
   # NOTE: Currently for the linting there is not check that passes if the label linting::passed is present
