@@ -407,7 +407,10 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
         ###
         mycache.mle <- buildScoreCache(data.df = mydf,data.dists = mydists, method = "mle", max.parents = 1, dag.retained = mydag)
         mydag.mp <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
-        myfit <- fitAbn(object = mydag.mp, method = "mle", centre = FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          myfit <- fitAbn(object = mydag.mp, method = "mle", centre = FALSE)
+        })
         # with original data
         m1 <- myfit
         m2 <- glm(a ~ -1+ b, data = mydf, family="poisson")
@@ -449,8 +452,11 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
                                         dag.banned = matrix(c(1,0,1,
                                                               0,0,0,
                                                               1,0,1), 3, 3, byrow = T, dimnames = list(names(mydists3), names(mydists3))))
-        mydag.mp3 <- mostProbable(score.cache = mycache.mle3, verbose = FALSE)
-        myfit3 <- fitAbn(object = mydag.mp3, method = "mle", centre = FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          mydag.mp3 <- mostProbable(score.cache = mycache.mle3, verbose = FALSE)
+          myfit3 <- fitAbn(object = mydag.mp3, method = "mle", centre = FALSE)
+        })
         # with original data
         m1 <- myfit3
         m2 <- summary(nnet::multinom(b~a+c, data =mydf3, trace = FALSE))
@@ -471,8 +477,11 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
                                         dag.banned = matrix(c(1,0,1,
                                                               0,0,0,
                                                               1,0,1), 3, 3, byrow = T, dimnames = list(names(mydists3), names(mydists3))))
-        mydag.mp4 <- mostProbable(score.cache = mycache.mle4, verbose = FALSE)
-        m1 <- fitAbn(object = mydag.mp4, method = "mle", centre=FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          mydag.mp4 <- mostProbable(score.cache = mycache.mle4, verbose = FALSE)
+          m1 <- fitAbn(object = mydag.mp4, method = "mle", centre=FALSE)
+        })
         m2 <- summary(nnet::multinom(b~a+c, data =out.sim3, trace = FALSE))
       },
       file = "/dev/null")
@@ -706,3 +715,62 @@ test_that("fitAbn's regressionLoop() works w/ group.var.", {
     })
   })
 })
+
+test_that("regressionLoop() prints local model when verbose.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      capture.output({
+        # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
+        load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+        verbose <- TRUE
+
+        # with group.var
+        suppressWarnings({
+          expect_message({
+            res <- regressionLoop(
+              i = 3,
+              dag = dag,
+              data.df = data.df,
+              data.df.multi = data.df.multi,
+              data.dists = data.dists,
+              group.var = group.var,
+              grouped.vars = grouped.vars,
+              group.ids = group.ids,
+              control = control,
+              nvars = nvars,
+              nobs = nobs,
+              dag.multi = dag.multi,
+              verbose = verbose
+            )
+          },
+          regex = "using glmer with model")
+        })
+
+        # without group.var
+        suppressWarnings({
+          expect_message({
+            res <- regressionLoop(
+              i = 3,
+              dag = dag,
+              data.df = data.df,
+              data.df.multi = data.df.multi,
+              data.dists = data.dists,
+              group.var = NULL, # no group.var
+              control = control,
+              nvars = nvars,
+              nobs = nobs,
+              dag.multi = dag.multi,
+              verbose = verbose
+            )
+          },
+          regex = "regressing GroupSize on Outdoor")
+        })
+      },
+      file = "/dev/null")
+    })
+  } else {
+    skip("fitAbn.mle() is tested mainly on Unix-like systems")
+  }
+})
+
