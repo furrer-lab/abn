@@ -706,3 +706,62 @@ test_that("fitAbn's regressionLoop() works w/ group.var.", {
     })
   })
 })
+
+test_that("regressionLoop() prints local model when verbose.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      capture.output({
+        # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
+        load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+        verbose <- TRUE
+
+        # with group.var
+        expect_warning({
+          expect_message({
+            res <- regressionLoop(
+              i = 3,
+              dag = dag,
+              data.df = data.df,
+              data.df.multi = data.df.multi,
+              data.dists = data.dists,
+              group.var = group.var,
+              grouped.vars = grouped.vars,
+              group.ids = group.ids,
+              control = control,
+              nvars = nvars,
+              nobs = nobs,
+              dag.multi = dag.multi,
+              verbose = verbose
+            )
+          },
+          regex = "using glmer with model")
+        })
+
+        # without group.var
+        expect_warning({
+          expect_message({
+            res <- regressionLoop(
+              i = 3,
+              dag = dag,
+              data.df = data.df,
+              data.df.multi = data.df.multi,
+              data.dists = data.dists,
+              group.var = NULL, # no group.var
+              control = control,
+              nvars = nvars,
+              nobs = nobs,
+              dag.multi = dag.multi,
+              verbose = verbose
+            )
+          },
+          regex = "regressing GroupSize on Outdoor")
+        })
+      },
+      file = "/dev/null")
+    })
+  } else {
+    skip("fitAbn.mle() is tested mainly on Unix-like systems")
+  }
+})
+
