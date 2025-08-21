@@ -367,3 +367,49 @@ test_that("forLoopContent() works as expected.", {
     })
   })
 })
+
+test_that("forLoopContent() prints local model when verbose.", {
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
+      load(file = "testdata/forLoopContent_data.Rdata")
+
+      verbose <- TRUE
+      # with group.var
+      expect_message(
+        forLoopContent(row.num = 1,
+                       mycache = mycache,
+                       data.dists = data.dists,
+                       data.df.multi = data.df.multi,
+                       adj.vars = adj.vars,
+                       data.df = data.df,
+                       data.df.lvl = data.df.lvl,
+                       group.var = group.var,
+                       group.ids = group.ids,
+                       control = control,
+                       n = nvars,
+                       verbose = verbose),
+        regexp = "using glmer with model"
+      )
+
+      # without group.var
+      expect_message(
+        forLoopContent(row.num = 2, # row.num = 1 has no parents
+                       mycache = mycache,
+                       data.dists = data.dists,
+                       data.df.multi = data.df.multi,
+                       adj.vars = adj.vars,
+                       data.df = data.df,
+                       data.df.lvl = data.df.lvl,
+                       group.var = NULL,
+                       control = control,
+                       n = nvars,
+                       verbose = verbose),
+        regexp = "regressing Outdoor on Sex"
+      )
+    },
+    file = "/dev/null")
+  } else {
+    skip("`forLoopContent()` is tested mainly on Unix-like systems.")
+  }
+})
