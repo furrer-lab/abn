@@ -57,6 +57,7 @@ forLoopContent <-
     # Main part: Depending on child's distribution, call the appropriate modelling function
     switch (as.character(child.dist),
             gaussian = {
+              if (verbose) {message(paste("using lmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::lmer(model, data = data.df.grouping)
                 }, error=function(e)NULL)
@@ -77,6 +78,7 @@ forLoopContent <-
                 # if fit is still NULL, try fixed effect only
             },
             binomial = {
+                if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
                 }, error=function(e)NULL)
@@ -98,6 +100,7 @@ forLoopContent <-
                 # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             poisson = {
+                if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
                 }, error=function(e)NULL)
