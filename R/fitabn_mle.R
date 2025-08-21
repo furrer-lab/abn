@@ -260,6 +260,9 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
 
   if (!is.null(group.var)) {
     # we have grouping (mixed-effects model) GLMM
+    if (verbose) {
+      message("we have grouping (mixed-effects model) glmm")
+    }
 
     ###
     # Build arguments for GLMM
@@ -280,11 +283,10 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       stop("Cannot build model formula. Unknown predictor names of parent nodes in 'parents.name'.")
     }
 
-    if(verbose) message(paste("\n", deparse1(model), "\n")) else NA
-
     # Main part GLMM: Depending on child's distribution, call the appropriate modelling function
     switch (as.character(child.dist),
             gaussian = {
+              if (verbose) message(paste("using lmer with model:", deparse1(model))) else NA
                 tryCatch({
                   fit <- lme4::lmer(model, data = data.df.grouping)
                 }, error=function(e)NULL)
@@ -331,6 +333,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                 }
             },
             binomial = {
+              if (verbose) message(paste("using glmer with model:", deparse1(model))) else NA
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
                 }, error=function(e)NULL)
@@ -379,6 +382,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                 }
             },
             poisson = {
+              if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
                 }, error=function(e)NULL)
@@ -502,6 +506,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     ###
   } else if (is.null(group.var)) {
     # we have no grouping (do what was always done).
+    if (verbose) message("we have no grouping (no mixed-effects model)")
 
     # Separate outcome and predictor variables
     Y <- data.matrix(data.df[,i])
@@ -512,6 +517,14 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     }else{
       # predictor is not multinomial, keep predictors as is
       X <- data.matrix(cbind(rep(1,length(data.df[,1])),data.df[,as.logical(dag[i,])]))
+    }
+
+    if (verbose) {
+      # current node's name (outcome variable)
+      child.name <- names(data.df)[i]
+      # names of parent nodes (predictor variables)
+      parents.names <- names(data.df)[as.logical(dag[i,])]
+      message(paste("regressing", child.name, "on", paste(parents.names, collapse = ", ")))
     }
 
     num.na <- 0
