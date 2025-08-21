@@ -215,6 +215,9 @@ forLoopContent <-
     ###
     # collect values to return
     if(!is.null(fit)){
+      if (verbose) {
+        message("Sccessfully fitted local model.")
+      }
       fit_loglik <- logLik(fit)
       fit_aic <- AIC(fit)
       fit_bic <- BIC(fit)
@@ -223,6 +226,9 @@ forLoopContent <-
 
       c(fit_loglik, fit_aic, fit_bic, fit_mdl)
     } else if(is.null(fit)){
+      if (verbose) {
+        message("Failed to fit local model. Returning very low scores.")
+      }
       # no convergence, singularity, rank-deficiency, return very low scores
       c(rep(-Inf, 4))
     } else {
