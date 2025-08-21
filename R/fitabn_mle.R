@@ -504,6 +504,20 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     ###
     # End of GLMM
     ###
+    if (is.null(fit)) {
+      if (verbose) message("Failed to fit local model. Returning empty list. You may still be able to use the results, but proceed with extreme caution.")
+      # if fit is NULL, return empty list
+      fit <- list()
+      fit$coefficients <- NULL
+      fit$loglik <- NULL
+      fit$aic <- NULL
+      fit$bic <- NULL
+      fit$mdl <- NULL
+      fit$sse <- NULL
+      fit$varcov <- NULL
+    } else {
+      if (verbose) message("Successfully fitted local model.")
+    }
   } else if (is.null(group.var)) {
     # we have no grouping (do what was always done).
     if (verbose) message("we have no grouping (no mixed-effects model)")
