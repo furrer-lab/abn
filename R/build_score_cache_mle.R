@@ -311,10 +311,25 @@ forLoopContent <-
                fit$bic <- 2 * tmp$value + edf * log(dim(data.df)[1])
              })
     }
-    c(fit$loglik,
-      fit$aic,
-      fit$bic,
-      fit$bic + (1 + sum(mycache[["node.defn.multi"]][row.num, ]) - num.na) * log(n))
+
+    # Prepare return values
+    if (!is.null(fit)) {
+      if (verbose) {
+        message("Sccessfully fitted local model.")
+      }
+      c(fit$loglik,
+        fit$aic,
+        fit$bic,
+        fit$bic + (1 + sum(mycache[["node.defn.multi"]][row.num, ]) - num.na) * log(n))
+    } else if (is.null(fit)) {
+      if (verbose) {
+        message("Failed to fit local model. Returning very low scores.")
+      }
+      # no convergence, singularity, rank-deficiency, return very low scores
+      c(rep(-Inf, 4))
+    } else {
+      stop("Unknown state of fit. I should never end up here.")
+    }
   } else {
     stop("Invalid `group.var`.")
   }

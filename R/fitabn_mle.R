@@ -579,6 +579,22 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                USED_NNET <- TRUE
              }
       )}
+
+    # Prepare return values
+    if (is.null(fit) && is.na(sum(fit[[1]]))) {
+      if (verbose) message("Failed to fit local model. Returning empty list. You may still be able to use the results, but proceed with extreme caution.")
+      # if fit is NULL or NA, return empty list
+      fit <- list()
+      fit$coefficients <- NULL
+      fit$loglik <- NULL
+      fit$aic <- NULL
+      fit$bic <- NULL
+      fit$mdl <- NULL
+      fit$sse <- NULL
+      fit$varcov <- NULL
+    } else {
+      if (verbose) message("Successfully fitted local model.")
+    }
   } else {
     stop("Invalid `group.var`.")
   } # EOF regression loop main part
