@@ -230,9 +230,17 @@ forLoopContent <-
     }
   } else if (is.null(group.var)) {
     # we have no grouping (do what was always done).
-    child <- mycache[["children"]][row.num]
+    if (verbose) message("we have no grouping (no mixed-effects model)")
+    child <- mycache[["children"]][row.num] # child as integer
     distribution <- data.dists[child]
     Y <- data.matrix(data.df[, child])
+    if (verbose) {
+      # current node's name
+      child.name <- colnames(mycache[["node.defn"]])[child]
+      # current node's parents names
+      parents.names <- names(which(mycache[["node.defn"]][row.num,] != 0))
+      message(paste("regressing", child.name, "on", paste(parents.names, collapse = ", ")))
+    }
 
     if (is.null(adj.vars)) {
       if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])]) {
