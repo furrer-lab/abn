@@ -449,8 +449,11 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
                                         dag.banned = matrix(c(1,0,1,
                                                               0,0,0,
                                                               1,0,1), 3, 3, byrow = T, dimnames = list(names(mydists3), names(mydists3))))
-        mydag.mp3 <- mostProbable(score.cache = mycache.mle3, verbose = FALSE)
-        myfit3 <- fitAbn(object = mydag.mp3, method = "mle", centre = FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          mydag.mp3 <- mostProbable(score.cache = mycache.mle3, verbose = FALSE)
+          myfit3 <- fitAbn(object = mydag.mp3, method = "mle", centre = FALSE)
+        })
         # with original data
         m1 <- myfit3
         m2 <- summary(nnet::multinom(b~a+c, data =mydf3, trace = FALSE))
@@ -471,8 +474,11 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
                                         dag.banned = matrix(c(1,0,1,
                                                               0,0,0,
                                                               1,0,1), 3, 3, byrow = T, dimnames = list(names(mydists3), names(mydists3))))
-        mydag.mp4 <- mostProbable(score.cache = mycache.mle4, verbose = FALSE)
-        m1 <- fitAbn(object = mydag.mp4, method = "mle", centre=FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          mydag.mp4 <- mostProbable(score.cache = mycache.mle4, verbose = FALSE)
+          m1 <- fitAbn(object = mydag.mp4, method = "mle", centre=FALSE)
+        })
         m2 <- summary(nnet::multinom(b~a+c, data =out.sim3, trace = FALSE))
       },
       file = "/dev/null")
