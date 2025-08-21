@@ -75,7 +75,7 @@ forLoopContent <-
                   }, error=function(e)NULL)
                 }
 
-                # if fit is still NULL, try fixed effect only
+              # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             binomial = {
                 if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
@@ -223,7 +223,7 @@ forLoopContent <-
 
       c(fit_loglik, fit_aic, fit_bic, fit_mdl)
     } else if(is.null(fit)){
-      # no convergence, singularity, rank-deficiency, return very low score
+      # no convergence, singularity, rank-deficiency, return very low scores
       c(rep(-Inf, 4))
     } else {
       stop("Unknown state of fit. I should never end up here.")
