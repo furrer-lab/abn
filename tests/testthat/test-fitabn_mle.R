@@ -407,7 +407,10 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
         ###
         mycache.mle <- buildScoreCache(data.df = mydf,data.dists = mydists, method = "mle", max.parents = 1, dag.retained = mydag)
         mydag.mp <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
-        myfit <- fitAbn(object = mydag.mp, method = "mle", centre = FALSE)
+        suppressWarnings({
+          # This is needed to avoid a warning about step halving not being able to find a better fit.
+          myfit <- fitAbn(object = mydag.mp, method = "mle", centre = FALSE)
+        })
         # with original data
         m1 <- myfit
         m2 <- glm(a ~ -1+ b, data = mydf, family="poisson")
