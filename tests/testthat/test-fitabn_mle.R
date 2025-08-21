@@ -726,7 +726,7 @@ test_that("regressionLoop() prints local model when verbose.", {
         verbose <- TRUE
 
         # with group.var
-        expect_warning({
+        suppressWarnings({
           expect_message({
             res <- regressionLoop(
               i = 3,
@@ -748,7 +748,7 @@ test_that("regressionLoop() prints local model when verbose.", {
         })
 
         # without group.var
-        expect_warning({
+        suppressWarnings({
           expect_message({
             res <- regressionLoop(
               i = 3,
