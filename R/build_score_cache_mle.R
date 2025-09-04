@@ -230,7 +230,7 @@ forLoopContent <-
     # collect values to return
     if(!is.null(fit)){
       if (verbose) {
-        message("Sccessfully fitted local model.")
+        message("Successfully fitted local model.")
       }
       fit_loglik <- logLik(fit)
       fit_aic <- AIC(fit)
@@ -335,7 +335,7 @@ forLoopContent <-
     # Prepare return values
     if (!is.null(fit)) {
       if (verbose) {
-        message("Sccessfully fitted local model.")
+        message("Successfully fitted local model.")
       }
       c(fit$loglik,
         fit$aic,
