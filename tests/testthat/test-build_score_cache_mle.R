@@ -416,3 +416,36 @@ test_that("forLoopContent() prints local model when verbose.", {
     skip("`forLoopContent()` is tested mainly on Unix-like systems.")
   }
 })
+
+test_that("Poisson nodes step into calling glmmTMB.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      capture.output({
+        # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
+        load(file = "testdata/forLoopContent_data.Rdata")
+
+        verbose <- TRUE
+        # with group.var
+        expect_message(
+          forLoopContent(row.num = 9,
+                         mycache = mycache,
+                         data.dists = data.dists,
+                         data.df.multi = data.df.multi,
+                         adj.vars = adj.vars,
+                         data.df = data.df,
+                         data.df.lvl = data.df.lvl,
+                         group.var = group.var,
+                         group.ids = group.ids,
+                         control = build.control(method = "mle", only_glmmTMB_poisson=TRUE),
+                         n = nvars,
+                         verbose = verbose),
+          regexp = "trying glmmTMB with model"
+        )
+      },
+      file = "/dev/null")
+    })
+  } else {
+    skip("`forLoopContent()` is tested mainly on Unix-like systems.")
+  }
+})

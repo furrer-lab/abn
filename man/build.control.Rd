@@ -40,6 +40,7 @@ build.control(
   trace.mblogit = FALSE,
   catcov.mblogit = "free",
   epsilon = 1e-06,
+  only_glmmTMB_poisson = FALSE,
   seed = 9062019L
 )
 }
@@ -114,6 +115,8 @@ build.control(
 
 \item{epsilon}{Defaults to 1e-8. Positive convergence tolerance \eqn{\epsilon} that is directly passed to the \code{control} argument of \code{mclogit::mblogit} as \code{mclogit.control}. Only for \code{method='mle', group.var=...}.}
 
+\item{only_glmmTMB_poisson}{logical, if TRUE only use \code{glmmTMB} to fit Poisson nodes with random effects. This is useful if \code{glmer} fails due to convergence issues. Default is FALSE.}
+
 \item{seed}{a non-negative integer which sets the seed in \code{set.seed(seed)}.}
 }
 \value{
@@ -143,6 +146,7 @@ ctrlmle <- abn::build.control(method = "mle",
                         trace.mblogit = FALSE,
                         catcov.mblogit = "free",
                         epsilon = 1e-6,
+                        only_glmmTMB_poisson=FALSE,
                         seed = 9062019L)
 ctrlbayes <- abn::build.control(method = "bayes",
                            max.mode.error = 10,

@@ -42,6 +42,7 @@ Depends:
 Imports: 
     doParallel,
     foreach,
+    glmmTMB,
     graph,
     lme4,
     mclogit,
