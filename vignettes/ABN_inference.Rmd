@@ -24,7 +24,7 @@ In Bayesian Networks (BN), inference refers to the process of computing the post
 This is achieved using exact methods such as variable elimination, belief propagation, and the junction tree algorithm, or approximate techniques such as Monte Carlo sampling and likelihood weighting [@Darwiche_2009].
 These methods rely on the assumption that conditional dependencies are explicitly defined and that the joint probability distribution can be factorized accordingly [@Pearl_1988].
 
-However, in Additive Bayesian Networks (ABN), inference is more challenging because ABNs are designed primarily for structure learning rather than direct probabilistic reasoning. Unlike standard BNs, ABNs model conditional dependencies through Generalized Linear Models (GLMs), making exact inference impractical. The likelihood functions in ABNs are often non-standard and computationally expensive to integrate. Additionally, the presence of mixed data types (Gaussian, Poisson, Binomial and Multinomial) further complicates inference.
+However, in Additive Bayesian Networks (ABN), inference is more challenging because ABNs are designed primarily for structure learning rather than direct probabilistic reasoning. Unlike standard BNs, ABNs model conditional dependencies through Generalized Linear Models (GLMs), making exact inference impractical. The likelihood functions in ABNs are often non-standard and computationally expensive to integrate. Additionally, the presence of mixed data types (Gaussian, Poisson, binomial and multinomial) further complicates inference.
 
 To address these challenges, we propose a two-step inference procedure, as described in Figure  \@ref(fig:workflow). First the node to infer is estimated using only its parents, and then this estimate is refined by incorporating information from both its children and its children's parents. The procedure involves topologically ordering the graph nodes, iteratively estimating each node's distribution based on its parents, and then updating the distribution in reverse order by incorporating information from its children and children's parents. 
 Our approach contrasts with traditional BN methods, which typically rely on exact probabilistic reasoning or approximate sampling techniques. Instead, our procedure offers an approximation tailored to the specificities of ABNs, including the use of GLMs and mixed data types. 
@@ -113,12 +113,20 @@ where $\hat{\varepsilon}_i$ represents the residuals, calculated as $\hat{\varep
 - if $X$ is Poisson: 
 $\mathbb{E}(X|\mathscr{A}) = \exp \left( \beta_{0} + \beta_{1} A1 +  \beta_{2} A2 \right).$ 
 
-- if $X$ is Binomial:
+- if $X$ is binomial:
 
     - the probability of $X=1$ given $\mathscr{A}$ is:
 $\mathbb{P}(X=1|\mathscr{A}) = \frac{1}{1+\exp \left( - (\beta_{0} + \beta_{1} A1 +  \beta_{2} A2)\right)}$.
 
     - the probability of $X=0$ given $\mathscr{A}$ is:  $\mathbb{P}(X=0|\mathscr{A})=1-\mathbb{P}(X=1|\mathscr{A}).$ 
+
+- if $X$ is multinomial:
+
+    - the probability of $X=\ell$ (for a given category $\ell$ of $X$) given $\mathscr{A}$ is:
+$\mathbb{P}(X=\ell|\mathscr{A}) = \frac{\exp \left( \beta_{0,\ell} + \beta_{1,\ell} A1 + \beta_{2,\ell} A2 \right)}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}$.
+
+    - the probability of $X=K$ (the last reference category) given $\mathscr{A}$ is:  $\mathbb{P}(X=K|\mathscr{A})=\frac{1}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}.$ 
+
 
 To compute these quantities, substitute the known values of the parents $\mathscr{A}$ directly into the formula to estimate the conditional distribution.
 
@@ -132,7 +140,7 @@ At the end of Step 1, we have a first estimate of the distribution of node $X$ g
 Let's first consider the case where $X$ has only one child $B$, which can be one of $B1$, $B2$, $B3$ or $B4$. 
 Depending on the case: 
 
-- If $X$ is Binomial, Bayes' theorem gives us: 
+- If $X$ is binomial or multinomial, Bayes' theorem gives us: 
 $$ \mathbb{P}(X|B) = \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\mathbb{P}(B)}= \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\sum_X \mathbb{P}(B|X) \mathbb{P}(X)}.$$ 
 
 - If $X$ is Poisson, the same applies for $\mathbb{E}(X|B)$: 
@@ -150,11 +158,13 @@ $$\mathbb{E}(X^2|B) =  \frac{\int X^2 \mathbb{P}(B|X) \mathbb{P}(X) dX}{\int \ma
 
 In the formula above, we use the estimated distribution of $X$ from Step 1 as a prior:
 
-- if $X$ is Binomial, we have $X \sim B(p_X)$, where $p_X$ is estimated in Step 1. 
+- if $X$ is binomial, we have $X \sim B(p_X)$, where $p_X$ is estimated in Step 1. 
 
 - if $X$ is Gaussian, we have $X \sim N(\mu_X,\sigma_X^2)$, where $\mu_X$ and $\sigma_X^2$ are estimated in Step 1. 
 
 - if $X$ is Poisson, we have $X \sim P(\lambda_X)$, where $\lambda_X$ is estimated in Step 1. 
+
+- if $X$ is multinomial, we have $X \sim Cat(p_{X,1},...,p_{X,K})$, where $p_{X,1},...,p_{X,K}$ are estimated in Step 1.
 
 The conditional probability $\mathbb{P}(B|X)$ is derived from the likelihood function $L(B|X)$: 
 
@@ -212,7 +222,9 @@ For nodes with no parents (i.e. root nodes in the graph), the distribution is di
   
   - observed mean and variance for Gaussian nodes,
   
-  - observed frequencies for Binomial nodes.
+  - observed frequencies for binomial nodes,
+  
+  - observed frequencies for multinomial nodes.
 
 For the remaining nodes, we use the estimated distributions of their parents as values in the formula, unless those parent nodes are evidence (i.e. observed). Specifically:
 
@@ -220,7 +232,9 @@ For the remaining nodes, we use the estimated distributions of their parents as 
 
   - if a parent $A$ is Poisson, we use its estimated expectation as its value,
 
-  - if a parent $A$ is Binomial, we marginalize over its possible values.
+  - if a parent $A$ is binomial, we marginalize over its possible values.
+  
+  - if a parent $A$ is multinomial, we marginalize over its possible values.
 
 3. Following the reverse topological order (from leaves to roots), we iteratively update the distribution of each node based on its children and their parents (as described in Step 2) until reaching the node of interest.
 
