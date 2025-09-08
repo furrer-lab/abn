@@ -290,28 +290,77 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     switch (as.character(child.dist),
             gaussian = {
               if (verbose) message(paste("using lmer with model:", deparse1(model))) else NA
-                tryCatch({
-                  fit <- lme4::lmer(model, data = data.df.grouping)
-                }, error=function(e)NULL)
+              tryCatch({
+                fit <- lme4::lmer(model, data = data.df.grouping)
+              }, error=function(e)NULL)
 
-                if (is.null(fit)){
-                  # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::lmer(model, data = data.df.grouping,
-                                              control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+              if (is.null(fit)){
+                # relax tolerances for change in parameter values and objective function.
+                tryCatch({fit <- lme4::lmer(model, data = data.df.grouping,
+                                            control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+                                                                        check.scaleX = control[["check.scaleX"]],
+                                                                        check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
+                                                                        check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
+                                                                        check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
+                                                                        optCtrl = list(xtol_abs = control[["xtol_abs"]],
+                                                                                       ftol = control[["ftol_abs"]])))
+                }, error=function(e)NULL)
+              }
+
+              if (is.null(fit)) {
+                # if fit is still NULL, try other (all available) optimizer:
+                # fit same as above (not very elegant)
+                fit <- lme4::lmer(model, data = data.df.grouping,
+                                  control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+                                                              check.scaleX = control[["check.scaleX"]],
+                                                              check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
+                                                              check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
+                                                              check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
+                                                              optCtrl = list(xtol_abs = control[["xtol_abs"]],
+                                                                             ftol = control[["ftol_abs"]])))
+                # refit with all available optimizers
+                fit_all <- lme4::allFit(fit)
+                # keep only results from optimizers that were reported as OK
+                fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
+                # extract messages from each optimizer
+                convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
+                # Get only results from optimizer without any message (meaning they did converge etc.)
+                converged_idx <- sapply(convergence_results, is.null)
+                # Keep only results from first optimizer (arbitrarily) that did converge without any message
+                if(sum(converged_idx) == 0){
+                  if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
+                  fit <- NULL
+                } else {
+                  fit <- fit_all[converged_idx][[1]]
+                }
+              }
+            },
+            binomial = {
+              if (verbose) message(paste("using glmer with model:", deparse1(model))) else NA
+              tryCatch({
+                fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
+              }, error=function(e)NULL)
+
+              if (is.null(fit)){
+                # relax tolerances for change in parameter values and objective function.
+                tryCatch({fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
+                                             control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
+                                                                          check.rankX = control[["check.rankX"]],
                                                                           check.scaleX = control[["check.scaleX"]],
                                                                           check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
                                                                           check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                           check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                           optCtrl = list(xtol_abs = control[["xtol_abs"]],
                                                                                          ftol = control[["ftol_abs"]])))
-                  }, error=function(e)NULL)
-                }
+                }, error=function(e)NULL)
+              }
 
-                if (is.null(fit)) {
-                  # if fit is still NULL, try other (all available) optimizer:
-                  # fit same as above (not very elegant)
-                  fit <- lme4::lmer(model, data = data.df.grouping,
-                                    control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+              if (is.null(fit)) {
+                # if fit is still NULL, try other (all available) optimizer:
+                # fit same as above (not very elegant)
+                fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
+                                   control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
+                                                                check.rankX = control[["check.rankX"]],
                                                                 check.scaleX = control[["check.scaleX"]],
                                                                 check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
                                                                 check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
