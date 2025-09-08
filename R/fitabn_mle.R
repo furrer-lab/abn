@@ -664,7 +664,9 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
         }
         res[["sigma"]] <- NA
         res[["sigma_alpha"]] <- as.matrix(fit$VarCov[[group.var]]) # matrix size kxk for k = (number of factor levels of response)
-      } else {
+      }
+      ## not USED MBLOGIT
+      else {
         # not multinomial response
         if(control[["only_glmmTMB_poisson"]] == FALSE) {
         res[["mu"]] <- lme4::fixef(fit)[[1]] # fixed-effect intercept (beta_0)
@@ -681,11 +683,10 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
 
           res[["sigma_alpha"]] <- sdcor[1]  # random-effect intercept
           res[["sigma"]] <- sdcor[-1]       # random-effect residuals (if any)
-        }
-        else {
+        }     else {
           stop("Invalid 'only_glmmTMB_poisson' argument. Must be one of TRUE or FALSE.")
-          }
-
+        }
+      }
     } else if(is.null(fit)){
       # no convergence, return very low score
       stop("fit is NULL. I don't yet know how to handle this case.")
