@@ -232,6 +232,7 @@ fitAbn.mle <- function(dag = NULL,
 #' @param nobs number of observations in data.df.
 #' @param data.df.multi extended data.df for one-hot-encoded multinomial variables.
 #' @param dag.multi extended dag for one-hot-encoded multinomial variables.
+#' @param only_glmmTMB_poisson logical, if TRUE only use \code{glmmTMB} to fit Poisson nodes with random effects. This is useful if \code{glmer} fails due to convergence issues. Default is FALSE.
 #' @importFrom stats coefficients coef residuals df.residual vcov AIC BIC sd model.matrix as.formula lm glm logLik
 #' @importFrom methods is
 #' @return list
