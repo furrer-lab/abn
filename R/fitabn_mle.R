@@ -250,6 +250,8 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                            nobs = NULL,
                            dag.multi = NULL,
                            verbose = NULL){
+                           verbose = NULL,
+                           only_glmmTMB_poisson=FALSE){
 
   child.dist <- data.dists[[i]] # current nodes/response variable's distribution
   parent.dists <- data.dists[as.logical(dag[i,])] # distributions of parent nodes from current child node/response
