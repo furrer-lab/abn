@@ -249,7 +249,6 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                            nvars = NULL,
                            nobs = NULL,
                            dag.multi = NULL,
-                           verbose = NULL){
                            verbose = NULL,
                            only_glmmTMB_poisson=FALSE){
 
