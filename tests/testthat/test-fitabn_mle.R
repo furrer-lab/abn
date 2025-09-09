@@ -779,31 +779,33 @@ testthat::test_that("Poisson nodes step into calling glmmTMB for the fitabn func
   if(.Platform$OS.type == "unix") {
     suppressMessages({
       # Suppress messages that are not related to the test but are printed when verbose
-      capture.output({
-        # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
-        load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+      suppressWarnings({
+        capture.output({
+          load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
+          # load("testdata/fitAbn_regressionLoop_group_data.Rdata")
 
-        verbose <- TRUE
-        # with group.var
-        testthat::expect_message(
-          regressionLoop(i = 3,
-                         dag = dag,
-                         data.df = data.df,
-                         data.df.multi = data.df.multi,
-                         data.dists = data.dists,
-                         group.var = group.var,
-                         grouped.vars = grouped.vars,
-                         group.ids = group.ids,
-                         nvars = nvars,
-                         nobs = nobs,
-                         dag.multi = dag.multi,
-                         verbose = verbose,
-                         control = build.control(method = "mle", only_glmmTMB_poisson=TRUE)),
-          regexp = "trying glmmTMB with model"
-        )
-      },
+          verbose <- TRUE
+          # with group.var
+          testthat::expect_message(
+            regressionLoop(i = 3,
+                           dag = dag,
+                           data.df = data.df,
+                           data.df.multi = data.df.multi,
+                           data.dists = data.dists,
+                           group.var = group.var,
+                           grouped.vars = grouped.vars,
+                           group.ids = group.ids,
+                           nvars = nvars,
+                           nobs = nobs,
+                           dag.multi = dag.multi,
+                           verbose = verbose,
+                           control = build.control(method = "mle", only_glmmTMB_poisson=TRUE)),
+            regexp = "trying glmmTMB with model"
+          )
+        },
 
-      file = "/dev/null")
+        file = "/dev/null")
+      })
     })
   } else {
     testthat::skip("`forLoopContent()` is tested mainly on Unix-like systems.")
