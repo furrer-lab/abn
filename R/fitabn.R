@@ -26,6 +26,7 @@
 #'                        epsilon = 1e-6,
 #'                        ncores = 2,
 #'                        cluster.type = "PSOCK",
+#'                        only_glmmTMB_poisson = FALSE,
 #'                        seed = 9062019L)
 #' ctrlbayes <- abn::fit.control(method = "bayes",
 #'                          mean = 0,
@@ -102,6 +103,7 @@ fit.control <-
            trace.mblogit = FALSE,
            catcov.mblogit = "free",
            epsilon = 1e-6,
+           only_glmmTMB_poisson = FALSE,
            seed = 9062019L) {
     if (method == "bayes") {
       ctrl <-
@@ -155,6 +157,7 @@ fit.control <-
           trace.mblogit = trace.mblogit,
           catcov.mblogit = catcov.mblogit,
           epsilon = epsilon,
+          only_glmmTMB_poisson = only_glmmTMB_poisson,
           seed = seed
         )
     } else {
