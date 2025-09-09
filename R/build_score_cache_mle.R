@@ -100,7 +100,10 @@ forLoopContent <-
                 # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             poisson = {
-                if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
+              if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
+
+              fit <- NULL
+              if(control[["only_glmmTMB_poisson"]] == FALSE) {
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
                 }, error=function(e)NULL)
@@ -118,8 +121,19 @@ forLoopContent <-
                                                                                            ftol = control[["ftol_abs"]])))
                   }, error=function(e)NULL)
                 }
+              } else if(control[["only_glmmTMB_poisson"]] == TRUE) {
+                if (is.null(fit)){
+                  # try glmmTMB as alternative
+                  if (verbose) {message(paste("trying glmmTMB with model:", deparse1(model)))} else NA
+                  tryCatch({
+                    fit <- glmmTMB::glmmTMB(model, data = data.df.grouping, family = "poisson")
+                  }, error=function(e)NULL)
+                }
+              } else {
+                stop("Invalid 'only_glmmTMB_poisson' argument. Must be one of TRUE or FALSE.")
+              }
 
-                # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
+              # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             multinomial = {
               if (length(parents.names) == 0){
@@ -216,7 +230,7 @@ forLoopContent <-
     # collect values to return
     if(!is.null(fit)){
       if (verbose) {
-        message("Sccessfully fitted local model.")
+        message("Successfully fitted local model.")
       }
       fit_loglik <- logLik(fit)
       fit_aic <- AIC(fit)
@@ -321,7 +335,7 @@ forLoopContent <-
     # Prepare return values
     if (!is.null(fit)) {
       if (verbose) {
-        message("Sccessfully fitted local model.")
+        message("Successfully fitted local model.")
       }
       c(fit$loglik,
         fit$aic,

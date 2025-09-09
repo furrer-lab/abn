@@ -496,6 +496,10 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
 test_that("fitAbn's regressionLoop() works w/o group.var.", {
   # load("tests/testthat/testdata/fitAbn_regressionLoop_data.Rdata")
   load("testdata/fitAbn_regressionLoop_data.Rdata")
+
+  # Add new control option to force glmmTMB for Poisson nodes
+  control[["only_glmmTMB_poisson"]] <- FALSE
+
   verbose <- FALSE
 
   # Running on one child node (predictor)
@@ -608,6 +612,10 @@ test_that("fitAbn's regressionLoop() works w/o group.var.", {
 test_that("fitAbn's regressionLoop() works w/ group.var.", {
   # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
   load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+
+  # Add new control option to force glmmTMB for Poisson nodes
+  control[["only_glmmTMB_poisson"]] <- FALSE
+
   verbose <- FALSE
 
   # Running on one child node (predictor)
@@ -723,6 +731,10 @@ test_that("regressionLoop() prints local model when verbose.", {
       capture.output({
         # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
         load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+
+        # Add new control option to force glmmTMB for Poisson nodes
+        control[["only_glmmTMB_poisson"]] <- FALSE
+
         verbose <- TRUE
 
         # with group.var
@@ -774,3 +786,40 @@ test_that("regressionLoop() prints local model when verbose.", {
   }
 })
 
+
+testthat::test_that("Poisson nodes step into calling glmmTMB for the fitabn function.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      suppressWarnings({
+        capture.output({
+          # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
+          load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+
+          verbose <- TRUE
+          # with group.var
+          testthat::expect_message(
+            regressionLoop(i = 3,
+                           dag = dag,
+                           data.df = data.df,
+                           data.df.multi = data.df.multi,
+                           data.dists = data.dists,
+                           group.var = group.var,
+                           grouped.vars = grouped.vars,
+                           group.ids = group.ids,
+                           nvars = nvars,
+                           nobs = nobs,
+                           dag.multi = dag.multi,
+                           verbose = verbose,
+                           control = build.control(method = "mle", only_glmmTMB_poisson=TRUE)),
+            regexp = "trying glmmTMB with model"
+          )
+        },
+
+        file = "/dev/null")
+      })
+    })
+  } else {
+    testthat::skip("`forLoopContent()` is tested mainly on Unix-like systems.")
+  }
+})
