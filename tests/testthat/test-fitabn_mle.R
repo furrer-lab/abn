@@ -496,6 +496,10 @@ test_that("Test fitAbn.mle() with Multinomial nodes and Poissons", {
 test_that("fitAbn's regressionLoop() works w/o group.var.", {
   # load("tests/testthat/testdata/fitAbn_regressionLoop_data.Rdata")
   load("testdata/fitAbn_regressionLoop_data.Rdata")
+
+  # Add new control option to force glmmTMB for Poisson nodes
+  control[["only_glmmTMB_poisson"]] <- FALSE
+
   verbose <- FALSE
 
   # Running on one child node (predictor)
@@ -608,6 +612,10 @@ test_that("fitAbn's regressionLoop() works w/o group.var.", {
 test_that("fitAbn's regressionLoop() works w/ group.var.", {
   # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
   load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+
+  # Add new control option to force glmmTMB for Poisson nodes
+  control[["only_glmmTMB_poisson"]] <- FALSE
+
   verbose <- FALSE
 
   # Running on one child node (predictor)
@@ -723,6 +731,10 @@ test_that("regressionLoop() prints local model when verbose.", {
       capture.output({
         # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
         load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+
+        # Add new control option to force glmmTMB for Poisson nodes
+        control[["only_glmmTMB_poisson"]] <- FALSE
+
         verbose <- TRUE
 
         # with group.var
@@ -781,8 +793,8 @@ testthat::test_that("Poisson nodes step into calling glmmTMB for the fitabn func
       # Suppress messages that are not related to the test but are printed when verbose
       suppressWarnings({
         capture.output({
-          load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
-          # load("testdata/fitAbn_regressionLoop_group_data.Rdata")
+          # load("tests/testthat/testdata/fitAbn_regressionLoop_group_data.Rdata")
+          load("testdata/fitAbn_regressionLoop_group_data.Rdata")
 
           verbose <- TRUE
           # with group.var
