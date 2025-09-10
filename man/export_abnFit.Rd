@@ -6,7 +6,7 @@
 \usage{
 export_abnFit(
   object,
-  format = "list",
+  format = "json",
   include_network = TRUE,
   file = NULL,
   pretty = TRUE,
@@ -16,7 +16,7 @@ export_abnFit(
 \arguments{
 \item{object}{An object of class abnFit}
 
-\item{format}{Output format ("json")}
+\item{format}{The export format, currently only "json" is supported.}
 
 \item{include_network}{Whether to include network structure}
 
@@ -27,7 +27,7 @@ export_abnFit(
 \item{...}{Additional export options}
 }
 \value{
-JSON string or file path (invisibly)
+A JSON string or writes to file if 'file' is provided
 }
 \description{
 Export abnFit object to structured format
