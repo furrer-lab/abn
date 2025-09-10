@@ -83,4 +83,17 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
 }
 
   return(json_str)
+#' Export abnFit object fitted with Bayesian methods
+#' @inheritParams export_abnFit
+#' @details This function is a placeholder for exporting abnFit objects fitted using Bayesian methods.
+#' Currently, it raises an error indicating that export for Bayesian models is not implemented.
+#' @return This function does not return a value. It raises an error.
+#' @keywords internal
+export_abnFit_bayes <- function(object, format, include_network, ...) {
+  # Extract graph metadata
+
+  # Extract arc details
+
+  # Extract node details
+  stop("Export for Bayesian models is not implemented yet.")
 }
