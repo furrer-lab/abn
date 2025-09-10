@@ -25,6 +25,14 @@ test_that("plot.abnDag() works.", {
   }
 })
 
+test_that("as.data.frame.abnDag works.", {
+  mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
+
+  expect_equal({
+    as.data.frame(mydag)
+  }, data.frame(from = "a", to = "b", stringsAsFactors = FALSE))
+})
+
 test_that("print.abnCache() works.", {
   skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
