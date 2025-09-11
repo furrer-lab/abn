@@ -23,6 +23,7 @@ jobs:
     permissions:
       pull-requests: read
       repository-projects: read
+      contents: write
     outputs:
       published: ${{ steps.published.outputs.labeled }}
       event: ${{ github.event.number }}
