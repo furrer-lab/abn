@@ -62,6 +62,16 @@ jobs:
         run: |
            renv::deactivate()
         shell: Rscript {0}
+# Workaround to have glmmTMB available in the container
+      - name: Install system dependencies
+        run: |
+          apt-get update && apt-get install -y libglpk-dev
+        shell: bash
+      - name: Install R dependencies
+        run: |
+          install.packages(c("glmmTMB", "devtools"), dependencies = TRUE)
+        shell: Rscript {0}
+# End workaround
       - name: Change permissions of configure
         run: |
            chmod +x configure
