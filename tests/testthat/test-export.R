@@ -76,6 +76,7 @@ test_that("graph metadata is correctly exported for MLE", {
       expect_true("bic" %in% names(parsed$graph$scores))
       expect_true("mlik" %in% names(parsed$graph$scores))
       expect_true("mdl" %in% names(parsed$graph$scores))
+      expect_true("groupVar" %in% names(parsed$graph))
     })
   })
 })

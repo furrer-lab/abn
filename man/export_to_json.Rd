@@ -21,7 +21,7 @@ Helper function to convert export list to JSON
 \details{
 The export_list must be a named list with the following components:
 \itemize{
-\item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, group_var)
+\item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, groupVar)
 \item nodes: A named list where each element represents a node with its parameters and distribution. Each node should have:
 \itemize{
 \item label: Character string. The display name/label of the node.

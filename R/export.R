@@ -34,7 +34,7 @@ export_abnFit <- function(object, format = "json", include_network = TRUE, file 
 #' @inheritParams export_abnFit
 #' @details The export_list must be a named list with the following components:
 #' \itemize{
-#' \item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, group_var)
+#' \item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, groupVar)
 #' \item nodes: A named list where each element represents a node with its parameters and distribution. Each node should have:
 #'  \itemize{
 #'  \item label: Character string. The display name/label of the node.
@@ -66,8 +66,8 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   if (!all(c("label", "distribution", "parameterisation") %in% names(export_list$nodes[[1]]))) {
     stop("Each node in export_list$nodes must contain 'label', 'distribution', and 'parameterisation' components")
   }
-  if (!all(c("method", "n_nodes", "n_observations", "scores", "group_var") %in% names(export_list$graph))) {
-    stop("export_list$graph must contain 'method', 'n_nodes', 'n_observations', 'scores', and 'group_var' components")
+  if (!all(c("method", "n_nodes", "n_observations", "scores", "groupVar") %in% names(export_list$graph))) {
+    stop("export_list$graph must contain 'method', 'n_nodes', 'n_observations', 'scores', and 'groupVar' components")
   }
 
   # Convert to JSON
