@@ -24,8 +24,8 @@ create_test_abnfit_mle_groups <- function() {
   suppressMessages({
     suppressWarnings({
       # load data
-      load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1.rda")
-      # load(file = "testdata/n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1.rda") # no poisson because of fitting issues
+      # load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1.rda")
+      load(file = "testdata/n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1.rda") # no poisson because of fitting issues
       data <- n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1$data
       dists <- n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1$dists
       max.parents <- n_250_k_2_groups_Even_p_6_nodedists_Balanced_s_04_graph1$max.parents
