@@ -96,15 +96,14 @@ export_abnFit_mle <- function(object, format, include_network, ...) {
   arcs_details <- export_abnFit_mle_arcs(object)
 
   # Extract node details
-  if (!is.null(object$group_var)) {
+  if (!is.null(object$group.var)) {
     # With grouping
-    stop("Export for grouped MLE models is not implemented yet.")
     node_details <- export_abnFit_mle_grouped_nodes(object, format, include_network, ...)
-  } else if (is.null(object$group_var)) {
+  } else if (is.null(object$group.var)) {
     # Without grouping
     node_details <- export_abnFit_mle_nodes(object, format, include_network, ...)
   } else {
-    stop("Unexpected state for group_var in abnFit object.")
+    stop("Unexpected state for group.var in abnFit object.")
   }
 
   # Create export list
@@ -365,7 +364,7 @@ export_abnFit_mle_graph <- function(object, ...) {
         mlik = object$mlik,
         mdl = object$mdl
       ),
-      group_var = if(!is.null(object$group_var)) object$group_var else NULL
+      group_var = if(!is.null(object$group.var)) object$group.var else NULL
     )
   )
 }
