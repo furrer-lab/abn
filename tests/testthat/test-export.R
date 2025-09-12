@@ -157,3 +157,22 @@ test_that("arcs section has correct structure", {
     })
   })
 })
+
+test_that("export_abnFit works for MLE method with group.var", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      create_test_abnfit_mle_groups() # Uncomment to regenerate the test object
+      load(file = "tests/testthat/testdata/abnfit_mle_groups.Rdata") # Load pre-saved fitted object
+      # load(file = "/testdata/abnfit_mle_groups.Rdata") # Load pre-saved fitted object
+
+      # ACT
+      result <- export_abnFit(abn_fit)
+
+      # ASSERT
+      expect_type(result, "character")
+      expect_true(jsonlite::validate(result))
+    })
+  })
+})
+
