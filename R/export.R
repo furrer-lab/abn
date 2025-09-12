@@ -405,7 +405,8 @@ export_abnFit_mle_graph <- function(object, ...) {
         mlik = object$mlik,
         mdl = object$mdl
       ),
-      group_var = if(!is.null(object$group.var)) object$group.var else NULL
+      groupVar = if(!is.null(object$group.var)) object$group.var else NULL,
+      groupedVariables = if(!is.null(object$grouped.vars)) names(object$abnDag$data.dists)[object$grouped.vars] else NULL
     )
   )
 }
