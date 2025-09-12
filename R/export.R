@@ -341,7 +341,48 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
 #' @return This function does not return a value. It raises an error.
 #' @keywords internal
 export_abnFit_mle_grouped_nodes <- function(object, ...) {
-  stop("Export for grouped MLE models is not implemented yet.")
+  # Initialize output
+  node_list <- list()
+  node_names <- names(object$mu)
+  node_dists <- object$abnDag$data.dists
+
+  # Process each node
+  for (node_id in node_names) {
+    # Extract parameters (implementation later)
+
+    # Get distribution type for this node
+    distribution <- node_dists[[node_id]]
+
+    # Extract parameters based on distribution type (implementation later)
+    param_list <- list()  # Placeholder, implement extraction logic later
+
+    # Get degree of freedom if available
+    if (!is.null(object$df)) {
+      df_int <- object$df[[node_id]]
+    }
+
+    # Get mse
+    if (!is.null(object$mse)) {
+      mse_val <- object$mse[[node_id]]
+    }
+
+    # Get sse
+    if (!is.null(object$sse)) {
+      sse_val <- object$sse[[node_id]]
+    }
+
+    # Create node entry
+    node_list[[node_id]] <- list(
+      label = node_id,
+      distribution = node_dists[[node_id]],
+      df = if (exists("df_int")) df_int else NULL,
+      mse = if (exists("mse_val")) mse_val else NULL,
+      sse = if (exists("sse_val")) sse_val else NULL,
+      parameterisation = NULL  # Placeholder, implement extraction logic later
+    )
+  }
+
+  return(node_list)
 }
 
 #' Export graph metadata from abnFit objects fitted with MLE
