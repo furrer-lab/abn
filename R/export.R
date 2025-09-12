@@ -341,6 +341,12 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
 #' @return This function does not return a value. It raises an error.
 #' @keywords internal
 export_abnFit_mle_grouped_nodes <- function(object, ...) {
+  # Input validation
+  if (is.null(object$mu) || is.null(object$betas) ||
+      is.null(object$sigma) || is.null(object$sigma_alpha)) {
+    stop("abnFit object must contain 'mu', 'betas', 'sigma', and 'sigma_alpha' components", call. = FALSE)
+  }
+
   # Initialize output
   node_list <- list()
   node_names <- names(object$mu)
