@@ -55,6 +55,52 @@ plot.abnDag <- function(x, ...){
   invisible(g)
 }
 
+#' Transform the adjacency matrix representation of a DAG to a data.frame
+#' with columns "from" and "to" representing directed edges.
+#'
+#' @param x An object of class abnDag
+#' @param ... Additional arguments (currently unused)
+#'
+#' @return A data.frame with columns "from" and "to" representing directed edges
+#' from parent nodes (from) to child nodes (to)
+#'
+#' @details The adjacency matrix in abnDag objects has parents in columns and
+#' children in rows. A value of 1 at position (i,j) indicates an arc from
+#' parent j to child i.
+#'
+#' @method as.data.frame abnDag
+#' @export
+#'
+#' @examples
+#' # Create example DAG matrix
+#' mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
+#'
+#' # Convert to edge list
+#' as.data.frame(mydag)
+as.data.frame.abnDag <- function(x, ...) {
+  if (!inherits(x, "abnDag")) {
+    stop("Input must be an object of class 'abnDag'")
+  }
+
+  # Extract the adjacency matrix
+  dag_matrix <- x$dag
+
+  # Find the indices of edges (where value is 1)
+  edges <- which(dag_matrix == 1, arr.ind = TRUE)
+
+  # If no edges, return empty data frame
+  if (nrow(edges) == 0) {
+    return(data.frame(from = character(0), to = character(0)))
+  }
+  # Create edge list data frame
+  edge_list <- data.frame(
+    from = colnames(dag_matrix)[edges[, "col"]],
+    to = rownames(dag_matrix)[edges[, "row"]],
+    stringsAsFactors = FALSE
+  )
+
+  return(edge_list)
+}
 
 ##-------------------------------------------------------------------------
 ## abnCache

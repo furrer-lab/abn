@@ -25,6 +25,29 @@ test_that("plot.abnDag() works.", {
   }
 })
 
+test_that("as.data.frame.abnDag works.", {
+  # Create a simple abnDag object
+  mydag <- createAbnDag(dag = ~a+b|a, data.df = data.frame("a"=1, "b"=1))
+
+  # Check that as.data.frame returns the expected data frame
+  expect_equal({
+    as.data.frame(mydag)
+  }, data.frame(from = "a", to = "b", stringsAsFactors = FALSE))
+
+  # Check that as.data.frame fails when the object is not an abnDag
+  expect_error({
+    notmydag <- mydag
+    class(notmydag) <- "notAbnDag"
+    as.data.frame.abnDag(notmydag)
+  }, "Input must be an object of class 'abnDag'")
+
+  # Check that as.data.frame returns an empty data frame when the DAG has no edges
+  mydag_empty <- createAbnDag(dag = ~a+b, data.df = data.frame("a"=1, "b"=1))
+  expect_equal({
+    as.data.frame(mydag_empty)
+  }, data.frame(from = character(0), to = character(0), stringsAsFactors = FALSE))
+})
+
 test_that("print.abnCache() works.", {
   skip_on_cran() # Skipped on CRAN because it requires the INLA package
 
