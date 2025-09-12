@@ -229,7 +229,7 @@ export_abnFit_mle_nodes <- function(object, ...) {
   return(nodes_list)
 }
 
-#' Helper function to extract parameters based on distribution type
+#' Helper function to extract parameters based on distribution type without grouping
 #' @keywords internal
 extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id) {
 
@@ -348,14 +348,19 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
 
   # Process each node
   for (node_id in node_names) {
-    # Extract parameters (implementation later)
+    # Extract parameters for this node
+    mu_val <- object$mu[[node_id]]
+    betas_val <- object$betas[[node_id]]
+    sigma_val <- object$sigma[[node_id]]
+    sigma_alpha_val <- object$sigma_alpha[[node_id]]
 
     # Get distribution type for this node
     distribution <- node_dists[[node_id]]
 
-    # Extract parameters based on distribution type (implementation later)
-    param_list <- list()  # Placeholder, implement extraction logic later
-
+    # Extract parameters based on distribution type
+    param_list <- extract_parameters_by_distribution_grouping(
+      mu_val, betas_val, sigma_val, sigma_alpha_val, distribution, node_id
+    )
     # Get degree of freedom if available
     if (!is.null(object$df)) {
       df_int <- object$df[[node_id]]
@@ -378,11 +383,125 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
       df = if (exists("df_int")) df_int else NULL,
       mse = if (exists("mse_val")) mse_val else NULL,
       sse = if (exists("sse_val")) sse_val else NULL,
-      parameterisation = NULL  # Placeholder, implement extraction logic later
+      parameterisation = param_list
     )
   }
 
   return(node_list)
+}
+
+#' Helper function to extract parameters based on distribution type with grouping
+#' @param mu Fixed-effect intercept(s) from mu component
+#' @param betas Fixed-effect coefficients from betas component
+#' @param sigma Residual variance from sigma component
+#' @param sigma_alpha Random-effect variance/covariance from sigma_alpha component
+#' @param distribution Node distribution type
+#' @param node_id Node identifier
+#' @keywords internal
+extract_parameters_by_distribution_grouping <- function(mu, betas, sigma, sigma_alpha, distribution, node_id) {
+
+  param_list <- list()
+
+  # Handle fixed effects (intercept and coefficients)
+  param_list$fixed_effects <- list()
+
+  if (distribution %in% c("gaussian", "binomial", "poisson")) {
+
+    # Single intercept for these distributions
+    param_list$fixed_effects$intercept <- mu
+
+    # Handle parent coefficients
+    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0) {
+      # Convert to list format for JSON export
+      if (is.matrix(betas)) {
+        coeff_list <- list()
+        for (i in seq_len(ncol(betas))) {
+          coeff_name <- colnames(betas)[i]
+          coeff_list[[coeff_name]] <- betas[, i]
+        }
+        param_list$fixed_effects$coefficients <- coeff_list
+      } else if (is.vector(betas) && length(betas) > 0) {
+        coeff_list <- as.list(betas)
+        param_list$fixed_effects$coefficients <- coeff_list
+      }
+    } else {
+      param_list$fixed_effects$coefficients <- list()
+    }
+
+  } else if (distribution == "multinomial") {
+
+    # Handle category-specific intercepts for multinomial
+    if (length(mu) > 1) {
+      # Multiple categories
+      categories <- list()
+      category_names <- names(mu)
+
+      for (i in seq_along(mu)) {
+        cat_name <- category_names[i]
+        # Extract category number from name (e.g., "m1.2" -> "2")
+        cat_num <- gsub(".*\\.", "", cat_name)
+        categories[[paste0("category_", cat_num)]] <- list(
+          intercept = mu[i]
+        )
+      }
+      param_list$fixed_effects$categories <- categories
+    } else {
+      param_list$fixed_effects$intercept <- mu
+    }
+
+    # Handle parent coefficients for multinomial
+    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0) {
+      if (is.matrix(betas)) {
+        # Matrix format for multinomial with parents
+        coeff_list <- list()
+        for (i in seq_len(nrow(betas))) {
+          for (j in seq_len(ncol(betas))) {
+            row_name <- rownames(betas)[i]
+            col_name <- colnames(betas)[j]
+            coeff_list[[paste0(row_name, "_", col_name)]] <- betas[i, j]
+          }
+        }
+        param_list$fixed_effects$coefficients <- coeff_list
+      } else {
+        param_list$fixed_effects$coefficients <- as.list(betas)
+      }
+    }
+  }
+
+  # Handle random effects (variance components)
+  param_list$random_effects <- list()
+
+  # Residual variance (sigma)
+  if (!is.null(sigma) && !is.logical(sigma) && length(sigma) > 0) {
+    param_list$random_effects$sigma <- sigma
+  }
+
+  # Random intercept variance/covariance (sigma_alpha)
+  if (!is.null(sigma_alpha) && !is.logical(sigma_alpha)) {
+    if (is.matrix(sigma_alpha)) {
+      # Convert matrix to list format for JSON export
+      sigma_alpha_list <- list()
+      if (nrow(sigma_alpha) == ncol(sigma_alpha)) {
+        # Symmetric variance-covariance matrix
+        for (i in seq_len(nrow(sigma_alpha))) {
+          for (j in seq_len(ncol(sigma_alpha))) {
+            row_name <- rownames(sigma_alpha)[i]
+            col_name <- colnames(sigma_alpha)[j]
+            if (i <= j) {  # Only store upper triangle (symmetric)
+              element_name <- if (i == j) paste0("var_", row_name) else paste0("cov_", row_name, "_", col_name)
+              sigma_alpha_list[[element_name]] <- sigma_alpha[i, j]
+            }
+          }
+        }
+      }
+      param_list$random_effects$sigma_alpha <- sigma_alpha_list
+    } else {
+      # Scalar variance
+      param_list$random_effects$sigma_alpha <- sigma_alpha
+    }
+  }
+
+  return(param_list)
 }
 
 #' Export graph metadata from abnFit objects fitted with MLE

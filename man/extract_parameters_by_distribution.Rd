@@ -2,11 +2,11 @@
 % Please edit documentation in R/export.R
 \name{extract_parameters_by_distribution}
 \alias{extract_parameters_by_distribution}
-\title{Helper function to extract parameters based on distribution type}
+\title{Helper function to extract parameters based on distribution type without grouping}
 \usage{
 extract_parameters_by_distribution(coef_vec, se_vec, distribution, node_id)
 }
 \description{
-Helper function to extract parameters based on distribution type
+Helper function to extract parameters based on distribution type without grouping
 }
 \keyword{internal}
