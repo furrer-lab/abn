@@ -481,9 +481,7 @@ newBuildScoreCache.mle <-
         # children <- rowSums(node.defn)
         colnames(node.defn) <- colnames(data.df)
         ## Coerce numeric matrix into integer matrix !!!
-        node.defn <- apply(node.defn, c(1, 2), function(x) {
-            (as.integer(x))
-        })
+	mode(node.defn) <- "integer"
 
         children <- as.integer(children)
         # node.defn_ <- node.defn
