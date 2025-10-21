@@ -9,7 +9,7 @@ test_that("Full output of the buildScoreCache.mle()", {
       if(.Platform$OS.type == "unix") {
         capture.output({
           expect_no_error(
-            buildScoreCache.mle(
+            newBuildScoreCache.mle(
                          data.df = params$data.df,
                          data.dists = params$data.dists,
                          adj.vars = params$adj.vars,
@@ -29,7 +29,7 @@ test_that("Full output of the buildScoreCache.mle()", {
                          group.ids = params$group.ids,
                          control = params$control))
           expect_equal(
-            buildScoreCache.mle(
+            newBuildScoreCache.mle(
                          data.df = params$data.df,
                          data.dists = params$data.dists,
                          adj.vars = params$adj.vars,
