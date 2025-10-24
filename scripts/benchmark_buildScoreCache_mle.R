@@ -50,6 +50,7 @@ x <- runif(100)
 
 # Profiling
 library(profvis)
+params <- readRDS(file = "tests/testthat/testdata/input_score_cache_mle.RData")
 # Loading the function makes the line of codes of all functions called as available in the profvis output 
 source("R/build_score_cache_mle_newcache.R")
 profvis({
