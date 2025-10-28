@@ -28,16 +28,21 @@ mleparams <- setupScoreCache.mle(data.df = params$data.df,
  
 ## Microbenchmarking
 # It also check if the outputs are the same, it returns error otherwise
-x <- runif(100)
 (lb <- bench::mark(
-  computeCache_orig(mleparams$nvars, mleparams$data.df, params$max.parents),
-  computeCache_maria(mleparams$nvars, mleparams$data.df, params$max.parents)))
-
+cache_orig = computeCache_orig(mleparams$nvars, mleparams$data.df, params$max.parents),
+cache_mod = computeCache_maria(mleparams$nvars, mleparams$data.df, params$max.parents), min_time = 1))
 # Results of the benchmark:
 # A tibble: 2 × 13
-#expression                                           min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result           memory               time           gc
-#<bch:expr>                                      <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>           <list>               <list>         <list>
-#  1 computeCache_orig(nvars, data.df, max.parents)    55.7ms   56.6ms      16.7      47MB    27.9      3     5      179ms <named list [2]> <Rprofmem [701 × 3]> <bench_tm [8]> <tibble [8 × 3]>
-#  2 computeCache_maria(nvars, data.df, max.parents)   49.4ms     51ms      19.6    19.5MB     9.81     6     3      306ms <named list [2]> <Rprofmem [869 × 3]> <bench_tm [9]> <tibble [9 × 3]>
-#
+#   expression     min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory     time       gc
+#   <bch:expr> <bch:t> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>     <list>     <list>
+# 1 cache_orig    56ms 57.6ms      17.4      47MB     7.90    11     5      633ms <named list> <Rprofmem> <bench_tm> <tibble>
+# 2 cache_mod     48ms 49.5ms      20.2    9.78MB     3.57    17     3      841ms <named list> <Rprofmem> <bench_tm> <tibble>
 
+# To visualize results:
+lb %>%
+unnest(c(time, gc)) %>%
+filter(gc == "none") %>%
+mutate(expression = as.character(expression)) %>%
+ggplot(aes(x = mem_alloc, y = time, color = expression)) +
+geom_point() +
+bench::scale_color_bench_expr(scales::brewer_pal(type = "qual", palette = 3))
