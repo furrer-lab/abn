@@ -59,27 +59,28 @@ fun.return <- function(x, n) {
 computeCache_orig <- function(nvars,
                               data.df,
                               max.parents){
-
-    node.defn <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-    children <- 1
-    for (j in 1:nvars) {
-      if (j != 1) {
-        node.defn <- rbind(node.defn, matrix(data = as.integer(0),
-                                             nrow = 1L, ncol = nvars))
-        children <- cbind(children, j)
-      }
-      for (i in 1:(max.parents)) {
-        tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
-        tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-        node.defn <- rbind(node.defn, tmp)
-        # children position
-        children <- cbind(children, t(rep(j, length(tmp[, 1]))))
-      }
+  node.defn_all.list <- vector('list', nvars)
+  children_all.list <- vector('list', nvars)
+  for (j in 1:nvars) {
+    node.defn_temp.list <- vector('list', max.parents+1)
+    children_temp.list <- vector('list', max.parents+1)
+    node.defn_temp.list[[1]] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+    children_temp.list[[1]] <- j
+    for (i in 1:(max.parents)) {
+      tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+      tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
+      node.defn_temp.list[[i+1]] <- tmp
+      children_temp.list[[i+1]] <- t(rep(j, length(tmp[, 1])))
     }
-    colnames(node.defn) <- colnames(data.df)
-    mode(node.defn) <- "integer"
-    children <- as.integer(children)
-    mycache <- list(children = (children), node.defn = (node.defn))
-    mycache
+    node.defn_all.list[[j]] <- do.call('rbind', node.defn_temp.list)
+    children_all.list[[j]] <- do.call('cbind', children_temp.list)
   }
+  node.defn <- do.call('rbind', node.defn_all.list)
+  children <- do.call('cbind', children_all.list)
+  colnames(node.defn) <- colnames(data.df)
+  mode(node.defn) <- "integer"
+  children <- as.integer(children)
+  mycache <- list(children = (children), node.defn = (node.defn))
+  mycache
+}
 

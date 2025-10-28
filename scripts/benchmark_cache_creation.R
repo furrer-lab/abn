@@ -38,6 +38,15 @@ cache_mod = computeCache_maria(mleparams$nvars, mleparams$data.df, params$max.pa
 # 1 cache_orig    56ms 57.6ms      17.4      47MB     7.90    11     5      633ms <named list> <Rprofmem> <bench_tm> <tibble>
 # 2 cache_mod     48ms 49.5ms      20.2    9.78MB     3.57    17     3      841ms <named list> <Rprofmem> <bench_tm> <tibble>
 
+
+# Results of the the benchmark when the rbind optimization is implemented in bothcode versions:
+# A tibble: 2 × 13
+#  expression    min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory     time       gc
+#   <bch:expr> <bch:> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>     <list>     <list>
+# 1 cache_orig   44ms 45.1ms      22.2    9.78MB     5.22    17     4      766ms <named list> <Rprofmem> <bench_tm> <tibble>
+# 2 cache_mod  44.1ms   45ms      22.2    9.78MB     3.50    19     3      856ms <named list> <Rprofmem> <bench_tm> <tibble>
+#
+
 # To visualize results:
 lb %>%
 unnest(c(time, gc)) %>%
