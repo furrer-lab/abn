@@ -438,17 +438,9 @@ newBuildScoreCache.mle <-
             return(v)
         }
 
-        node.defn <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-        children <- 1
-
+        node.defn_all.list <- vector('list', nvars)
+        children_all.list <- vector('list', nvars)
         for (j in 1:nvars) {
-            if (j != 1) {
-                node.defn <- rbind(node.defn, matrix(data = as.integer(0),
-                                                     nrow = 1L, ncol = nvars))
-                children <- cbind(children, j)
-            }
-            # node.defn <- rbind(node.defn,matrix(data = 0,nrow = 1,ncol = n))
-
           if(is.list(max.parents)){
             stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
             if(!is.null(which.nodes)){
@@ -466,18 +458,21 @@ newBuildScoreCache.mle <-
             max.parents <- max.parents-1
             warning(paste("`max.par` == no. of variables. I set it to (no. of variables - 1)=", max.parents)) #NOTE: This might cause differences to method="bayes"!
           }
-
+	    node.defn_temp.list <- vector('list', max.parents+1)
+            children_temp.list <- vector('list', max.parents+1)
+            node.defn_temp.list[[1]] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+            children_temp.list[[1]] <- j
             for (i in 1:(max.parents)) {
                 tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
                 tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-
-                node.defn <- rbind(node.defn, tmp)
-
-                # children position
-                children <- cbind(children, t(rep(j, length(tmp[, 1]))))
+                node.defn_temp.list[[i+1]] <- tmp
+                children_temp.list[[i+1]] <- t(rep(j, length(tmp[, 1])))
             }
+	    node.defn_all.list[[j]] <- do.call('rbind', node.defn_temp.list)
+            children_all.list[[j]] <- do.call('cbind', children_temp.list)
         }
-
+        node.defn <- do.call('rbind', node.defn_all.list)
+        children <- do.call('cbind', children_all.list)
         # children <- rowSums(node.defn)
         colnames(node.defn) <- colnames(data.df)
         ## Coerce numeric matrix into integer matrix !!!

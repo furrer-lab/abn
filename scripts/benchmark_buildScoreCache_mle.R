@@ -7,9 +7,8 @@ params$max.parents <- unique(params$max.parents)
 testthat::test_file("tests/testthat/test-build_score_cache_mle_newcache.R")
 
 # Microbenchmarking
-x <- runif(100)
 (lb <- bench::mark(
-		   buildScoreCache.mle(data.df = params$data.df,
+    bsc.mle.orig = buildScoreCache.mle(data.df = params$data.df,
                                  data.dists = params$data.dists,
                                  adj.vars = params$adj.vars,
                                  cor.vars = params$cor.vars,
@@ -27,7 +26,7 @@ x <- runif(100)
                                  grouped.vars = params$grouped.vars,
                                  group.ids = params$group.ids,
                                  control = params$control),
-		   newBuildScoreCache.mle(data.df = params$data.df,
+    bsc.mle.new = newBuildScoreCache.mle(data.df = params$data.df,
                                  data.dists = params$data.dists,
                                  adj.vars = params$adj.vars,
                                  cor.vars = params$cor.vars,
@@ -46,7 +45,13 @@ x <- runif(100)
                                  group.ids = params$group.ids,
                                  control = params$control)
 		   ))
-
+# Results of the benchmarking:
+# A tibble: 2 × 13
+#   expression    min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory     time       gc
+#   <bch:expr>  <bch> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>     <list>     <list>
+# 1 bsc.mle.or… 22.2s  22.2s    0.0449    1.88GB    1.35      1    30      22.2s <named list> <Rprofmem> <bench_tm> <tibble>
+# 2 bsc.mle.new 20.9s  20.9s    0.0478    1.84GB    0.717     1    15      20.9s <named list> <Rprofmem> <bench_tm> <tibble>
+#
 
 # Profiling
 library(profvis)
