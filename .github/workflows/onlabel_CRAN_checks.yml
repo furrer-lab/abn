@@ -102,6 +102,11 @@ jobs:
         run: |
             renv::deactivate()
         shell: Rscript {0}
+
+      - name: print libPaths
+        run: |
+            Rscript -e '.libPaths()'
+        shell: bash
       - name: Configure ABN for installation
         run: |
           autoreconf
