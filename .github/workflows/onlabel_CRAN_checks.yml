@@ -83,9 +83,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # workaround for debugging r-containers issues
-      - name: Set R environment
+      - name: debugging r-containers
         run: |
-          RPREFIX="/opt/R-devel"
+          cat /etc/os-release
+          # print environment variables
+          printenv
+          # print installed R packages
+          Rscript -e 'installed <- installed.packages(); write.csv(installed, file="installed_packages.csv")'
+          cat installed_packages.csv
+          # print R library paths
+          Rscript -e '.libPaths()'
+          # print R version info
+          R --version
+          Rscript -e 'cat(R.version.string, "\n")'
+          Rscript -e 'install.packages("devtools", repos="https://cloud.r-project.org")'
+          Rscript -e 'library(devtools); sessioninfo::session_info()'
         shell: bash
       # end workaround
       - name: Disable renv
