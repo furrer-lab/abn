@@ -96,8 +96,6 @@ jobs:
           # print R version info
           R --version
           Rscript -e 'cat(R.version.string, "\n")'
-          Rscript -e 'install.packages("devtools", repos="https://cloud.r-project.org")'
-          Rscript -e 'library(devtools); sessioninfo::session_info()'
         shell: bash
       # end workaround
       - name: Disable renv
