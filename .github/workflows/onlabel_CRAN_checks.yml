@@ -86,14 +86,14 @@ jobs:
       - name: debugging r-containers
         run: |
           cat /etc/os-release
-          # print environment variables
+          echo "Environment Variables:"
           printenv
-          # print installed R packages
+          echo "Installed R Packages:"
           Rscript -e 'installed <- installed.packages(); write.csv(installed, file="installed_packages.csv")'
           cat installed_packages.csv
-          # print R library paths
+          echo "R Library Paths:"
           Rscript -e '.libPaths()'
-          # print R version info
+          echo "R Version Info:"
           R --version
           Rscript -e 'cat(R.version.string, "\n")'
         shell: bash
