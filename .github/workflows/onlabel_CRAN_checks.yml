@@ -82,6 +82,12 @@ jobs:
             compiler: 'clang'
     steps:
       - uses: actions/checkout@v4
+      # workaround for debugging r-containers issues
+      - name: Set R environment
+        run: |
+          RPREFIX="/opt/R-devel"
+        shell: bash
+      # end workaround
       - name: Disable renv
         run: |
             renv::deactivate()
