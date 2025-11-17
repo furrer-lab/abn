@@ -82,24 +82,6 @@ jobs:
             compiler: 'clang'
     steps:
       - uses: actions/checkout@v4
-      # workaround for debugging r-containers issues
-      - name: debugging r-containers
-        run: |
-          cat /etc/os-release
-          echo "Environment Variables:"
-          printenv
-          echo "Installed R Packages:"
-          Rscript -e 'installed <- installed.packages(); write.csv(installed, file="installed_packages.csv")'
-          cat installed_packages.csv
-          echo "R Library Paths:"
-          Rscript -e '.libPaths()'
-          echo "R Version Info:"
-          R --version
-          Rscript -e 'cat(R.version.string, "\n")'
-          echo "R Home:"
-          R RHOME
-        shell: bash
-      # end workaround
       - name: Disable renv
         run: |
             renv::deactivate()
