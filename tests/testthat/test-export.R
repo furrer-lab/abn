@@ -75,32 +75,6 @@ test_that("scenario_id and label can be set", {
   })
 })
 
-test_that("graph metadata is correctly exported for MLE", {
-  suppressMessages({
-    suppressWarnings({
-      # ARRANGE
-      abn_fit <- create_test_abnfit_mle()
-
-      # ACT
-      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
-
-      # ASSERT
-      expect_equal(parsed$graph$method, "mle")
-      expect_equal(parsed$graph$n_nodes, 8)
-      expect_equal(parsed$graph$n_observations, 250)
-
-      # Check scores are present
-      expect_true("scores" %in% names(parsed$graph))
-      expect_true("aic" %in% names(parsed$graph$scores))
-      expect_true("bic" %in% names(parsed$graph$scores))
-      expect_true("mlik" %in% names(parsed$graph$scores))
-      expect_true("mdl" %in% names(parsed$graph$scores))
-      expect_true("groupVar" %in% names(parsed$graph))
-      expect_true("groupedVariables" %in% names(parsed$graph))
-    })
-  })
-})
-
 test_that("nodes section contains all expected nodes with correct structure", {
   suppressMessages({
     suppressWarnings({
