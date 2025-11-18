@@ -130,7 +130,7 @@ test_that("multinomial variables have states array", {
   })
 })
 
-test_that("parameterisation structure differs by distribution type", {
+test_that("parameters array has correct structure", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE
@@ -140,18 +140,63 @@ test_that("parameterisation structure differs by distribution type", {
       parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
 
       # ASSERT
-      # Gaussian node should have intercept and coefficients
-      g1_params <- parsed$nodes$g1$parameterisation
-      expect_true("intercept" %in% names(g1_params))
-      expect_true("coefficients" %in% names(g1_params))
+      expect_true(is.data.frame(parsed$parameters) || is.list(parsed$parameters))
+      expect_true(nrow(parsed$parameters) > 0 || length(parsed$parameters) > 0)
 
-      # Binomial node (b1) should have intercept only
-      b1_params <- parsed$nodes$b1$parameterisation
-      expect_true("intercept" %in% names(b1_params))
+      # Check required fields in parameters
+      expect_true("parameter_id" %in% names(parsed$parameters))
+      expect_true("name" %in% names(parsed$parameters))
+      expect_true("link_function_name" %in% names(parsed$parameters))
+      expect_true("source" %in% names(parsed$parameters))
+      expect_true("coefficients" %in% names(parsed$parameters))
+    })
+  })
+})
 
-      # Multinomial node should have categories
-      m1_params <- parsed$nodes$m1$parameterisation
-      expect_true("categories" %in% names(m1_params))
+test_that("parameter source has correct structure", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit), simplifyVector = FALSE)
+
+      # ASSERT
+      # Check first parameter's source
+      first_param <- parsed$parameters[[1]]
+      source <- first_param$source[1]
+
+      expect_true("variable_id" %in% names(source))
+      # state_id is optional, so we don't require it
+    })
+  })
+})
+
+test_that("parameter coefficients have correct structure", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
+
+      # ASSERT
+      # Check first parameter's coefficients
+      first_param <- parsed$parameters[1, ]
+      coefficients <- first_param$coefficients[[1]]
+
+      expect_true(is.data.frame(coefficients) || is.list(coefficients))
+      expect_true("value" %in% names(coefficients))
+      expect_true("stderr" %in% names(coefficients))
+      expect_true("condition_type" %in% names(coefficients))
+      expect_true("conditions" %in% names(coefficients))
+
+      # Check condition_type is valid
+      valid_condition_types <- c("intercept", "linear_term", "CPT_combination",
+                                 "variance", "random_variance", "random_covariance")
+      expect_true(coefficients$condition_type[1] %in% valid_condition_types)
     })
   })
 })
