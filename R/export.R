@@ -164,7 +164,7 @@ export_abnFit_mle_nodes <- function(object, ...) {
   node_dists <- object$abnDag$data.dists
 
   # Get parent information from DAG
-  dag_matrix <- as.matrix(object$abnDag)
+  dag_matrix <- as.matrix(object$abnDag$dag)
 
   # Process each node
   for (node_id in node_names) {
