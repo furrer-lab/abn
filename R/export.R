@@ -30,7 +30,7 @@ export_abnFit <- function(object, format = "json", include_network = TRUE, file 
 }
 
 #' Helper function to convert export list to JSON
-#' @param export_list The list to convert to JSON. Must contain graph, nodes, and arcs components, see details.
+#' @param export_list The list to convert to JSON. Must contain variables, parameters, and arcs components, see details.
 #' @inheritParams export_abnFit
 #' @details The export_list must be a named list with the following components:
 #' \itemize{
