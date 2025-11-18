@@ -538,118 +538,251 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
   ))
 }
 
-#' Helper function to extract parameters based on distribution type with grouping
+#' Helper function to extract parameters for mixed-effects models
+#'
 #' @param mu Fixed-effect intercept(s) from mu component
 #' @param betas Fixed-effect coefficients from betas component
 #' @param sigma Residual variance from sigma component
 #' @param sigma_alpha Random-effect variance/covariance from sigma_alpha component
 #' @param distribution Node distribution type
 #' @param node_id Node identifier
+#' @param parent_nodes Parent node identifiers
+#' @param start_counter Starting parameter counter
+#' @param link_function Link function name
+#'
+#' @details Extracts parameters from mixed-effects models following the new JSON structure.
+#'
+#' For each node, creates parameters for:
+#' - Fixed-effect intercept (from mu)
+#' - Fixed-effect coefficients for parents (from betas)
+#' - Residual variance (from sigma, for Gaussian/Poisson)
+#' - Random-effect variance/covariance (from sigma_alpha)
+#'
 #' @keywords internal
-extract_parameters_by_distribution_grouping <- function(mu, betas, sigma, sigma_alpha, distribution, node_id) {
+extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
+                                             distribution, node_id, parent_nodes,
+                                             start_counter, link_function) {
+  parameters <- list()
+  counter <- start_counter
 
-  param_list <- list()
-
-  # Handle fixed effects (intercept and coefficients)
-  param_list$fixed_effects <- list()
-
+  # Handle different distribution types
   if (distribution %in% c("gaussian", "binomial", "poisson")) {
+    # 1. Fixed-effect intercept (mu)
+    if (!is.null(mu) && !is.na(mu) && length(mu) > 0) {
+      param_entry <- list(
+        parameter_id = as.character(counter),
+        name = "intercept",
+        link_function_name = link_function,
+        source = list(variable_id = node_id),
+        coefficients = list(
+          list(
+            value = as.numeric(mu)[1],
+            stderr = NULL,
+            condition_type = "intercept",
+            conditions = list()
+          )
+        )
+      )
+      parameters[[length(parameters) + 1]] <- param_entry
+      counter <- counter + 1
+    }
 
-    # Single intercept for these distributions
-    param_list$fixed_effects$intercept <- mu
+    # 2. Fixed-effect coefficients (betas)
+    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0 && !all(is.na(betas))) {
+      beta_names <- names(betas)
+      for (i in seq_along(betas)) {
+        beta_name <- beta_names[i]
+        beta_value <- betas[i]
 
-    # Handle parent coefficients
-    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0) {
-      # Convert to list format for JSON export
-      if (is.matrix(betas)) {
-        coeff_list <- list()
-        for (i in seq_len(ncol(betas))) {
-          coeff_name <- colnames(betas)[i]
-          coeff_list[[coeff_name]] <- betas[, i]
+        # Match with parent nodes
+        parent_var <- NULL
+        parent_state <- NULL
+        for (p in parent_nodes) {
+          if (grepl(paste0("^", p), beta_name) || grepl(paste0(p, "[0-9]"), beta_name)) {
+            parent_var <- p
+            state_match <- regmatches(beta_name, regexpr("[0-9]+$", beta_name))
+            parent_state <- if (length(state_match) > 0) state_match else NULL
+            break
+          }
         }
-        param_list$fixed_effects$coefficients <- coeff_list
-      } else if (is.vector(betas) && length(betas) > 0) {
-        coeff_list <- as.list(betas)
-        param_list$fixed_effects$coefficients <- coeff_list
+
+        if (!is.null(parent_var)) {
+          param_entry <- list(
+            parameter_id = as.character(counter),
+            name = beta_name,
+            link_function_name = link_function,
+            source = list(variable_id = node_id),
+            coefficients = list(
+              list(
+                value = as.numeric(beta_value),
+                stderr = NULL,
+                condition_type = "linear_term",
+                conditions = list(
+                  list(
+                    parent_variable_id = parent_var,
+                    parent_state_id = parent_state
+                  )
+                )
+              )
+            )
+          )
+          parameters[[length(parameters) + 1]] <- param_entry
+          counter <- counter + 1
+        }
       }
-    } else {
-      param_list$fixed_effects$coefficients <- list()
+    }
+
+    # 3. Residual variance (sigma) - only for Gaussian and Poisson
+    if (distribution %in% c("gaussian", "poisson")) {
+      if (!is.null(sigma) && !is.logical(sigma) && length(sigma) > 0 && !all(is.na(sigma))) {
+        param_entry <- list(
+          parameter_id = as.character(counter),
+          name = "sigma",
+          link_function_name = "identity",
+          source = list(variable_id = node_id),
+          coefficients = list(
+            list(
+              value = as.numeric(sigma)[1],
+              stderr = NULL,
+              condition_type = "variance",
+              conditions = list()
+            )
+          )
+        )
+        parameters[[length(parameters) + 1]] <- param_entry
+        counter <- counter + 1
+      }
+    }
+
+    # 4. Random-effect variance (sigma_alpha)
+    if (!is.null(sigma_alpha) && !all(is.na(sigma_alpha))) {
+      param_entry <- list(
+        parameter_id = as.character(counter),
+        name = "sigma_alpha",
+        link_function_name = "identity",
+        source = list(variable_id = node_id),
+        coefficients = list(
+          list(
+            value = if (is.matrix(sigma_alpha)) as.numeric(sigma_alpha[1,1]) else as.numeric(sigma_alpha)[1],
+            stderr = NULL,
+            condition_type = "random_variance",
+            conditions = list()
+          )
+        )
+      )
+      parameters[[length(parameters) + 1]] <- param_entry
+      counter <- counter + 1
     }
 
   } else if (distribution == "multinomial") {
-
-    # Handle category-specific intercepts for multinomial
-    if (length(mu) > 1) {
-      # Multiple categories
-      categories <- list()
-      category_names <- names(mu)
+    # For multinomial, mu contains category-specific intercepts
+    if (!is.null(mu) && length(mu) > 0) {
+      mu_names <- names(mu)
+      categories <- gsub(paste0(".*", node_id, "\\."), "", mu_names)
 
       for (i in seq_along(mu)) {
-        cat_name <- category_names[i]
-        # Extract category number from name (e.g., "m1.2" -> "2")
-        cat_num <- gsub(".*\\.", "", cat_name)
-        categories[[paste0("category_", cat_num)]] <- list(
-          intercept = mu[i]
+        cat <- categories[i]
+        param_entry <- list(
+          parameter_id = as.character(counter),
+          name = paste0("intercept_", cat),
+          link_function_name = link_function,
+          source = list(variable_id = node_id, state_id = cat),
+          coefficients = list(
+            list(
+              value = as.numeric(mu[i]),
+              stderr = NULL,
+              condition_type = "intercept",
+              conditions = list()
+            )
+          )
         )
-      }
-      param_list$fixed_effects$categories <- categories
-    } else {
-      param_list$fixed_effects$intercept <- mu
-    }
-
-    # Handle parent coefficients for multinomial
-    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0) {
-      if (is.matrix(betas)) {
-        # Matrix format for multinomial with parents
-        coeff_list <- list()
-        for (i in seq_len(nrow(betas))) {
-          for (j in seq_len(ncol(betas))) {
-            row_name <- rownames(betas)[i]
-            col_name <- colnames(betas)[j]
-            coeff_list[[paste0(row_name, "_", col_name)]] <- betas[i, j]
-          }
-        }
-        param_list$fixed_effects$coefficients <- coeff_list
-      } else {
-        param_list$fixed_effects$coefficients <- as.list(betas)
+        parameters[[length(parameters) + 1]] <- param_entry
+        counter <- counter + 1
       }
     }
-  }
 
-  # Handle random effects (variance components)
-  param_list$random_effects <- list()
+    # Fixed-effect coefficients (betas) - matrix format
+    if (!is.null(betas) && is.matrix(betas) && !all(is.na(betas))) {
+      categories <- rownames(betas)
+      parent_names <- colnames(betas)
 
-  # Residual variance (sigma)
-  if (!is.null(sigma) && !is.logical(sigma) && length(sigma) > 0) {
-    param_list$random_effects$sigma <- sigma
-  }
+      for (i in seq_len(nrow(betas))) {
+        cat <- categories[i]
+        for (j in seq_len(ncol(betas))) {
+          parent_name <- parent_names[j]
 
-  # Random intercept variance/covariance (sigma_alpha)
-  if (!is.null(sigma_alpha) && !is.logical(sigma_alpha)) {
-    if (is.matrix(sigma_alpha)) {
-      # Convert matrix to list format for JSON export
-      sigma_alpha_list <- list()
-      if (nrow(sigma_alpha) == ncol(sigma_alpha)) {
-        # Symmetric variance-covariance matrix
-        for (i in seq_len(nrow(sigma_alpha))) {
-          for (j in seq_len(ncol(sigma_alpha))) {
-            row_name <- rownames(sigma_alpha)[i]
-            col_name <- colnames(sigma_alpha)[j]
-            if (i <= j) {  # Only store upper triangle (symmetric)
-              element_name <- if (i == j) paste0("var_", row_name) else paste0("cov_", row_name, "_", col_name)
-              sigma_alpha_list[[element_name]] <- sigma_alpha[i, j]
+          parent_var <- NULL
+          parent_state <- NULL
+          for (p in parent_nodes) {
+            if (grepl(paste0("^", p), parent_name)) {
+              parent_var <- p
+              state_match <- regmatches(parent_name, regexpr("[0-9]+$", parent_name))
+              parent_state <- if (length(state_match) > 0) state_match else NULL
+              break
             }
           }
+
+          if (!is.null(parent_var)) {
+            param_entry <- list(
+              parameter_id = as.character(counter),
+              name = paste0(parent_name, "_cat", cat),
+              link_function_name = link_function,
+              source = list(variable_id = node_id, state_id = cat),
+              coefficients = list(
+                list(
+                  value = as.numeric(betas[i, j]),
+                  stderr = NULL,
+                  condition_type = "linear_term",
+                  conditions = list(
+                    list(
+                      parent_variable_id = parent_var,
+                      parent_state_id = parent_state
+                    )
+                  )
+                )
+              )
+            )
+            parameters[[length(parameters) + 1]] <- param_entry
+            counter <- counter + 1
+          }
         }
       }
-      param_list$random_effects$sigma_alpha <- sigma_alpha_list
-    } else {
-      # Scalar variance
-      param_list$random_effects$sigma_alpha <- sigma_alpha
+    }
+
+    # Random-effect variance-covariance matrix
+    if (!is.null(sigma_alpha) && is.matrix(sigma_alpha)) {
+      categories <- rownames(sigma_alpha)
+
+      for (i in seq_len(nrow(sigma_alpha))) {
+        for (j in i:ncol(sigma_alpha)) {
+          cat_i <- gsub(".*~", "", categories[i])
+          cat_j <- gsub(".*~", "", categories[j])
+
+          param_entry <- list(
+            parameter_id = as.character(counter),
+            name = if (i == j) paste0("sigma_alpha_", cat_i) else paste0("sigma_alpha_", cat_i, "_", cat_j),
+            link_function_name = "identity",
+            source = list(
+              variable_id = node_id,
+              state_id = if (i == j) cat_i else paste0(cat_i, "_", cat_j)
+            ),
+            coefficients = list(
+              list(
+                value = as.numeric(sigma_alpha[i, j]),
+                stderr = NULL,
+                condition_type = if (i == j) "random_variance" else "random_covariance",
+                conditions = list()
+              )
+            )
+          )
+          parameters[[length(parameters) + 1]] <- param_entry
+          counter <- counter + 1
+        }
+      }
     }
   }
 
-  return(param_list)
+  return(list(parameters = parameters, next_counter = counter))
 }
 
 #' Export arc information from abnFit objects fitted with MLE
