@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.5.1",
+    "Version": "4.5.2",
     "Repositories": [
       {
         "Name": "BioCsoft",
@@ -84,7 +84,7 @@
     },
     "INLA": {
       "Package": "INLA",
-      "Version": "25.06.07",
+      "Version": "25.10.19",
       "Source": "Repository",
       "Repository": "INLA",
       "Requirements": [
@@ -103,7 +103,7 @@
         "utils",
         "withr"
       ],
-      "Hash": "387453fb505cb274e698329f95abd399"
+      "Hash": "bb74fb2e4c0986eeed8ea0bdfe1cbde9"
     },
     "KernSmooth": {
       "Package": "KernSmooth",
