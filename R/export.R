@@ -115,47 +115,33 @@ export_abnFit_mle <- function(object, format, include_network, scenario_id = NUL
 #' @param ... Additional arguments (currently unused)
 #'
 #' @details This function extracts node parameterisation information from abnFit objects
-#'   that were fitted using the Maximum Likelihood Estimation (MLE) approach without
-#'   mixed-effects (i.e., no group.var specified). The function processes the coefficients
-#'   and standard errors stored in the abnFit object.
+#' that were fitted using the Maximum Likelihood Estimation (MLE) approach without
+#' mixed-effects (i.e., no group.var specified). The function processes the coefficients
+#' and standard errors stored in the abnFit object.
 #'
-#'   The \code{coef} component contains the estimated regression coefficients for each node,
-#'   stored as a matrix where column names indicate the parameter names (e.g., "g2",
-#'   "m11", "b1|intercept"). These represent the linear model coefficients from the
-#'   generalized linear model fitted to each node given its parents in the DAG.
+#' The \code{coef} component contains the estimated regression coefficients for each node,
+#' stored as a matrix where column names indicate the parameter names (e.g., "g2",
+#' "m11", "b1|intercept"). These represent the linear model coefficients from the
+#' generalized linear model fitted to each node given its parents in the DAG.
 #'
-#'   The \code{Stderror} component contains the corresponding standard errors for each
-#'   coefficient, providing a measure of uncertainty in the parameter estimates. The
-#'   structure mirrors that of the \code{coef} component.
+#' The \code{Stderror} component contains the corresponding standard errors for each
+#' coefficient, providing a measure of uncertainty in the parameter estimates. The
+#' structure mirrors that of the \code{coef} component.
 #'
-#'   For different distribution types:
-#'   \itemize{
-#'     \item Gaussian nodes: Include intercept and slope coefficients
-#'     \item Binomial/Poisson nodes: Include intercept and slope coefficients on logit/log scale
-#'     \item Multinomial nodes: Include category-specific intercepts (reference level omitted)
-#'           and coefficients, following standard multinomial logistic regression conventions
-#'   }
+#' For different distribution types:
+#' \itemize{
+#' \item Gaussian nodes: Include intercept and slope coefficients
+#' \item Binomial/Poisson nodes: Include intercept and slope coefficients on logit/log scale
+#' \item Multinomial nodes: Include category-specific intercepts (reference level omitted)
+#' and coefficients, following standard multinomial logistic regression conventions
+#' }
 #'
-#' @returns A named list where each element represents a node in the network.
-#'   Each node is identified by its node ID and contains the following components:
-#'   \item{nodeid}{A list representing a single node with components:}
-#'   \item{label}{Character string. The display name/label of the node.}
-#'   \item{distribution}{Character string. The statistical distribution type
-#'     (e.g., "gaussian", "binomial", "poisson", "multinomial").}
-#'   \item{df}{A named vector of degrees of freedom for the node's model parameters, if available.}
-#'   \item{mse}{Mean Squared Error of the node's model, if available.}
-#'   \item{sse}{Sum of Squared Errors of the node's model, if available.}
-#'   \item{parameterisation}{A named list containing the estimated parameters
-#'     for this node. The structure depends on the distribution type and fitting method:
-#'     \itemize{
-#'       \item For Gaussian nodes: \code{intercept}, \code{coefficients}, \code{stderr}
-#'       \item For Binomial/Poisson nodes: \code{intercept}, \code{coefficients}, \code{stderr}
-#'       \item For Multinomial nodes: category-specific parameter lists with \code{stderr}
-#'     }}
+#' @returns A named list with two components: variables and parameters.
+#' Variables is an array where each element represents a variable with its metadata.
+#' Parameters is an array where each element represents a parameter with its coefficients.
 #'
 #' @keywords internal
 export_abnFit_mle_nodes <- function(object, ...) {
-
   # Input validation
   if (!inherits(object, "abnFit")) {
     stop("Object must be of class 'abnFit'", call. = FALSE)
@@ -170,9 +156,15 @@ export_abnFit_mle_nodes <- function(object, ...) {
   }
 
   # Initialize output
-  nodes_list <- list()
+  variables_list <- list()
+  parameters_list <- list()
+  parameter_counter <- 1
+
   node_names <- names(object$coef)
   node_dists <- object$abnDag$data.dists
+
+  # Get parent information from DAG
+  dag_matrix <- as.matrix(object$abnDag)
 
   # Process each node
   for (node_id in node_names) {
@@ -183,43 +175,89 @@ export_abnFit_mle_nodes <- function(object, ...) {
     # Convert matrices to named vectors
     coef_vec <- as.numeric(coef_mat)
     names(coef_vec) <- colnames(coef_mat)
-
     se_vec <- as.numeric(se_mat)
     names(se_vec) <- colnames(se_mat)
 
     # Get distribution type for this node
     distribution <- node_dists[[node_id]]
 
-    # Extract parameters based on distribution type
-    param_list <- extract_parameters_by_distribution(coef_vec, se_vec, distribution, node_id)
+    # Determine link function based on distribution
+    link_function <- get_link_function(distribution)
 
-    # Get degree of freedom if available
-    if (!is.null(object$df)) {
-      df_int <- object$df[[node_id]]
-    }
+    # Get parent nodes for this child
+    parent_nodes <- names(dag_matrix[, node_id])[dag_matrix[, node_id] == 1]
 
-    # Get mse
-    if (!is.null(object$mse)) {
-      mse_val <- object$mse[[node_id]]
-    }
-
-    # Get sse
-    if (!is.null(object$sse)) {
-      sse_val <- object$sse[[node_id]]
-    }
-
-    # Create node entry
-    nodes_list[[node_id]] <- list(
-      label = node_id,
-      distribution = distribution,
-      df = if (exists("df_int")) df_int else NULL,
-      mse = if (exists("mse_val")) mse_val else NULL,
-      sse = if (exists("sse_val")) sse_val else NULL,
-      parameterisation = param_list
+    # Create variable entry
+    variable_entry <- list(
+      variable_id = node_id,
+      attribute_name = node_id,
+      model_type = distribution
     )
+
+    # Add states for categorical variables (multinomial)
+    if (distribution == "multinomial") {
+      variable_entry$states <- extract_states_from_data(object, node_id)
+    } else {
+      variable_entry$states <- NULL
+    }
+
+    variables_list[[length(variables_list) + 1]] <- variable_entry
+
+    # Extract parameters based on distribution type
+    param_result <- extract_parameters_new_format(
+      coef_vec, se_vec, distribution, node_id,
+      parent_nodes, parameter_counter, link_function
+    )
+
+    # Add parameters to list
+    parameters_list <- c(parameters_list, param_result$parameters)
+    parameter_counter <- param_result$next_counter
   }
 
-  return(nodes_list)
+  return(list(
+    variables = variables_list,
+    parameters = parameters_list
+  ))
+}
+
+#' Helper function to determine link function from distribution
+#' @keywords internal
+get_link_function <- function(distribution) {
+  link_functions <- list(
+    "gaussian" = "identity",
+    "binomial" = "logit",
+    "poisson" = "log",
+    "multinomial" = "logit"
+  )
+
+  return(link_functions[[distribution]] %||% "identity")
+}
+
+#' Helper function for NULL default
+#' @keywords internal
+`%||%` <- function(x, y) {
+  if (is.null(x)) y else x
+}
+
+#' Extract states for categorical variables from data
+#' @keywords internal
+extract_states_from_data <- function(object, node_id) {
+  # Get the data for this variable
+  data_col <- object$abnDag$data.df[[node_id]]
+
+  if (is.factor(data_col) || is.character(data_col)) {
+    unique_vals <- sort(unique(as.character(data_col)))
+    states <- lapply(seq_along(unique_vals), function(i) {
+      list(
+        state_id = as.character(i),
+        value_name = unique_vals[i],
+        is_baseline = (i == 1)  # First level is baseline
+      )
+    })
+    return(states)
+  }
+
+  return(NULL)
 }
 
 #' Helper function to extract parameters based on distribution type without grouping
