@@ -34,22 +34,10 @@ export_abnFit <- function(object, format = "json", include_network = TRUE, file 
 #' @inheritParams export_abnFit
 #' @details The export_list must be a named list with the following components:
 #' \itemize{
-#' \item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, groupVar)
-#' \item nodes: A named list where each element represents a node with its parameters and distribution. Each node should have:
-#'  \itemize{
-#'  \item label: Character string. The display name/label of the node.
-#'  \item distribution: Character string. The statistical distribution type (e.g., "gaussian", "binomial", "poisson", "multinomial").
-#'  \item parameterisation: A named list containing the estimated parameters for this node. The structure depends on the distribution type and fitting method.
-#'  }
-#'  \item arcs: A named list with arc details, including:
-#'  \itemize{
-#'  \item source: Character vector of source node IDs.
-#'  \item target: Character vector of target node IDs.
-#'  \item frequency: Numeric vector of arc frequencies (if available).
-#'  \item significance: Numeric vector of arc significance values (if available).
-#'  \item constraint: Character vector indicating if the arc was constrained (if available).
-#'  }
-#'  }
+#' \item variables: An array where each element represents a variable/node with its metadata, distribution type, and states (for categorical variables).
+#' \item parameters: An array where each element represents a parameter with its link function, source variable, and coefficients.
+#' \item arcs: An array with arc details, each containing source_variable_id and target_variable_id.
+#' }
 #' @keywords internal
 export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
@@ -57,17 +45,8 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   }
 
   # Validate export list structure
-  if (!is.list(export_list) || !all(c("graph", "nodes", "arcs") %in% names(export_list))) {
-    stop("export_list must be a named list with components: graph, nodes, arcs")
-  }
-  if (!all(c("source", "target") %in% names(export_list$arcs))) {
-    stop("export_list$arcs must contain at least 'source' and 'target' components")
-  }
-  if (!all(c("label", "distribution", "parameterisation") %in% names(export_list$nodes[[1]]))) {
-    stop("Each node in export_list$nodes must contain 'label', 'distribution', and 'parameterisation' components")
-  }
-  if (!all(c("method", "n_nodes", "n_observations", "scores", "groupVar") %in% names(export_list$graph))) {
-    stop("export_list$graph must contain 'method', 'n_nodes', 'n_observations', 'scores', and 'groupVar' components")
+  if (!is.list(export_list) || !all(c("variables", "parameters", "arcs") %in% names(export_list))) {
+    stop("export_list must be a named list with components: variables, parameters, arcs")
   }
 
   # Convert to JSON
