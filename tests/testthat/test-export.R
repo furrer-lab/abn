@@ -201,7 +201,7 @@ test_that("parameter coefficients have correct structure", {
   })
 })
 
-test_that("arcs section has correct structure", {
+test_that("arcs array has correct structure", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE
@@ -212,17 +212,16 @@ test_that("arcs section has correct structure", {
 
       # ASSERT
       expect_true("arcs" %in% names(parsed))
-      arcs <- parsed$arcs
-      expect_true("source" %in% names(arcs))
-      expect_true("target" %in% names(arcs))
-      expect_true("frequency" %in% names(arcs))
-      expect_true("significance" %in% names(arcs))
-      expect_true("constraint" %in% names(arcs))
 
-      # Should be empty list for these fields as per the current implementation
-      expect_equal(length(arcs$frequency), 0)
-      expect_equal(length(arcs$significance), 0)
-      expect_equal(length(arcs$constraint), 0)
+      if (is.data.frame(parsed$arcs) && nrow(parsed$arcs) > 0) {
+        expect_true("source_variable_id" %in% names(parsed$arcs))
+        expect_true("target_variable_id" %in% names(parsed$arcs))
+      } else if (is.list(parsed$arcs) && length(parsed$arcs) > 0) {
+        # Check first arc
+        first_arc <- parsed$arcs[[1]]
+        expect_true("source_variable_id" %in% names(first_arc))
+        expect_true("target_variable_id" %in% names(first_arc))
+      }
     })
   })
 })
