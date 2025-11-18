@@ -678,16 +678,53 @@ export_abnFit_mle_arcs <- function(object, ...) {
 }
 
 #' Export abnFit object fitted with Bayesian methods
+#'
 #' @inheritParams export_abnFit
-#' @details This function is a placeholder for exporting abnFit objects fitted using Bayesian methods.
-#' Currently, it raises an error indicating that export for Bayesian models is not implemented.
-#' @return This function does not return a value. It raises an error.
+#'
+#' @details This function handles abnFit objects fitted using Bayesian methods.
+#' It will extract the posterior distributions and other Bayesian-specific information.
+#'
+#' The structure will follow the same variables/parameters/arcs format, but parameters
+#' will include posterior summaries (mean, median, credible intervals) instead of
+#' point estimates and standard errors.
+#'
+#' TODO: Implement the full extraction logic for Bayesian models, including:
+#' - Posterior mean/median for parameters
+#' - Credible intervals
+#' - Convergence diagnostics (Rhat, ESS)
+#' - Prior specifications
+#'
+#' @return A named list with components: scenario_id, label, variables, parameters, arcs.
 #' @keywords internal
-export_abnFit_bayes <- function(object, format, include_network, ...) {
-  # Extract graph metadata
+export_abnFit_bayes <- function(object, format, include_network,
+                                scenario_id = NULL, label = NULL, ...) {
+  # Input validation
+  if (!inherits(object, "abnFit")) {
+    stop("Object must be of class 'abnFit'", call. = FALSE)
+  }
 
-  # Extract arc details
+  if (object$method != "bayes") {
+    stop("This function only handles abnFit objects fitted with method = 'bayes'", call. = FALSE)
+  }
 
-  # Extract node details
-  stop("Export for Bayesian models is not implemented yet.")
+  # TODO: Extract variables, parameters, and arcs from Bayesian fit
+  # This should:
+  # 1. Extract posterior distributions for parameters
+  # 2. Compute summary statistics (mean, median, quantiles)
+  # 3. Include convergence diagnostics
+  # 4. Format according to variables/parameters/arcs structure
+
+  warning("Bayesian model export is not fully implemented yet. Returning placeholder structure.")
+
+  # Placeholder structure
+  export_structure <- list()
+  export_structure$scenario_id <- scenario_id
+  export_structure$label <- label
+  export_structure$variables <- list()
+  export_structure$parameters <- list()
+  export_structure$arcs <- list()
+
+  # TODO: Populate with actual Bayesian model information
+
+  return(export_structure)
 }
