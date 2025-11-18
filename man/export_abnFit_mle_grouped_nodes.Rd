@@ -12,13 +12,26 @@ export_abnFit_mle_grouped_nodes(object, ...)
 \item{...}{Additional arguments (currently unused)}
 }
 \value{
-This function does not return a value. It raises an error.
+A named list with two components: variables and parameters.
+Variables is an array where each element represents a variable with its metadata.
+Parameters is an array where each element represents a parameter, including both
+fixed-effect coefficients and random-effect variance components.
 }
 \description{
 Export node information from abnFit objects fitted with MLE (mixed effects)
 }
 \details{
-This function is a placeholder for exporting node information from abnFit objects.
-Currently, it raises an error indicating that export for grouped MLE models is not implemented.
+This function extracts node parameterisation information from abnFit objects
+that were fitted using the Maximum Likelihood Estimation (MLE) approach WITH
+mixed-effects (i.e., group.var was specified).
+
+For mixed-effects models, the structure includes:
+\itemize{
+\item Fixed effects: Population-level intercepts and coefficients
+\item Random effects: Group-level variance components (sigma, sigma_alpha)
+}
+
+The export format follows the same variables/parameters structure, but parameters
+will include both fixed-effect coefficients and random-effect variance components.
 }
 \keyword{internal}

@@ -12,22 +12,9 @@ export_abnFit_mle_nodes(object, ...)
 \item{...}{Additional arguments (currently unused)}
 }
 \value{
-A named list where each element represents a node in the network.
-Each node is identified by its node ID and contains the following components:
-\item{nodeid}{A list representing a single node with components:}
-\item{label}{Character string. The display name/label of the node.}
-\item{distribution}{Character string. The statistical distribution type
-(e.g., "gaussian", "binomial", "poisson", "multinomial").}
-\item{df}{A named vector of degrees of freedom for the node's model parameters, if available.}
-\item{mse}{Mean Squared Error of the node's model, if available.}
-\item{sse}{Sum of Squared Errors of the node's model, if available.}
-\item{parameterisation}{A named list containing the estimated parameters
-for this node. The structure depends on the distribution type and fitting method:
-\itemize{
-\item For Gaussian nodes: \code{intercept}, \code{coefficients}, \code{stderr}
-\item For Binomial/Poisson nodes: \code{intercept}, \code{coefficients}, \code{stderr}
-\item For Multinomial nodes: category-specific parameter lists with \code{stderr}
-}}
+A named list with two components: variables and parameters.
+Variables is an array where each element represents a variable with its metadata.
+Parameters is an array where each element represents a parameter with its coefficients.
 }
 \description{
 Export node information from abnFit objects fitted with MLE (non-mixed effects)

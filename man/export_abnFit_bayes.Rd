@@ -4,7 +4,14 @@
 \alias{export_abnFit_bayes}
 \title{Export abnFit object fitted with Bayesian methods}
 \usage{
-export_abnFit_bayes(object, format, include_network, ...)
+export_abnFit_bayes(
+  object,
+  format,
+  include_network,
+  scenario_id = NULL,
+  label = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{An object of class abnFit}
@@ -13,16 +20,32 @@ export_abnFit_bayes(object, format, include_network, ...)
 
 \item{include_network}{Whether to include network structure}
 
+\item{scenario_id}{Optional identifier for the model run/scenario}
+
+\item{label}{Optional name/label for the scenario}
+
 \item{...}{Additional export options}
 }
 \value{
-This function does not return a value. It raises an error.
+A named list with components: scenario_id, label, variables, parameters, arcs.
 }
 \description{
 Export abnFit object fitted with Bayesian methods
 }
 \details{
-This function is a placeholder for exporting abnFit objects fitted using Bayesian methods.
-Currently, it raises an error indicating that export for Bayesian models is not implemented.
+This function handles abnFit objects fitted using Bayesian methods.
+It will extract the posterior distributions and other Bayesian-specific information.
+
+The structure will follow the same variables/parameters/arcs format, but parameters
+will include posterior summaries (mean, median, credible intervals) instead of
+point estimates and standard errors.
+
+TODO: Implement the full extraction logic for Bayesian models, including:
+\itemize{
+\item Posterior mean/median for parameters
+\item Credible intervals
+\item Convergence diagnostics (Rhat, ESS)
+\item Prior specifications
+}
 }
 \keyword{internal}

@@ -10,6 +10,8 @@ export_abnFit(
   include_network = TRUE,
   file = NULL,
   pretty = TRUE,
+  scenario_id = NULL,
+  label = NULL,
   ...
 )
 }
@@ -23,6 +25,10 @@ export_abnFit(
 \item{file}{Optional file path to save JSON. If NULL, returns JSON string}
 
 \item{pretty}{Logical, whether to format JSON nicely}
+
+\item{scenario_id}{Optional identifier for the model run/scenario}
+
+\item{label}{Optional name/label for the scenario}
 
 \item{...}{Additional export options}
 }

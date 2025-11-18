@@ -7,7 +7,7 @@
 export_to_json(export_list, format, file = NULL, pretty = TRUE)
 }
 \arguments{
-\item{export_list}{The list to convert to JSON. Must contain graph, nodes, and arcs components, see details.}
+\item{export_list}{The list to convert to JSON. Must contain variables, parameters, and arcs components, see details.}
 
 \item{format}{The export format, currently only "json" is supported.}
 
@@ -21,21 +21,11 @@ Helper function to convert export list to JSON
 \details{
 The export_list must be a named list with the following components:
 \itemize{
-\item graph: A named list with metadata about the graph (e.g., method, n_nodes, n_observations, groupVar)
-\item nodes: A named list where each element represents a node with its parameters and distribution. Each node should have:
-\itemize{
-\item label: Character string. The display name/label of the node.
-\item distribution: Character string. The statistical distribution type (e.g., "gaussian", "binomial", "poisson", "multinomial").
-\item parameterisation: A named list containing the estimated parameters for this node. The structure depends on the distribution type and fitting method.
-}
-\item arcs: A named list with arc details, including:
-\itemize{
-\item source: Character vector of source node IDs.
-\item target: Character vector of target node IDs.
-\item frequency: Numeric vector of arc frequencies (if available).
-\item significance: Numeric vector of arc significance values (if available).
-\item constraint: Character vector indicating if the arc was constrained (if available).
-}
+\item scenario_id: Optional identifier for the model run/scenario.
+\item label: Optional name/label for the scenario.
+\item variables: An array where each element represents a variable/node with its metadata, distribution type, and states (for categorical variables).
+\item parameters: An array where each element represents a parameter with its link function, source variable, and coefficients.
+\item arcs: An array with arc details, each containing source_variable_id and target_variable_id.
 }
 }
 \keyword{internal}

@@ -12,7 +12,7 @@ export_abnFit_mle_arcs(object, ...)
 \item{...}{Additional export options}
 }
 \value{
-A named list containing arc details: source nodes, target nodes, frequency, significance, and constraint.
+An array containing arc details: source_variable_id and target_variable_id for each arc.
 }
 \description{
 Export arc information from abnFit objects fitted with MLE

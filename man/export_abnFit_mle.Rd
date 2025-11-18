@@ -4,7 +4,14 @@
 \alias{export_abnFit_mle}
 \title{Export abnFit object fitted with MLE (non-mixed effects)}
 \usage{
-export_abnFit_mle(object, format, include_network, ...)
+export_abnFit_mle(
+  object,
+  format,
+  include_network,
+  scenario_id = NULL,
+  label = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{An object of class abnFit}
@@ -13,16 +20,20 @@ export_abnFit_mle(object, format, include_network, ...)
 
 \item{include_network}{Whether to include network structure}
 
+\item{scenario_id}{Optional identifier for the model run/scenario}
+
+\item{label}{Optional name/label for the scenario}
+
 \item{...}{Additional export options}
 }
 \value{
-A named list with components: graph, nodes, arcs.
+A named list with components: scenario_id, label, variables, parameters, arcs.
 }
 \description{
 Export abnFit object fitted with MLE (non-mixed effects)
 }
 \details{
 This function handles abnFit objects fitted using Maximum Likelihood Estimation (MLE)
-without mixed-effects. It extracts graph metadata, arc details, and node parameterisations.
+without mixed-effects. It extracts variables metadata, arc details, and node parameterisations.
 }
 \keyword{internal}
