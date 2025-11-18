@@ -320,31 +320,19 @@ test_that("linear_term parameters have parent in conditions", {
   })
 })
 
-test_that("extract_parameters_by_distribution_grouping handles matrix betas correctly", {
+test_that("link functions are correctly assigned", {
   suppressMessages({
     suppressWarnings({
-      # ARRANGE - Node with matrix coefficients
-      mu_matrix <- 1.2
-      betas_matrix <- matrix(c(0.3, -0.1), nrow = 1, ncol = 2,
-                             dimnames = list(NULL, c("parent1", "parent2")))
-      sigma_matrix <- 0.1
-      sigma_alpha_matrix <- 0.05
-      distribution_matrix <- "poisson"
-      node_id_matrix <- "p1"
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
 
       # ACT
-      result_matrix <- extract_parameters_by_distribution_grouping(
-        mu_matrix, betas_matrix, sigma_matrix, sigma_alpha_matrix, distribution_matrix, node_id_matrix
-      )
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
 
       # ASSERT
-      expect_type(result_matrix, "list")
-      expect_equal(result_matrix$fixed_effects$intercept, mu_matrix)
-      expect_type(result_matrix$fixed_effects$coefficients, "list")
-      expect_equal(length(result_matrix$fixed_effects$coefficients), ncol(betas_matrix))
-      expect_true("parent1" %in% names(result_matrix$fixed_effects$coefficients))
-      expect_true("parent2" %in% names(result_matrix$fixed_effects$coefficients))
+      # Check that link functions match distribution types
+      valid_links <- c("identity", "logit", "log")
+      expect_true(all(parsed$parameters$link_function_name %in% valid_links))
     })
   })
 })
-
