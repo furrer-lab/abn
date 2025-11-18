@@ -5,18 +5,24 @@
 #' @param include_network Whether to include network structure
 #' @param file Optional file path to save JSON. If NULL, returns JSON string
 #' @param pretty Logical, whether to format JSON nicely
+#' @param scenario_id Optional identifier for the model run/scenario
+#' @param label Optional name/label for the scenario
 #' @param ... Additional export options
 #' @return A JSON string or writes to file if 'file' is provided
-export_abnFit <- function(object, format = "json", include_network = TRUE, file = NULL, pretty = TRUE, ...) {
+export_abnFit <- function(object, format = "json", include_network = TRUE,
+                          file = NULL, pretty = TRUE, scenario_id = NULL,
+                          label = NULL, ...) {
   if (!inherits(object, "abnFit")) {
     stop("Input object must be of class 'abnFit'")
   }
 
   # Dispatch based on method
   if (object$method == "mle") {
-    export_list <- export_abnFit_mle(object, format, include_network, ...)
+    export_list <- export_abnFit_mle(object, format, include_network,
+                                     scenario_id, label, ...)
   } else if (object$method == "bayes") {
-    export_list <- export_abnFit_bayes(object, format, include_network, ...)
+    export_list <- export_abnFit_bayes(object, format, include_network,
+                                       scenario_id, label, ...)
   } else {
     stop("Unsupported method in abnFit object. Supported methods are 'mle' and 'bayes'.")
   }
@@ -34,6 +40,8 @@ export_abnFit <- function(object, format = "json", include_network = TRUE, file 
 #' @inheritParams export_abnFit
 #' @details The export_list must be a named list with the following components:
 #' \itemize{
+#' \item scenario_id: Optional identifier for the model run/scenario.
+#' \item label: Optional name/label for the scenario.
 #' \item variables: An array where each element represents a variable/node with its metadata, distribution type, and states (for categorical variables).
 #' \item parameters: An array where each element represents a parameter with its link function, source variable, and coefficients.
 #' \item arcs: An array with arc details, each containing source_variable_id and target_variable_id.
@@ -44,13 +52,14 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
     stop("Package 'jsonlite' is required for JSON export. Please install it.")
   }
 
-  # Validate export list structure
-  if (!is.list(export_list) || !all(c("variables", "parameters", "arcs") %in% names(export_list))) {
+  # Validate export list structure - scenario_id and label are optional
+  required_keys <- c("variables", "parameters", "arcs")
+  if (!is.list(export_list) || !all(required_keys %in% names(export_list))) {
     stop("export_list must be a named list with components: variables, parameters, arcs")
   }
 
   # Convert to JSON
-  json_str <- jsonlite::toJSON(export_list, auto_unbox = TRUE, pretty = pretty)
+  json_str <- jsonlite::toJSON(export_list, auto_unbox = TRUE, pretty = pretty, null = "null")
 
   # Write to file or return string
   if (!is.null(file)) {
