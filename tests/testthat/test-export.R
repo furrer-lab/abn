@@ -75,7 +75,7 @@ test_that("scenario_id and label can be set", {
   })
 })
 
-test_that("nodes section contains all expected nodes with correct structure", {
+test_that("variables array contains all expected nodes with correct structure", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE
@@ -85,17 +85,46 @@ test_that("nodes section contains all expected nodes with correct structure", {
       parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
 
       # ASSERT
-      expected_nodes <- c("b1", "b2", "g1", "g2", "m1", "m2", "p1", "p2")
-      expect_equal(sort(names(parsed$nodes)), sort(expected_nodes))
+      expect_true(is.data.frame(parsed$variables) || is.list(parsed$variables))
+      expect_equal(nrow(parsed$variables), 8)  # 8 nodes
 
-      # Check each node has required components
-      for (node_name in expected_nodes) {
-        node <- parsed$nodes[[node_name]]
-        expect_true("label" %in% names(node))
-        expect_true("distribution" %in% names(node))
-        expect_true("parameterisation" %in% names(node))
-        expect_equal(node$label, node_name)
-        expect_true(node$distribution %in% c("gaussian", "binomial", "poisson", "multinomial"))
+      # Check required fields in variables
+      expect_true("variable_id" %in% names(parsed$variables))
+      expect_true("attribute_name" %in% names(parsed$variables))
+      expect_true("model_type" %in% names(parsed$variables))
+
+      # Check all node IDs are present
+      expected_nodes <- c("b1", "b2", "g1", "g2", "m1", "m2", "p1", "p2")
+      expect_true(all(expected_nodes %in% parsed$variables$variable_id))
+
+      # Check model types are valid
+      valid_types <- c("gaussian", "binomial", "poisson", "multinomial")
+      expect_true(all(parsed$variables$model_type %in% valid_types))
+    })
+  })
+})
+
+test_that("multinomial variables have states array", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
+
+      # ASSERT
+      # Find multinomial variables
+      multinomial_vars <- parsed$variables[parsed$variables$model_type == "multinomial", ]
+
+      # Each multinomial variable should have states
+      for (i in seq_len(nrow(multinomial_vars))) {
+        states <- multinomial_vars$states[[i]]
+        expect_true(!is.null(states))
+        expect_true(is.data.frame(states) || is.list(states))
+        expect_true("state_id" %in% names(states))
+        expect_true("value_name" %in% names(states))
+        expect_true("is_baseline" %in% names(states))
       }
     })
   })
