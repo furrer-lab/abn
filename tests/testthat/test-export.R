@@ -49,8 +49,8 @@ test_that("exported JSON has correct top-level structure", {
       parsed <- jsonlite::fromJSON(json_str)
 
       # ASSERT
-      expect_true("graph" %in% names(parsed))
-      expect_true("nodes" %in% names(parsed))
+      expect_true("variables" %in% names(parsed))
+      expect_true("parameters" %in% names(parsed))
       expect_true("arcs" %in% names(parsed))
     })
   })
