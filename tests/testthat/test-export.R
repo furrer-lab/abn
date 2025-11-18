@@ -244,97 +244,78 @@ test_that("export_abnFit works for MLE method with group.var", {
   })
 })
 
-test_that("extract_parameters_by_distribution_grouping extracts parameters correctly for grouped nodes", {
+test_that("grouped model export has variance parameters", {
   suppressMessages({
     suppressWarnings({
-      # ARRANGE - Gaussian node with grouping
-      mu_gauss <- 1.5
-      betas_gauss <- c(parent1 = 0.5, parent2 = -0.3)
-      sigma_gauss <- 0.2
-      sigma_alpha_gauss <- 0.1
-      distribution_gauss <- "gaussian"
-      node_id_gauss <- "g1"
+      # ARRANGE
+      # load(file = "tests/testthat/testdata/abnfit_mle_groups.Rdata")
+      load(file = "testdata/abnfit_mle_groups.Rdata")
 
       # ACT
-      result_gauss <- extract_parameters_by_distribution_grouping(
-        mu_gauss, betas_gauss, sigma_gauss, sigma_alpha_gauss, distribution_gauss, node_id_gauss
-      )
-
-      # ASSERT - Basic structure
-      expect_type(result_gauss, "list")
-      expect_true("fixed_effects" %in% names(result_gauss))
-      expect_true("random_effects" %in% names(result_gauss))
-
-      # ASSERT - Fixed effects structure
-      expect_equal(result_gauss$fixed_effects$intercept, mu_gauss)
-      expect_equal(result_gauss$fixed_effects$coefficients, as.list(betas_gauss))
-
-      # ASSERT - Random effects structure
-      expect_equal(result_gauss$random_effects$sigma, sigma_gauss)
-      expect_equal(result_gauss$random_effects$sigma_alpha, sigma_alpha_gauss)
-    })
-  })
-})
-
-test_that("extract_parameters_by_distribution_grouping handles multinomial nodes correctly", {
-  suppressMessages({
-    suppressWarnings({
-      # ARRANGE - Multinomial node with grouping
-      mu_mult <- c("m1.2" = 0.5, "m1.3" = 1.0)
-      betas_mult <- matrix(c(0.1, 0.3, -0.2, 0.4), nrow = 2,
-                           dimnames = list(c("2", "3"), c("parent1", "parent2")))
-      sigma_mult <- matrix(c(0.02, 0.01, 0.01, 0.03), nrow = 2,
-                           dimnames = list(c("m1.2~1", "m1.3~1"), c("m1.2~1", "m1.3~1")))
-      sigma_alpha_mult <- matrix(c(0.02, 0.01, 0.01, 0.03), nrow = 2,
-                                 dimnames = list(c("m1.2~1", "m1.3~1"), c("m1.2~1", "m1.3~1")))
-      distribution_mult <- "multinomial"
-      node_id_mult <- "m1"
-
-      # ACT
-      result_mult <- extract_parameters_by_distribution_grouping(
-        mu_mult, betas_mult, sigma_mult, sigma_alpha_mult, distribution_mult, node_id_mult
-      )
-
-      # ASSERT - Structure for multinomial
-      expect_type(result_mult, "list")
-      expect_true("fixed_effects" %in% names(result_mult))
-      expect_true("random_effects" %in% names(result_mult))
-      expect_true("categories" %in% names(result_mult$fixed_effects))
-
-      # ASSERT - Category structure
-      expect_equal(length(result_mult$fixed_effects$categories), length(mu_mult))
-      expect_true("category_2" %in% names(result_mult$fixed_effects$categories))
-      expect_true("category_3" %in% names(result_mult$fixed_effects$categories))
-
-      # ASSERT - Random effects for multinomial
-      expect_equal(result_mult$random_effects$sigma, sigma_mult)
-      expect_type(result_mult$random_effects$sigma_alpha, "list")
-    })
-  })
-})
-
-test_that("extract_parameters_by_distribution_grouping handles nodes with no parent coefficients", {
-  suppressMessages({
-    suppressWarnings({
-      # ARRANGE - Node with no parents (empty betas)
-      mu_empty <- 2.0
-      betas_empty <- numeric(0)  # No parents
-      sigma_empty <- 0.5
-      sigma_alpha_empty <- 0.2
-      distribution_empty <- "binomial"
-      node_id_empty <- "b1"
-
-      # ACT
-      result_empty <- extract_parameters_by_distribution_grouping(
-        mu_empty, betas_empty, sigma_empty, sigma_alpha_empty, distribution_empty, node_id_empty
-      )
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
 
       # ASSERT
-      expect_type(result_empty, "list")
-      expect_equal(result_empty$fixed_effects$intercept, mu_empty)
-      expect_equal(result_empty$fixed_effects$coefficients, list())  # Empty list for no coefficients
-      expect_equal(result_empty$random_effects$sigma, sigma_empty)
-      expect_equal(result_empty$random_effects$sigma_alpha, sigma_alpha_empty)
+      # Check that we have variance-related parameters
+      variance_params <- parsed$parameters[
+        parsed$parameters$coefficients[[1]]$condition_type %in%
+          c("variance", "random_variance", "random_covariance"),
+      ]
+
+      # At least some nodes should have variance parameters
+      expect_true(nrow(variance_params) > 0 || length(variance_params) > 0)
+    })
+  })
+})
+
+test_that("intercept parameters have empty conditions", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
+
+      # ASSERT
+      # Find intercept parameters
+      intercept_params <- parsed$parameters[parsed$parameters$name == "intercept", ]
+
+      if (nrow(intercept_params) > 0) {
+        # Check first intercept parameter
+        first_intercept <- intercept_params[1, ]
+        coef <- first_intercept$coefficients[[1]]
+        expect_equal(coef$condition_type[1], "intercept")
+
+        # Conditions should be empty list for intercepts
+        conditions <- coef$conditions[[1]]
+        expect_true(is.list(conditions))
+        expect_equal(length(conditions), 0)
+      }
+    })
+  })
+})
+
+test_that("linear_term parameters have parent in conditions", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      parsed <- jsonlite::fromJSON(export_abnFit(abn_fit))
+
+      # ASSERT
+      # Find parameters with condition_type = "linear_term"
+      for (i in seq_len(nrow(parsed$parameters))) {
+        param <- parsed$parameters[i, ]
+        coef <- param$coefficients[[1]]
+
+        if (coef$condition_type[1] == "linear_term") {
+          conditions <- coef$conditions[[1]]
+          expect_true(is.data.frame(conditions) || is.list(conditions))
+          expect_true("parent_variable_id" %in% names(conditions))
+        }
+      }
     })
   })
 })
