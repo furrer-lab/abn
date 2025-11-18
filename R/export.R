@@ -652,49 +652,28 @@ extract_parameters_by_distribution_grouping <- function(mu, betas, sigma, sigma_
   return(param_list)
 }
 
-#' Export graph metadata from abnFit objects fitted with MLE
-#' @inheritParams export_abnFit
-#' @details This function extracts metadata about the graph from abnFit objects.
-#' It retrieves information such as the fitting method, number of nodes, number of observations,
-#' and model scores (AIC, BIC, log-likelihood). If a grouping variable was used during fitting,
-#' it is also included.
-#' @return A named list containing graph metadata.
-#' @keywords internal
-export_abnFit_mle_graph <- function(object, ...) {
-  return(
-    list(
-      method = object$method,
-      n_nodes = ncol(object$abnDag$data.df),
-      n_observations = nrow(object$abnDag$data.df),
-      scores = list(
-        aic = object$aic,
-        bic = object$bic,
-        mlik = object$mlik,
-        mdl = object$mdl
-      ),
-      groupVar = if(!is.null(object$group.var)) object$group.var else NULL,
-      groupedVariables = if(!is.null(object$grouped.vars)) names(object$abnDag$data.dists)[object$grouped.vars] else NULL
-    )
-  )
-}
-
 #' Export arc information from abnFit objects fitted with MLE
 #' @inheritParams export_abnFit
 #' @details This function extracts arc information from abnFit objects fitted using MLE.
 #' It retrieves the source and target nodes for each arc in the directed acyclic graph (DAG).
 #' Currently, frequency, significance, and constraint information are not included in the export.
-#' @return A named list containing arc details: source nodes, target nodes, frequency, significance, and constraint.
+#' @return An array containing arc details: source_variable_id and target_variable_id for each arc.
 #' @keywords internal
 export_abnFit_mle_arcs <- function(object, ...) {
   edgelist <- as.data.frame(object$abnDag)
-  warning("Arc export currently does not include frequency, significance, or constraint information.")
-  arcs <- list(
-    source = edgelist$from,
-    target = edgelist$to,
-    frequency = NULL,
-    significance = NULL,
-    constraint = NULL
-  )
+
+  if (nrow(edgelist) == 0) {
+    return(list())
+  }
+
+  # Create array of arc objects
+  arcs <- lapply(seq_len(nrow(edgelist)), function(i) {
+    list(
+      source_variable_id = as.character(edgelist$from[i]),
+      target_variable_id = as.character(edgelist$to[i])
+    )
+  })
+
   return(arcs)
 }
 
