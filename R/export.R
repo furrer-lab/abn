@@ -231,13 +231,7 @@ get_link_function <- function(distribution) {
     "multinomial" = "logit"
   )
 
-  return(link_functions[[distribution]] %||% "identity")
-}
-
-#' Helper function for NULL default
-#' @keywords internal
-`%||%` <- function(x, y) {
-  if (is.null(x)) y else x
+  return(if (is.null(link_functions[[distribution]])) "identity" else link_functions[[distribution]])
 }
 
 #' Extract states for categorical variables from data
