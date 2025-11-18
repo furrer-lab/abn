@@ -204,7 +204,7 @@ export_abnFit_mle_nodes <- function(object, ...) {
     variables_list[[length(variables_list) + 1]] <- variable_entry
 
     # Extract parameters based on distribution type
-    param_result <- extract_parameters_new_format(
+    param_result <- extract_parameters_by_distribution(
       coef_vec, se_vec, distribution, node_id,
       parent_nodes, parameter_counter, link_function
     )
@@ -260,27 +260,43 @@ extract_states_from_data <- function(object, node_id) {
   return(NULL)
 }
 
-#' Helper function to extract parameters based on distribution type without grouping
+#' Helper function to extract parameters based on distribution type
 #' @keywords internal
-extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id) {
-
+extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id,
+                                               parent_nodes, start_counter, link_function) {
   param_names <- names(coef_vec)
-
-  # Initialize parameter list
-  param_list <- list()
+  parameters <- list()
+  counter <- start_counter
 
   if (distribution %in% c("gaussian", "binomial", "poisson")) {
-
     # Find intercept parameter
     intercept_pattern <- paste0(node_id, "\\|intercept")
     intercept_idx <- grep(intercept_pattern, param_names, ignore.case = TRUE)
 
     if (length(intercept_idx) > 0) {
       intercept_name <- param_names[intercept_idx[1]]
-      param_list$intercept <- list(
-        estimate = coef_vec[intercept_name],
-        stderr = se_vec[intercept_name]
+
+      # Create parameter for intercept
+      param_entry <- list(
+        parameter_id = as.character(counter),
+        name = "intercept",
+        link_function_name = link_function,
+        source = list(
+          variable_id = node_id
+        ),
+        coefficients = list(
+          list(
+            value = unname(coef_vec[intercept_name]),
+            stderr = unname(se_vec[intercept_name]),
+            condition_type = "intercept",
+            conditions = list()
+          )
+        )
       )
+
+      parameters[[length(parameters) + 1]] <- param_entry
+      counter <- counter + 1
+
       # Remove intercept from remaining parameters
       param_names <- param_names[-intercept_idx[1]]
       coef_remaining <- coef_vec[param_names]
@@ -290,78 +306,132 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
       se_remaining <- se_vec
     }
 
-    # Store remaining coefficients (parent effects)
+    # Process parent coefficients as linear terms
     if (length(coef_remaining) > 0) {
-      param_list$coefficients <- list()
       for (i in seq_along(coef_remaining)) {
         param_name <- names(coef_remaining)[i]
-        param_list$coefficients[[param_name]] <- list(
-          estimate = coef_remaining[i],
-          stderr = se_remaining[i]
+        parent_var <- parent_nodes[i]
+
+        param_entry <- list(
+          parameter_id = as.character(counter),
+          name = param_name,
+          link_function_name = link_function,
+          source = list(
+            variable_id = node_id
+          ),
+          coefficients = list(
+            list(
+              value = unname(coef_remaining[i]),
+              stderr = unname(se_remaining[i]),
+              condition_type = "linear_term",
+              conditions = list(
+                list(
+                  parent_variable_id = parent_var,
+                  parent_state_id = NULL
+                )
+              )
+            )
+          )
         )
+
+        parameters[[length(parameters) + 1]] <- param_entry
+        counter <- counter + 1
       }
     }
 
   } else if (distribution == "multinomial") {
-
     # For multinomial, parameters are category-specific
-    # Extract intercepts and coefficients by category
     intercept_pattern <- paste0(node_id, "\\|intercept\\.")
     intercept_idx <- grep(intercept_pattern, param_names)
-
-    # Group parameters by category
-    param_list$categories <- list()
 
     if (length(intercept_idx) > 0) {
       # Extract category numbers from intercept names
       intercept_names <- param_names[intercept_idx]
       categories <- gsub(paste0(".*", node_id, "\\|intercept\\."), "", intercept_names)
 
+      # Process each category
       for (cat in unique(categories)) {
-        cat_pattern <- paste0("\\.", cat, "$")
-        cat_params <- grep(cat_pattern, param_names)
+        # Intercept for this category
+        cat_intercept_pattern <- paste0(node_id, "\\|intercept\\.", cat, "$")
+        cat_intercept_idx <- grep(cat_intercept_pattern, names(coef_vec))
 
-        if (length(cat_params) > 0) {
-          param_list$categories[[paste0("category_", cat)]] <- list()
-
-          for (idx in cat_params) {
-            param_name <- param_names[idx]
-            clean_name <- gsub(paste0(node_id, "\\|"), "", param_name)
-            param_list$categories[[paste0("category_", cat)]][[clean_name]] <- list(
-              estimate = coef_vec[idx],
-              stderr = se_vec[idx]
+        if (length(cat_intercept_idx) > 0) {
+          param_entry <- list(
+            parameter_id = as.character(counter),
+            name = paste0("prob_", cat),
+            link_function_name = link_function,
+            source = list(
+              variable_id = node_id,
+              state_id = cat
+            ),
+            coefficients = list(
+              list(
+                value = unname(coef_vec[cat_intercept_idx[1]]),
+                stderr = unname(se_vec[cat_intercept_idx[1]]),
+                condition_type = "intercept",
+                conditions = list()
+              )
             )
-          }
-        }
-      }
-    }
-
-    # Handle non-intercept multinomial parameters (parent effects)
-    non_intercept_idx <- setdiff(seq_along(param_names), intercept_idx)
-    if (length(non_intercept_idx) > 0) {
-      remaining_params <- param_names[non_intercept_idx]
-
-      for (idx in non_intercept_idx) {
-        param_name <- param_names[idx]
-        # Extract category information if present
-        if (grepl("\\d+$", param_name)) {
-          category <- gsub(".*([0-9]+)$", "\\1", param_name)
-          clean_name <- gsub("([0-9]+)$", "", param_name)
-
-          if (is.null(param_list$categories[[paste0("category_", category)]])) {
-            param_list$categories[[paste0("category_", category)]] <- list()
-          }
-
-          param_list$categories[[paste0("category_", category)]][[clean_name]] <- list(
-            estimate = coef_vec[idx],
-            stderr = se_vec[idx]
           )
+
+          parameters[[length(parameters) + 1]] <- param_entry
+          counter <- counter + 1
+        }
+
+        # Parent coefficients for this category
+        cat_pattern <- paste0("\\.", cat, "$")
+        cat_coef_idx <- grep(cat_pattern, param_names)
+        cat_coef_idx <- setdiff(cat_coef_idx, cat_intercept_idx)
+
+        if (length(cat_coef_idx) > 0) {
+          for (idx in cat_coef_idx) {
+            param_name <- param_names[idx]
+            # Try to match with parent nodes
+            parent_var <- NULL
+            for (p in parent_nodes) {
+              if (grepl(p, param_name)) {
+                parent_var <- p
+                break
+              }
+            }
+
+            if (!is.null(parent_var)) {
+              param_entry <- list(
+                parameter_id = as.character(counter),
+                name = param_name,
+                link_function_name = link_function,
+                source = list(
+                  variable_id = node_id,
+                  state_id = cat
+                ),
+                coefficients = list(
+                  list(
+                    value = unname(coef_vec[idx]),
+                    stderr = unname(se_vec[idx]),
+                    condition_type = "linear_term",
+                    conditions = list(
+                      list(
+                        parent_variable_id = parent_var,
+                        parent_state_id = NULL
+                      )
+                    )
+                  )
+                )
+              )
+
+              parameters[[length(parameters) + 1]] <- param_entry
+              counter <- counter + 1
+            }
+          }
         }
       }
     }
   }
 
-  return(param_list)
+  return(list(
+    parameters = parameters,
+    next_counter = counter
+  ))
 }
 
 #' Export node information from abnFit objects fitted with MLE (mixed effects)
