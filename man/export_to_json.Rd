@@ -9,11 +9,14 @@ export_to_json(export_list, format, file = NULL, pretty = TRUE)
 \arguments{
 \item{export_list}{The list to convert to JSON. Must contain variables, parameters, and arcs components, see details.}
 
-\item{format}{The export format, currently only "json" is supported.}
+\item{format}{Character string specifying the export format. Currently, only
+\code{"json"} is supported.}
 
-\item{file}{Optional file path to save JSON. If NULL, returns JSON string}
+\item{file}{Optional character string specifying a file path to save the JSON
+output. If \code{NULL} (default), the JSON string is returned.}
 
-\item{pretty}{Logical, whether to format JSON nicely}
+\item{pretty}{Logical, whether to format the JSON output with indentation for
+readability. Default is \code{TRUE}. Set to \code{FALSE} for more compact output.}
 }
 \description{
 Helper function to convert export list to JSON

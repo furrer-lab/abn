@@ -7,9 +7,9 @@
 export_abnFit_mle_arcs(object, ...)
 }
 \arguments{
-\item{object}{An object of class abnFit}
+\item{object}{An object of class \code{abnFit}, typically created by \code{\link{fitAbn}}.}
 
-\item{...}{Additional export options}
+\item{...}{Additional export options (currently unused, reserved for future extensions).}
 }
 \value{
 An array containing arc details: source_variable_id and target_variable_id for each arc.

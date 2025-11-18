@@ -14,17 +14,22 @@ export_abnFit_mle(
 )
 }
 \arguments{
-\item{object}{An object of class abnFit}
+\item{object}{An object of class \code{abnFit}, typically created by \code{\link{fitAbn}}.}
 
-\item{format}{The export format, currently only "json" is supported.}
+\item{format}{Character string specifying the export format. Currently, only
+\code{"json"} is supported.}
 
-\item{include_network}{Whether to include network structure}
+\item{include_network}{Logical, whether to include network structure (variables
+and arcs). Default is \code{TRUE}.}
 
-\item{scenario_id}{Optional identifier for the model run/scenario}
+\item{scenario_id}{Optional character string or numeric identifier for the model
+run or scenario. Useful for tracking multiple model versions or experiments.
+Default is \code{NULL}.}
 
-\item{label}{Optional name/label for the scenario}
+\item{label}{Optional character string providing a descriptive name or label
+for the scenario. Default is \code{NULL}.}
 
-\item{...}{Additional export options}
+\item{...}{Additional export options (currently unused, reserved for future extensions).}
 }
 \value{
 A named list with components: scenario_id, label, variables, parameters, arcs.
