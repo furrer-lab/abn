@@ -184,8 +184,9 @@ export_abnFit_mle_nodes <- function(object, ...) {
     # Determine link function based on distribution
     link_function <- get_link_function(distribution)
 
-    # Get parent nodes for this child
-    parent_nodes <- names(dag_matrix[, node_id])[dag_matrix[, node_id] == 1]
+    # Get parent nodes for this child (child is node_id, parents are columns with 1s)
+    node_idx <- which(colnames(dag_matrix) == node_id)
+    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
 
     # Create variable entry
     variable_entry <- list(
@@ -486,7 +487,7 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
   node_dists <- object$abnDag$data.dists
 
   # Get parent information from DAG
-  dag_matrix <- as.matrix(object$abnDag)
+  dag_matrix <- as.matrix(object$abnDag$dag)
 
   # Process each node
   for (node_id in node_names) {
@@ -503,7 +504,8 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
     link_function <- get_link_function(distribution)
 
     # Get parent nodes for this child
-    parent_nodes <- names(dag_matrix[, node_id])[dag_matrix[, node_id] == 1]
+    node_idx <- which(colnames(dag_matrix) == node_id)
+    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
 
     # Create variable entry
     variable_entry <- list(
