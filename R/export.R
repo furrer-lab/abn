@@ -435,23 +435,58 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
 }
 
 #' Export node information from abnFit objects fitted with MLE (mixed effects)
+#'
 #' @param object An object of class abnFit fitted with method = "mle" and group.var specified.
 #' @param ... Additional arguments (currently unused)
-#' @details This function is a placeholder for exporting node information from abnFit objects.
-#'  Currently, it raises an error indicating that export for grouped MLE models is not implemented.
-#' @return This function does not return a value. It raises an error.
+#'
+#' @details This function extracts node parameterisation information from abnFit objects
+#' that were fitted using the Maximum Likelihood Estimation (MLE) approach WITH
+#' mixed-effects (i.e., group.var was specified).
+#'
+#' For mixed-effects models, the structure includes:
+#' \itemize{
+#' \item Fixed effects: Population-level intercepts and coefficients
+#' \item Random effects: Group-level variance components (sigma, sigma_alpha)
+#' }
+#'
+#' The export format follows the same variables/parameters structure, but parameters
+#' will include both fixed-effect coefficients and random-effect variance components.
+#'
+#' @returns A named list with two components: variables and parameters.
+#' Variables is an array where each element represents a variable with its metadata.
+#' Parameters is an array where each element represents a parameter, including both
+#' fixed-effect coefficients and random-effect variance components.
+#'
 #' @keywords internal
 export_abnFit_mle_grouped_nodes <- function(object, ...) {
   # Input validation
+  if (!inherits(object, "abnFit")) {
+    stop("Object must be of class 'abnFit'", call. = FALSE)
+  }
+
+  if (object$method != "mle") {
+    stop("This function only handles abnFit objects fitted with method = 'mle'", call. = FALSE)
+  }
+
+  if (is.null(object$group.var)) {
+    stop("This function only handles grouped (mixed-effects) models", call. = FALSE)
+  }
+
   if (is.null(object$mu) || is.null(object$betas) ||
       is.null(object$sigma) || is.null(object$sigma_alpha)) {
     stop("abnFit object must contain 'mu', 'betas', 'sigma', and 'sigma_alpha' components", call. = FALSE)
   }
 
   # Initialize output
-  node_list <- list()
+  variables_list <- list()
+  parameters_list <- list()
+  parameter_counter <- 1
+
   node_names <- names(object$mu)
   node_dists <- object$abnDag$data.dists
+
+  # Get parent information from DAG
+  dag_matrix <- as.matrix(object$abnDag)
 
   # Process each node
   for (node_id in node_names) {
@@ -464,37 +499,43 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
     # Get distribution type for this node
     distribution <- node_dists[[node_id]]
 
-    # Extract parameters based on distribution type
-    param_list <- extract_parameters_by_distribution_grouping(
-      mu_val, betas_val, sigma_val, sigma_alpha_val, distribution, node_id
+    # Determine link function based on distribution
+    link_function <- get_link_function(distribution)
+
+    # Get parent nodes for this child
+    parent_nodes <- names(dag_matrix[, node_id])[dag_matrix[, node_id] == 1]
+
+    # Create variable entry
+    variable_entry <- list(
+      variable_id = node_id,
+      attribute_name = node_id,
+      model_type = distribution
     )
-    # Get degree of freedom if available
-    if (!is.null(object$df)) {
-      df_int <- object$df[[node_id]]
+
+    # Add states for categorical variables (multinomial)
+    if (distribution == "multinomial") {
+      variable_entry$states <- extract_states_from_data(object, node_id)
+    } else {
+      variable_entry$states <- NULL
     }
 
-    # Get mse
-    if (!is.null(object$mse)) {
-      mse_val <- object$mse[[node_id]]
-    }
+    variables_list[[length(variables_list) + 1]] <- variable_entry
 
-    # Get sse
-    if (!is.null(object$sse)) {
-      sse_val <- object$sse[[node_id]]
-    }
-
-    # Create node entry
-    node_list[[node_id]] <- list(
-      label = node_id,
-      distribution = node_dists[[node_id]],
-      df = if (exists("df_int")) df_int else NULL,
-      mse = if (exists("mse_val")) mse_val else NULL,
-      sse = if (exists("sse_val")) sse_val else NULL,
-      parameterisation = param_list
+    # Extract parameters for mixed-effects models
+    param_result <- extract_parameters_mixed_effects(
+      mu_val, betas_val, sigma_val, sigma_alpha_val,
+      distribution, node_id, parent_nodes, parameter_counter, link_function
     )
+
+    # Add parameters to list
+    parameters_list <- c(parameters_list, param_result$parameters)
+    parameter_counter <- param_result$next_counter
   }
 
-  return(node_list)
+  return(list(
+    variables = variables_list,
+    parameters = parameters_list
+  ))
 }
 
 #' Helper function to extract parameters based on distribution type with grouping
