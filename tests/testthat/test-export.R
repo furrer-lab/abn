@@ -52,6 +52,25 @@ test_that("exported JSON has correct top-level structure", {
       expect_true("variables" %in% names(parsed))
       expect_true("parameters" %in% names(parsed))
       expect_true("arcs" %in% names(parsed))
+      expect_null(parsed$scenario_id) # Default should be NULL
+      expect_null(parsed$label) # Default should be NULL
+    })
+  })
+})
+
+test_that("scenario_id and label can be set", {
+  suppressMessages({
+    suppressWarnings({
+      # ARRANGE
+      abn_fit <- create_test_abnfit_mle()
+
+      # ACT
+      json_str <- export_abnFit(abn_fit, scenario_id = "test_scenario_1", label = "Test Model")
+      parsed <- jsonlite::fromJSON(json_str)
+
+      # ASSERT
+      expect_equal(parsed$scenario_id, "test_scenario_1")
+      expect_equal(parsed$label, "Test Model")
     })
   })
 })
