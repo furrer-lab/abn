@@ -73,35 +73,40 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
 #' Export abnFit object fitted with MLE (non-mixed effects)
 #' @inheritParams export_abnFit
 #' @details This function handles abnFit objects fitted using Maximum Likelihood Estimation (MLE)
-#' without mixed-effects. It extracts graph metadata, arc details, and node parameterisations.
-#' @return A named list with components: graph, nodes, arcs.
+#' without mixed-effects. It extracts variables metadata, arc details, and node parameterisations.
+#' @return A named list with components: scenario_id, label, variables, parameters, arcs.
 #' @keywords internal
-export_abnFit_mle <- function(object, format, include_network, ...) {
-  # Extract graph metadata
-  graph_meta <- export_abnFit_mle_graph(object)
-
-  # Extract arc details
+export_abnFit_mle <- function(object, format, include_network, scenario_id = NULL,
+                              label = NULL, ...) {
+  # Extract arc details first
   arcs_details <- export_abnFit_mle_arcs(object)
 
-  # Extract node details
+  # Extract variable and parameter details based on grouping
   if (!is.null(object$group.var)) {
-    # With grouping
-    node_details <- export_abnFit_mle_grouped_nodes(object, format, include_network, ...)
-  } else if (is.null(object$group.var)) {
-    # Without grouping
-    node_details <- export_abnFit_mle_nodes(object, format, include_network, ...)
+    # With grouping (mixed-effects)
+    result <- export_abnFit_mle_grouped_nodes(object, format, include_network, ...)
+    variables_list <- result$variables
+    parameters_list <- result$parameters
   } else {
-    stop("Unexpected state for group.var in abnFit object.")
+    # Without grouping
+    result <- export_abnFit_mle_nodes(object, format, include_network, ...)
+    variables_list <- result$variables
+    parameters_list <- result$parameters
   }
 
-  # Create export list
-  return(
-    list(
-      graph = graph_meta,
-      nodes = node_details,
-      arcs = arcs_details
-    )
-  )
+  # Create export list with scenario_id and label at the top
+  export_structure <- list()
+
+  # Add scenario_id and label first (will be null if not provided)
+  export_structure$scenario_id <- scenario_id
+  export_structure$label <- label
+
+  # Add the main components
+  export_structure$variables <- variables_list
+  export_structure$parameters <- parameters_list
+  export_structure$arcs <- arcs_details
+
+  return(export_structure)
 }
 
 #' Export node information from abnFit objects fitted with MLE (non-mixed effects)
