@@ -86,6 +86,14 @@ jobs:
         run: |
             renv::deactivate()
         shell: Rscript {0}
+
+      - name: print libPaths and R Home
+        run: |
+            echo "R Library Paths are:"
+            Rscript -e '.libPaths()'
+            echo "R Home is:"
+            R RHOME
+        shell: bash
       - name: Configure ABN for installation
         run: |
           autoreconf
