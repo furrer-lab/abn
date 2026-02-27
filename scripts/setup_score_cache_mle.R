@@ -52,13 +52,20 @@ setupScoreCache.mle <-
         }
     }
 
-    # adjustment: storing of df
-    if (!is.null(adj.vars)) {
-        data.df.adj <- data.df
-        data.df <- data.df[, -adj.vars]
-        nvars <- nvars - length(adj.vars)
+    # unpacking the multinomial variables in the data.df
+    data.df.multi <- NULL
+    for (i in 1:nvars) {
+      if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+        data.df.multi <- as.data.frame(cbind(data.df.multi, data.df[, i]))
+        colnames(data.df.multi)[length(colnames(data.df.multi))] <- colnames(data.df)[i]
+      } else {
+        tmp <- model.matrix(~-1 + factor(data.df.lvl[, i]))
+        colnames(tmp) <- paste0(names(data.df.lvl)[i], levels(factor(data.df.lvl[, i])))
+        data.df.multi <- as.data.frame(cbind(data.df.multi, tmp))
+      }
     }
 
-    return(list(nvars = nvars, nobs = nobs, data.df.lvl = data.df.lvl, data.df = data.df))
+    return(list(nvars = nvars, nobs = nobs, data.df.lvl = data.df.lvl, data.df = data.df, data.df.multi = data.df.multi))
 
   }
+
