@@ -1,11 +1,14 @@
 # Refactoring cache creation with the idea to include it into the forLoopContent()
-computeCache_maria <- function(nvars,
+computeCache_inForLoop <- function(adj.vars,
+                                   nvars,
                                data.df,
-                               max.parents){
+                               data.df.lvl,
+                               max.parents,
+                               data.dists){
     node.defn_all.list <- vector('list', nvars)
     children_all.list <- vector('list', nvars)
     for (child in 1:nvars){
-      res <- forLoopNode_maria(child = child,
+      res <- forLoopNode_withCache(child = child,
                                max.parents = max.parents,
                                nvars = nvars)
       node.defn_all.list[[child]] <- res$node.defn
@@ -18,12 +21,36 @@ computeCache_maria <- function(nvars,
     children_all <- as.integer(children_all)
     ## HERE CODE for DAG RETAIN/BANNED
     mycache_all <- list(children = (children_all), node.defn = (node.defn_all))
+
+    # ASSUMING adj=NULL and ignore adjustment
+    mycache_all$node.defn.adj <- mycache_all$node.defn
+
+    ##----------------------
+    ## multinomial adaptation
+    ##----------------------
+    # unpacking the multinomial variables in the cache
+    repetition.multi <- vector(length = nvars)
+    for (i in 1:nvars) {
+      if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+        repetition.multi[i] <- 1
+      } else {
+        repetition.multi[i] <- nlevels(data.df.lvl[, i])
+      }
+    }
+    if (!is.null(adj.vars)) {
+      mycache_all$node.defn.multi <- mycache_all$node.defn.adj[, rep(1:nvars, repetition.multi)]
+      data.df <- data.df.adj[, colnames(mycache_all$node.defn.adj)]
+    } else {
+      mycache_all$node.defn.multi <- mycache_all$node.defn[, rep(1:nvars, repetition.multi)]
+
+    }
+
     mycache_all
 
   }
 
 
-forLoopNode_maria <- function(child,
+forLoopNode_withCache <- function(child,
                               max.parents,
                               nvars){
 
@@ -56,9 +83,95 @@ fun.return <- function(x, n) {
 
 
 # Extracted from buildScoreCache.mle()
-computeCache_orig <- function(nvars,
+computeCache_orig <- function(adj.vars,
+                              nvars,
                               data.df,
-                              max.parents){
+                              data.df.lvl,
+                              max.parents,
+                              data.dists){
+  node.defn <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+  children <- 1
+
+  for (j in 1:nvars) {
+    if (j != 1) {
+      node.defn <- rbind(node.defn, matrix(data = as.integer(0),
+                                           nrow = 1L, ncol = nvars))
+      children <- cbind(children, j)
+    }
+    # node.defn <- rbind(node.defn,matrix(data = 0,nrow = 1,ncol = n))
+
+    if(is.list(max.parents)){
+      stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
+      if(!is.null(which.nodes)){
+        stop("ISSUE: `max.parents` as list in combination with `which.nodes` is not yet implemented further down here. Try with single numeric as max.parents instead.")
+      }
+    } else if (is.numeric(max.parents) && length(max.parents)>1){
+      if (length(unique(max.parents)) == 1){
+        max.parents <- unique(max.parents)
+      } else {
+        stop("ISSUE: `max.parents` with node specific values that are not all the same, is not yet implemented further down here.")
+      }
+    }
+
+    if(max.parents == nvars){
+      max.parents <- max.parents-1
+      warning(paste("`max.par` == no. of variables. I set it to (no. of variables - 1)=", max.parents)) #NOTE: This might cause differences to method="bayes"!
+    }
+
+    for (i in 1:(max.parents)) {
+      tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+      tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
+
+      node.defn <- rbind(node.defn, tmp)
+
+      # children position
+      children <- cbind(children, t(rep(j, length(tmp[, 1]))))
+    }
+  }
+  colnames(node.defn) <- colnames(data.df)
+  ## Coerce numeric matrix into integer matrix !!!
+  #node.defn <- apply(node.defn, c(1, 2), function(x) {
+  #  (as.integer(x))
+  #})
+  mode(node.defn) <- "integer"
+  children <- as.integer(children)
+  mycache <- list(children = (children), node.defn = (node.defn))
+
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache$node.defn.adj <- mycache$node.defn
+
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
+    } else {
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
+    }
+  }
+  if (!is.null(adj.vars)) {
+    mycache$node.defn.multi <- mycache$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache$node.defn.adj)]
+  } else {
+    mycache$node.defn.multi <- mycache$node.defn[, rep(1:nvars, repetition.multi)]
+
+  }
+
+  return(mycache)
+}
+
+# In buildScoreCache.mle(): replace the growing objects within the loop with preallocation
+# and the do.Call outside the loop
+computeCache_doCall <- function(adj.vars,
+                                nvars,
+                              data.df,
+                              data.df.lvl,
+                              max.parents,
+                              data.dists){
   node.defn_all.list <- vector('list', nvars)
   children_all.list <- vector('list', nvars)
   for (j in 1:nvars) {
@@ -81,6 +194,30 @@ computeCache_orig <- function(nvars,
   mode(node.defn) <- "integer"
   children <- as.integer(children)
   mycache <- list(children = (children), node.defn = (node.defn))
-  mycache
+
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache$node.defn.adj <- mycache$node.defn
+
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
+    } else {
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
+    }
+  }
+  if (!is.null(adj.vars)) {
+    mycache$node.defn.multi <- mycache$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache$node.defn.adj)]
+  } else {
+    mycache$node.defn.multi <- mycache$node.defn[, rep(1:nvars, repetition.multi)]
+
+  }
+
+  return(mycache)
 }
 
