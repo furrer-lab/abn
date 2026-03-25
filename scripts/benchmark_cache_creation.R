@@ -7,7 +7,7 @@ params <- readRDS(file = "tests/testthat/testdata/input_score_cache_mle.RData")
 
 params$max.parents <- unique(params$max.parents)
 
-mleparams <- setupScoreCache.mle(data.df = params$data.df,
+mleparams <- setupScoreCache.mle_orig(data.df = params$data.df,
                                  data.dists = params$data.dists,
                                  adj.vars = params$adj.vars,
                                  cor.vars = params$cor.vars,
@@ -46,7 +46,7 @@ mleparams_mod <- setupScoreCache.mle_mod(data.df = params$data.df,
                                          control = params$control)
 
 # all.equal(mleparams$data.df.multi, mleparams_mod$data.df.multi, check.attributes = FALSE)
-res <- bench::mark(setupScoreCache.mle(data.df = params$data.df,
+res <- bench::mark(setupScoreCache.mle_orig(data.df = params$data.df,
                                        data.dists = params$data.dists,
                                        adj.vars = params$adj.vars,
                                        cor.vars = params$cor.vars,

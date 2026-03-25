@@ -1,7 +1,7 @@
 # Code extracted from buildScoreCache.mle() to get only the parameters
 # needed to build the cache matrix
 
-setupScoreCache.mle <-
+setupScoreCache.mle_orig <-
   function(data.df = NULL,
            data.dists = NULL,
            max.parents = NULL,
