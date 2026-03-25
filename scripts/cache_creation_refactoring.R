@@ -1,76 +1,85 @@
 # Refactoring cache creation with the idea to include it into the forLoopContent()
 computeCache_inForLoop <- function(adj.vars,
                                    nvars,
-                               data.df,
-                               data.df.lvl,
-                               max.parents,
-                               data.dists){
-    node.defn_all.list <- vector('list', nvars)
-    children_all.list <- vector('list', nvars)
-    for (child in 1:nvars){
-      res <- forLoopNode_withCache(child = child,
-                               max.parents = max.parents,
-                               nvars = nvars)
-      node.defn_all.list[[child]] <- res$node.defn
-      children_all.list[[child]] <- res$children
-    }
-    node.defn_all <- do.call('rbind', node.defn_all.list)
-    children_all <- do.call('cbind', children_all.list)
-    colnames(node.defn_all) <- colnames(data.df)
-    mode(node.defn_all) <- "integer"
-    children_all <- as.integer(children_all)
-    ## HERE CODE for DAG RETAIN/BANNED
-    mycache_all <- list(children = (children_all), node.defn = (node.defn_all))
+                                   data.df,
+                                   data.df.lvl,
+                                   max.parents,
+                                   data.dists){
+  tmp.list <- vector('list', max.parents)
+  tmp_nrow <- 1
+  for (i in 1:(max.parents)) {
+    tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+    tmp_nrow <- tmp_nrow + nrow(tmp.list[[i]])
+  }
+  cache_nrow <- nvars * (tmp_nrow)
+  n_filled <- 0
+  node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
+  children.list <- vector('list', cache_nrow)
+  for (child in 1:nvars){
+    res <- forLoopNode_withCache_mod(child = child,
+                                 tmp.list = tmp.list,
+                                 tmp_nrow = tmp_nrow,
+                                 max.parents = max.parents,
+                                 nvars = nvars)
+    node.defn_all.list[(n_filled+1):(n_filled+tmp_nrow),] <- res$node.defn
+    children.list[(n_filled+1):(n_filled+tmp_nrow)] <- res$children
+    n_filled <- n_filled + tmp_nrow
+  }
+  node.defn <- node.defn_all.list
+  children <- unlist(children.list)
+  colnames(node.defn) <- colnames(data.df)
+  mode(node.defn) <- "integer"
+  children <- as.integer(children)
+  ## HERE CODE for DAG RETAIN/BANNED
+  mycache_all <- list(children = (children), node.defn = (node.defn))
 
-    # ASSUMING adj=NULL and ignore adjustment
-    mycache_all$node.defn.adj <- mycache_all$node.defn
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache_all$node.defn.adj <- mycache_all$node.defn
 
-    ##----------------------
-    ## multinomial adaptation
-    ##----------------------
-    # unpacking the multinomial variables in the cache
-    repetition.multi <- vector(length = nvars)
-    for (i in 1:nvars) {
-      if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
-        repetition.multi[i] <- 1
-      } else {
-        repetition.multi[i] <- nlevels(data.df.lvl[, i])
-      }
-    }
-    if (!is.null(adj.vars)) {
-      mycache_all$node.defn.multi <- mycache_all$node.defn.adj[, rep(1:nvars, repetition.multi)]
-      data.df <- data.df.adj[, colnames(mycache_all$node.defn.adj)]
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
     } else {
-      mycache_all$node.defn.multi <- mycache_all$node.defn[, rep(1:nvars, repetition.multi)]
-
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
     }
-
-    mycache_all
+  }
+  if (!is.null(adj.vars)) {
+    mycache_all$node.defn.multi <- mycache_all$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache_all$node.defn.adj)]
+  } else {
+    mycache_all$node.defn.multi <- mycache_all$node.defn[, rep(1:nvars, repetition.multi)]
 
   }
 
+  mycache_all
+
+}
 
 forLoopNode_withCache <- function(child,
-                              max.parents,
-                              nvars){
-
-    node.defn_temp.list <- vector("list", max.parents+1)
-    children_temp.list <- vector("list", max.parents+1)
-    node.defn_temp.list[[1]] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-    children_temp.list[[1]] <- child
-    j <- child
-    for (i in 1:(max.parents)) {
-      tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
-      tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-
-      node.defn_temp.list[[i+1]] <- tmp
-      children_temp.list[[i+1]] <- t(rep(j, length(tmp[, 1])))
-    }
-    node.defn_temp <- do.call('rbind', node.defn_temp.list)
-    children_temp <- do.call('cbind', children_temp.list)
-    mycache_temp <- list(children = (children_temp), node.defn = (node.defn_temp))
-    mycache_temp
+                                  tmp.list,
+                                  tmp_nrow,
+                                  max.parents,
+                                  nvars){
+  n_filled <- 0
+  node.defn_temp.list <- matrix(data = as.integer(0), nrow = tmp_nrow, ncol = nvars)
+  children_temp.list <- vector("list", tmp_nrow)
+  n_filled <- n_filled + 1
+  node.defn_temp.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+  children_temp.list[[n_filled]] <- child
+  for (i in 1:(max.parents)) {
+    tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = child - 1)))
+    node.defn_temp.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
+    children_temp.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(child, length(tmp[, 1])))
+    n_filled <- n_filled + nrow(tmp)
   }
+  mycache_temp <- list(children = (children_temp.list), node.defn = (node.defn_temp.list))
+  mycache_temp
+}
 
 fun.return <- function(x, n) {
   # x: vector or single integer

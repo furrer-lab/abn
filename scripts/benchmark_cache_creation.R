@@ -131,6 +131,17 @@ iterations = 100))
 # In cache_prealloc, the function has been refactored to use matrix preallocation. The calculation of the `tmp`
 # matrices has been refactored to reduce duplicated computation.
 
+#expression           min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory
+#<bch:expr>      <bch:tm> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>
+#  1 cache_orig        77.4ms 84.5ms      11.3   47.88MB    16.7    100   148      8.88s <named list> <Rprofmem>
+#  2 cache_doCall      60.8ms 67.2ms      14.2   10.66MB     6.69   100    47      7.03s <named list> <Rprofmem>
+#  3 cache_inForLoop   39.5ms 41.4ms      21.1   11.21MB     9.07   100    43      4.74s <named list> <Rprofmem>
+#  4 cache_prealloc    38.7ms 40.6ms      21.7    9.38MB     8.01   100    37      4.62s <named list> <Rprofmem>
+# Having the cache calculation in the forLoopContent function, doesn't seem performing better than the cache_prealloc
+# Performance has to be compared when this logic is integrated in the fit calculation, which would change the length
+# of the foreach loop and would avoid passing the cache matrix to the forLoopContent function at every iteration.
+
+
 # To visualize results:
 library(ggplot2)
 library(dplyr)
