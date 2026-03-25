@@ -105,6 +105,7 @@ res <- bench::mark(setupScoreCache.mle_orig(data.df = params$data.df,
 cache_orig = computeCache_orig(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_doCall = computeCache_doCall(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_inForLoop = computeCache_inForLoop(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
+cache_prealloc = computeCache_prealloc(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 min_time = 0.5,
 iterations = 100))
 # Results of the benchmark:
@@ -119,6 +120,16 @@ iterations = 100))
 # - both doCall and inForLoop have NO "GC every iteration" warning, with about 70% of clean iterations, so decent result
 # - using a matrix preallocation instead of a list preallocation might improve.
 # Memory allocation is anyhow reduced.
+
+# A tibble: 4 × 13
+#expression           min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory
+#<bch:expr>      <bch:tm> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>
+#  1 cache_orig        75.8ms 84.4ms      11.4   47.88MB    17.6    100   155      8.81s <named list> <Rprofmem>
+#  2 cache_doCall      59.7ms 64.6ms      14.1   10.66MB     6.21   100    44      7.08s <named list> <Rprofmem>
+#  3 cache_inForLoop   59.6ms 63.3ms      14.7   10.91MB     6.16   100    42      6.82s <named list> <Rprofmem>
+#  4 cache_prealloc    37.6ms 39.8ms      23.2    9.38MB     8.83   100    38       4.3s <named list> <Rprofmem>
+# In cache_prealloc, the function has been refactored to use matrix preallocation. The calculation of the `tmp`
+# matrices has been refactored to reduce duplicated computation.
 
 # To visualize results:
 library(ggplot2)
