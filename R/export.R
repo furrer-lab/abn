@@ -232,6 +232,13 @@ export_abnFit <- function(object, format = "json", include_network = TRUE,
     stop("Input object must be of class 'abnFit'")
   }
 
+  if (is.null(scenario_id)) {
+    scenario_id <- object$scenario_id
+  }
+  if (is.null(label)) {
+    label <- object$label
+  }
+
   # Dispatch based on method
   if (object$method == "mle") {
     export_list <- export_abnFit_mle(object, format, include_network,
@@ -450,10 +457,14 @@ get_link_function <- function(distribution) {
   return(if (is.null(link_functions[[distribution]])) "identity" else link_functions[[distribution]])
 }
 
-#' Extract states for categorical variables from data
+#' Extract states for categorical variables from data or stored states
 #' @keywords internal
 extract_states_from_data <- function(object, node_id) {
-  # Get the data for this variable
+  if (!is.null(object$multinomial.states) &&
+      !is.null(object$multinomial.states[[node_id]])) {
+    return(object$multinomial.states[[node_id]])
+  }
+
   data_col <- object$abnDag$data.df[[node_id]]
 
   if (is.factor(data_col) || is.character(data_col)) {
@@ -462,13 +473,33 @@ extract_states_from_data <- function(object, node_id) {
       list(
         state_id = as.character(i),
         value_name = unique_vals[i],
-        is_baseline = (i == 1)  # First level is baseline
+        is_baseline = (i == 1)
       )
     })
     return(states)
   }
 
   return(NULL)
+}
+
+#' Parse parent variable name from a coefficient name
+#'
+#' Coefficient names follow the pattern "child|parent" or "child|parent.category".
+#' This function extracts the parent portion, stripping any category suffix.
+#'
+#' @param coef_name Coefficient name string
+#' @keywords internal
+parse_parent_from_coef_name <- function(coef_name) {
+  parts <- strsplit(coef_name, "\\|", fixed = FALSE)[[1]]
+  if (length(parts) < 2) {
+    return(NULL)
+  }
+  parent_part <- parts[2]
+  parent_part <- gsub("\\.[0-9]+$", "", parent_part)
+  if (parent_part == "") {
+    return(NULL)
+  }
+  return(parent_part)
 }
 
 #' Helper function to extract parameters based on distribution type
@@ -521,7 +552,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
     if (length(coef_remaining) > 0) {
       for (i in seq_along(coef_remaining)) {
         param_name <- names(coef_remaining)[i]
-        parent_var <- parent_nodes[i]
+        parent_var <- parse_parent_from_coef_name(param_name)
 
         param_entry <- list(
           parameter_id = as.character(counter),
@@ -551,91 +582,70 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
     }
 
   } else if (distribution == "multinomial") {
-    # For multinomial, parameters are category-specific
-    intercept_pattern <- paste0(node_id, "\\|intercept\\.")
-    intercept_idx <- grep(intercept_pattern, param_names)
+    bare_intercept_pattern <- paste0("^", node_id, "\\|intercept$")
+    bare_intercept_idx <- grep(bare_intercept_pattern, param_names)
 
-    if (length(intercept_idx) > 0) {
-      # Extract category numbers from intercept names
-      intercept_names <- param_names[intercept_idx]
-      categories <- gsub(paste0(".*", node_id, "\\|intercept\\."), "", intercept_names)
+    if (length(bare_intercept_idx) > 0) {
+      for (idx in bare_intercept_idx) {
+        param_name <- param_names[idx]
+        param_entry <- list(
+          parameter_id = as.character(counter),
+          name = param_name,
+          link_function_name = link_function,
+          source = list(
+            variable_id = node_id,
+            state_id = "1"
+          ),
+          coefficients = list(
+            list(
+              value = unname(coef_vec[idx]),
+              stderr = unname(se_vec[idx]),
+              condition_type = "intercept",
+              conditions = list()
+            )
+          )
+        )
+        parameters[[length(parameters) + 1]] <- param_entry
+        counter <- counter + 1
+      }
+    }
 
-      # Process each category
-      for (cat in unique(categories)) {
-        # Intercept for this category
-        cat_intercept_pattern <- paste0(node_id, "\\|intercept\\.", cat, "$")
-        cat_intercept_idx <- grep(cat_intercept_pattern, names(coef_vec))
+    suffixed_intercept_pattern <- paste0("^", node_id, "\\|intercept\\.[0-9]+$")
+    suffixed_intercept_idx <- grep(suffixed_intercept_pattern, param_names)
+    all_intercept_idx <- c(bare_intercept_idx, suffixed_intercept_idx)
 
-        if (length(cat_intercept_idx) > 0) {
-          param_entry <- list(
-            parameter_id = as.character(counter),
-            name = paste0("prob_", cat),
-            link_function_name = link_function,
-            source = list(
-              variable_id = node_id,
-              state_id = cat
-            ),
-            coefficients = list(
+    for (i in seq_along(param_names)) {
+      if (i %in% all_intercept_idx) next
+      param_name <- param_names[i]
+      parent_var <- parse_parent_from_coef_name(param_name)
+      if (is.null(parent_var)) next
+
+      if (parent_var == "intercept") next
+
+      param_entry <- list(
+        parameter_id = as.character(counter),
+        name = param_name,
+        link_function_name = link_function,
+        source = list(
+          variable_id = node_id,
+          state_id = "1"
+        ),
+        coefficients = list(
+          list(
+            value = unname(coef_vec[i]),
+            stderr = unname(se_vec[i]),
+            condition_type = "linear_term",
+            conditions = list(
               list(
-                value = unname(coef_vec[cat_intercept_idx[1]]),
-                stderr = unname(se_vec[cat_intercept_idx[1]]),
-                condition_type = "intercept",
-                conditions = list()
+                parent_variable_id = parent_var,
+                parent_state_id = NULL
               )
             )
           )
-
-          parameters[[length(parameters) + 1]] <- param_entry
-          counter <- counter + 1
-        }
-
-        # Parent coefficients for this category
-        cat_pattern <- paste0("\\.", cat, "$")
-        cat_coef_idx <- grep(cat_pattern, param_names)
-        cat_coef_idx <- setdiff(cat_coef_idx, cat_intercept_idx)
-
-        if (length(cat_coef_idx) > 0) {
-          for (idx in cat_coef_idx) {
-            param_name <- param_names[idx]
-            # Try to match with parent nodes
-            parent_var <- NULL
-            for (p in parent_nodes) {
-              if (grepl(p, param_name)) {
-                parent_var <- p
-                break
-              }
-            }
-
-            if (!is.null(parent_var)) {
-              param_entry <- list(
-                parameter_id = as.character(counter),
-                name = param_name,
-                link_function_name = link_function,
-                source = list(
-                  variable_id = node_id,
-                  state_id = cat
-                ),
-                coefficients = list(
-                  list(
-                    value = unname(coef_vec[idx]),
-                    stderr = unname(se_vec[idx]),
-                    condition_type = "linear_term",
-                    conditions = list(
-                      list(
-                        parent_variable_id = parent_var,
-                        parent_state_id = NULL
-                      )
-                    )
-                  )
-                )
-              )
-
-              parameters[[length(parameters) + 1]] <- param_entry
-              counter <- counter + 1
-            }
-          }
-        }
-      }
+        )
+      )
+      parameters[[length(parameters) + 1]] <- param_entry
+      counter <- counter + 1
     }
   }
 
@@ -1005,19 +1015,23 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
 #' @return An array containing arc details: source_variable_id and target_variable_id for each arc.
 #' @keywords internal
 export_abnFit_mle_arcs <- function(object, ...) {
-  edgelist <- as.data.frame(object$abnDag)
+  dag_matrix <- object$abnDag$dag
 
-  if (nrow(edgelist) == 0) {
+  if (nrow(dag_matrix) == 0 || ncol(dag_matrix) == 0) {
     return(list())
   }
 
-  # Create array of arc objects
-  arcs <- lapply(seq_len(nrow(edgelist)), function(i) {
-    list(
-      source_variable_id = as.character(edgelist$from[i]),
-      target_variable_id = as.character(edgelist$to[i])
-    )
-  })
+  arcs <- list()
+  for (i in seq_len(nrow(dag_matrix))) {
+    for (j in seq_len(ncol(dag_matrix))) {
+      if (dag_matrix[i, j] == 1) {
+        arcs[[length(arcs) + 1]] <- list(
+          source_variable_id = rownames(dag_matrix)[i],
+          target_variable_id = colnames(dag_matrix)[j]
+        )
+      }
+    }
+  }
 
   return(arcs)
 }
