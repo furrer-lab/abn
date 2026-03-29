@@ -9,25 +9,25 @@
   ],
   "variables": [
     {
-      "variable_id": "101",
+      "variable_id": "1",
       "attribute_name": "b1",
       "model_type": "binomial",
       "transform_params": {}
     },
     {
-      "variable_id": "102",
+      "variable_id": "2",
       "attribute_name": "p1",
       "model_type": "poisson",
       "transform_params": {}
     },
     {
-      "variable_id": "103",
+      "variable_id": "3",
       "attribute_name": "g1",
       "model_type": "gaussian",
       "transform_params": {}
     },
     {
-      "variable_id": "104",
+      "variable_id": "4",
       "attribute_name": "c1",
       "model_type": "multinomial",
       "transform_params": {},
@@ -38,7 +38,7 @@
       ]
     },
     {
-      "variable_id": "105",
+      "variable_id": "5",
       "attribute_name": "b2",
       "model_type": "binomial",
       "transform_params": {}
@@ -49,7 +49,7 @@
       "parameter_id": "1",
       "name": "intercept",
       "link_function_id": "4",
-      "source": {"variable_id": "101"},
+      "source": {"variable_id": "1"},
       "coefficients": [
         {
           "value": -0.5,
@@ -63,7 +63,7 @@
       "parameter_id": "2",
       "name": "b1|b2",
       "link_function_id": "4",
-      "source": {"variable_id": "101"},
+      "source": {"variable_id": "1"},
       "coefficients": [
         {
           "value": 0.8,
@@ -71,7 +71,7 @@
           "condition_type": "linear_term",
           "conditions": [
             {
-              "parent_variable_id": "105",
+              "parent_variable_id": "5",
               "parent_state_id": null
             }
           ]
@@ -82,7 +82,7 @@
       "parameter_id": "3",
       "name": "intercept",
       "link_function_id": "3",
-      "source": {"variable_id": "102"},
+      "source": {"variable_id": "2"},
       "coefficients": [
         {
           "value": 0.3,
@@ -96,7 +96,7 @@
       "parameter_id": "4",
       "name": "p1|b1",
       "link_function_id": "3",
-      "source": {"variable_id": "102"},
+      "source": {"variable_id": "2"},
       "coefficients": [
         {
           "value": 0.4,
@@ -104,7 +104,7 @@
           "condition_type": "linear_term",
           "conditions": [
             {
-              "parent_variable_id": "101",
+              "parent_variable_id": "1",
               "parent_state_id": null
             }
           ]
@@ -115,7 +115,7 @@
       "parameter_id": "5",
       "name": "intercept",
       "link_function_id": "2",
-      "source": {"variable_id": "103"},
+      "source": {"variable_id": "3"},
       "coefficients": [
         {
           "value": 1.0,
@@ -129,7 +129,7 @@
       "parameter_id": "6",
       "name": "g1|p1",
       "link_function_id": "2",
-      "source": {"variable_id": "103"},
+      "source": {"variable_id": "3"},
       "coefficients": [
         {
           "value": 0.6,
@@ -137,7 +137,7 @@
           "condition_type": "linear_term",
           "conditions": [
             {
-              "parent_variable_id": "102",
+              "parent_variable_id": "2",
               "parent_state_id": null
             }
           ]
@@ -148,7 +148,7 @@
       "parameter_id": "7",
       "name": "intercept",
       "link_function_id": "4",
-      "source": {"variable_id": "105"},
+      "source": {"variable_id": "5"},
       "coefficients": [
         {
           "value": 0.1,
@@ -162,7 +162,7 @@
       "parameter_id": "8",
       "name": "prob_1",
       "link_function_id": "4",
-      "source": {"variable_id": "104", "state_id": "1"},
+      "source": {"variable_id": "4", "state_id": "1"},
       "coefficients": [
         {
           "value": 0,
@@ -176,7 +176,7 @@
       "parameter_id": "9",
       "name": "prob_2",
       "link_function_id": "4",
-      "source": {"variable_id": "104", "state_id": "2"},
+      "source": {"variable_id": "4", "state_id": "2"},
       "coefficients": [
         {
           "value": -0.2,
@@ -190,7 +190,7 @@
       "parameter_id": "10",
       "name": "prob_3",
       "link_function_id": "4",
-      "source": {"variable_id": "104", "state_id": "3"},
+      "source": {"variable_id": "4", "state_id": "3"},
       "coefficients": [
         {
           "value": 0.5,
@@ -203,16 +203,16 @@
   ],
   "arcs": [
     {
-      "source_variable_id": "105",
-      "target_variable_id": "101"
+      "source_variable_id": "1",
+      "target_variable_id": "2"
     },
     {
-      "source_variable_id": "101",
-      "target_variable_id": "102"
+      "source_variable_id": "2",
+      "target_variable_id": "3"
     },
     {
-      "source_variable_id": "102",
-      "target_variable_id": "103"
+      "source_variable_id": "5",
+      "target_variable_id": "1"
     }
   ]
 }

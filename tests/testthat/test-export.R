@@ -93,9 +93,9 @@ test_that("variables array contains all expected nodes with correct structure", 
       expect_true("attribute_name" %in% names(parsed$variables))
       expect_true("model_type" %in% names(parsed$variables))
 
-      # Check all node IDs are present
+      # Check all node names are present (in attribute_name, not variable_id)
       expected_nodes <- c("b1", "b2", "g1", "g2", "m1", "m2", "p1", "p2")
-      expect_true(all(expected_nodes %in% parsed$variables$variable_id))
+      expect_true(all(expected_nodes %in% parsed$variables$attribute_name))
 
       # Check model types are valid
       valid_types <- c("gaussian", "binomial", "poisson", "multinomial")
