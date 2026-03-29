@@ -1,0 +1,75 @@
+{
+  "scenario_id": "test_scenario_1",
+  "label": "Test ABN Model",
+  "variables": [
+    {
+      "variable_id": "b1",
+      "attribute_name": "b1",
+      "model_type": "binomial",
+      "states": null
+    },
+    {
+      "variable_id": "p1",
+      "attribute_name": "p1",
+      "model_type": "poisson",
+      "states": null
+    },
+    {
+      "variable_id": "g1",
+      "attribute_name": "g1",
+      "model_type": "gaussian",
+      "states": null
+    },
+    {
+      "variable_id": "c1",
+      "attribute_name": "c1",
+      "model_type": "multinomial",
+      "states": [
+        {"state_id": "1", "value_name": "Low", "is_baseline": true},
+        {"state_id": "2", "value_name": "Medium", "is_baseline": false},
+        {"state_id": "3", "value_name": "High", "is_baseline": false}
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "1",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "b1"},
+      "coefficients": [
+        {
+          "value": -0.5,
+          "stderr": 0.1,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "2",
+      "name": "b2",
+      "link_function_name": "logit",
+      "source": {"variable_id": "b1"},
+      "coefficients": [
+        {
+          "value": 0.8,
+          "stderr": 0.2,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "b2",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "arcs": [
+    {
+      "source_variable_id": "b2",
+      "target_variable_id": "b1"
+    }
+  ]
+}
