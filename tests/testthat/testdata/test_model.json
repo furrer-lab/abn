@@ -29,6 +29,12 @@
         {"state_id": "2", "value_name": "Medium", "is_baseline": false},
         {"state_id": "3", "value_name": "High", "is_baseline": false}
       ]
+    },
+    {
+      "variable_id": "b2",
+      "attribute_name": "b2",
+      "model_type": "binomial",
+      "states": null
     }
   ],
   "parameters": [
@@ -48,7 +54,7 @@
     },
     {
       "parameter_id": "2",
-      "name": "b2",
+      "name": "b1|b2",
       "link_function_name": "logit",
       "source": {"variable_id": "b1"},
       "coefficients": [
@@ -64,12 +70,128 @@
           ]
         }
       ]
+    },
+    {
+      "parameter_id": "3",
+      "name": "intercept",
+      "link_function_name": "log",
+      "source": {"variable_id": "p1"},
+      "coefficients": [
+        {
+          "value": 0.3,
+          "stderr": 0.05,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "4",
+      "name": "p1|b1",
+      "link_function_name": "log",
+      "source": {"variable_id": "p1"},
+      "coefficients": [
+        {
+          "value": 0.4,
+          "stderr": 0.08,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "b1",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "5",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {"variable_id": "g1"},
+      "coefficients": [
+        {
+          "value": 1.0,
+          "stderr": 0.2,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "6",
+      "name": "g1|p1",
+      "link_function_name": "identity",
+      "source": {"variable_id": "g1"},
+      "coefficients": [
+        {
+          "value": 0.6,
+          "stderr": 0.1,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "p1",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "7",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "b2"},
+      "coefficients": [
+        {
+          "value": 0.1,
+          "stderr": 0.15,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "8",
+      "name": "prob_2",
+      "link_function_name": "logit",
+      "source": {"variable_id": "c1", "state_id": "2"},
+      "coefficients": [
+        {
+          "value": -0.2,
+          "stderr": 0.3,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "9",
+      "name": "prob_3",
+      "link_function_name": "logit",
+      "source": {"variable_id": "c1", "state_id": "3"},
+      "coefficients": [
+        {
+          "value": 0.5,
+          "stderr": 0.25,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
     }
   ],
   "arcs": [
     {
       "source_variable_id": "b2",
       "target_variable_id": "b1"
+    },
+    {
+      "source_variable_id": "b1",
+      "target_variable_id": "p1"
+    },
+    {
+      "source_variable_id": "p1",
+      "target_variable_id": "g1"
     }
   ]
 }
