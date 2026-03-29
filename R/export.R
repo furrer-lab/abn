@@ -300,19 +300,28 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
 #' @return A named list with components: scenario_id, label, variables, parameters, arcs.
 #' @keywords internal
 export_abnFit_mle <- function(object, format, include_network, scenario_id = NULL,
-                              label = NULL, ...) {
-  # Extract arc details first
-  arcs_details <- export_abnFit_mle_arcs(object)
+                               label = NULL, ...) {
+  # Create variable ID mapping (numeric IDs in order of appearance)
+  node_names <- names(object$coef)
+  var_id_map <- stats::setNames(
+    as.character(seq_along(node_names)),
+    node_names
+  )
+
+  # Extract arc details with variable ID mapping
+  arcs_details <- export_abnFit_mle_arcs(object, var_id_map = var_id_map)
 
   # Extract variable and parameter details based on grouping
   if (!is.null(object$group.var)) {
     # With grouping (mixed-effects)
-    result <- export_abnFit_mle_grouped_nodes(object, format, include_network, ...)
+    result <- export_abnFit_mle_grouped_nodes(object, format, include_network,
+                                              var_id_map = var_id_map, ...)
     variables_list <- result$variables
     parameters_list <- result$parameters
   } else {
     # Without grouping
-    result <- export_abnFit_mle_nodes(object, format, include_network, ...)
+    result <- export_abnFit_mle_nodes(object, format, include_network,
+                                      var_id_map = var_id_map, ...)
     variables_list <- result$variables
     parameters_list <- result$parameters
   }
@@ -364,7 +373,7 @@ export_abnFit_mle <- function(object, format, include_network, scenario_id = NUL
 #' Parameters is an array where each element represents a parameter with its coefficients.
 #'
 #' @keywords internal
-export_abnFit_mle_nodes <- function(object, ...) {
+export_abnFit_mle_nodes <- function(object, var_id_map = NULL, ...) {
   # Input validation
   if (!inherits(object, "abnFit")) {
     stop("Object must be of class 'abnFit'", call. = FALSE)
@@ -389,6 +398,14 @@ export_abnFit_mle_nodes <- function(object, ...) {
   # Get parent information from DAG
   dag_matrix <- as.matrix(object$abnDag$dag)
 
+  # If var_id_map not provided, create it
+  if (is.null(var_id_map)) {
+    var_id_map <- stats::setNames(
+      as.character(seq_along(node_names)),
+      node_names
+    )
+  }
+
   # Process each node
   for (node_id in node_names) {
     # Extract coefficients and standard errors for this node
@@ -411,9 +428,9 @@ export_abnFit_mle_nodes <- function(object, ...) {
     node_idx <- which(colnames(dag_matrix) == node_id)
     parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
 
-    # Create variable entry
+    # Create variable entry with numeric ID
     variable_entry <- list(
-      variable_id = node_id,
+      variable_id = var_id_map[node_id],
       attribute_name = node_id,
       model_type = distribution
     )
@@ -430,7 +447,7 @@ export_abnFit_mle_nodes <- function(object, ...) {
     # Extract parameters based on distribution type
     param_result <- extract_parameters_by_distribution(
       coef_vec, se_vec, distribution, node_id,
-      parent_nodes, parameter_counter, link_function
+      parent_nodes, parameter_counter, link_function, var_id_map
     )
 
     # Add parameters to list
@@ -505,7 +522,8 @@ parse_parent_from_coef_name <- function(coef_name) {
 #' Helper function to extract parameters based on distribution type
 #' @keywords internal
 extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id,
-                                               parent_nodes, start_counter, link_function) {
+                                               parent_nodes, start_counter, link_function,
+                                               var_id_map = NULL) {
   param_names <- names(coef_vec)
   parameters <- list()
   counter <- start_counter
@@ -524,7 +542,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
         name = "intercept",
         link_function_name = link_function,
         source = list(
-          variable_id = node_id
+          variable_id = var_id_map[node_id]
         ),
         coefficients = list(
           list(
@@ -559,7 +577,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
           name = param_name,
           link_function_name = link_function,
           source = list(
-            variable_id = node_id
+            variable_id = var_id_map[node_id]
           ),
           coefficients = list(
             list(
@@ -568,7 +586,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
               condition_type = "linear_term",
               conditions = list(
                 list(
-                  parent_variable_id = parent_var,
+                  parent_variable_id = var_id_map[parent_var],
                   parent_state_id = NULL
                 )
               )
@@ -593,7 +611,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
           name = param_name,
           link_function_name = link_function,
           source = list(
-            variable_id = node_id,
+            variable_id = var_id_map[node_id],
             state_id = "1"
           ),
           coefficients = list(
@@ -627,7 +645,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
         name = param_name,
         link_function_name = link_function,
         source = list(
-          variable_id = node_id,
+          variable_id = var_id_map[node_id],
           state_id = "1"
         ),
         coefficients = list(
@@ -637,7 +655,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
             condition_type = "linear_term",
             conditions = list(
               list(
-                parent_variable_id = parent_var,
+                parent_variable_id = var_id_map[parent_var],
                 parent_state_id = NULL
               )
             )
@@ -679,7 +697,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
 #' fixed-effect coefficients and random-effect variance components.
 #'
 #' @keywords internal
-export_abnFit_mle_grouped_nodes <- function(object, ...) {
+export_abnFit_mle_grouped_nodes <- function(object, var_id_map = NULL, ...) {
   # Input validation
   if (!inherits(object, "abnFit")) {
     stop("Object must be of class 'abnFit'", call. = FALSE)
@@ -709,6 +727,14 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
   # Get parent information from DAG
   dag_matrix <- as.matrix(object$abnDag$dag)
 
+  # If var_id_map not provided, create it
+  if (is.null(var_id_map)) {
+    var_id_map <- stats::setNames(
+      as.character(seq_along(node_names)),
+      node_names
+    )
+  }
+
   # Process each node
   for (node_id in node_names) {
     # Extract parameters for this node
@@ -727,9 +753,9 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
     node_idx <- which(colnames(dag_matrix) == node_id)
     parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
 
-    # Create variable entry
+    # Create variable entry with numeric ID
     variable_entry <- list(
-      variable_id = node_id,
+      variable_id = var_id_map[node_id],
       attribute_name = node_id,
       model_type = distribution
     )
@@ -746,7 +772,8 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
     # Extract parameters for mixed-effects models
     param_result <- extract_parameters_mixed_effects(
       mu_val, betas_val, sigma_val, sigma_alpha_val,
-      distribution, node_id, parent_nodes, parameter_counter, link_function
+      distribution, node_id, parent_nodes, parameter_counter, link_function,
+      var_id_map
     )
 
     # Add parameters to list
@@ -783,7 +810,7 @@ export_abnFit_mle_grouped_nodes <- function(object, ...) {
 #' @keywords internal
 extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
                                              distribution, node_id, parent_nodes,
-                                             start_counter, link_function) {
+                                             start_counter, link_function, var_id_map = NULL) {
   parameters <- list()
   counter <- start_counter
 
@@ -795,7 +822,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
         parameter_id = as.character(counter),
         name = "intercept",
         link_function_name = link_function,
-        source = list(variable_id = node_id),
+        source = list(variable_id = var_id_map[node_id]),
         coefficients = list(
           list(
             value = as.numeric(mu)[1],
@@ -833,7 +860,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
             parameter_id = as.character(counter),
             name = beta_name,
             link_function_name = link_function,
-            source = list(variable_id = node_id),
+            source = list(variable_id = var_id_map[node_id]),
             coefficients = list(
               list(
                 value = as.numeric(beta_value),
@@ -841,7 +868,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
                 condition_type = "linear_term",
                 conditions = list(
                   list(
-                    parent_variable_id = parent_var,
+                    parent_variable_id = var_id_map[parent_var],
                     parent_state_id = parent_state
                   )
                 )
@@ -861,7 +888,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
           parameter_id = as.character(counter),
           name = "sigma",
           link_function_name = "identity",
-          source = list(variable_id = node_id),
+          source = list(variable_id = var_id_map[node_id]),
           coefficients = list(
             list(
               value = as.numeric(sigma)[1],
@@ -882,7 +909,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
         parameter_id = as.character(counter),
         name = "sigma_alpha",
         link_function_name = "identity",
-        source = list(variable_id = node_id),
+        source = list(variable_id = var_id_map[node_id]),
         coefficients = list(
           list(
             value = if (is.matrix(sigma_alpha)) as.numeric(sigma_alpha[1,1]) else as.numeric(sigma_alpha)[1],
@@ -908,7 +935,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
           parameter_id = as.character(counter),
           name = paste0("intercept_", cat),
           link_function_name = link_function,
-          source = list(variable_id = node_id, state_id = cat),
+          source = list(variable_id = var_id_map[node_id], state_id = cat),
           coefficients = list(
             list(
               value = as.numeric(mu[i]),
@@ -944,26 +971,26 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
             }
           }
 
-          if (!is.null(parent_var)) {
-            param_entry <- list(
-              parameter_id = as.character(counter),
-              name = paste0(parent_name, "_cat", cat),
-              link_function_name = link_function,
-              source = list(variable_id = node_id, state_id = cat),
-              coefficients = list(
-                list(
-                  value = as.numeric(betas[i, j]),
-                  stderr = NULL,
-                  condition_type = "linear_term",
-                  conditions = list(
-                    list(
-                      parent_variable_id = parent_var,
-                      parent_state_id = parent_state
-                    )
-                  )
-                )
-              )
-            )
+           if (!is.null(parent_var)) {
+             param_entry <- list(
+               parameter_id = as.character(counter),
+               name = paste0(parent_name, "_cat", cat),
+               link_function_name = link_function,
+               source = list(variable_id = var_id_map[node_id], state_id = cat),
+               coefficients = list(
+                 list(
+                   value = as.numeric(betas[i, j]),
+                   stderr = NULL,
+                   condition_type = "linear_term",
+                   conditions = list(
+                     list(
+                       parent_variable_id = var_id_map[parent_var],
+                       parent_state_id = parent_state
+                     )
+                   )
+                 )
+               )
+             )
             parameters[[length(parameters) + 1]] <- param_entry
             counter <- counter + 1
           }
@@ -985,7 +1012,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
             name = if (i == j) paste0("sigma_alpha_", cat_i) else paste0("sigma_alpha_", cat_i, "_", cat_j),
             link_function_name = "identity",
             source = list(
-              variable_id = node_id,
+              variable_id = var_id_map[node_id],
               state_id = if (i == j) cat_i else paste0(cat_i, "_", cat_j)
             ),
             coefficients = list(
@@ -1014,11 +1041,20 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
 #' Currently, frequency, significance, and constraint information are not included in the export.
 #' @return An array containing arc details: source_variable_id and target_variable_id for each arc.
 #' @keywords internal
-export_abnFit_mle_arcs <- function(object, ...) {
+export_abnFit_mle_arcs <- function(object, var_id_map = NULL, ...) {
   dag_matrix <- object$abnDag$dag
 
   if (nrow(dag_matrix) == 0 || ncol(dag_matrix) == 0) {
     return(list())
+  }
+
+  # Create var_id_map if not provided
+  if (is.null(var_id_map)) {
+    node_names <- colnames(dag_matrix)
+    var_id_map <- stats::setNames(
+      as.character(seq_along(node_names)),
+      node_names
+    )
   }
 
   arcs <- list()
@@ -1026,12 +1062,18 @@ export_abnFit_mle_arcs <- function(object, ...) {
     for (j in seq_len(ncol(dag_matrix))) {
       if (dag_matrix[i, j] == 1) {
         arcs[[length(arcs) + 1]] <- list(
-          source_variable_id = rownames(dag_matrix)[i],
-          target_variable_id = colnames(dag_matrix)[j]
+          source_variable_id = var_id_map[rownames(dag_matrix)[i]],
+          target_variable_id = var_id_map[colnames(dag_matrix)[j]]
         )
       }
     }
   }
+
+  # Sort arcs by (source_variable_id, target_variable_id)
+  arcs <- arcs[order(
+    sapply(arcs, function(a) as.numeric(a$source_variable_id)),
+    sapply(arcs, function(a) as.numeric(a$target_variable_id))
+  )]
 
   return(arcs)
 }
