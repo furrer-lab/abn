@@ -3,8 +3,9 @@
   "label": "Test ABN Model",
   "linkFunctions": [
     {"id": "1", "name": "CPT_link", "description": "Used for direct probability in CPTs"},
-    {"id": "2", "name": "identity", "description": "Used to model the mean (\\mu) of a Gaussian distribution."},
-    {"id": "3", "name": "log", "description": "Used to model the variance (\\sigma^2) of a Gaussian distribution."}
+    {"id": "2", "name": "identity", "description": "Used to model the mean of a Gaussian distribution."},
+    {"id": "3", "name": "log", "description": "Used to model the rate of a Poisson distribution."},
+    {"id": "4", "name": "logit", "description": "Used for binomial and multinomial logistic regression."}
   ],
   "variables": [
     {
@@ -35,13 +36,19 @@
         {"state_id": "2", "value_name": "Medium", "is_baseline": false},
         {"state_id": "3", "value_name": "High", "is_baseline": false}
       ]
+    },
+    {
+      "variable_id": "105",
+      "attribute_name": "b2",
+      "model_type": "binomial",
+      "transform_params": {}
     }
   ],
   "parameters": [
     {
       "parameter_id": "1",
       "name": "intercept",
-      "link_function_id": "2",
+      "link_function_id": "4",
       "source": {"variable_id": "101"},
       "coefficients": [
         {
@@ -54,13 +61,79 @@
     },
     {
       "parameter_id": "2",
-      "name": "b2",
-      "link_function_id": "2",
+      "name": "b1|b2",
+      "link_function_id": "4",
       "source": {"variable_id": "101"},
       "coefficients": [
         {
           "value": 0.8,
           "stderr": 0.2,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "105",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "3",
+      "name": "intercept",
+      "link_function_id": "3",
+      "source": {"variable_id": "102"},
+      "coefficients": [
+        {
+          "value": 0.3,
+          "stderr": 0.05,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "4",
+      "name": "p1|b1",
+      "link_function_id": "3",
+      "source": {"variable_id": "102"},
+      "coefficients": [
+        {
+          "value": 0.4,
+          "stderr": 0.08,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "101",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "5",
+      "name": "intercept",
+      "link_function_id": "2",
+      "source": {"variable_id": "103"},
+      "coefficients": [
+        {
+          "value": 1.0,
+          "stderr": 0.2,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "6",
+      "name": "g1|p1",
+      "link_function_id": "2",
+      "source": {"variable_id": "103"},
+      "coefficients": [
+        {
+          "value": 0.6,
+          "stderr": 0.1,
           "condition_type": "linear_term",
           "conditions": [
             {
@@ -70,12 +143,62 @@
           ]
         }
       ]
+    },
+    {
+      "parameter_id": "7",
+      "name": "intercept",
+      "link_function_id": "4",
+      "source": {"variable_id": "105"},
+      "coefficients": [
+        {
+          "value": 0.1,
+          "stderr": 0.15,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "8",
+      "name": "prob_2",
+      "link_function_id": "4",
+      "source": {"variable_id": "104", "state_id": "2"},
+      "coefficients": [
+        {
+          "value": -0.2,
+          "stderr": 0.3,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "9",
+      "name": "prob_3",
+      "link_function_id": "4",
+      "source": {"variable_id": "104", "state_id": "3"},
+      "coefficients": [
+        {
+          "value": 0.5,
+          "stderr": 0.25,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
     }
   ],
   "arcs": [
     {
-      "source_variable_id": "102",
+      "source_variable_id": "105",
       "target_variable_id": "101"
+    },
+    {
+      "source_variable_id": "101",
+      "target_variable_id": "102"
+    },
+    {
+      "source_variable_id": "102",
+      "target_variable_id": "103"
     }
   ]
 }
