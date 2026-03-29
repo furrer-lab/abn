@@ -160,6 +160,20 @@
     },
     {
       "parameter_id": "8",
+      "name": "prob_1",
+      "link_function_id": "4",
+      "source": {"variable_id": "104", "state_id": "1"},
+      "coefficients": [
+        {
+          "value": 0,
+          "stderr": 0,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "9",
       "name": "prob_2",
       "link_function_id": "4",
       "source": {"variable_id": "104", "state_id": "2"},
@@ -173,7 +187,7 @@
       ]
     },
     {
-      "parameter_id": "9",
+      "parameter_id": "10",
       "name": "prob_3",
       "link_function_id": "4",
       "source": {"variable_id": "104", "state_id": "3"},
