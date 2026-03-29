@@ -1,0 +1,81 @@
+{
+  "scenario_id": "test_scenario_1",
+  "label": "Test ABN Model",
+  "linkFunctions": [
+    {"id": "1", "name": "CPT_link", "description": "Used for direct probability in CPTs"},
+    {"id": "2", "name": "identity", "description": "Used to model the mean (\\mu) of a Gaussian distribution."},
+    {"id": "3", "name": "log", "description": "Used to model the variance (\\sigma^2) of a Gaussian distribution."}
+  ],
+  "variables": [
+    {
+      "variable_id": "101",
+      "attribute_name": "b1",
+      "model_type": "binomial",
+      "transform_params": {}
+    },
+    {
+      "variable_id": "102",
+      "attribute_name": "p1",
+      "model_type": "poisson",
+      "transform_params": {}
+    },
+    {
+      "variable_id": "103",
+      "attribute_name": "g1",
+      "model_type": "gaussian",
+      "transform_params": {}
+    },
+    {
+      "variable_id": "104",
+      "attribute_name": "c1",
+      "model_type": "multinomial",
+      "transform_params": {},
+      "states": [
+        {"state_id": "1", "value_name": "Low", "is_baseline": true},
+        {"state_id": "2", "value_name": "Medium", "is_baseline": false},
+        {"state_id": "3", "value_name": "High", "is_baseline": false}
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "1",
+      "name": "intercept",
+      "link_function_id": "2",
+      "source": {"variable_id": "101"},
+      "coefficients": [
+        {
+          "value": -0.5,
+          "stderr": 0.1,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "2",
+      "name": "b2",
+      "link_function_id": "2",
+      "source": {"variable_id": "101"},
+      "coefficients": [
+        {
+          "value": 0.8,
+          "stderr": 0.2,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "102",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "arcs": [
+    {
+      "source_variable_id": "102",
+      "target_variable_id": "101"
+    }
+  ]
+}
