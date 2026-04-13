@@ -60,6 +60,7 @@ jobs:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       EVENT: ${{ github.event.number }}
+      RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"
     strategy:
       fail-fast: false
       matrix:
@@ -78,10 +79,6 @@ jobs:
           apt-get update && apt-get install -y gh
           git config --global --add safe.directory /__w/abn/abn
           gh pr checkout ${{ env.EVENT }}
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Configure ABN for installation
         run: |
           autoreconf
