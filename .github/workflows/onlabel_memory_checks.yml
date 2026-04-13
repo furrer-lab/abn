@@ -67,6 +67,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
+      RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"
     strategy:
       fail-fast: false
       matrix:
@@ -84,10 +85,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure
