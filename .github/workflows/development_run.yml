@@ -84,6 +84,9 @@ jobs:
     # runs-on: ubuntu-latest
     container:
       image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ needs.get-target-container.outputs.CONTAINER }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GHCR_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
