@@ -29,7 +29,7 @@ jobs:
           if [[ $BRANCH == *"__"* ]]; then
             echo "container=${BRANCH##*__}" >> $GITHUB_OUTPUT
           else
-            echo "container=debian/clang/devel" >> $GITHUB_OUTPUT
+            echo "container=debian-clang-devel" >> $GITHUB_OUTPUT
           fi
   get_changes:
     needs: should-run

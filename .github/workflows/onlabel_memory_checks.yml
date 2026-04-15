@@ -71,15 +71,19 @@ jobs:
       fail-fast: false
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
+        container:
+          - 'valgrind-gcc-devel'
+          - 'debian-gcc-release'
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Installing valgrind
+        if: ${{ !startsWith(matrix.container, 'valgrind') }}
         run: |
-          apt-get install valgrind -y
+          apt-get update && apt-get install valgrind -y
         shell: bash
       - uses: actions/checkout@v4
         with:
