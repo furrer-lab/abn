@@ -181,6 +181,448 @@ multinomial models. Parent dependencies are encoded in the \code{conditions}
 array within each coefficient.
 }
 
+\section{JSON Complete Field Reference}{
+
+
+The exported JSON contains the following top-level fields:
+
+\describe{
+\item{\code{scenario_id}}{Optional string/numeric. Model run identifier.
+Can be \code{NULL}. Set via \code{scenario_id} parameter.
+Example: \code{"model_v1"}, \code{"experiment_2024_03_30"}}
+
+\item{\code{label}}{Optional string. Descriptive name for the model.
+Can be \code{NULL}. Set via \code{label} parameter.
+Example: \code{"Gaussian Network with 3 nodes"}}
+
+\item{\code{method}}{String. Fitting method: \code{"mle"} (default) or
+\code{"bayes"}. Auto-populated from \code{abnFit$method}.
+Used by \code{\link{import_abnFit}} to dispatch to correct reconstruction.}
+
+\item{\code{variables}}{Required array. All nodes/variables in the network.
+Each element contains: \code{variable_id} (string), \code{attribute_name}
+(string), \code{model_type} (string), \code{states} (array or NULL).}
+
+\item{\code{parameters}}{Required array. All fitted parameters (intercepts,
+slopes, variances, random effects). Each element contains:
+\code{parameter_id}, \code{name}, \code{link_function_name}, \code{source},
+\code{coefficients} array.}
+
+\item{\code{arcs}}{Required array (can be empty). Directed edges in DAG.
+Each element contains \code{source_variable_id} and \code{target_variable_id}.}
+
+\item{\code{linkFunctions}}{Optional array. Link function definitions.
+Only included when explicitly referenced by link_function_id in parameters.
+Rarely used - typically \code{link_function_name} is sufficient.}
+
+\item{\code{constraints}}{Optional array. Subsetting constraints (abnScripts).
+Each constraint has: \code{variable} (name), \code{operator}
+(==, !=, <, >, <=, >=, \\%in\\%), \code{value} (scalar or array).
+Only present when exporting subset models.}
+
+\item{\code{subset_metadata}}{Optional object. Metadata about subsetting.
+Contains: \code{original_n}, \code{subset_n}, \code{constraints_applied},
+\code{constraints_description}, \code{warnings} array.
+Only present when exporting subset models.}
+
+\item{\code{original_model}}{Optional object. Original model before subsetting.
+Contains: \code{parameters} array, \code{constraints} array.
+Only present when exporting subset models. Enables comparison of coefficients.}
+
+\item{\code{original_data_path}}{Optional string. Path to CSV data file used
+for refitting (abnScripts integration). Only present when exporting subset models.}
+}
+}
+
+\section{JSON Examples}{
+
+
+\subsection{Example 1: Simple Gaussian Model}{
+A single continuous variable with no dependencies. Shows all top-level fields,
+with optional fields set to \code{null}.
+
+\preformatted{
+# Simple Gaussian (single node, no parents)
+# All 10 top-level fields shown, optional fields = null
+{
+  "scenario_id": "gaussian_simple_v1",  # Optional: model identifier
+  "label": "Simple Gaussian Model",      # Optional: descriptive label
+  "method": "mle",                       # Optional: fitting method
+  "variables": [
+    {
+      "variable_id": "0",                # Unique ID for this variable
+      "attribute_name": "x1",            # Original column name
+      "model_type": "gaussian",          # Distribution type
+      "states": null                     # null for continuous variables
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "p0",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {
+        "variable_id": "0",
+        "state_id": null
+      },
+      "coefficients": [
+        {
+          "value": 0.5234,
+          "stderr": 0.0234,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "p1",
+      "name": "sigma",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [
+        {
+          "value": 1.2345,
+          "stderr": null,
+          "condition_type": "variance",
+          "conditions": []
+        }
+      ]
+    }
+  ],
+  "arcs": [],                            # No dependencies for single node
+  "linkFunctions": null,                 # Optional: rarely used
+  "constraints": null,                   # Optional: no subset constraints
+  "subset_metadata": null,               # Optional: no subsetting
+  "original_model": null,                # Optional: not from subsetting
+  "original_data_path": null             # Optional: no subset path
+}
+}
+}
+
+\subsection{Example 2: Linear Dependencies}{
+Gaussian variable predicting a binary outcome. Shows arc structure and
+conditional (linear_term) coefficient.
+
+\preformatted{
+# Gaussian X1 predicts Binary Y1 (with dependency)
+{
+  "scenario_id": "linear_deps_v1",
+  "label": "Gaussian → Binomial",
+  "method": "mle",
+  "variables": [
+    {
+      "variable_id": "0",
+      "attribute_name": "x1",
+      "model_type": "gaussian",
+      "states": null
+    },
+    {
+      "variable_id": "1",
+      "attribute_name": "y1",
+      "model_type": "binomial",
+      "states": null
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "p0",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 0.5234,
+        "stderr": 0.0234,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p1",
+      "name": "sigma",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 1.2345,
+        "stderr": null,
+        "condition_type": "variance",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p2",
+      "name": "intercept",
+      "link_function_name": "logit",        # logit for binomial
+      "source": {"variable_id": "1", "state_id": null},
+      "coefficients": [{
+        "value": -0.4567,
+        "stderr": 0.1234,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p3",
+      "name": "x1",
+      "link_function_name": "logit",
+      "source": {"variable_id": "1", "state_id": null},
+      "coefficients": [{
+        "value": 0.8901,
+        "stderr": 0.0567,
+        "condition_type": "linear_term",   # Effect of parent x1
+        "conditions": [
+          {"parent_variable_id": "0", "parent_state_id": null}
+        ]
+      }]
+    }
+  ],
+  "arcs": [
+    {
+      "source_variable_id": "0",         # x1 is parent
+      "target_variable_id": "1"          # y1 is child
+    }
+  ],
+  "linkFunctions": null,
+  "constraints": null,
+  "subset_metadata": null,
+  "original_model": null,
+  "original_data_path": null
+}
+}
+}
+
+\subsection{Example 3: Multinomial with States}{
+Categorical variable with multiple categories. Demonstrates state array and
+baseline category handling.
+
+\preformatted{
+# Multinomial outcome with 3 categories (control baseline)
+{
+  "scenario_id": "multinomial_v1",
+  "label": "Multinomial Outcome",
+  "method": "mle",
+  "variables": [
+    {
+      "variable_id": "0",
+      "attribute_name": "treatment",
+      "model_type": "multinomial",
+      "states": [                        # States array for multinomial
+        {
+          "state_id": "1",
+          "value_name": "control",
+          "is_baseline": true            # Reference category
+        },
+        {
+          "state_id": "2",
+          "value_name": "treatment_a",
+          "is_baseline": false
+        },
+        {
+          "state_id": "3",
+          "value_name": "treatment_b",
+          "is_baseline": false
+        }
+      ]
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "p0",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {
+        "variable_id": "0",
+        "state_id": "2"                  # Parameters for treatment_a
+      },
+      "coefficients": [{
+        "value": 0.1234,
+        "stderr": 0.0456,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p1",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {
+        "variable_id": "0",
+        "state_id": "3"                  # Parameters for treatment_b
+      },
+      "coefficients": [{
+        "value": -0.2345,
+        "stderr": 0.0567,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    }
+  ],
+  "arcs": [],
+  "linkFunctions": null,
+  "constraints": null,
+  "subset_metadata": null,
+  "original_model": null,
+  "original_data_path": null
+}
+Note: No parameters for baseline state (control, state_id 1)
+}
+}
+
+\subsection{Example 4: Mixed-Effects Model}{
+Model with random intercepts. Shows random_variance parameter.
+
+\preformatted{
+# Mixed-effects model with random intercepts
+{
+  "scenario_id": "mixed_v1",
+  "label": "Mixed Effects Model",
+  "method": "mle",
+  "variables": [
+    {
+      "variable_id": "0",
+      "attribute_name": "outcome",
+      "model_type": "gaussian",
+      "states": null
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "p0",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 0.5234,
+        "stderr": 0.0234,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p1",
+      "name": "sigma",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 1.2345,
+        "stderr": null,
+        "condition_type": "variance",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p2",
+      "name": "sigma_alpha",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 0.3456,
+        "stderr": null,
+        "condition_type": "random_variance",  # Random intercept variance
+        "conditions": []
+      }]
+    }
+  ],
+  "arcs": [],
+  "linkFunctions": null,
+  "constraints": null,
+  "subset_metadata": null,
+  "original_model": null,
+  "original_data_path": null
+}
+Note: sigma_alpha is between-group variation in intercepts
+}
+}
+
+\subsection{Example 5: With Subset Constraints (abnScripts)}{
+Refitted model showing all optional fields for subsetting. Demonstrates
+constraints, subset_metadata, and original_model fields.
+
+\preformatted{
+# Subset model with constraints metadata (abnScripts integration)
+{
+  "scenario_id": "subset_v1",
+  "label": "Refitted on Subset (g1 <= 1)",
+  "method": "mle",
+  "variables": [
+    {
+      "variable_id": "0",
+      "attribute_name": "g1",
+      "model_type": "gaussian",
+      "states": null
+    },
+    {
+      "variable_id": "1",
+      "attribute_name": "g2",
+      "model_type": "gaussian",
+      "states": null
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "p0",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 0.4567,
+        "stderr": 0.0345,
+        "condition_type": "intercept",
+        "conditions": []
+      }]
+    },
+    {
+      "parameter_id": "p1",
+      "name": "sigma",
+      "link_function_name": "identity",
+      "source": {"variable_id": "0", "state_id": null},
+      "coefficients": [{
+        "value": 0.9876,
+        "stderr": null,
+        "condition_type": "variance",
+        "conditions": []
+      }]
+    }
+  ],
+  "arcs": [],
+  "linkFunctions": null,
+  "constraints": [                       # Subsetting constraints
+    {
+      "variable": "g1",
+      "operator": "<=",
+      "value": 1
+    }
+  ],
+  "subset_metadata": {                   # Metadata about subsetting
+    "original_n": 250,
+    "subset_n": 180,
+    "constraints_applied": 1,
+    "constraints_description": "g1 <= 1",
+    "warnings": []
+  },
+  "original_model": {                    # Original before subsetting
+    "parameters": [
+      {
+        "parameter_id": "orig_p0",
+        "name": "intercept",
+        "link_function_name": "identity",
+        "source": {"variable_id": "0", "state_id": null},
+        "coefficients": [{
+          "value": 0.5234,
+          "stderr": 0.0234,
+          "condition_type": "intercept",
+          "conditions": []
+        }]
+      }
+    ],
+    "constraints": null
+  },
+  "original_data_path": "/path/to/original_data.csv"
+}
+Note: Compare subset vs original parameters to see how coefficients changed
+}
+}
+}
+
 \examples{
 \dontrun{
 # Load example data and fit a model
@@ -223,35 +665,12 @@ export_abnFit(myfit,
 
 # Export with compact formatting
 compact_json <- export_abnFit(myfit, pretty = FALSE)
-
-# ---
-# Mixed-effects model example
-# (Requires data with grouping structure)
-
-# Add grouping variable
-ex1.dag.data$group <- rep(1:5, length.out = nrow(ex1.dag.data))
-
-# Build cache with grouping
-mycache_grouped <- buildScoreCache(data.df = ex1.dag.data,
-                                    data.dists = mydists,
-                                    method = "mle",
-                                    group.var = "group",
-                                    max.parents = 2)
-
-# Fit grouped model
-myfit_grouped <- fitAbn(object = mp_dag,
-                        method = "mle",
-                        group.var = "group")
-
-# Export grouped model (includes random effects)
-json_grouped <- export_abnFit(myfit_grouped,
-                              scenario_id = "grouped_model_v1",
-                              label = "Mixed Effects ABN")
 }
 
 }
 \seealso{
 \itemize{
+\item \code{\link{import_abnFit}} for round-trip JSON import (reconstructs abnFit from JSON)
 \item \code{\link{fitAbn}} for fitting ABN models
 \item \code{\link{buildScoreCache}} for structure learning
 \item \code{\link{mostProbable}} for finding the most probable network structure

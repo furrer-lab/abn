@@ -1,19 +1,167 @@
 #' Import abnFit object from structured JSON format
 #'
 #' @description
-#' Imports a fitted Additive Bayesian Network (ABN) model from a structured JSON
-#' format, reconstructing an abnFit object suitable for further analysis.
+#' Reconstructs a fitted Additive Bayesian Network (ABN) model from a structured JSON
+#' format (typically exported by \code{\link{export_abnFit}}). This function enables
+#' round-trip model I/O, allowing models to be exported, stored, shared, and later
+#' reimported for further analysis or modification.
+#'
+#' The function validates the JSON structure and reconstructs the abnFit object,
+#' including all network structure (variables, arcs) and model parameters
+#' (coefficients, standard errors, variances, random effects).
 #'
 #' @param file Character string specifying a file path containing the JSON
 #'    representation of the model. Alternatively, a JSON string can be provided
-#'    directly via the `json` parameter.
+#'    directly via the \code{json} parameter. If both are provided, \code{json}
+#'    is used and \code{file} is ignored.
 #' @param json Optional character string containing the JSON representation
-#'    of the model. If provided, `file` is ignored.
+#'    of the model. Takes precedence over \code{file} if both are provided.
 #' @param validate Logical, whether to validate the imported object against
-#'    the abnFit class requirements. Default is TRUE.
-#' @param ... Additional import options (currently unused).
+#'    abnFit class requirements. Default is \code{TRUE}. Set to \code{FALSE}
+#'    only if you are certain the JSON is valid.
+#' @param ... Additional import options (currently unused, reserved for future extensions).
 #'
-#' @return An object of class \code{abnFit} representing the imported model.
+#' @return An object of class \code{abnFit} representing the imported model,
+#'    with all components reconstructed from the JSON: \code{coef}, \code{Stderror},
+#'    \code{abnDag}, \code{method}, etc.
+#'
+#' @details
+#' ## Round-Trip Capability
+#'
+#' This function is designed to work with \code{\link{export_abnFit}}:
+#' \code{abnFit object} → \code{export_abnFit()} → JSON file/string →
+#' \code{import_abnFit()} → \code{abnFit object}
+#'
+#' The reconstructed object can be used for plotting, predictions, or further analysis.
+#' Metadata fields (\code{scenario_id}, \code{label}) are preserved through the round trip.
+#'
+#' ## JSON Structure Requirements
+#'
+#' The input JSON must contain at least these required fields:
+#' \itemize{
+#'   \item \code{variables}: Array of variable objects defining all nodes in the network
+#'   \item \code{parameters}: Array of parameter objects defining all fitted coefficients
+#'   \item \code{arcs}: Array of arc objects defining edges in the DAG (can be empty)
+#' }
+#'
+#' Optional fields may also be present:
+#' \itemize{
+#'   \item \code{scenario_id}: Model run identifier (preserved in output)
+#'   \item \code{label}: Descriptive label (preserved in output)
+#'   \item \code{method}: Fitting method ("mle" or "bayes", default "mle")
+#'   \item \code{linkFunctions}: Link function definitions (rarely used)
+#'   \item \code{constraints}: Subsetting constraints (abnScripts integration)
+#'   \item \code{subset_metadata}: Metadata about subsetting operation
+#'   \item \code{original_model}: Original model before subsetting
+#'   \item \code{original_data_path}: Path to CSV data file
+#' }
+#'
+#' ## Validation Rules
+#'
+#' When \code{validate = TRUE}, the following checks are performed:
+#' \itemize{
+#'   \item \strong{Required fields}: \code{variables}, \code{parameters}, \code{arcs} must be present
+#'   \item \strong{Unique IDs}: Each \code{variable_id} must be unique
+#'   \item \strong{References}: Parameter \code{source.variable_id} must match existing variables
+#'   \item \strong{Arcs}: Arc \code{source_variable_id} and \code{target_variable_id} must exist
+#'   \item \strong{States}: For multinomial variables, \code{state_id} references in parameters must match
+#'   \item \strong{Link functions}: Must be compatible with distribution type
+#' }
+#'
+#' Validation errors provide informative messages to guide correction of the JSON.
+#'
+#' @section Supported JSON Fields:
+#'
+#' See \code{\link{export_abnFit}} for complete documentation of the JSON structure,
+#' including all fields, their types, and valid values.
+#'
+#' @examples
+#' \dontrun{
+#' # Example 1: Import from file
+#' library(abn)
+#' 
+#' # Assuming you have a JSON file exported from export_abnFit()
+#' imported_model <- import_abnFit(file = "my_model.json")
+#' 
+#' # Now use the imported model
+#' summary(imported_model)
+#' }
+#'
+#' \dontrun{
+#' # Example 2: Import from JSON string
+#' library(abn)
+#' library(jsonlite)
+#'
+#' # You might have JSON as a string (from API, database, etc.)
+#' json_string <- '{
+#'   "scenario_id": "model_v1",
+#'   "label": "My Model",
+#'   "method": "mle",
+#'   "variables": [...],
+#'   "parameters": [...],
+#'   "arcs": [...],
+#'   "linkFunctions": null,
+#'   "constraints": null,
+#'   "subset_metadata": null,
+#'   "original_model": null,
+#'   "original_data_path": null
+#' }'
+#'
+#' # Import from string
+#' model <- import_abnFit(json = json_string)
+#' }
+#'
+#' \dontrun{
+#' # Example 3: Round-trip (export and re-import)
+#' library(abn)
+#'
+#' # Fit a model
+#' data(ex1.dag.data)
+#' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
+#'                 b2 = "binomial", p2 = "poisson", g2 = "gaussian",
+#'                 b3 = "binomial", g3 = "gaussian")
+#' mycache <- buildScoreCache(data.df = ex1.dag.data,
+#'                             data.dists = mydists,
+#'                             method = "mle",
+#'                             max.parents = 2)
+#' mp_dag <- mostProbable(score.cache = mycache)
+#' myfit <- fitAbn(object = mp_dag, method = "mle")
+#'
+#' # Export to JSON
+#' json_export <- export_abnFit(myfit, scenario_id = "model_v1")
+#'
+#' # Re-import from the JSON string
+#' myfit_reimported <- import_abnFit(json = json_export)
+#'
+#' # Verify they are equivalent
+#' identical(myfit$coef, myfit_reimported$coef)  # Should be TRUE (within rounding)
+#' }
+#'
+#' \dontrun{
+#' # Example 4: Error handling
+#' library(abn)
+#'
+#' # Invalid JSON will produce informative error messages
+#' tryCatch({
+#'   # This JSON is missing the required "arcs" field
+#'   bad_json <- '{
+#'     "scenario_id": "bad_model",
+#'     "variables": [...],
+#'     "parameters": [...]
+#'   }'
+#'   import_abnFit(json = bad_json)
+#' }, error = function(e) {
+#'   cat("Error:", conditionMessage(e), "\n")
+#'   # Output: "Invalid JSON structure: must contain 'variables', 'parameters', and 'arcs' components"
+#' })
+#' }
+#'
+#' @seealso
+#' \itemize{
+#'   \item \code{\link{export_abnFit}} for exporting abnFit to JSON (inverse operation)
+#'   \item \code{\link{fitAbn}} for fitting ABN models
+#'   \item \code{\link{jsonlite::fromJSON}} for JSON parsing (used internally)
+#' }
 #'
 #' @importFrom jsonlite fromJSON
 #' @export
