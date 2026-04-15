@@ -141,12 +141,10 @@ jobs:
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Check for broken urls and redirects
         run: |
             library(urlchecker)

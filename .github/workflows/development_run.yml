@@ -94,6 +94,7 @@ jobs:
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
       BUILD_LOC: "./build"
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
 
     steps:
       - uses: actions/checkout@v4
@@ -101,10 +102,6 @@ jobs:
         run: |
             mkdir ${{ env.BUILD_LOC }}
         shell: bash
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure

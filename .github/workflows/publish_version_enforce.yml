@@ -56,16 +56,14 @@ jobs:
       image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian-gcc-release/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
     permissions:
       contents: write
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
       - name: Create build location
         run: |
             mkdir ${{ env.BUILD_LOC }}
         shell: bash
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure

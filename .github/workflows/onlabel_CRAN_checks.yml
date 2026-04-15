@@ -65,6 +65,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     strategy:
       fail-fast: false
       matrix:
@@ -75,10 +76,6 @@ jobs:
           - 'debian-clang-devel'
     steps:
       - uses: actions/checkout@v4
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
 
       - name: print libPaths and R Home
         run: |
