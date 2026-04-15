@@ -1,0 +1,217 @@
+---
+title: "JSON Format Quick Reference"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{JSON Format Quick Reference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+```{r setup}
+library(abn)
+```
+
+# JSON Format Quick Reference
+
+This vignette provides a quick reference guide for the JSON format used by `export_abnFit()` and `import_abnFit()` functions in the `abn` package. The JSON format enables round-trip serialization of Bayesian network models, making it ideal for sharing, archiving, and integration with external tools like abnScripts.
+
+## Complete Field Reference
+
+The JSON format contains 10 top-level fields organized into three categories:
+
+### Required Fields (must always be present)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `variables` | Array | Definition of all variables in the network (name, id, type, n_categories) |
+| `parameters` | Array | Fitted parameters for each node and its parent configurations |
+| `arcs` | Array | Directed edges in the network structure (parent_id, child_id) |
+
+### Optional Fields (may be absent or null)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `scenario_id` | String or null | User-defined scenario identifier for grouping related models |
+| `label` | String or null | Human-readable label or description of the model |
+| `method` | String or null | Fitting method used: "bayes", "mle", or null |
+| `linkFunctions` | Object or null | Link functions per node (e.g., log, logit, identity) |
+| `constraints` | Array or null | Constraints applied during structure learning (prohibited/enforced arcs) |
+| `subset_metadata` | Object or null | Metadata about data subsetting (row selection, filtering criteria) |
+| `original_model` | Object or null | Reference to the source model for tracing model lineage |
+| `original_data_path` | String or null | Path or URI to the original data file used for fitting |
+
+## Common Workflow Examples
+
+### 1. Export a Fitted Model
+
+Export an `abnFit` object after parameter learning:
+
+```{r eval = FALSE}
+# After fitting a model with fitAbn()
+fit <- fitAbn(...)
+
+# Export to JSON string
+json_string <- export_abnFit(fit, format = "json")
+
+# Or export to file
+export_abnFit(fit, format = "json", 
+              outfile = "my_model.json")
+```
+
+### 2. Import and Re-use a Model
+
+Import a previously exported model for prediction or inspection:
+
+```{r eval = FALSE}
+# Import from file
+fit <- import_abnFit(infile = "my_model.json")
+
+# Or import from JSON string
+json_string <- readLines("my_model.json")
+fit <- import_abnFit(data_or_string = json_string)
+```
+
+### 3. Round-Trip Verification
+
+Export a model and re-import to verify consistency:
+
+```{r eval = FALSE}
+# Original model
+fit_original <- fitAbn(...)
+
+# Export and re-import
+json_data <- export_abnFit(fit_original)
+fit_reimported <- import_abnFit(data_or_string = json_data)
+
+# Both models should be equivalent for predictions
+```
+
+### 4. Error Handling
+
+The `import_abnFit()` function validates JSON structure and provides informative errors:
+
+```{r eval = FALSE}
+tryCatch(
+  fit <- import_abnFit("invalid.json"),
+  error = function(e) {
+    message("Import failed: ", e$message)
+    # Handle error - provide feedback to user
+  }
+)
+```
+
+## Variable Definition Structure
+
+Each variable in the `variables` array must include:
+
+```json
+{
+  "id": "unique_identifier",
+  "name": "variable_name",
+  "type": "gaussian|binomial|poisson|multinomial",
+  "n_categories": 2
+}
+```
+
+- **id**: Unique identifier used to reference the variable in arcs and parameters
+- **name**: Human-readable variable name
+- **type**: Data type of the variable
+- **n_categories**: For multinomial variables, the number of categories (≥2)
+
+## Parameter Definition Structure
+
+Each parameter represents either node intercepts or parent-conditional parameters:
+
+```json
+{
+  "id": "unique_identifier",
+  "node_id": "variable_id",
+  "parent_ids": ["parent_var_id_1", "parent_var_id_2"],
+  "coefficient": 0.5,
+  "intercept": -0.2
+}
+```
+
+- **id**: Unique parameter identifier
+- **node_id**: ID of the variable this parameter belongs to
+- **parent_ids**: Array of parent variable IDs (empty for root nodes)
+- **coefficient**: Fitted coefficient value
+- **intercept**: Fitted intercept value (may be null for some models)
+
+## Arc Definition Structure
+
+Each arc represents a directed edge from parent to child:
+
+```json
+{
+  "parent_id": "parent_variable_id",
+  "child_id": "child_variable_id"
+}
+```
+
+- **parent_id**: ID of the parent variable
+- **child_id**: ID of the child variable
+- Arcs define the network structure; parameters define the relationships
+
+## Quick Reference Tables
+
+### Supported Variable Types
+
+| Type | Support | Use Case |
+|------|---------|----------|
+| Gaussian | Bayes, MLE | Continuous data (heights, measurements) |
+| Binomial | Bayes, MLE | Binary outcomes (yes/no, 0/1) |
+| Poisson | Bayes, MLE | Count data (events, occurrences) |
+| Multinomial | MLE only | Categorical data with 3+ categories |
+
+### Fitting Methods
+
+| Method | Algorithm | When to Use |
+|--------|-----------|------------|
+| "bayes" | Bayesian inference | Default; handles small sample sizes well |
+| "mle" | Maximum likelihood | Preferred for multinomial variables; larger datasets |
+
+### Link Functions (when applicable)
+
+| Link Function | Applicable To | Interpretation |
+|---------------|---------------|-----------------|
+| identity | Gaussian | No transformation of linear predictor |
+| log | Poisson | Exponential relationship; parameters on log scale |
+| logit | Binomial | Odds ratio interpretation; probabilities on logit scale |
+
+## JSON Validation Rules
+
+When importing JSON, the following rules are enforced:
+
+1. **Structure**: Must be a valid JSON object with required fields
+2. **Arrays**: `variables`, `parameters`, and `arcs` must be arrays
+3. **IDs**: Variable IDs must be unique and consistently referenced
+4. **Parent References**: Parent IDs in `arcs` and `parameters` must reference valid variables
+5. **Types**: Variable types must be one of: "gaussian", "binomial", "poisson", "multinomial"
+6. **Categories**: Multinomial variables must have `n_categories ≥ 2`
+
+## Integration with abnScripts
+
+The JSON format includes fields specifically designed for integration with the abnScripts framework:
+
+- **constraints**: Stores structure learning constraints (prohibited/enforced arcs)
+- **subset_metadata**: Tracks data subsetting operations for reproducibility
+- **original_model**: Enables model lineage tracking
+- **original_data_path**: References the source data for auditing
+
+These fields are optional but recommended when models are part of a larger analysis pipeline.
+
+## See Also
+
+- `export_abnFit()`: Export `abnFit` objects to JSON
+- `import_abnFit()`: Import JSON back to `abnFit` objects
+- `fitAbn()`: Fit parameters of Bayesian network structures
+- `buildScoreCache()`: Score networks for structure learning

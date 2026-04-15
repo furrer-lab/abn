@@ -4,7 +4,7 @@
 \alias{export_abnFit_mle_arcs}
 \title{Export arc information from abnFit objects fitted with MLE}
 \usage{
-export_abnFit_mle_arcs(object, ...)
+export_abnFit_mle_arcs(object, var_id_map = NULL, ...)
 }
 \arguments{
 \item{object}{An object of class \code{abnFit}, typically created by \code{\link{fitAbn}}.}

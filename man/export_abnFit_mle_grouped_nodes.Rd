@@ -4,7 +4,7 @@
 \alias{export_abnFit_mle_grouped_nodes}
 \title{Export node information from abnFit objects fitted with MLE (mixed effects)}
 \usage{
-export_abnFit_mle_grouped_nodes(object, ...)
+export_abnFit_mle_grouped_nodes(object, var_id_map = NULL, ...)
 }
 \arguments{
 \item{object}{An object of class abnFit fitted with method = "mle" and group.var specified.}
