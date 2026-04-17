@@ -5,7 +5,7 @@ require(foreach)
 params <- readRDS(file = "tests/testthat/testdata/input_score_cache_mle.RData")
 params$max.parents <- unique(params$max.parents)
 
-mleparams <- setupScoreCache.mle(data.df = params$data.df,
+mleparams <- setupScoreCache.mle_orig(data.df = params$data.df,
                                  data.dists = params$data.dists,
                                  adj.vars = params$adj.vars,
                                  cor.vars = params$cor.vars,
@@ -26,6 +26,8 @@ mleparams <- setupScoreCache.mle(data.df = params$data.df,
 
 cache_orig = computeCache_orig(params$adj.vars, mleparams$nvars, mleparams$data.df,
                                mleparams$data.df.lv, params$max.parents, params$data.dists)
+cache_precomputeXY = computeCache_precomputeX(params$adj.vars, mleparams$nvars, mleparams$data.df,
+                               mleparams$data.df.multi, mleparams$data.df.lv, params$max.parents, params$data.dists)
 
 # Check GC status for the original code
 res <- bench::mark(call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
@@ -66,6 +68,27 @@ res <- bench::mark(call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mlep
 #  1 call_forLoopContent_orig(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.mul… 26.1s  26.4s    0.0377    1.83GB    0.489    50   649      22.1m <named list> <Rprofmem> <bench_tm> <tibble>
 #  2 call_forLoopContent_foreachrows(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data… 26.3s  26.4s    0.0361    1.82GB    0.444    50   615      23.1m <named list> <Rprofmem> <bench_tm> <tibble>
 #  3 call_forLoopContent_noforeach(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.d… 24.4s  24.8s    0.0328    1.78GB    0.315    50   480      25.4m <named list> <Rprofmem> <bench_tm> <tibble>
+
+
+##########
+## Test X and Y preallocation
+
+res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                    mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                    params$max.parents,params$data.dists,cache_orig,
+                                                    params$control,params$verbose),
+                    precomputeXY = call_forLoopContent_precomputedXY(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                                 mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                                 params$max.parents,params$data.dists,cache_orig,
+                                                                 params$control,params$verbose),
+
+                    iterations = 5)
+# A tibble: 2 × 13
+# expression        min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result            memory                   time       gc
+#<bch:expr>   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                   <list>     <list>
+#  1 orig              25s      25s    0.0400    1.84GB   0.408      5    51      2.08m <named list [14]> <Rprofmem [245,167 × 3]> <bench_tm> <tibble>
+#  2 precomputeXY      19s    19.1s    0.0525  911.79MB   0.0839     5     8      1.59m <named list [14]> <Rprofmem [84,834 × 3]>  <bench_tm> <tibble>
+
 
 
 ##########
@@ -130,6 +153,4 @@ res_test <- bench::mark(
 ## ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
 
 # If full_for is only a bit slower than only_rcpp, then the allocation solution is no longer the main problem; the forLoopContent function is.
-
-
 

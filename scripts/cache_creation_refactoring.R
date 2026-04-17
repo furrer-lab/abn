@@ -292,3 +292,117 @@ computeCache_prealloc <- function(adj.vars,
 
   return(mycache)
 }
+
+
+# In buildScoreCache.mle(): replace the growing node.defn objects within the loop with a matrix preallocation
+# Optimize the tmp matrix calculation
+# Include pre-calculation of the X and Y matrices to be passed to the forLoopContent function (only for performance comparison)
+computeCache_precomputeX <- function(adj.vars,
+                                  nvars,
+                                  data.df,
+                                  data.df.multi,
+                                  data.df.lvl,
+                                  max.parents,
+                                  data.dists){
+  tmp.list <- vector('list', max.parents)
+  cache_nrow <- 1
+  for (i in 1:(max.parents)) {
+    tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+    cache_nrow <- cache_nrow + nrow(tmp.list[[i]])
+  }
+  cache_nrow <- nvars * (cache_nrow)
+  n_filled <- 0
+  node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
+  children.list <- vector('list', cache_nrow)
+  for (j in 1:nvars) {
+    n_filled <- n_filled + 1
+    node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+    children.list[[n_filled]] <- j
+    for (i in 1:(max.parents)) {
+      tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
+      node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
+      children.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(j, length(tmp[, 1])))
+      n_filled <- n_filled + nrow(tmp)
+    }
+  }
+  node.defn <- node.defn_all.list
+  children <- unlist(children.list)
+  colnames(node.defn) <- colnames(data.df)
+  mode(node.defn) <- "integer"
+  children <- as.integer(children)
+
+  mycache <- list(children = (children), node.defn = (node.defn))
+
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache$node.defn.adj <- mycache$node.defn
+
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
+    } else {
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
+    }
+  }
+  if (!is.null(adj.vars)) {
+    mycache$node.defn.multi <- mycache$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache$node.defn.adj)]
+  } else {
+    mycache$node.defn.multi <- mycache$node.defn[, rep(1:nvars, repetition.multi)]
+
+  }
+
+  cache_X <- new.env(hash = TRUE, parent = emptyenv())
+  X_list <- vector("list", nrow(mycache$node.defn.multi))
+  for (k in seq_len(nrow(mycache$node.defn.multi))) {
+    key <- bits_to_key(mycache$node.defn.multi[k, ])
+    if (exists(key, envir = cache_X, inherits = FALSE)) {
+      X_list[[k]] <- get(key, envir = cache_X, inherits = FALSE)
+    } else {
+      if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[k, ])])
+        multinomial = TRUE
+      else multinomial = FALSE
+      obj <- compute_X(mycache$node.defn.multi[k, ], adj.vars, multinomial, data.df.multi)
+      assign(key, obj, envir = cache_X)
+      X_list[[k]] <- obj
+    }
+  }
+  mycache$X <- X_list
+
+  Y_list <- vector("list", nvars)
+  for (k in 1:nvars){
+   Y_list[[k]] <- data.df[, k, drop = FALSE]
+  }
+  mycache$Y <- Y_list
+
+  return(mycache)
+}
+
+bits_to_key <- function(x) {
+  as.character(sum(x * 2^seq.int(from = length(x) - 1, to = 0)))
+}
+
+compute_X <- function(row, adj.vars, multinomial, data.df.multi) {
+  if (is.null(adj.vars)) {
+    if (multinomial) {
+      #X <- data.matrix(cbind(data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
+      X <- data.df.multi[, as.logical(row), drop = FALSE]
+    } else {
+      #X <- data.matrix(cbind(rep(1, length(data.df[, 1])), data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
+      X <- cbind(1, data.df.multi[, as.logical(row), drop = FALSE])
+    }
+  } else {
+    if (multinomial) {
+      #X <- data.matrix(cbind(data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
+      X <- data.df.multi[, as.logical(row), drop = FALSE]
+    } else {
+      #X <- data.matrix(cbind(rep(1, length(data.df[, 1])), data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
+      X <- cbind(1, data.df.multi[, as.logical(row), drop = FALSE])
+    }
+  }
+   X
+}
