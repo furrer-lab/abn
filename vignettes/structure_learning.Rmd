@@ -2,7 +2,6 @@
 title: "Bayesian Network Structure Learning"
 output: rmarkdown::html_vignette
 bibliography: vignettes_bibliography.bib
-citeproc: yes
 vignette: >
   %\VignetteIndexEntry{Bayesian Network Structure Learning}
   %\VignetteEngine{knitr::rmarkdown}
