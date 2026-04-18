@@ -104,7 +104,7 @@ jobs:
         shell: bash
       - name: Install package
         run: |
-          devtools::install(upgrade='never')
+          devtools::install(upgrade=FALSE)
         shell: Rscript {0}
       - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |
