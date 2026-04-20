@@ -10,8 +10,10 @@
 #' @importFrom mclogit mblogit
 #' @returns A list that will be passed to \code{\link{buildScoreCache.mle}}.
 #' @keywords internal
-forLoopContent <-
+forLoopContent_precomputedXY <-
   function(row.num,
+           X,
+           Y,
            mycache,
            data.dists,
            data.df.multi,
@@ -253,7 +255,6 @@ forLoopContent <-
     if (verbose) message("we have no grouping (no mixed-effects model)")
     child <- mycache[["children"]][row.num] # child as integer
     distribution <- data.dists[child]
-    Y <- data.matrix(data.df[, child])
     if (verbose) {
       # current node's name
       child.name <- colnames(mycache[["node.defn"]])[child]
@@ -262,23 +263,8 @@ forLoopContent <-
       message(paste("regressing", child.name, "on", paste(parents.names, collapse = ", ")))
     }
 
-    if (is.null(adj.vars)) {
-      if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])]) {
-        X <- data.matrix(cbind(data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
-      } else {
-        X <- data.matrix(cbind(rep(1, length(data.df[, 1])), data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
-      }
-    } else {
-      if ("multinomial" %in% data.dists[as.logical(mycache$node.defn.adj[row.num, ])]) {
-        X <- data.matrix(cbind(data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
-      } else {
-        X <- data.matrix(cbind(rep(1, length(data.df[, 1])), data.df.multi[, as.logical(mycache[["node.defn.multi"]][row.num, ])]))
-      }
-    }
-
     ## Rank deficiency
     num.na <- 0
-
     R <- rank_cpp(X)
     r <- ncol(X)
     R_col <- R/r
@@ -316,9 +302,9 @@ forLoopContent <-
                suppressWarnings(fit <- irls_poisson_cpp_fast(A = X, b = Y, maxit = control[["max.iters"]], tol = control[["tol"]]))
              }, multinomial = {
 
-               Ymulti <- data.matrix(model.matrix(~-1 + data.df.lvl[, child]))
-
-               p <- ncol(Ymulti)
+               levels <- levels(data.df.lvl[, child])
+               Ymulti <- data.df.multi[,paste0(names(data.df.lvl)[child], levels)]
+               p <- length(levels)
                mask <- c(rep(FALSE, r + 1L), rep(c(FALSE, rep(TRUE, r)), p - 1L))
 
                tmp <- nnet.default(x = X, y = Ymulti, mask = mask, size = 0,
@@ -438,8 +424,6 @@ newBuildScoreCache.mle <-
             return(v)
         }
 
-        node.defn_all.list <- vector('list', nvars)
-        children_all.list <- vector('list', nvars)
         for (j in 1:nvars) {
           if(is.list(max.parents)){
             stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
@@ -458,28 +442,34 @@ newBuildScoreCache.mle <-
             max.parents <- max.parents-1
             warning(paste("`max.par` == no. of variables. I set it to (no. of variables - 1)=", max.parents)) #NOTE: This might cause differences to method="bayes"!
           }
-	    node.defn_temp.list <- vector('list', max.parents+1)
-            children_temp.list <- vector('list', max.parents+1)
-            node.defn_temp.list[[1]] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-            children_temp.list[[1]] <- j
-            for (i in 1:(max.parents)) {
-                tmp <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
-                tmp <- t(apply(X = tmp, MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-                node.defn_temp.list[[i+1]] <- tmp
-                children_temp.list[[i+1]] <- t(rep(j, length(tmp[, 1])))
-            }
-	    node.defn_all.list[[j]] <- do.call('rbind', node.defn_temp.list)
-            children_all.list[[j]] <- do.call('cbind', children_temp.list)
         }
-        node.defn <- do.call('rbind', node.defn_all.list)
-        children <- do.call('cbind', children_all.list)
-        # children <- rowSums(node.defn)
-        colnames(node.defn) <- colnames(data.df)
-        ## Coerce numeric matrix into integer matrix !!!
-	mode(node.defn) <- "integer"
 
+        tmp.list <- vector('list', max.parents)
+        cache_nrow <- 1
+        for (i in 1:(max.parents)) {
+          tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+          cache_nrow <- cache_nrow + nrow(tmp.list[[i]])
+        }
+        cache_nrow <- nvars * (cache_nrow)
+        n_filled <- 0
+        node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
+        children.list <- vector('list', cache_nrow)
+        for (j in 1:nvars) {
+          n_filled <- n_filled + 1
+          node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+          children.list[[n_filled]] <- j
+          for (i in 1:(max.parents)) {
+            tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
+            node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
+            children.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(j, length(tmp[, 1])))
+            n_filled <- n_filled + nrow(tmp)
+          }
+        }
+        node.defn <- node.defn_all.list
+        children <- unlist(children.list)
+        colnames(node.defn) <- colnames(data.df)
+        mode(node.defn) <- "integer"
         children <- as.integer(children)
-        # node.defn_ <- node.defn
 
         ## DAG RETAIN/BANNED
         for (i in 1:nvars) {
@@ -508,7 +498,7 @@ newBuildScoreCache.mle <-
             }
         }
 
-        mycache <- list(children = as.integer(children), node.defn = (node.defn))
+        mycache <- list(children = children, node.defn = node.defn)
 
         ###------------------------------###
         ### start limiting max.parent list###
@@ -606,15 +596,38 @@ newBuildScoreCache.mle <-
     ##-----------------------------
     if(verbose){cat("Start estimation loop.")}
     if(debugging){
-      res <- matrix(nrow = rows, ncol = 4) # each score in one column
-      for (i in 1:rows){
+      res <- matrix(NA_real_, rows, 4)
+      data.df.multi.num <- data.matrix(data.df.multi)
+      data.df.num <- data.matrix(data.df)
+      cache_X <- new.env(hash = TRUE, parent = emptyenv())
+      Y_list <- vector("list", nvars)
+      for (k in 1:nvars){
+        Y_list[[k]] <- data.df.num[, k, drop = FALSE]
+      }
+
+      for (row.num in 1:rows){
+        key <- bits_to_key(mycache$node.defn.multi[row.num, ])
+        if (exists(key, envir = cache_X, inherits = FALSE)) {
+          X <- get(key, envir = cache_X, inherits = FALSE)
+        } else {
+          if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])])
+            multinomial = TRUE
+          else multinomial = FALSE
+          obj <- compute_X(mycache$node.defn.multi[row.num, ], adj.vars, multinomial, data.df.multi.num)
+          assign(key, obj, envir = cache_X)
+          X <- obj
+        }
+        child <- mycache[["children"]][row.num]
+        Y <- Y_list[[child]]
         # for each child ~ parents fit regression model
-        res[i, ] <- forLoopContent(row.num = i,
+        res[row.num, ] <- forLoopContent_precomputedXY(row.num = row.num,
+                                   X = X,
+                                   Y = Y,
                                    mycache = mycache,
                                    data.dists = data.dists,
-                                   data.df.multi = data.df.multi,
+                                   data.df.multi = data.df.multi.num,
                                    adj.vars = adj.vars,
-                                   data.df = data.df,
+                                   data.df = data.df.num,
                                    data.df.lvl = data.df.lvl,
                                    group.var = group.var,
                                    group.ids = group.ids,
@@ -674,27 +687,45 @@ newBuildScoreCache.mle <-
         stopCluster(cl)
 
       } else {
-        res <- foreach(row.num = 1:rows,
-                       .combine='rbind',
-                       .packages = c("stats", "lme4", "mclogit", "nnet"),
-                       .export = 'forLoopContent',
-                       .verbose = verbose) %do% {
-                         forLoopContent(row.num = row.num,
+        res <- matrix(NA_real_, rows, 4)
+        data.df.multi.num <- data.matrix(data.df.multi)
+        data.df.num <- data.matrix(data.df)
+        cache_X <- new.env(hash = TRUE, parent = emptyenv())
+        Y_list <- vector("list", nvars)
+        for (k in 1:nvars){
+          Y_list[[k]] <- data.df.num[, k, drop = FALSE]
+        }
+        for(row.num in 1:rows){
+          key <- bits_to_key(mycache$node.defn.multi[row.num, ])
+          if (exists(key, envir = cache_X, inherits = FALSE)) {
+            X <- get(key, envir = cache_X, inherits = FALSE)
+          } else {
+            if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])])
+              multinomial = TRUE
+            else multinomial = FALSE
+            obj <- compute_X(mycache$node.defn.multi[row.num, ], adj.vars, multinomial, data.df.multi.num)
+            assign(key, obj, envir = cache_X)
+            X <- obj
+          }
+          child <- mycache[["children"]][row.num]
+          Y <- Y_list[[child]]
+          res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
+                                                        X = X,
+                                                        Y = Y,
                                         mycache = mycache,
                                         data.dists = data.dists,
-                                        data.df.multi = data.df.multi,
+                                        data.df.multi = data.df.multi.num,
                                         adj.vars = adj.vars,
-                                        data.df = data.df,
+                                        data.df = data.df.num,
                                         data.df.lvl = data.df.lvl,
                                         group.var = group.var,
                                         group.ids = group.ids,
                                         control = control,
                                         n = nvars,
                                         verbose = verbose)
-                       }
+          }
       }
     }
-
     out[["children"]] <- mycache[["children"]]
     out[["node.defn"]] <- mycache$node.defn
     out[["mlik"]] <- as.numeric( res[,1] )
