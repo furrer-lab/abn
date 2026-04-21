@@ -54,19 +54,17 @@ jobs:
     needs:
       - set_target
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       EVENT: ${{ github.event.number }}
-      RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     strategy:
       fail-fast: false
       matrix:
-        r-version: ['release']
-        os: ['debian']
-        compiler: ['gcc']
+        container: ['debian-gcc-release']
     permissions:
       contents: write
       id-token: write

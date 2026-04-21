@@ -59,27 +59,24 @@ jobs:
     needs:
       - set_target
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.os }}/${{ matrix.compiler }}/${{ matrix.r-version }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     env:
       R_KEEP_PKG_SOURCE: yes  # NOTE Jo: not sure why this is here?
-      RENV_CONFIG_AUTOLOADER_ENABLED: "FALSE"
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     strategy:
       fail-fast: false
       matrix:
-        r-version: ['release' , 'devel', 'patched']  # ['3.6.3', '4.1.1']
-        os: ['debian', 'fedora']
-        compiler: ['gcc', 'clang']
-        exclude:
-          - os: 'fedora'
-            r-version: 'release'
-          - os: 'fedora'
-            r-version: 'patched'
-          - r-version: 'patched'
-            compiler: 'clang'
-          - r-version: 'release'
-            compiler: 'clang'
+        container:
+          - 'debian-gcc-devel'
+          - 'debian-gcc-release'
+          - 'debian-gcc-patched'
+          - 'debian-clang-devel'
     steps:
       - uses: actions/checkout@v4
+
       - name: print libPaths and R Home
         run: |
             echo "R Library Paths are:"
