@@ -6,7 +6,7 @@ on:
   push:
     branches:
       - "main"
-      - "187-issue-with-ragg-within-the-installation-workflow-for-windows"
+      - "solid-expect-clauses"
 env:
   BUILD_LOC: "./build"
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -96,7 +96,6 @@ jobs:
 
       - name: run the tests
         run: |
-            pak::pak('r-lib/testthat')
             library("abn")
             testthat::test_local(path='tests', load_package='none')
         shell: Rscript {0}
