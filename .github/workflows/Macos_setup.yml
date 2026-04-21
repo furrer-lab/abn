@@ -24,6 +24,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - name: prepare macos
         run: |
@@ -78,11 +79,6 @@ jobs:
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
-
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
 
       - name: install from source
         run: |
