@@ -28,15 +28,15 @@ test_that("Standard MLE: RData → export → import preserves model structure",
       
       # ACT: Export to JSON
       json_str <- export_abnFit(direct_model)
-      expect_type(json_str, "character", 
+      expect_true(is.character(json_str),
                   info = "export_abnFit should return character string")
       expect_true(jsonlite::validate(json_str),
                   info = "Exported JSON should be valid")
       
       # ACT: Import from JSON
       imported_model <- import_abnFit(json = json_str)
-      expect_s3_class(imported_model, "abnFit",
-                      info = "Imported object should be abnFit class")
+      expect_true(inherits(imported_model, "abnFit"),
+                  info = "Imported object should be abnFit class")
       
       # ASSERT: Compare models using custom comparison
       expect_true(
@@ -84,8 +84,8 @@ test_that("Standard MLE: coefficient values preserved through round-trip", {
         
         # Check numerical values with tolerance
         max_diff <- max(abs(direct_coef - imported_coef), na.rm = TRUE)
-        expect_lt(
-          max_diff, 1e-5,
+        expect_true(
+          max_diff < 1e-5,
           info = paste(
             "Coefficient values for node", node_name,
             "should match within tolerance (1e-5)",
@@ -124,8 +124,8 @@ test_that("Standard MLE: standard errors preserved through round-trip", {
         
         # Check numerical values with tolerance
         max_diff <- max(abs(direct_se - imported_se), na.rm = TRUE)
-        expect_lt(
-          max_diff, 1e-5,
+        expect_true(
+          max_diff < 1e-5,
           info = paste(
             "Standard error values for node", node_name,
             "should match within tolerance (1e-5)",
@@ -171,8 +171,8 @@ test_that("Standard MLE: link functions consistent across round-trip", {
       
       # ACT: Import and verify link functions are preserved
       imported_model <- import_abnFit(json = json_str)
-      expect_s3_class(imported_model, "abnFit",
-                      info = "Imported model should be abnFit")
+      expect_true(inherits(imported_model, "abnFit"),
+                  info = "Imported model should be abnFit")
     })
   })
 })
@@ -227,15 +227,15 @@ test_that("Grouped MLE: RData → export → import preserves grouped model stru
       
       # ACT: Export to JSON
       json_str <- export_abnFit(direct_model)
-      expect_type(json_str, "character",
+      expect_true(is.character(json_str),
                   info = "export_abnFit should return character string")
       expect_true(jsonlite::validate(json_str),
                   info = "Exported JSON should be valid")
       
       # ACT: Import from JSON
       imported_model <- import_abnFit(json = json_str)
-      expect_s3_class(imported_model, "abnFit",
-                      info = "Imported object should be abnFit class")
+      expect_true(inherits(imported_model, "abnFit"),
+                  info = "Imported object should be abnFit class")
       
       # ASSERT: Compare models using custom comparison
       expect_true(
@@ -269,8 +269,8 @@ test_that("Grouped MLE: group-specific coefficients preserved", {
       
       # Check that we have multiple groups
       unique_groups <- unique(parsed$parameters$group_label)
-      expect_gt(
-        length(unique_groups), 1,
+      expect_true(
+        length(unique_groups) > 1,
         info = paste(
           "Grouped model should have multiple group labels",
           "Found groups:", paste(unique_groups, collapse = ", ")
@@ -316,8 +316,8 @@ test_that("Grouped MLE: variance and random effect parameters preserved", {
               ignore.case = TRUE),
       ]
       
-      expect_gt(
-        nrow(variance_params), 0,
+      expect_true(
+        nrow(variance_params) > 0,
         info = paste(
           "Grouped model should have variance/random effect parameters",
           "Total parameters:", nrow(parsed$parameters),
@@ -540,8 +540,8 @@ test_that("All parameters exported and reimported (standard model)", {
       exported_param_count <- nrow(parsed$parameters)
       
       # ASSERT
-      expect_gt(
-        direct_param_count, 0,
+      expect_true(
+        direct_param_count > 0,
         info = "Standard model should have at least some parameters"
       )
       
@@ -586,8 +586,8 @@ test_that("All parameters exported and reimported (grouped model)", {
       exported_param_count <- nrow(parsed$parameters)
       
       # ASSERT
-      expect_gt(
-        direct_param_count, 0,
+      expect_true(
+        direct_param_count > 0,
         info = "Grouped model should have at least some parameters"
       )
       
