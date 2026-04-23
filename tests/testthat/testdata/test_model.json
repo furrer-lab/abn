@@ -54,7 +54,7 @@
     },
     {
       "parameter_id": "2",
-      "name": "b1|b2",
+      "name": "beta",
       "link_function_name": "logit",
       "source": {"variable_id": "1"},
       "coefficients": [
@@ -87,7 +87,7 @@
     },
     {
       "parameter_id": "4",
-      "name": "p1|b1",
+      "name": "beta",
       "link_function_name": "log",
       "source": {"variable_id": "2"},
       "coefficients": [
@@ -120,7 +120,7 @@
     },
     {
       "parameter_id": "6",
-      "name": "g1|p1",
+      "name": "beta",
       "link_function_name": "identity",
       "source": {"variable_id": "3"},
       "coefficients": [
@@ -153,7 +153,7 @@
     },
     {
       "parameter_id": "8",
-      "name": "prob_1",
+      "name": "intercept",
       "link_function_name": "logit",
       "source": {"variable_id": "4", "state_id": "1"},
       "coefficients": [
@@ -167,7 +167,7 @@
     },
     {
       "parameter_id": "9",
-      "name": "prob_2",
+      "name": "intercept",
       "link_function_name": "logit",
       "source": {"variable_id": "4", "state_id": "2"},
       "coefficients": [
@@ -181,7 +181,7 @@
     },
     {
       "parameter_id": "10",
-      "name": "prob_3",
+      "name": "intercept",
       "link_function_name": "logit",
       "source": {"variable_id": "4", "state_id": "3"},
       "coefficients": [

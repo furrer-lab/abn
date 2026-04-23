@@ -8,12 +8,13 @@
 #' @param obj1 First abnFit object to compare
 #' @param obj2 Second abnFit object to compare
 #' @param tolerance Numerical tolerance for comparing coefficient values
-#'   (default: 1e-6)
+#'   (default: \code{.Machine$double.eps^0.5}, ~1.5e-8). Tightened from the
+#'   previous 1e-6 to catch precision regressions in JSON round-trip.
 #'
 #' @return Logical TRUE if objects are equivalent, FALSE otherwise
 #'
 #' @keywords internal
-abnfit_objects_equal <- function(obj1, obj2, tolerance = 1e-6) {
+abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5) {
   # Check class
   if (!inherits(obj1, "abnFit") || !inherits(obj2, "abnFit")) {
     message("Class check failed: obj1=", class(obj1), " obj2=", class(obj2))
@@ -85,6 +86,63 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = 1e-6) {
   if (!is.null(obj1$multinomial.states) || !is.null(obj2$multinomial.states)) {
     if (!identical(obj1$multinomial.states, obj2$multinomial.states)) {
       return(FALSE)
+    }
+  }
+
+  # Grouped (mixed-effects) MLE objects expose extra components. Only compare
+  # them when at least one side advertises grouping; otherwise pre-grouped
+  # tests (which only populate $coef / $Stderror) keep working unchanged.
+  is_grouped1 <- !is.null(obj1$group.var) || !is.null(obj1$mu)
+  is_grouped2 <- !is.null(obj2$group.var) || !is.null(obj2$mu)
+  if (is_grouped1 || is_grouped2) {
+    for (fld in c("mu", "betas", "sigma", "sigma_alpha")) {
+      v1 <- obj1[[fld]]
+      v2 <- obj2[[fld]]
+      if (is.null(v1) && is.null(v2)) next
+      if (xor(is.null(v1), is.null(v2))) {
+        message("Grouped field '", fld, "' presence mismatch")
+        return(FALSE)
+      }
+      if (length(v1) != length(v2) || !setequal(names(v1), names(v2))) {
+        message("Grouped field '", fld, "' node-key mismatch")
+        return(FALSE)
+      }
+      for (nm in names(v1)) {
+        a <- v1[[nm]]
+        b <- v2[[nm]]
+        if (is.null(a) && is.null(b)) next
+        # Treat scalar NA on either side as "absent"; both NA = equal.
+        if ((length(a) == 1 && is.na(a)) || (length(b) == 1 && is.na(b))) {
+          if (!(length(a) == 1 && length(b) == 1 && is.na(a) && is.na(b))) {
+            # Allow one side NA + other empty/zero-length as still equivalent.
+            if (!(length(a) == 0 || length(b) == 0)) {
+              message("Grouped field '", fld, "' for node '", nm, "': NA mismatch")
+              return(FALSE)
+            }
+          }
+          next
+        }
+        if (is.matrix(a) || is.matrix(b)) {
+          if (!compare_coefficient_matrices(a, b, tolerance = tolerance)) {
+            message("Grouped field '", fld, "' for node '", nm, "': matrix mismatch")
+            return(FALSE)
+          }
+        } else {
+          # Vectors / scalars: compare by name when names exist.
+          if (!is.null(names(a)) && !is.null(names(b))) {
+            if (!setequal(names(a), names(b))) {
+              message("Grouped field '", fld, "' for node '", nm, "': name mismatch")
+              return(FALSE)
+            }
+            b <- b[names(a)]
+          }
+          if (!isTRUE(all.equal(unname(as.numeric(a)), unname(as.numeric(b)),
+                                tolerance = tolerance))) {
+            message("Grouped field '", fld, "' for node '", nm, "': value mismatch")
+            return(FALSE)
+          }
+        }
+      }
     }
   }
 

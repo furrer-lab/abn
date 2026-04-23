@@ -697,7 +697,8 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   }
 
   # Convert to JSON
-  json_str <- jsonlite::toJSON(export_list, auto_unbox = TRUE, pretty = pretty, null = "null")
+  json_str <- jsonlite::toJSON(export_list, auto_unbox = TRUE, pretty = pretty,
+                               null = "null", digits = NA)
 
   # Write to file or return string
   if (!is.null(file)) {
@@ -859,10 +860,23 @@ export_abnFit_mle_nodes <- function(object, var_id_map = NULL, ...) {
 
     variables_list[[length(variables_list) + 1]] <- variable_entry
 
+    # Build state lookups (child + multinomial parents) so the helper can
+    # encode multinomial state references purely via state_id rather than
+    # via opaque parameter names.
+    child_state_lookup <- if (distribution == "multinomial") build_state_lookup(object, node_id) else NULL
+    parent_state_lookups <- list()
+    for (p in parent_nodes) {
+      if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
+        parent_state_lookups[[p]] <- build_state_lookup(object, p)
+      }
+    }
+
     # Extract parameters based on distribution type
     param_result <- extract_parameters_by_distribution(
       coef_vec, se_vec, distribution, node_id,
-      parent_nodes, parameter_counter, link_function, var_id_map
+      parent_nodes, parameter_counter, link_function, var_id_map,
+      child_state_lookup = child_state_lookup,
+      parent_state_lookups = parent_state_lookups
     )
 
     # Add parameters to list
@@ -922,36 +936,99 @@ extract_states_from_data <- function(object, node_id) {
 #' @param coef_name Coefficient name string
 #' @keywords internal
 parse_parent_from_coef_name <- function(coef_name) {
+  info <- parse_parent_and_state_from_coef_name(coef_name)
+  if (is.null(info)) return(NULL)
+  return(info$parent)
+}
+
+#' Parse parent variable name AND optional category/state value from a coef name
+#'
+#' Used by the exporter to populate `parent_state_id` for multinomial parents.
+#' Coefficient names follow the pattern `"child|parent"` or `"child|parent.value"`.
+#' The trailing `.value` (digits or alphanumerics) is interpreted as the parent
+#' factor level value; if absent, `state_value` is NULL.
+#'
+#' @param coef_name Coefficient name string.
+#' @return NULL when no `|` is present; otherwise a list with
+#'   `parent` (character) and `state_value` (character or NULL).
+#' @keywords internal
+parse_parent_and_state_from_coef_name <- function(coef_name) {
   parts <- strsplit(coef_name, "\\|", fixed = FALSE)[[1]]
-  if (length(parts) < 2) {
-    return(NULL)
-  }
+  if (length(parts) < 2) return(NULL)
   parent_part <- parts[2]
-  parent_part <- gsub("\\.[0-9]+$", "", parent_part)
-  if (parent_part == "") {
-    return(NULL)
+  # Match the LAST `.<value>` suffix; the value may be numeric or
+  # alphanumeric (factor level names). To avoid stripping parent names
+  # that legitimately contain dots, only strip the LAST segment.
+  m <- regexpr("\\.[^.]+$", parent_part)
+  if (m[1] > 0) {
+    state_value <- sub("^\\.", "", regmatches(parent_part, m))
+    parent <- sub("\\.[^.]+$", "", parent_part)
+  } else {
+    state_value <- NULL
+    parent <- parent_part
   }
-  return(parent_part)
+  if (parent == "") return(NULL)
+  list(parent = parent, state_value = state_value)
+}
+
+#' Build a state-name -> state-id lookup for a node from an abnFit object.
+#'
+#' For multinomial nodes, returns a named character vector mapping each
+#' factor level value (`value_name`) to its 1-based `state_id` string.
+#' Returns NULL for non-multinomial nodes.
+#' @keywords internal
+build_state_lookup <- function(object, node_id) {
+  states <- extract_states_from_data(object, node_id)
+  if (is.null(states) || length(states) == 0) return(NULL)
+  ids <- vapply(states, function(s) as.character(s$state_id), character(1))
+  vals <- vapply(states, function(s) as.character(s$value_name), character(1))
+  stats::setNames(ids, vals)
 }
 
 #' Helper function to extract parameters based on distribution type
+#'
+#' Emits parameters whose `name` field is a structural label only
+#' (`"intercept"`, `"beta"`); parent / child relations and multinomial
+#' state assignments are encoded purely in the structural fields
+#' `source.variable_id`, `source.state_id`, and
+#' `conditions[].parent_variable_id` / `conditions[].parent_state_id`.
+#'
+#' @param parent_state_lookups A named list (one entry per parent that is
+#'   multinomial) mapping factor level value -> state_id. May be NULL.
 #' @keywords internal
 extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id,
                                                parent_nodes, start_counter, link_function,
-                                               var_id_map = NULL) {
+                                               var_id_map = NULL,
+                                               child_state_lookup = NULL,
+                                               parent_state_lookups = NULL) {
   param_names <- names(coef_vec)
   parameters <- list()
   counter <- start_counter
 
+  # Local helper: build a `conditions` entry for a parent reference, looking up
+  # the parent state_id from the literal level value if the parent is multinomial.
+  make_parent_condition <- function(parent_var, state_value) {
+    parent_state_id <- NULL
+    if (!is.null(state_value) && !is.null(parent_state_lookups) &&
+        !is.null(parent_state_lookups[[parent_var]])) {
+      lk <- parent_state_lookups[[parent_var]]
+      sid <- lk[state_value]
+      if (!is.na(sid)) parent_state_id <- unname(sid)
+    }
+    list(
+      parent_variable_id = var_id_map[parent_var],
+      parent_state_id = parent_state_id
+    )
+  }
+
   if (distribution %in% c("gaussian", "binomial", "poisson")) {
     # Find intercept parameter
-    intercept_pattern <- paste0(node_id, "\\|intercept")
+    intercept_pattern <- paste0("^", node_id, "\\|intercept$")
     intercept_idx <- grep(intercept_pattern, param_names, ignore.case = TRUE)
 
     if (length(intercept_idx) > 0) {
       intercept_name <- param_names[intercept_idx[1]]
 
-      # Create parameter for intercept
       param_entry <- list(
         parameter_id = as.character(counter),
         name = "intercept",
@@ -972,7 +1049,6 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
       parameters[[length(parameters) + 1]] <- param_entry
       counter <- counter + 1
 
-      # Remove intercept from remaining parameters
       param_names <- param_names[-intercept_idx[1]]
       coef_remaining <- coef_vec[param_names]
       se_remaining <- se_vec[param_names]
@@ -985,11 +1061,34 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
     if (length(coef_remaining) > 0) {
       for (i in seq_along(coef_remaining)) {
         param_name <- names(coef_remaining)[i]
-        parent_var <- parse_parent_from_coef_name(param_name)
+        info <- parse_parent_and_state_from_coef_name(param_name)
+        # Disambiguate: prefer an exact-name parent match (no state) over a
+        # spurious state strip that happens to look like a level value.
+        parent_var <- NULL
+        state_value <- NULL
+        if (!is.null(info)) {
+          # Prefer the no-strip interpretation if it matches a real parent.
+          full_parent_part <- sub(paste0("^", node_id, "\\|"), "", param_name)
+          if (full_parent_part %in% parent_nodes) {
+            parent_var <- full_parent_part
+          } else if (info$parent %in% parent_nodes) {
+            parent_var <- info$parent
+            state_value <- info$state_value
+          } else {
+            parent_var <- info$parent
+            state_value <- info$state_value
+          }
+        }
+
+        cond <- if (!is.null(parent_var)) {
+          list(make_parent_condition(parent_var, state_value))
+        } else {
+          list()
+        }
 
         param_entry <- list(
           parameter_id = as.character(counter),
-          name = param_name,
+          name = "beta",
           link_function_name = link_function,
           source = list(
             variable_id = var_id_map[node_id]
@@ -999,12 +1098,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
               value = unname(coef_remaining[i]),
               stderr = unname(se_remaining[i]),
               condition_type = "linear_term",
-              conditions = list(
-                list(
-                  parent_variable_id = var_id_map[parent_var],
-                  parent_state_id = NULL
-                )
-              )
+              conditions = cond
             )
           )
         )
@@ -1015,19 +1109,19 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
     }
 
   } else if (distribution == "multinomial") {
+    # Bare intercept (no state suffix): treat as state_id = baseline (omitted by
+    # default in abn). Here we emit only what is present in coef_vec.
     bare_intercept_pattern <- paste0("^", node_id, "\\|intercept$")
     bare_intercept_idx <- grep(bare_intercept_pattern, param_names)
 
     if (length(bare_intercept_idx) > 0) {
       for (idx in bare_intercept_idx) {
-        param_name <- param_names[idx]
         param_entry <- list(
           parameter_id = as.character(counter),
-          name = param_name,
+          name = "intercept",
           link_function_name = link_function,
           source = list(
-            variable_id = var_id_map[node_id],
-            state_id = "1"
+            variable_id = var_id_map[node_id]
           ),
           coefficients = list(
             list(
@@ -1043,26 +1137,96 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
       }
     }
 
-    suffixed_intercept_pattern <- paste0("^", node_id, "\\|intercept\\.[0-9]+$")
+    # Suffixed intercepts: child|intercept.<state_value>
+    suffixed_intercept_pattern <- paste0("^", node_id, "\\|intercept\\.")
     suffixed_intercept_idx <- grep(suffixed_intercept_pattern, param_names)
+    for (idx in suffixed_intercept_idx) {
+      pname <- param_names[idx]
+      state_value <- sub(paste0("^", node_id, "\\|intercept\\."), "", pname)
+      child_state_id <- NULL
+      if (!is.null(child_state_lookup)) {
+        sid <- child_state_lookup[state_value]
+        if (!is.na(sid)) child_state_id <- unname(sid)
+      }
+      src <- list(variable_id = var_id_map[node_id])
+      if (!is.null(child_state_id)) src$state_id <- child_state_id
+      param_entry <- list(
+        parameter_id = as.character(counter),
+        name = "intercept",
+        link_function_name = link_function,
+        source = src,
+        coefficients = list(
+          list(
+            value = unname(coef_vec[idx]),
+            stderr = unname(se_vec[idx]),
+            condition_type = "intercept",
+            conditions = list()
+          )
+        )
+      )
+      parameters[[length(parameters) + 1]] <- param_entry
+      counter <- counter + 1
+    }
+
     all_intercept_idx <- c(bare_intercept_idx, suffixed_intercept_idx)
 
+    # Linear terms (parent slopes). For multinomial children the abn coef
+    # column name has no `|` and looks like `<parent><state>`; we attempt to
+    # match against parent_nodes first.
     for (i in seq_along(param_names)) {
       if (i %in% all_intercept_idx) next
-      param_name <- param_names[i]
-      parent_var <- parse_parent_from_coef_name(param_name)
+      pname <- param_names[i]
+
+      parent_var <- NULL
+      parent_state_value <- NULL
+      child_state_value <- NULL
+
+      if (grepl("\\|", pname)) {
+        info <- parse_parent_and_state_from_coef_name(pname)
+        if (!is.null(info)) {
+          full_parent_part <- sub(paste0("^", node_id, "\\|"), "", pname)
+          if (full_parent_part %in% parent_nodes) {
+            parent_var <- full_parent_part
+          } else {
+            parent_var <- info$parent
+            parent_state_value <- info$state_value
+          }
+        }
+      } else {
+        # Multinomial-child convention: try longest-match against parent names.
+        for (p in parent_nodes[order(-nchar(parent_nodes))]) {
+          if (startsWith(pname, p)) {
+            parent_var <- p
+            tail_part <- substr(pname, nchar(p) + 1, nchar(pname))
+            tail_part <- sub("^\\.", "", tail_part)
+            if (nchar(tail_part) > 0) parent_state_value <- tail_part
+            break
+          }
+        }
+      }
       if (is.null(parent_var)) next
 
-      if (parent_var == "intercept") next
+      child_state_id <- NULL
+      parent_state_id <- NULL
+      if (!is.null(child_state_value) && !is.null(child_state_lookup)) {
+        sid <- child_state_lookup[child_state_value]
+        if (!is.na(sid)) child_state_id <- unname(sid)
+      }
+      if (!is.null(parent_state_value) && !is.null(parent_state_lookups) &&
+          !is.null(parent_state_lookups[[parent_var]])) {
+        lk <- parent_state_lookups[[parent_var]]
+        sid <- lk[parent_state_value]
+        if (!is.na(sid)) parent_state_id <- unname(sid)
+      }
+
+      src <- list(variable_id = var_id_map[node_id])
+      if (!is.null(child_state_id)) src$state_id <- child_state_id
 
       param_entry <- list(
         parameter_id = as.character(counter),
-        name = param_name,
+        name = "beta",
         link_function_name = link_function,
-        source = list(
-          variable_id = var_id_map[node_id],
-          state_id = "1"
-        ),
+        source = src,
         coefficients = list(
           list(
             value = unname(coef_vec[i]),
@@ -1071,7 +1235,7 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
             conditions = list(
               list(
                 parent_variable_id = var_id_map[parent_var],
-                parent_state_id = NULL
+                parent_state_id = parent_state_id
               )
             )
           )
@@ -1184,11 +1348,21 @@ export_abnFit_mle_grouped_nodes <- function(object, var_id_map = NULL, ...) {
 
     variables_list[[length(variables_list) + 1]] <- variable_entry
 
+    child_state_lookup <- if (distribution == "multinomial") build_state_lookup(object, node_id) else NULL
+    parent_state_lookups <- list()
+    for (p in parent_nodes) {
+      if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
+        parent_state_lookups[[p]] <- build_state_lookup(object, p)
+      }
+    }
+
     # Extract parameters for mixed-effects models
     param_result <- extract_parameters_mixed_effects(
       mu_val, betas_val, sigma_val, sigma_alpha_val,
       distribution, node_id, parent_nodes, parameter_counter, link_function,
-      var_id_map
+      var_id_map,
+      child_state_lookup = child_state_lookup,
+      parent_state_lookups = parent_state_lookups
     )
 
     # Add parameters to list
@@ -1225,9 +1399,27 @@ export_abnFit_mle_grouped_nodes <- function(object, var_id_map = NULL, ...) {
 #' @keywords internal
 extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
                                              distribution, node_id, parent_nodes,
-                                             start_counter, link_function, var_id_map = NULL) {
+                                             start_counter, link_function, var_id_map = NULL,
+                                             child_state_lookup = NULL,
+                                             parent_state_lookups = NULL) {
   parameters <- list()
   counter <- start_counter
+
+  # Local helper for parent state encoding (shared across branches).
+  lookup_parent_state_id <- function(parent_var, state_value) {
+    if (is.null(state_value)) return(NULL)
+    lk <- parent_state_lookups[[parent_var]]
+    if (is.null(lk)) return(NULL)
+    sid <- lk[state_value]
+    if (is.na(sid)) return(NULL)
+    unname(sid)
+  }
+  lookup_child_state_id <- function(state_value) {
+    if (is.null(state_value) || is.null(child_state_lookup)) return(NULL)
+    sid <- child_state_lookup[state_value]
+    if (is.na(sid)) return(NULL)
+    unname(sid)
+  }
 
   # Handle different distribution types
   if (distribution %in% c("gaussian", "binomial", "poisson")) {
@@ -1258,14 +1450,19 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
         beta_name <- beta_names[i]
         beta_value <- betas[i]
 
-        # Match with parent nodes
+        # Match with parent nodes (longest first to avoid prefix collisions)
         parent_var <- NULL
-        parent_state <- NULL
-        for (p in parent_nodes) {
-          if (grepl(paste0("^", p), beta_name) || grepl(paste0(p, "[0-9]"), beta_name)) {
+        parent_state_value <- NULL
+        for (p in parent_nodes[order(-nchar(parent_nodes))]) {
+          if (identical(beta_name, p)) {
             parent_var <- p
-            state_match <- regmatches(beta_name, regexpr("[0-9]+$", beta_name))
-            parent_state <- if (length(state_match) > 0) state_match else NULL
+            break
+          }
+          if (startsWith(beta_name, p)) {
+            tail_part <- substr(beta_name, nchar(p) + 1, nchar(beta_name))
+            tail_part <- sub("^\\.", "", tail_part)
+            parent_var <- p
+            parent_state_value <- if (nchar(tail_part) > 0) tail_part else NULL
             break
           }
         }
@@ -1273,7 +1470,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
         if (!is.null(parent_var)) {
           param_entry <- list(
             parameter_id = as.character(counter),
-            name = beta_name,
+            name = "beta",
             link_function_name = link_function,
             source = list(variable_id = var_id_map[node_id]),
             coefficients = list(
@@ -1284,7 +1481,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
                 conditions = list(
                   list(
                     parent_variable_id = var_id_map[parent_var],
-                    parent_state_id = parent_state
+                    parent_state_id = lookup_parent_state_id(parent_var, parent_state_value)
                   )
                 )
               )
@@ -1346,11 +1543,15 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
 
       for (i in seq_along(mu)) {
         cat <- categories[i]
+        src <- list(variable_id = var_id_map[node_id])
+        sid <- lookup_child_state_id(cat)
+        # Fallback: keep the literal level value if no lookup hit.
+        if (!is.null(sid)) src$state_id <- sid else src$state_id <- cat
         param_entry <- list(
           parameter_id = as.character(counter),
-          name = paste0("intercept_", cat),
+          name = "intercept",
           link_function_name = link_function,
-          source = list(variable_id = var_id_map[node_id], state_id = cat),
+          source = src,
           coefficients = list(
             list(
               value = as.numeric(mu[i]),
@@ -1376,22 +1577,30 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
           parent_name <- parent_names[j]
 
           parent_var <- NULL
-          parent_state <- NULL
-          for (p in parent_nodes) {
-            if (grepl(paste0("^", p), parent_name)) {
+          parent_state_value <- NULL
+          for (p in parent_nodes[order(-nchar(parent_nodes))]) {
+            if (identical(parent_name, p)) {
               parent_var <- p
-              state_match <- regmatches(parent_name, regexpr("[0-9]+$", parent_name))
-              parent_state <- if (length(state_match) > 0) state_match else NULL
+              break
+            }
+            if (startsWith(parent_name, p)) {
+              tail_part <- substr(parent_name, nchar(p) + 1, nchar(parent_name))
+              tail_part <- sub("^\\.", "", tail_part)
+              parent_var <- p
+              parent_state_value <- if (nchar(tail_part) > 0) tail_part else NULL
               break
             }
           }
 
            if (!is.null(parent_var)) {
+             child_sid <- lookup_child_state_id(cat)
+             src <- list(variable_id = var_id_map[node_id])
+             src$state_id <- if (!is.null(child_sid)) child_sid else cat
              param_entry <- list(
                parameter_id = as.character(counter),
-               name = paste0(parent_name, "_cat", cat),
+               name = "beta",
                link_function_name = link_function,
-               source = list(variable_id = var_id_map[node_id], state_id = cat),
+               source = src,
                coefficients = list(
                  list(
                    value = as.numeric(betas[i, j]),
@@ -1400,7 +1609,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
                    conditions = list(
                      list(
                        parent_variable_id = var_id_map[parent_var],
-                       parent_state_id = parent_state
+                       parent_state_id = lookup_parent_state_id(parent_var, parent_state_value)
                      )
                    )
                  )
@@ -1422,14 +1631,20 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
           cat_i <- gsub(".*~", "", categories[i])
           cat_j <- gsub(".*~", "", categories[j])
 
+          # Look up state IDs (numeric) when possible.
+          sid_i <- lookup_child_state_id(cat_i)
+          sid_j <- lookup_child_state_id(cat_j)
+          if (is.null(sid_i)) sid_i <- cat_i
+          if (is.null(sid_j)) sid_j <- cat_j
+
+          src <- list(variable_id = var_id_map[node_id])
+          src$state_id <- if (i == j) sid_i else paste0(sid_i, "_", sid_j)
+
           param_entry <- list(
             parameter_id = as.character(counter),
-            name = if (i == j) paste0("sigma_alpha_", cat_i) else paste0("sigma_alpha_", cat_i, "_", cat_j),
+            name = if (i == j) "random_variance" else "random_covariance",
             link_function_name = "identity",
-            source = list(
-              variable_id = var_id_map[node_id],
-              state_id = if (i == j) cat_i else paste0(cat_i, "_", cat_j)
-            ),
+            source = src,
             coefficients = list(
               list(
                 value = as.numeric(sigma_alpha[i, j]),
