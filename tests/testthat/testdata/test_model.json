@@ -1,0 +1,211 @@
+{
+  "scenario_id": "test_scenario_1",
+  "label": "Test ABN Model",
+  "variables": [
+    {
+      "variable_id": "1",
+      "attribute_name": "b1",
+      "model_type": "binomial",
+      "states": null
+    },
+    {
+      "variable_id": "2",
+      "attribute_name": "p1",
+      "model_type": "poisson",
+      "states": null
+    },
+    {
+      "variable_id": "3",
+      "attribute_name": "g1",
+      "model_type": "gaussian",
+      "states": null
+    },
+    {
+      "variable_id": "4",
+      "attribute_name": "c1",
+      "model_type": "multinomial",
+      "states": [
+        {"state_id": "1", "value_name": "Low", "is_baseline": true},
+        {"state_id": "2", "value_name": "Medium", "is_baseline": false},
+        {"state_id": "3", "value_name": "High", "is_baseline": false}
+      ]
+    },
+    {
+      "variable_id": "5",
+      "attribute_name": "b2",
+      "model_type": "binomial",
+      "states": null
+    }
+  ],
+  "parameters": [
+    {
+      "parameter_id": "1",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "1"},
+      "coefficients": [
+        {
+          "value": -0.5,
+          "stderr": 0.1,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "2",
+      "name": "beta",
+      "link_function_name": "logit",
+      "source": {"variable_id": "1"},
+      "coefficients": [
+        {
+          "value": 0.8,
+          "stderr": 0.2,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "5",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "3",
+      "name": "intercept",
+      "link_function_name": "log",
+      "source": {"variable_id": "2"},
+      "coefficients": [
+        {
+          "value": 0.3,
+          "stderr": 0.05,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "4",
+      "name": "beta",
+      "link_function_name": "log",
+      "source": {"variable_id": "2"},
+      "coefficients": [
+        {
+          "value": 0.4,
+          "stderr": 0.08,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "1",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "5",
+      "name": "intercept",
+      "link_function_name": "identity",
+      "source": {"variable_id": "3"},
+      "coefficients": [
+        {
+          "value": 1.0,
+          "stderr": 0.2,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "6",
+      "name": "beta",
+      "link_function_name": "identity",
+      "source": {"variable_id": "3"},
+      "coefficients": [
+        {
+          "value": 0.6,
+          "stderr": 0.1,
+          "condition_type": "linear_term",
+          "conditions": [
+            {
+              "parent_variable_id": "2",
+              "parent_state_id": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "parameter_id": "7",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "5"},
+      "coefficients": [
+        {
+          "value": 0.1,
+          "stderr": 0.15,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "8",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "4", "state_id": "1"},
+      "coefficients": [
+        {
+          "value": 0,
+          "stderr": 0,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "9",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "4", "state_id": "2"},
+      "coefficients": [
+        {
+          "value": -0.2,
+          "stderr": 0.3,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    },
+    {
+      "parameter_id": "10",
+      "name": "intercept",
+      "link_function_name": "logit",
+      "source": {"variable_id": "4", "state_id": "3"},
+      "coefficients": [
+        {
+          "value": 0.5,
+          "stderr": 0.25,
+          "condition_type": "intercept",
+          "conditions": []
+        }
+      ]
+    }
+  ],
+  "arcs": [
+    {
+      "source_variable_id": "1",
+      "target_variable_id": "2"
+    },
+    {
+      "source_variable_id": "2",
+      "target_variable_id": "3"
+    },
+    {
+      "source_variable_id": "5",
+      "target_variable_id": "1"
+    }
+  ]
+}
