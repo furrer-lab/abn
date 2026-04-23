@@ -236,6 +236,19 @@ validate_json_structure <- function(json_list) {
 }
 
 #' Reconstruct abnFit object for MLE method from JSON
+#'
+#' @details
+#' Coefficient column names are reconstructed purely from the JSON's
+#' *structural* fields (`source.variable_id`, `source.state_id`,
+#' `conditions[].parent_variable_id`, `conditions[].parent_state_id`).
+#' The `name` field on each parameter object is treated as an opaque
+#' human-readable label and is intentionally **never** consulted.
+#'
+#' If any parameter has a `condition_type` of `"variance"`,
+#' `"random_variance"`, or `"random_covariance"`, the model is treated
+#' as a grouped (mixed-effects) MLE fit, and `mu`/`betas`/`sigma`/
+#' `sigma_alpha`/`group.var` are reconstructed in addition to (or in
+#' place of) the standard `coef`/`Stderror` matrices.
 #' @keywords internal
 reconstruct_abnfit_mle <- function(json_list) {
   variables <- json_list$variables
@@ -246,6 +259,7 @@ reconstruct_abnfit_mle <- function(json_list) {
   )
   variable_names <- unname(id_to_name)
   model_types <- vapply(variables, function(x) as.character(x$model_type), character(1))
+  names(model_types) <- variable_names
   n <- length(variable_names)
 
   lf_lookup <- list()
@@ -256,6 +270,30 @@ reconstruct_abnfit_mle <- function(json_list) {
   }
 
   data_dists <- stats::setNames(model_types, variable_names)
+
+  # Build per-multinomial-node lookup: state_id -> value_name. Used to
+  # reconstruct the original abn coefficient column-name suffixes.
+  state_id_to_value <- list()
+  for (i in seq_along(variables)) {
+    if (model_types[i] == "multinomial") {
+      states <- variables[[i]]$states
+      if (!is.null(states) && length(states) > 0) {
+        ids <- vapply(states, function(s) as.character(s$state_id), character(1))
+        vals <- vapply(states, function(s) as.character(s$value_name), character(1))
+        state_id_to_value[[variable_names[i]]] <- stats::setNames(vals, ids)
+      }
+    }
+  }
+
+  resolve_state_value <- function(node_name, state_id) {
+    if (is.null(state_id) || is.na(state_id)) return(NULL)
+    sid <- as.character(state_id)
+    lk <- state_id_to_value[[node_name]]
+    if (is.null(lk)) return(sid)             # fall back to literal id
+    v <- lk[sid]
+    if (is.na(v)) return(sid)
+    unname(v)
+  }
 
   data_list <- lapply(seq_along(variables), function(i) {
     dist <- model_types[i]
@@ -320,8 +358,30 @@ reconstruct_abnfit_mle <- function(json_list) {
     }
   }
 
-  coef_list <- stats::setNames(vector("list", n), variable_names)
-  stderror_list <- stats::setNames(vector("list", n), variable_names)
+  # Accumulators for standard (non-grouped) coefficient matrices.
+  vals_acc <- stats::setNames(vector("list", n), variable_names)
+  ses_acc <- stats::setNames(vector("list", n), variable_names)
+  names_acc <- stats::setNames(vector("list", n), variable_names)
+  for (vn in variable_names) {
+    vals_acc[[vn]] <- numeric()
+    ses_acc[[vn]] <- numeric()
+    names_acc[[vn]] <- character()
+  }
+
+  # Accumulators for grouped (mixed-effects) MLE objects.
+  is_grouped <- FALSE
+  mu_acc          <- stats::setNames(vector("list", n), variable_names)
+  mu_names_acc    <- stats::setNames(vector("list", n), variable_names)
+  betas_acc       <- stats::setNames(vector("list", n), variable_names)
+  betas_names_acc <- stats::setNames(vector("list", n), variable_names)
+  # Multinomial child: betas is a matrix with rownames=child levels,
+  # colnames=parent names. Track row/col keys per cell.
+  betas_rows_acc  <- stats::setNames(vector("list", n), variable_names)
+  betas_cols_acc  <- stats::setNames(vector("list", n), variable_names)
+  sigma_acc       <- stats::setNames(vector("list", n), variable_names)
+  # sigma_alpha: scalar for non-multinomial child, matrix for multinomial.
+  sigma_alpha_scalar <- stats::setNames(vector("list", n), variable_names)
+  sigma_alpha_cells  <- stats::setNames(vector("list", n), variable_names)
 
   if (!is.null(json_list$parameters)) {
     for (param in json_list$parameters) {
@@ -330,49 +390,158 @@ reconstruct_abnfit_mle <- function(json_list) {
       if (length(target_name) == 0 || is.na(target_name)) target_name <- raw_target_id
       if (!(target_name %in% variable_names)) next
 
-      if (!is.null(param$link_function_name)) {
-        lf_name <- as.character(param$link_function_name)
-      } else if (!is.null(param$link_function_id)) {
-        lf_name <- lf_lookup[[as.character(param$link_function_id)]]
-        if (is.null(lf_name)) lf_name <- "unknown"
-      } else {
-        lf_name <- "unknown"
-      }
+      child_dist <- model_types[target_name]
+      child_state_id <- if (!is.null(param$source$state_id)) as.character(param$source$state_id) else NULL
+      child_state_value <- if (!is.null(child_state_id)) resolve_state_value(target_name, child_state_id) else NULL
 
       coeffs_input <- if (is.list(param$coefficients)) param$coefficients else list()
-      vals <- numeric()
-      ses <- numeric()
-      c_names <- character()
 
       for (coeff in coeffs_input) {
         type <- as.character(coeff$condition_type)
-        if (type == "intercept") {
-          c_name <- paste0(target_name, "|intercept")
-        } else if (type == "linear_term") {
-          parent_raw <- if (!is.null(coeff$conditions) && length(coeff$conditions) > 0) {
-            as.character(coeff$conditions[[1]]$parent_variable_id)
+        value <- as.numeric(coeff$value)
+        se_val <- if (is.null(coeff$stderr)) NA_real_ else as.numeric(coeff$stderr)
+
+        # --------------- Grouped-only condition types ----------------
+        if (type == "variance") {
+          is_grouped <- TRUE
+          sigma_acc[[target_name]] <- c(sigma_acc[[target_name]], value)
+          next
+        }
+        if (type == "random_variance") {
+          is_grouped <- TRUE
+          if (child_dist == "multinomial") {
+            # Diagonal of sigma_alpha matrix; key by state_id.
+            key <- if (is.null(child_state_id)) "1" else child_state_id
+            sigma_alpha_cells[[target_name]] <- c(
+              sigma_alpha_cells[[target_name]],
+              stats::setNames(value, paste0(key, "_", key))
+            )
           } else {
-            "unknown"
+            sigma_alpha_scalar[[target_name]] <- c(sigma_alpha_scalar[[target_name]], value)
           }
-          parent_name <- id_to_name[parent_raw]
-          if (length(parent_name) == 0 || is.na(parent_name)) parent_name <- parent_raw
-          c_name <- paste0(target_name, "|", parent_name)
+          next
+        }
+        if (type == "random_covariance") {
+          is_grouped <- TRUE
+          # source.state_id encodes "<i>_<j>" per the exporter.
+          key <- if (is.null(child_state_id)) NA_character_ else child_state_id
+          sigma_alpha_cells[[target_name]] <- c(
+            sigma_alpha_cells[[target_name]],
+            stats::setNames(value, key)
+          )
+          next
+        }
+
+        # ---------------- Reconstruct abn coef column name ----------------
+        # Pure structural reconstruction; NEVER read param$name.
+        c_name <- NA_character_
+
+        if (type == "intercept") {
+          if (child_dist == "multinomial" && !is.null(child_state_value)) {
+            c_name <- paste0(target_name, "|intercept.", child_state_value)
+          } else {
+            c_name <- paste0(target_name, "|intercept")
+          }
+        } else if (type == "linear_term") {
+          parent_var <- NA_character_
+          parent_state_value <- NULL
+          if (!is.null(coeff$conditions) && length(coeff$conditions) > 0) {
+            cond <- coeff$conditions[[1]]
+            p_raw <- as.character(cond$parent_variable_id)
+            pn <- id_to_name[p_raw]
+            if (length(pn) > 0 && !is.na(pn)) {
+              parent_var <- unname(pn)
+            } else {
+              parent_var <- p_raw
+            }
+            if (!is.null(cond$parent_state_id)) {
+              parent_state_value <- resolve_state_value(parent_var, cond$parent_state_id)
+            }
+          }
+          if (child_dist == "multinomial") {
+            # abn convention: <parent><state> with empty separator, no leading "child|".
+            if (!is.null(parent_state_value)) {
+              c_name <- paste0(parent_var, parent_state_value)
+            } else {
+              c_name <- parent_var
+            }
+          } else {
+            if (!is.null(parent_state_value)) {
+              c_name <- paste0(target_name, "|", parent_var, ".", parent_state_value)
+            } else {
+              c_name <- paste0(target_name, "|", parent_var)
+            }
+          }
         } else {
+          # Unknown condition_type: preserve as "<target>|<type>" for safety.
           c_name <- paste0(target_name, "|", type)
         }
 
-        vals <- c(vals, as.numeric(coeff$value))
-        ses <- c(ses, as.numeric(coeff$stderr %||% NA))
-        c_names <- c(c_names, c_name)
-      }
+        # Accumulate into standard coef/Stderror matrices.
+        vals_acc[[target_name]]  <- c(vals_acc[[target_name]],  value)
+        ses_acc[[target_name]]   <- c(ses_acc[[target_name]],   se_val)
+        names_acc[[target_name]] <- c(names_acc[[target_name]], c_name)
 
-      coef_list[[target_name]] <- matrix(vals, nrow = 1, dimnames = list(NULL, c_names))
-      stderror_list[[target_name]] <- matrix(ses, nrow = 1, dimnames = list(NULL, c_names))
+        # Also accumulate into grouped accumulators in case this turns out to
+        # be a grouped fit (decided post-hoc by presence of variance terms).
+        if (type == "intercept") {
+          if (child_dist == "multinomial") {
+            key <- if (!is.null(child_state_value)) {
+              paste0(target_name, ".", child_state_value)
+            } else {
+              target_name
+            }
+            mu_acc[[target_name]]       <- c(mu_acc[[target_name]], value)
+            mu_names_acc[[target_name]] <- c(mu_names_acc[[target_name]], key)
+          } else {
+            mu_acc[[target_name]]       <- c(mu_acc[[target_name]], value)
+            mu_names_acc[[target_name]] <- c(mu_names_acc[[target_name]], "(Intercept)")
+          }
+        } else if (type == "linear_term") {
+          parent_var <- NA_character_
+          parent_state_value <- NULL
+          if (!is.null(coeff$conditions) && length(coeff$conditions) > 0) {
+            cond <- coeff$conditions[[1]]
+            p_raw <- as.character(cond$parent_variable_id)
+            pn <- id_to_name[p_raw]
+            parent_var <- if (length(pn) > 0 && !is.na(pn)) unname(pn) else p_raw
+            if (!is.null(cond$parent_state_id)) {
+              parent_state_value <- resolve_state_value(parent_var, cond$parent_state_id)
+            }
+          }
+          if (child_dist == "multinomial") {
+            row_key <- if (!is.null(child_state_value)) child_state_value else "1"
+            col_key <- if (!is.null(parent_state_value)) {
+              paste0(parent_var, parent_state_value)
+            } else {
+              parent_var
+            }
+            betas_acc[[target_name]]      <- c(betas_acc[[target_name]], value)
+            betas_rows_acc[[target_name]] <- c(betas_rows_acc[[target_name]], row_key)
+            betas_cols_acc[[target_name]] <- c(betas_cols_acc[[target_name]], col_key)
+          } else {
+            beta_name <- if (!is.null(parent_state_value)) {
+              paste0(parent_var, ".", parent_state_value)
+            } else {
+              parent_var
+            }
+            betas_acc[[target_name]]       <- c(betas_acc[[target_name]], value)
+            betas_names_acc[[target_name]] <- c(betas_names_acc[[target_name]], beta_name)
+          }
+        }
+      }
     }
   }
 
+  coef_list     <- stats::setNames(vector("list", n), variable_names)
+  stderror_list <- stats::setNames(vector("list", n), variable_names)
   for (var_id in variable_names) {
-    if (is.null(coef_list[[var_id]])) {
+    if (length(vals_acc[[var_id]]) > 0) {
+      coef_list[[var_id]] <- matrix(vals_acc[[var_id]], nrow = 1,
+                                    dimnames = list(NULL, names_acc[[var_id]]))
+      stderror_list[[var_id]] <- matrix(ses_acc[[var_id]], nrow = 1,
+                                        dimnames = list(NULL, names_acc[[var_id]]))
+    } else {
       coef_list[[var_id]] <- matrix(numeric(0), nrow = 0, ncol = 0)
       stderror_list[[var_id]] <- matrix(numeric(0), nrow = 0, ncol = 0)
     }
@@ -388,6 +557,92 @@ reconstruct_abnfit_mle <- function(json_list) {
     label = json_list$label %||% NULL,
     call = match.call()
   )
+
+  if (is_grouped) {
+    mu_list          <- stats::setNames(vector("list", n), variable_names)
+    betas_list       <- stats::setNames(vector("list", n), variable_names)
+    sigma_list       <- stats::setNames(vector("list", n), variable_names)
+    sigma_alpha_list <- stats::setNames(vector("list", n), variable_names)
+
+    for (vn in variable_names) {
+      child_dist <- model_types[vn]
+
+      # mu
+      if (length(mu_acc[[vn]]) > 0) {
+        mu_list[[vn]] <- stats::setNames(mu_acc[[vn]], mu_names_acc[[vn]])
+      } else {
+        mu_list[[vn]] <- NA
+      }
+
+      # betas
+      if (child_dist == "multinomial" && length(betas_acc[[vn]]) > 0) {
+        rows <- unique(betas_rows_acc[[vn]])
+        cols <- unique(betas_cols_acc[[vn]])
+        m <- matrix(NA_real_, nrow = length(rows), ncol = length(cols),
+                    dimnames = list(rows, cols))
+        for (k in seq_along(betas_acc[[vn]])) {
+          m[betas_rows_acc[[vn]][k], betas_cols_acc[[vn]][k]] <- betas_acc[[vn]][k]
+        }
+        betas_list[[vn]] <- m
+      } else if (length(betas_acc[[vn]]) > 0) {
+        betas_list[[vn]] <- stats::setNames(betas_acc[[vn]], betas_names_acc[[vn]])
+      } else {
+        betas_list[[vn]] <- NA
+      }
+
+      # sigma
+      if (length(sigma_acc[[vn]]) > 0) {
+        sigma_list[[vn]] <- sigma_acc[[vn]][1]
+      } else {
+        sigma_list[[vn]] <- NA
+      }
+
+      # sigma_alpha
+      if (child_dist == "multinomial") {
+        cells <- sigma_alpha_cells[[vn]]
+        if (!is.null(cells) && length(cells) > 0) {
+          # Determine matrix dimension from state_id_to_value lookup.
+          lk <- state_id_to_value[[vn]]
+          if (!is.null(lk)) {
+            ids <- names(lk)
+            vals <- unname(lk)
+            dnames <- paste0(vn, ".", vals)
+            k <- length(ids)
+            m <- matrix(NA_real_, nrow = k, ncol = k, dimnames = list(dnames, dnames))
+            id_to_pos <- stats::setNames(seq_along(ids), ids)
+            for (key in names(cells)) {
+              parts <- strsplit(key, "_", fixed = TRUE)[[1]]
+              if (length(parts) == 2L) {
+                i <- id_to_pos[parts[1]]
+                j <- id_to_pos[parts[2]]
+                if (!is.na(i) && !is.na(j)) {
+                  m[i, j] <- cells[[key]]
+                  m[j, i] <- cells[[key]]
+                }
+              }
+            }
+            sigma_alpha_list[[vn]] <- m
+          } else {
+            sigma_alpha_list[[vn]] <- NA
+          }
+        } else {
+          sigma_alpha_list[[vn]] <- NA
+        }
+      } else {
+        if (length(sigma_alpha_scalar[[vn]]) > 0) {
+          sigma_alpha_list[[vn]] <- sigma_alpha_scalar[[vn]][1]
+        } else {
+          sigma_alpha_list[[vn]] <- NA
+        }
+      }
+    }
+
+    abn_fit$mu          <- mu_list
+    abn_fit$betas       <- betas_list
+    abn_fit$sigma       <- sigma_list
+    abn_fit$sigma_alpha <- sigma_alpha_list
+    abn_fit$group.var   <- TRUE
+  }
 
   class(abn_fit) <- "abnFit"
   return(abn_fit)
