@@ -106,9 +106,8 @@ The procedure varies depending on the type of the node $X$:
     - the expectation of $X$ given $\mathscr{A}$ is
 $\mathbb{E}(X|\mathscr{A}) = \beta_{0} + \beta_{1} A1 +  \beta_{2} A2.$ 
 
-    - the variance of $X$ given $\mathscr{A}$ is 
-$var(X|\mathscr{A}) = \frac{\sum_i \hat{\varepsilon}_i^2}{n-p},$
-where $\hat{\varepsilon}_i$ represents the residuals, calculated as $\hat{\varepsilon} = X - (\beta_0 + \beta_1 A1 + \beta_2 A2)$, $n$ is the total number of observations, and $p$ is the number of variables in the model (in this case $p=2$). 
+    - the variance of $X$ given $\mathscr{A}$ is defined by the precision $\tau$ of the node, which is estimated during the model fitting process
+$var(X|\mathscr{A}) = \frac{1}{\tau}.$
 
 - if $X$ is Poisson: 
 $\mathbb{E}(X|\mathscr{A}) = \exp \left( \beta_{0} + \beta_{1} A1 +  \beta_{2} A2 \right).$ 
@@ -163,8 +162,8 @@ The conditional probability $\mathbb{P}(B|X)$ is derived from the likelihood fun
 - if $B$ is Gaussian, $B \sim N(\mu_B,\sigma_B^2)$, with:
     - $\mu_B = \beta_{B0} + \beta_{B1} X+ \beta_{B2} C$, and
     
-    - $\sigma_B = \frac{\sum_i \hat{\varepsilon}_i^2}{n-p},$
-where $\hat{\varepsilon}_i$ represents the residuals, calculated as $\hat{\varepsilon} = B - (\beta_0 + \beta_1 A1 + \beta_2 A2)$, $n$ is the total number of observations, and $p$ is the number of variables in the model (in this case $p=2$). 
+    - $\sigma_B = \frac{1}{\tau_B},$
+where $\tau_B$ is the precision parameter extracted directly from the ABN model fit.
 
 - if $B$ is Poisson, $B \sim P(\lambda_B)$, with $\lambda_B = \exp \left( \beta_{B0} + \beta_{B1} X + \beta_{B2} C \right)$.
 
