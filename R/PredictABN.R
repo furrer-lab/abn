@@ -63,30 +63,40 @@ predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE
   # Step 0: check the evidence and the data
   check_data(data, dists,fit)
   evidence <- check_evidence(data, dists, hypothesis, evidence)
+  mb <- find_MB(graph, hypothesis)
 
-  # Step 1: from top to bottom
-  predictions <- list()
-  predictions_names <- c()
-  for (i in (1:length(node_order))){
-    prediction <- predict_node_from_parent(data, dists, graph, fit, node = node_order[i], evidence, predictions)
-    predictions <- c(predictions, list(prediction))
-    predictions_names <- c(predictions_names, node_order[i])
-    names(predictions) <- predictions_names
-  }
+  if (all(mb %in% names(evidence))){
+    message("The Markov blanket of the node to infer is enterily known.")
+    prediction <- predict_node_from_parent(data, dists, graph, fit, node = hypothesis, evidence)
+    predictions <- list(prediction)
+    names(predictions) <- hypothesis
+    prediction_updated <- predict_node_from_children(data, dists, graph, fit, node = hypothesis, evidence, predictions = predictions)
+    return(list(prediction_hypothesis = prediction_updated, predictions = NULL))
+  } else {
+    # Step 1: from top to bottom
+    predictions <- list()
+    predictions_names <- c()
+    for (i in (1:length(node_order))){
+      prediction <- predict_node_from_parent(data, dists, graph, fit, node = node_order[i], evidence, predictions)
+      predictions <- c(predictions, list(prediction))
+      predictions_names <- c(predictions_names, node_order[i])
+      names(predictions) <- predictions_names
+    }
 
-  # Step 2: from bottom to top
-  node_max <- which(node_order == hypothesis)
-  for (i in (length(node_order):node_max)){
-    prediction <- predict_node_from_children(data, dists, graph, fit, node = node_order[i], evidence, predictions)
-    predictions[[i]] <- prediction
-  }
+    # Step 2: from bottom to top
+    node_max <- which(node_order == hypothesis)
+    for (i in (length(node_order):node_max)){
+      prediction <- predict_node_from_children(data, dists, graph, fit, node = node_order[i], evidence, predictions)
+      predictions[[i]] <- prediction
+    }
 
-  # Step 3: Plot the posterior distribution
-  if (plot==TRUE){
-    g <- plotPosteriorDistrib(predictions,hypothesis,dists)
-    print(g)
+    # Step 3: Plot the posterior distribution
+    if (plot==TRUE){
+      g <- plotPosteriorDistrib(predictions,hypothesis,dists)
+      print(g)
+    }
+    return(list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions))
   }
-  return(list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions))
 }
 
 #' Check the evidence
@@ -189,6 +199,28 @@ check_data <- function(data, dists,fit){
     #stop(paste0("Multinomial node ",multi.NA," does not have the expected number of levels (",true.levels.multi[multi.NA],"). Consider adding one level (data$multi.node <- factor(data$multi.node,levels=c(0,1)) before running the code."))
     stop(paste0("Multinomial node ",names(level.length)[which(true.levels.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
   }
+}
+
+#' Find the Markov Blanket of a node
+#'
+#' Identifies the Markov Blanket of a specific node within the DAG.
+#' The Markov Blanket includes the node's parents, its children, and any other
+#' parents of those children.
+#'
+#' @param graph An igraph object representing the DAG.
+#' @param hypothesis A character string specifying the name of the node for which to find the Markov Blanket.
+#'
+#' @return A character vector containing the names of the nodes in the Markov Blanket.
+#'
+#' @export
+find_MB <- function(graph, hypothesis){
+  parents <- find_parents(node = hypothesis,graph = graph)
+  children <- find_children(node = hypothesis, graph=graph)
+  parents_children <- sapply(children, function(child){
+    find_parents(node = child,graph = graph)
+  })
+  MB <- setdiff(unique(c(parents, children, unlist(parents_children))),hypothesis)
+  return(MB)
 }
 
 #' Perform upstream inference with ABN
@@ -428,13 +460,6 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
 #' @export
 #'
 predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
-  if (is.null(predictions)){
-    if (!all(parents %in% names(evidence))){
-      # all parents are not evidence
-      stop("Not enough information about the upstream nodes.")
-    }
-    predictions <- evidence
-  }
   if (dists[[node]] != "poisson"){
     stop("The node to predict should follow a Poisson distribution.")
   }
@@ -568,13 +593,6 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 #' @export
 #'
 predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
-  if (is.null(predictions)){
-    if (!all(parents %in% names(evidence))){
-      # all parents are not evidence
-      stop("Not enough information about the upstream nodes.")
-    }
-    predictions <- evidence
-  }
   if (dists[[node]] != "gaussian"){
     stop("The node to predict should follow a Gaussian distribution.")
   }
@@ -710,13 +728,6 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
 #' @export
 #'
 predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
-  if (is.null(predictions)){
-    if (!all(parents %in% names(evidence))){
-      # all parents are not evidence
-      stop("Not enough information about the upstream nodes.")
-    }
-    predictions <- evidence
-  }
   if (dists[[node]] != "binomial"){
     stop("The node to predict should follow a binomial distribution.")
   }
@@ -820,13 +831,6 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
 #' @export
 #'
 predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
-  if (is.null(predictions)){
-    if (!all(parents %in% names(evidence))){
-      # all parents are not evidence
-      stop("Not enough information about the upstream nodes.")
-    }
-    predictions <- evidence
-  }
   if (dists[[node]] != "multinomial"){
     stop("The node to predict should follow a multinomial distribution.")
   }
@@ -1079,9 +1083,14 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 
   if (length(bin.nodes)>0){
     probabilities <- lapply(bin.nodes, function(bin) {
-      if (bin %in% names(evidence)) as.numeric(levels(data[[bin]]) == evidence[[bin]]) else predictions[[bin]]
+      lvls <- levels(data[[bin]])
+      if (bin %in% names(evidence)) {
+        vec <- as.numeric(lvls == evidence[[bin]])
+        setNames(vec, lvls)
+      } else {
+        predictions[[bin]]
+      }
     })
-    names(probabilities) <- bin.nodes
 
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
@@ -1282,9 +1291,14 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 
   if (length(bin.nodes)>0){
     probabilities <- lapply(bin.nodes, function(bin) {
-      if (bin %in% names(evidence)) as.numeric(levels(data[[bin]]) == evidence[[bin]]) else predictions[[bin]]
+      lvls <- levels(data[[bin]])
+      if (bin %in% names(evidence)) {
+        vec <- as.numeric(lvls == evidence[[bin]])
+        setNames(vec, lvls)
+      } else {
+        predictions[[bin]]
+      }
     })
-    names(probabilities) <- bin.nodes
 
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
@@ -1479,7 +1493,13 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 
   if (length(bin.nodes)>0){
     probabilities <- lapply(bin.nodes, function(bin) {
-      if (bin %in% names(evidence)) as.numeric(levels(data[[bin]]) == evidence[[bin]]) else predictions[[bin]]
+      lvls <- levels(data[[bin]])
+      if (bin %in% names(evidence)) {
+        vec <- as.numeric(lvls == evidence[[bin]])
+        setNames(vec, lvls)
+      } else {
+        predictions[[bin]]
+      }
     })
     names(probabilities) <- bin.nodes
 
@@ -1674,9 +1694,14 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
 
   if (length(bin.nodes)>0){
     probabilities <- lapply(bin.nodes, function(bin) {
-      if (bin %in% names(evidence)) as.numeric(levels(data[[bin]]) == evidence[[bin]]) else predictions[[bin]]
+      lvls <- levels(data[[bin]])
+      if (bin %in% names(evidence)) {
+        vec <- as.numeric(lvls == evidence[[bin]])
+        setNames(vec, lvls)
+      } else {
+        predictions[[bin]]
+      }
     })
-    names(probabilities) <- bin.nodes
 
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
