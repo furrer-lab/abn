@@ -60,7 +60,8 @@ predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE
   graph <- graph_from_adjacency_matrix(t(dag))
   node_order <- names(topo_sort(graph, mode="out"))
 
-  # Step 0: check the evidence
+  # Step 0: check the evidence and the data
+  check_data(data, dists,fit)
   evidence <- check_evidence(data, dists, hypothesis, evidence)
 
   # Step 1: from top to bottom
@@ -129,9 +130,9 @@ check_evidence <- function(data, dists, hypothesis, evidence){
       evidence.to.remove <- c()
       for (i in (1:length(evidence))){
         dist.evidence <- dists[[names(evidence)[i]]]
-        if (dist.evidence == "binomial"){
+        if (dist.evidence == "binomial" || dist.evidence == "multinomial"){
           if (! evidence[[i]] %in% levels(data[[names(evidence[i])]])){
-            warning(paste0("Evidence ",names(evidence[i])," does not have an expected value. It should be either ",levels(data[[names(evidence[i])]])[1]," or ",levels(data[[names(evidence[i])]])[2],". It will be discarded."))
+            warning(paste0("Evidence ",names(evidence[i])," does not have an expected value. It should be either ",paste(levels(data[[names(evidence[i])]]),collapse=", "),". It will be discarded."))
             evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
           }
         } else if (dist.evidence == "poisson" || dist.evidence == "gaussian"){
@@ -146,10 +147,10 @@ check_evidence <- function(data, dists, hypothesis, evidence){
       }
 
       # rewrite the binomial evidences
-      if (length(which(dists[names(evidence)]=="binomial"))>0){
-        # at least one evidence is a binomial node
-        for (i in (1:length(which(dists[names(evidence)]=="binomial")))){
-          node <- names(which(dists[names(evidence)]=="binomial"))[i]
+      if (length(which(dists[names(evidence)] %in% c("binomial","multinomial")))>0){
+        # at least one evidence is a bi/multinomial node
+        for (i in (1:length(which(dists[names(evidence)]%in% c("binomial","multinomial"))))){
+          node <- names(evidence)[which(mydists[names(evidence)] %in% c("binomial","multinomial"))][i]
           if (is.character(evidence[[node]])){
             # transform it to factor
             evidence[[node]] <- factor(evidence[[node]],levels=levels(data[[node]]))
@@ -159,6 +160,35 @@ check_evidence <- function(data, dists, hypothesis, evidence){
     }
   }
   return(evidence)
+}
+
+check_data <- function(data, dists,fit){
+  data.bin <- data %>% select(names(dists)[grep("b",names(dists))])
+
+  level.length <- sapply(data.bin, function(b){
+    length(levels(b))
+  })
+
+  if (length(which(level.length==1))>0){
+    stop(paste0("Binomial node ",names(level.length)[which(level.length==1)]," does not have the right number of levels (2). Consider adding one level (data$bin.node <- factor(data$bin.node,levels=c(0,1)) before running the code."))
+  }
+
+  data.multi <- data %>% select(names(dists)[grep("m",names(dists))])
+
+  level.length.multi <- sapply(data.multi, function(m){
+    length(levels(m))
+  })
+
+#  true.levels.multi <- sapply(names(level.length.multi),function(m){
+#    length(grep("intercept",names(fit[[m]])))+1
+#  })
+
+#  multi.NA <- names(level.length.multi)[which(is.na(match(unlist(level.length.multi),unlist(true.levels.multi))))]
+#  if (length(multi.NA)>0){
+  if ((length(which(true.levels.multi<3))>0)){
+    #stop(paste0("Multinomial node ",multi.NA," does not have the expected number of levels (",true.levels.multi[multi.NA],"). Consider adding one level (data$multi.node <- factor(data$multi.node,levels=c(0,1)) before running the code."))
+    stop(paste0("Multinomial node ",names(level.length)[which(true.levels.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
+  }
 }
 
 #' Perform upstream inference with ABN
@@ -224,6 +254,7 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
                     "poisson"  = predict_node_from_parent_poisson(data, dists, fit, node, evidence, parents, predictions),
                     "gaussian" = predict_node_from_parent_gaussian(data, dists, fit, node, evidence, parents, predictions),
                     "binomial" = predict_node_from_parent_binomial(data, dists, fit, node, evidence, parents, predictions),
+                    "multinomial" = predict_node_from_parent_multinomial(data, dists, fit, node, evidence, parents, predictions),
                     stop("Unknown node distribution type: ", dists[[node]]) # Error handling
   )
   return(results)
@@ -285,9 +316,6 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
   if (!node %in% names(predictions)){
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
-  if (node %in% names(evidence)){
-    return(predictions[[node]])
-  }
 
   children <- find_children(graph, node)
   if (length(children)==0){
@@ -311,11 +339,11 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
     parents <- find_parents(graph, child)
     dist_type <- dists[[child]]
 
-    # Switch handles the dispatch to specific sub-functions
     switch(dist_type,
            "gaussian"  = predict_node_from_children_gaussian(data, dists, fit, node, evidence, child, parents, predictions),
            "poisson"   = predict_node_from_children_poisson(data, dists, fit, node, evidence, child, parents, predictions),
            "binomial"  = predict_node_from_children_binomial(data, dists, fit, node, evidence, child, parents, predictions),
+           "multinomial" = predict_node_from_children_multinomial(data, dists, fit, node, evidence, child, parents, predictions),
            stop(paste("Unsupported distribution type:", dist_type))
     )
   })
@@ -329,9 +357,14 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
            return(c(res_mean, res_var))
          },
          "binomial" = {
-           # Assumes sub-functions return prob vector: [P(L1), P(L2)]
            p_level2 <- mean(raw_matrix[, 2])
            res <- c(1 - p_level2, p_level2)
+           names(res) <- levels(data[[node]])
+           return(res)
+         },
+         "multinomial" = {
+           res <- colMeans(raw_matrix)
+           res <- res / sum(res)
            names(res) <- levels(data[[node]])
            return(res)
          },
@@ -417,7 +450,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
       eq <- fit[[node]]
       names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
-      bin.nodes <- intersect(names(which(dists=="binomial")),parents)
+      bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
         other.nodes <- parents[-which(parents %in% bin.nodes)]
       } else {
@@ -438,17 +471,38 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
         if (length(bin.nodes.evidence)>0){
           # at least one bin nodes is an evidence
           for (i in (1:length(bin.nodes.evidence))){
-            proba_tmp <- c(0,0)
+            proba_tmp <- rep(0,length(levels(probabilities[[bin.nodes.evidence[i]]])))
             names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
             proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
 
-        combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-        names(combinations) <- bin.nodes
-        combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
-        proba_cond_values <- as.vector(exp(continuous_part + combinations_tmp))
+        levels_list <- lapply(probabilities,function(x) names(x))
+        combinations <- expand.grid(levels_list)
+
+        bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+        multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+        if(length(bin_parents) > 0) {
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+        } else {
+          mat_bin <- NULL
+        }
+
+        if(length(multi_parents) > 0) {
+          df_multi <- combinations[multi_parents]
+          for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+        } else {
+          mat_multi <- NULL
+        }
+
+        dummy_matrix <- cbind(mat_bin, mat_multi)
+
+        combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
+
+        proba_cond_values <- exp(continuous_part + rowSums(combinations_tmp))
 
         prob_grid <- expand.grid(probabilities)
         combination_probabilities <- apply(prob_grid, 1, prod)
@@ -535,9 +589,10 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
     } else {
       eq <- fit[[node]]
       names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+
       node_sigma_sq <- 1 / eq["precision"]
-      bin.nodes <- intersect(names(which(dists=="binomial")),parents)
-      if (length(bin.nodes)>0){
+      bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
+     if (length(bin.nodes)>0){
         other.nodes <- parents[-which(parents %in% bin.nodes)]
       } else {
         other.nodes <- parents
@@ -558,17 +613,38 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         if (length(bin.nodes.evidence)>0){
           # at least one bin nodes is an evidence
           for (i in (1:length(bin.nodes.evidence))){
-            proba_tmp <- c(0,0)
+            proba_tmp <- rep(0,length(levels(probabilities[[bin.nodes.evidence[i]]])))
             names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
             proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
 
-        combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-        names(combinations) <- bin.nodes
-        combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
-        proba_cond_values <- as.vector(continuous_part + combinations_tmp)
+        levels_list <- lapply(probabilities,function(x) names(x))
+        combinations <- expand.grid(levels_list)
+
+        bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+        multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+        if(length(bin_parents) > 0) {
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+        } else {
+          mat_bin <- NULL
+        }
+
+        if(length(multi_parents) > 0) {
+          df_multi <- combinations[multi_parents]
+          for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+        } else {
+          mat_multi <- NULL
+        }
+
+        dummy_matrix <- cbind(mat_bin, mat_multi)
+
+        combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
+
+        proba_cond_values <- continuous_part + as.vector(combinations_tmp)
 
         prob_grid <- expand.grid(probabilities)
         combination_probabilities <- apply(prob_grid, 1, prod)
@@ -654,12 +730,13 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
     } else {
       eq <- unlist(fit[node])
       names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
-      bin.nodes <- intersect(names(which(dists=="binomial")),parents)
+      bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
         other.nodes <- parents[-which(parents %in% bin.nodes)]
       } else {
         other.nodes <- parents
       }
+
       predictions_tmp <- predictions[other.nodes]
       predictions_tmp <- lapply(predictions_tmp, function(l){
         l[1]
@@ -679,30 +756,181 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
         if (length(bin.nodes.evidence)>0){
           # at least one bin nodes is an evidence
           for (i in (1:length(bin.nodes.evidence))){
-            proba_tmp <- c(0,0)
+            proba_tmp <- rep(0,length(levels(probabilities[[bin.nodes.evidence[i]]])))
             names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
             proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
 
-        combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-        names(combinations) <- bin.nodes
-        combinations <- as.matrix(combinations)
-        combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
+        levels_list <- lapply(probabilities,function(x) names(x))
+        combinations <- expand.grid(levels_list)
 
-        proba_cond_values <- as.vector(1/ (1+exp(continuous_part + combinations_tmp)))
+        bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+        multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+        if(length(bin_parents) > 0) {
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+        } else {
+          mat_bin <- NULL
+        }
+
+        if(length(multi_parents) > 0) {
+          df_multi <- combinations[multi_parents]
+          for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+        } else {
+          mat_multi <- NULL
+        }
+
+        dummy_matrix <- cbind(mat_bin, mat_multi)
+
+        combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
+
+        proba_cond_values <- 1/(1+exp(- (continuous_part + rowSums(combinations_tmp))))
 
         prob_grid <- expand.grid(probabilities)
         combination_probabilities <- apply(prob_grid, 1, prod)
 
         node_hat <- sum(proba_cond_values * combination_probabilities)
       } else {
-        node_hat <- 1/(1+exp(continuous_part))
+        node_hat <- 1/(1+exp(-continuous_part))
       }
 
       node_hat <- c(node_hat,1-node_hat)
       names(node_hat) <- levels(data[[node]])
+    }
+  }
+  return(node_hat)
+}
+
+#' Perform upstream inference with ABN
+#'
+#' Main function to predict the distribution of a multinomial node given its parents only
+#'
+#' @param data A data frame containing the data (samples in rows, variables in columns).
+#' @param dists A list containing the distributions of the nodes of the graph.
+#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param node Temporary node to predict.
+#' @param evidence Known nodes that are used to predict the hypothesis.
+#' @param parents The parents of the node to predict.
+#' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
+#' @return The predicted distribution of the node of interest.
+#' @import igraph
+#' @export
+#'
+predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
+  if (is.null(predictions)){
+    if (!all(parents %in% names(evidence))){
+      # all parents are not evidence
+      stop("Not enough information about the upstream nodes.")
+    }
+    predictions <- evidence
+  }
+  if (dists[[node]] != "multinomial"){
+    stop("The node to predict should follow a multinomial distribution.")
+  }
+  if (node %in% names(evidence)){
+    # node is an evidence
+    node_hat <- evidence[[node]]
+  } else {
+    if (length(parents)==0){
+      # no parents
+      node_hat <- predict_root(data, dists, node)
+    } else {
+      eq <- fit[[node]]
+      names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+
+      bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
+      if (length(bin.nodes)>0){
+        other.nodes <- parents[-which(parents %in% bin.nodes)]
+      } else {
+        other.nodes <- parents
+      }
+
+      predictions_tmp <- predictions[other.nodes]
+      predictions_tmp <- lapply(predictions_tmp, function(l){
+        l[1]
+      })
+
+      levels.multi <- levels(data[[node]])
+      levels.cat <- levels.multi[2:length(levels.multi)]
+
+      continuous_part <- lapply(levels.cat,function(level){
+        eq[paste0("intercept.",level)] + sum(eq[paste0(other.nodes,".",level)]*unlist(predictions_tmp))
+      })
+      names(continuous_part) <- levels.cat
+
+      if (length(bin.nodes)>0){
+        probabilities <- predictions[bin.nodes]
+
+        bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
+        if (length(bin.nodes.evidence)>0){
+          # at least one bin nodes is an evidence
+          for (i in (1:length(bin.nodes.evidence))){
+            proba_tmp <- rep(0,length(levels(probabilities[[bin.nodes.evidence[i]]])))
+            names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
+            proba_tmp[grep(probabilities[[bin.nodes.evidence[i]]],names(proba_tmp))] <- 1
+            probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
+          }
+        }
+
+        levels_list <- lapply(probabilities,function(x) names(x))
+        combinations <- expand.grid(levels_list)
+
+        bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+        multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+        if(length(bin_parents) > 0) {
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+        } else {
+          mat_bin <- NULL
+        }
+
+        if(length(multi_parents) > 0) {
+          df_multi <- combinations[multi_parents]
+          for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+        } else {
+          mat_multi <- NULL
+        }
+
+        dummy_matrix <- cbind(mat_bin, mat_multi)
+
+        numerators_matrix <- matrix(0, nrow = nrow(combinations), ncol = length(levels.cat))
+        colnames(numerators_matrix) <- levels.cat
+        for (level in levels.cat) {
+          # Get discrete coefficients for this level
+          target_names <- paste0(colnames(dummy_matrix), ".", level)
+          eq_tmp <- eq[target_names]
+          eq_tmp[is.na(eq_tmp)] <- 0
+
+          # Linear predictor -> exp(eta)
+          eta <- continuous_part[[level]] + as.vector(dummy_matrix %*% eq_tmp)
+          numerators_matrix[, level] <- exp(eta)
+        }
+        scenario_denominators <- 1 + rowSums(numerators_matrix)
+        proba_matrix <- numerators_matrix / scenario_denominators
+
+        prob_grid <- expand.grid(probabilities)
+        combination_probabilities <- apply(prob_grid, 1, prod)
+
+        node_hat_others <- colSums(proba_matrix * combination_probabilities)
+        node_hat_baseline <- sum((1 / scenario_denominators) * combination_probabilities)
+        node_hat <- c(node_hat_baseline, node_hat_others)
+        names(node_hat) <- levels.multi
+      } else {
+        numerator <- sapply(continuous_part, function(continuous_part_tmp){
+          exp(continuous_part_tmp)
+        })
+
+        denominator <- 1+sum(numerator)
+
+        node_hat_others <- numerator / denominator
+        node_hat_baseline <- 1 / denominator
+
+        node_hat <- c(node_hat_baseline, node_hat_others)
+      }
     }
   }
   return(node_hat)
@@ -782,7 +1010,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   eq <- fit[[child]]
   names(eq) <- sapply(strsplit(names(eq), "[|]"), function(x) x[2])
 
-  bin.nodes <- intersect(names(which(dists=="binomial")),parents)
+  bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
   other.nodes <- setdiff(parents, bin.nodes)
   other.nodes <- setdiff(other.nodes, node)
@@ -832,6 +1060,19 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              numerator <- sum_val(1)
              results <- numerator / denominator
              return(results)
+           },
+           "multinomial" = {
+             p_prior <- predictions[[node]]
+             levels_node <- names(p_prior)
+
+             unnormalized <- sapply(levels_node, function(l){
+               coef_name <- paste0(node, l)
+               node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
+               lik <- L_gaussian(y = y_val, x = 1, coef = node_coef, var = y_var, intercept_tmp)
+               return(lik * p_prior[l])
+             })
+             if (sum(unnormalized) == 0) return(p_prior)
+             return(unnormalized / sum(unnormalized))
            }
     )
   }
@@ -842,10 +1083,29 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     })
     names(probabilities) <- bin.nodes
 
-    combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-    names(combinations) <- bin.nodes
+    levels_list <- lapply(probabilities,function(x) names(x))
+    combinations <- expand.grid(levels_list)
 
-    combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
+    bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+    multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+    if(length(bin_parents) > 0) {
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+    } else {
+      mat_bin <- NULL
+    }
+
+    if(length(multi_parents) > 0) {
+      df_multi <- combinations[multi_parents]
+      for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+    } else {
+      mat_multi <- NULL
+    }
+
+    dummy_matrix <- cbind(mat_bin, mat_multi)
+
+    combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
 
     proba_cond_values <- apply(combinations_tmp, 1, function(c) compute_update(continuous_part + c, dists[[node]]))
 
@@ -855,7 +1115,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     if (is.matrix(proba_cond_values)) {
       final_res <- proba_cond_values %*% comb_probs
       final_res <- as.vector(final_res)
-      if (dists[[node]] == "binomial") names(final_res) <- levels(data[[node]])
+      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
     } else {
       final_res <- sum(proba_cond_values * comb_probs)
     }
@@ -939,7 +1199,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
   eq <- fit[[child]]
   names(eq) <- sapply(strsplit(names(eq), "[|]"), function(x) x[2])
 
-  bin.nodes <- intersect(names(which(dists=="binomial")),parents)
+  bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
   other.nodes <- setdiff(parents, bin.nodes)
   other.nodes <- setdiff(other.nodes, node)
@@ -1003,6 +1263,19 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              numerator <- sum_val(1)
              results <- numerator / denominator
              return(results)
+           },
+           "multinomial" = {
+             p_prior <- predictions[[node]]
+             levels_node <- names(p_prior)
+
+             unnormalized <- sapply(levels_node, function(l){
+               coef_name <- paste0(node, l)
+               node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
+               log_lik <- LogL_poisson(y = y_val, x = 1, coef = node_coef, intercept_tmp)
+               return(exp(log_lik) * p_prior[l])
+             })
+             if (sum(unnormalized) == 0) return(p_prior)
+             return(unnormalized / sum(unnormalized))
            }
     )
   }
@@ -1013,10 +1286,29 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     })
     names(probabilities) <- bin.nodes
 
-    combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-    names(combinations) <- bin.nodes
+    levels_list <- lapply(probabilities,function(x) names(x))
+    combinations <- expand.grid(levels_list)
 
-    combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
+    bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+    multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+    if(length(bin_parents) > 0) {
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+    } else {
+      mat_bin <- NULL
+    }
+
+    if(length(multi_parents) > 0) {
+      df_multi <- combinations[multi_parents]
+      for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+    } else {
+      mat_multi <- NULL
+    }
+
+    dummy_matrix <- cbind(mat_bin, mat_multi)
+
+    combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
 
     proba_cond_values <- apply(combinations_tmp, 1, function(c) compute_update(continuous_part + c, dists[[node]]))
 
@@ -1026,7 +1318,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     if (is.matrix(proba_cond_values)) {
       final_res <- proba_cond_values %*% comb_probs
       final_res <- as.vector(final_res)
-      if (dists[[node]] == "binomial") names(final_res) <- levels(data[[node]])
+      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
     } else {
       final_res <- sum(proba_cond_values * comb_probs)
     }
@@ -1110,7 +1402,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
   eq <- fit[[child]]
   names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
 
-  bin.nodes <- intersect(names(which(dists=="binomial")),parents)
+  bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
   other.nodes <- setdiff(parents, bin.nodes)
   other.nodes <- setdiff(other.nodes, node)
@@ -1167,6 +1459,20 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
           numerator <- sum_val(1, 0) + sum_val(1, 1)
           results <- numerator / denominator
           return(results)
+        },
+        "multinomial" = {
+          p_prior <- predictions[[node]]
+          levels_node <- names(p_prior)
+
+          unnormalized <- sapply(levels_node, function(l){
+            coef_name <- paste0(node, l)
+            node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
+            lik <- L_binomial(y = 0, x = 1, coef = node_coef, intercept_tmp)*p_pred[1]+L_binomial(y = 1, x = 1, coef = node_coef, intercept_tmp)*p_pred[2]
+            return(lik * p_prior[l])
+          })
+
+          if (sum(unnormalized) == 0) return(p_prior)
+          return(unnormalized / sum(unnormalized))
         }
       )
   }
@@ -1177,10 +1483,29 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     })
     names(probabilities) <- bin.nodes
 
-    combinations <- expand.grid(rep(list(c(0, 1)), length(probabilities)))
-    names(combinations) <- bin.nodes
+    levels_list <- lapply(probabilities,function(x) names(x))
+    combinations <- expand.grid(levels_list)
 
-    combinations_tmp <- as.matrix(combinations) %*% eq[bin.nodes]
+    bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+    multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+    if(length(bin_parents) > 0) {
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+    } else {
+      mat_bin <- NULL
+    }
+
+    if(length(multi_parents) > 0) {
+      df_multi <- combinations[multi_parents]
+      for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+    } else {
+      mat_multi <- NULL
+    }
+
+    dummy_matrix <- cbind(mat_bin, mat_multi)
+
+    combinations_tmp <- dummy_matrix %*% eq[colnames(dummy_matrix)]
 
     proba_cond_values <- apply(combinations_tmp, 1, function(c) compute_update(continuous_part + c, dists[[node]]))
 
@@ -1190,7 +1515,214 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     if (is.matrix(proba_cond_values)) {
       final_res <- proba_cond_values %*% comb_probs
       final_res <- as.vector(final_res)
-      if (dists[[node]] == "binomial") names(final_res) <- levels(data[[node]])
+      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
+    } else {
+      final_res <- sum(proba_cond_values * comb_probs)
+    }
+  } else {
+    final_res <- compute_update(continuous_part, dists[[node]])
+  }
+  return(final_res)
+}
+
+#' Perform downstream inference with ABN
+#'
+#' Main function to predict the distribution of a node given one of its multinomial child and its parents
+#'
+#' @param data A data frame containing the data (samples in rows, variables in columns).
+#' @param dists A list containing the distributions of the nodes of the graph.
+#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param node Temporary node to predict.
+#' @param evidence Known nodes that are used to predict the hypothesis.
+#' @param child A child of the node to predict.
+#' @param parents The parents of the child.
+#' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
+#' @return The predicted distribution of the node of interest.
+#' @import igraph
+#' @export
+#'
+predict_node_from_children_multinomial <- function(data, dists, fit, noode, evidence, child, parents, predictions){
+  if (dists[[child]] != "multinomial"){
+    stop("The child should follow a multinomial distribution.")
+  }
+  if (!node %in% names(predictions)){
+    stop("Predictions must contain at least a first prediction of the node to predict.")
+  }
+
+  if (!all(c(child,parents) %in% names(predictions))){
+    nodes <- setdiff(c(child,parents),names(predictions))
+    if (!all(nodes %in% names(evidence))){
+      stop("Not enough information about the downstream nodes.")
+    }
+    predictions <- c(predictions,evidence)
+  }
+
+  eq <- fit[[child]]
+  names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+
+  bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
+  bin.nodes <- setdiff(bin.nodes,node)
+  other.nodes <- setdiff(parents, bin.nodes)
+  other.nodes <- setdiff(other.nodes, node)
+
+  predictions_tmp <- predictions[other.nodes]
+  predictions_tmp <- lapply(predictions_tmp,function(l){
+    l[1]
+  })
+
+  lvl_names <- levels(data[[child]])
+
+  continuous_part <- sapply(lvl_names, function(p){
+    eq[paste0("intercept.",p)] + sum(eq[paste0(other.nodes,".",p)]*unlist(predictions_tmp))
+  })
+  names(continuous_part) <- lvl_names
+
+  if (child %in% names(evidence)){
+    p_pred <- rep(0,length(lvl_names))
+    names(p_pred) <- lvl_names
+    p_pred[names(p_pred) == predictions[[child]]] <- 1
+  } else {
+    p_pred <- predictions[[child]]
+  }
+
+  node_coef_vec <- sapply(lvl_names, function(lvl) {
+    c_name <- paste0(node, ".", lvl)
+    if(c_name %in% names(eq)) as.numeric(eq[[c_name]]) else 0
+  })
+
+  compute_update <- function(intercept_tmp, node_type){
+    switch(node_type,
+           "binomial" = {
+             p_prior <- predictions[[node]]
+
+             numerator <- function(x, y){
+               L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) * prior_binomial(x, p_prior[2])
+             }
+             denominator <- sum(sapply(seq_along(lvl_names), function(p){
+               (numerator(0, p) +numerator(1, p)) * p_pred[p]
+             }))
+             prob_0 <- sum(sapply(seq_along(lvl_names), function(p){
+               numerator(0, p) * p_pred[p]
+             })) / denominator
+             results <- c(prob_0, 1 - prob_0)
+             names(results) <- levels(data[[node]])
+             return(results)
+           },
+           "gaussian" = {
+             mu_prior <- predictions[[node]][1]
+             sigma_prior <- predictions[[node]][2]
+
+             int_val <- function(pow, y) {
+               res <- try(integrate(function(x) (x^pow) * L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) *
+                           prior_gaussian(x, mu_prior, sigma_prior) * p_pred[y], -Inf, Inf)$value, silent=TRUE)
+               if (inherits(res, "try-error") || res == 0) {
+                 low_b <- mu_prior - 10 * sigma_prior
+                 upp_b <- mu_prior + 10 * sigma_prior
+                 res <- integrate(function(x) (x^pow) * L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) *
+                                    prior_gaussian(x, mu_prior, sigma_prior) * p_pred[y], low_b, upp_b)$value
+               }
+               return(res)
+             }
+             denominator <- sum(sapply(seq_along(lvl_names), function(p){
+               int_val(0, p)
+             }))
+             m1  <- sum(sapply(seq_along(lvl_names), function(p){
+               int_val(1, p)
+             })) / denominator
+             m2  <- sum(sapply(seq_along(lvl_names), function(p){
+               int_val(2, p)
+             })) / denominator
+             results <- c(m1, m2 - m1^2)
+             return(results)
+           },
+           "poisson" = {
+             lambda_prior <- predictions[[node]]
+             max_x <- max(1000, 4 * lambda_prior)
+
+             sum_val <- function(pow, y) {
+               sum(sapply(0:max_x, function(x) (x^pow) * L_binomial(y, x, coef = node_coef_vec, intercept_tmp) *
+                            prior_poisson(x, lambda_prior) * p_pred[y]))
+             }
+             denominator <- sum(sapply(seq_along(lvl_names), function(p){
+               sum_val(0, p)
+             }))
+             numerator <- sum(sapply(seq_along(lvl_names), function(p){ sum_val(1, p) }))
+             results <- numerator / denominator
+             return(results)
+           },
+           "multinomial" = {
+             p_prior <- predictions[[node]]
+             levels_node <- names(p_prior)
+
+             unnormalized <- sapply(levels_node, function(l){
+               current_parent_coefs <- sapply(lvl_names, function(clvl) {
+                 c_name <- paste0(node, l, ".", clvl) # to check in practice
+                 if(c_name %in% names(eq)) as.numeric(eq[[c_name]]) else 0
+               })
+
+               lik <- sum(sapply(seq_along(lvl_names),function(p){
+                 L_binomial(y = p, x = 1, coef = current_parent_coefs, intercept_tmp) * p_pred[p]
+               }))
+               return(lik * p_prior[l])
+             })
+
+             if (sum(unnormalized) == 0) return(p_prior)
+             return(unnormalized / sum(unnormalized))
+           }
+    )
+  }
+
+  if (length(bin.nodes)>0){
+    probabilities <- lapply(bin.nodes, function(bin) {
+      if (bin %in% names(evidence)) as.numeric(levels(data[[bin]]) == evidence[[bin]]) else predictions[[bin]]
+    })
+    names(probabilities) <- bin.nodes
+
+    levels_list <- lapply(probabilities,function(x) names(x))
+    combinations <- expand.grid(levels_list)
+
+    bin_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "binomial")]
+    multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
+
+    if(length(bin_parents) > 0) {
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+    } else {
+      mat_bin <- NULL
+    }
+
+    if(length(multi_parents) > 0) {
+      df_multi <- combinations[multi_parents]
+      for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
+      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+    } else {
+      mat_multi <- NULL
+    }
+
+    dummy_matrix <- cbind(mat_bin, mat_multi)
+
+    scenario_effects <- sapply(lvl_names, function(lvl) {
+      target_names <- paste0(colnames(dummy_matrix), ".", lvl)
+      exists_mask <- target_names %in% names(eq)
+
+      if (!any(exists_mask)) return(numeric(nrow(dummy_matrix)))
+
+      relevant_eq <- as.numeric(eq[target_names[exists_mask]])
+      relevant_mat <- dummy_matrix[, colnames(dummy_matrix)[exists_mask], drop = FALSE]
+
+      as.vector(relevant_mat %*% relevant_eq)
+    })
+    colnames(scenario_effects) <- lvl_names
+
+    proba_cond_values <- apply(scenario_effects, 1, function(c) {
+      compute_update(continuous_part + c, dists[[node]])
+    })
+    prob_grid <- expand.grid(probabilities)
+    comb_probs <- apply(prob_grid, 1, prod)
+
+    if (is.matrix(proba_cond_values)) {
+      final_res <- proba_cond_values %*% comb_probs
+      final_res <- as.vector(final_res)
+      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
     } else {
       final_res <- sum(proba_cond_values * comb_probs)
     }
@@ -1257,7 +1789,7 @@ find_children <- function(graph,node){
   if (is_directed(graph)==FALSE){
     warning(paste0("The provided graph is not directed, this function will output the neighbors of the node ",node,"."))
   }
-  if (!is.igraph(graph)){
+  if (!is_igraph(graph)){
     stop("The provided graph should be an igraph object.")
   }
   if (is.null(V(graph)$name)){
@@ -1387,11 +1919,36 @@ prior_binomial <- function(x, p){
 #' @return The value of the likelihood.
 #' @export
 L_binomial <- function(y, x, coef, continuous_part){
-  mu <- 1 / (1 + exp(-(continuous_part + coef * x )))
+  mu <- plogis(continuous_part + coef * x)
   if (y == 1) {
     return(mu)
   } else {
     return(1 - mu)
+  }
+}
+
+#' Compute the likelihood of a multinomial variable
+#'
+#' This function computes the likelihood of a multinomial-distributed variable
+#'
+#' @param y The observed multivariate outcome
+#' @param x A value for a parent of the multinomial variable.
+#' @param coef The coefficient that links `y` to `x`.
+#' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
+#' @return The value of the likelihood.
+#' @export
+L_multinomial <- function(y, x, coef, continuous_part){
+  numerator <- function(y){
+    exp(continuous_part[y] + coef[y] *x)
+  }
+
+  denominator <- 1 + sum(sapply(2:length(coef), function(p){
+    numerator(p)}))
+
+  if (y==1){
+    return(1/denominator)
+  } else {
+    return(numerator(y)/denominator)
   }
 }
 
