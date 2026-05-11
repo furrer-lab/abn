@@ -815,7 +815,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
         node_hat <- 1/(1+exp(-continuous_part))
       }
 
-      node_hat <- c(node_hat,1-node_hat)
+      node_hat <- c(1 - node_hat, node_hat)
       names(node_hat) <- levels(data[[node]])
     }
   }
