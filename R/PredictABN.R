@@ -173,7 +173,7 @@ check_evidence <- function(data, dists, hypothesis, evidence){
 }
 
 check_data <- function(data, dists,fit){
-  data.bin <- data %>% select(names(dists)[grep("b",names(dists))])
+  data.bin <- data %>% dplyr::select(names(dists)[grep("b",names(dists))])
 
   level.length <- sapply(data.bin, function(b){
     length(levels(b))
@@ -183,7 +183,7 @@ check_data <- function(data, dists,fit){
     stop(paste0("Binomial node ",names(level.length)[which(level.length==1)]," does not have the right number of levels (2). Consider adding one level (data$bin.node <- factor(data$bin.node,levels=c(0,1)) before running the code."))
   }
 
-  data.multi <- data %>% select(names(dists)[grep("m",names(dists))])
+  data.multi <- data %>% dplyr::select(names(dists)[grep("m",names(dists))])
 
   level.length.multi <- sapply(data.multi, function(m){
     length(levels(m))
@@ -473,7 +473,8 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
       node_hat <- predict_root(data, dists, node)
     } else {
       eq <- fit[[node]]
-      names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+      eq_names <- colnames(eq) %||% names(eq)
+      eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
@@ -518,7 +519,8 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
         if(length(multi_parents) > 0) {
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+          mat_multi <- model.matrix(~ ., data = df_multi)
+          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -606,7 +608,8 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
       node_hat <- c(node_hat,fit[[node]][2])
     } else {
       eq <- fit[[node]]
-      names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+      eq_names <- colnames(eq) %||% names(eq)
+      eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
       node_sigma_sq <- 1 / eq["precision"]
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
@@ -653,7 +656,8 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         if(length(multi_parents) > 0) {
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+          mat_multi <- model.matrix(~ ., data = df_multi)
+          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -739,8 +743,10 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
       # no parents
       node_hat <- predict_root(data, dists, node)
     } else {
-      eq <- unlist(fit[node])
-      names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+      eq <- fit[[node]]
+      eq_names <- colnames(eq) %||% names(eq)
+      eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
+
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
         other.nodes <- parents[-which(parents %in% bin.nodes)]
@@ -789,7 +795,8 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
         if(length(multi_parents) > 0) {
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+          mat_multi <- model.matrix(~ ., data = df_multi)
+          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -843,7 +850,8 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
       node_hat <- predict_root(data, dists, node)
     } else {
       eq <- fit[[node]]
-      names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+      eq_names <- colnames(eq) %||% names(eq)
+      eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
@@ -894,7 +902,8 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
         if(length(multi_parents) > 0) {
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-          mat_multi <- model.matrix(~ . - 1, data = df_multi)
+          mat_multi <- model.matrix(~ ., data = df_multi)
+          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -1011,8 +1020,9 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[child]]
-  names(eq) <- sapply(strsplit(names(eq), "[|]"), function(x) x[2])
+  eq <- fit[[node]]
+  eq_names <- colnames(eq) %||% names(eq)
+  eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
   bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
@@ -1107,7 +1117,8 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     if(length(multi_parents) > 0) {
       df_multi <- combinations[multi_parents]
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+      mat_multi <- model.matrix(~ ., data = df_multi)
+      mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1205,8 +1216,9 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[child]]
-  names(eq) <- sapply(strsplit(names(eq), "[|]"), function(x) x[2])
+  eq <- fit[[node]]
+  eq_names <- colnames(eq) %||% names(eq)
+  eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
   bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
@@ -1315,7 +1327,8 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     if(length(multi_parents) > 0) {
       df_multi <- combinations[multi_parents]
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+      mat_multi <- model.matrix(~ ., data = df_multi)
+      mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1413,8 +1426,9 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[child]]
-  names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+  eq <- fit[[node]]
+  eq_names <- colnames(eq) %||% names(eq)
+  eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
   bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
@@ -1518,7 +1532,8 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     if(length(multi_parents) > 0) {
       df_multi <- combinations[multi_parents]
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+      mat_multi <- model.matrix(~ ., data = df_multi)
+      mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1577,8 +1592,9 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[child]]
-  names(eq) <- sapply(strsplit(names(eq),"[|]"), function(x) x[2])
+  eq <- fit[[node]]
+  eq_names <- colnames(eq) %||% names(eq)
+  eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
   bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
   bin.nodes <- setdiff(bin.nodes,node)
@@ -1718,7 +1734,8 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
     if(length(multi_parents) > 0) {
       df_multi <- combinations[multi_parents]
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
-      mat_multi <- model.matrix(~ . - 1, data = df_multi)
+      mat_multi <- model.matrix(~ ., data = df_multi)
+      mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1870,6 +1887,7 @@ predict_root <- function(data, dists, node) {
          "gaussian"  = mean(data[[node]]),
          "poisson"   = mean(data[[node]]),
          "binomial"  = prop.table(table(data[[node]])),
+         "multinomial" = prop.table(table(data[[node]])),
          stop("Unsupported distribution type for root node ", dists[[node]])
   )
 }
