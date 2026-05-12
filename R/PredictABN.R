@@ -48,7 +48,7 @@
 #' predictions$prediction_hypothesis # the predicted distribution of g2
 #' @export
 #'
-predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE){
+predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL, plot = FALSE){
 
   # some checks
   if (ncol(data) != length(dists) || ncol(data) != ncol(dag) || length(dists) != ncol(dag)){
@@ -63,9 +63,12 @@ predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE
   # Step 0: check the evidence and the data
   check_data(data, dists,fit)
   evidence <- check_evidence(data, dists, hypothesis, evidence)
-  mb <- find_MB(graph, hypothesis)
-
-  if (all(mb %in% names(evidence))){
+  if (!is.null(hypothesis)){
+    mb <- find_MB(graph, hypothesis)
+  } else {
+    mb <- NULL
+  }
+  if (all(mb %in% names(evidence)) && !is.null(hypothesis)){
     message("The Markov blanket of the node to infer is enterily known.")
     prediction <- predict_node_from_parent(data, dists, graph, fit, node = hypothesis, evidence)
     predictions <- list(prediction)
@@ -84,7 +87,11 @@ predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE
     }
 
     # Step 2: from bottom to top
-    node_max <- which(node_order == hypothesis)
+    if (!is.null(hypothesis)){
+      node_max <- which(node_order == hypothesis)
+    } else {
+      node_max <- 1
+    }
     for (i in (length(node_order):node_max)){
       prediction <- predict_node_from_children(data, dists, graph, fit, node = node_order[i], evidence, predictions)
       predictions[[i]] <- prediction
@@ -95,7 +102,12 @@ predictABN <- function(data, dists, dag, fit, hypothesis, evidence, plot = FALSE
       g <- plotPosteriorDistrib(predictions,hypothesis,dists)
       print(g)
     }
-    return(list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions))
+    if (!is.null(hypothesis)){
+      results <- list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions)
+    } else {
+      results <- list(prediction_hypothesis = NULL, predictions = predictions)
+    }
+    return(results)
   }
 }
 
@@ -160,7 +172,7 @@ check_evidence <- function(data, dists, hypothesis, evidence){
       if (length(which(dists[names(evidence)] %in% c("binomial","multinomial")))>0){
         # at least one evidence is a bi/multinomial node
         for (i in (1:length(which(dists[names(evidence)]%in% c("binomial","multinomial"))))){
-          node <- names(evidence)[which(mydists[names(evidence)] %in% c("binomial","multinomial"))][i]
+          node <- names(evidence)[which(dists[names(evidence)] %in% c("binomial","multinomial"))][i]
           if (is.character(evidence[[node]])){
             # transform it to factor
             evidence[[node]] <- factor(evidence[[node]],levels=levels(data[[node]]))
@@ -503,7 +515,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
-
+        names(probabilities) <- bin.nodes
         levels_list <- lapply(probabilities,function(x) names(x))
         combinations <- expand.grid(levels_list)
 
@@ -640,7 +652,7 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
-
+        names(probabilities) <- bin.nodes
         levels_list <- lapply(probabilities,function(x) names(x))
         combinations <- expand.grid(levels_list)
 
@@ -779,7 +791,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
-
+        names(probabilities) <- bin.nodes
         levels_list <- lapply(probabilities,function(x) names(x))
         combinations <- expand.grid(levels_list)
 
@@ -886,7 +898,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
             probabilities[[bin.nodes.evidence[i]]] <- proba_tmp
           }
         }
-
+        names(probabilities) <- bin.nodes
         levels_list <- lapply(probabilities,function(x) names(x))
         combinations <- expand.grid(levels_list)
 
@@ -1020,7 +1032,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[node]]
+  eq <- fit[[child]]
   eq_names <- colnames(eq) %||% names(eq)
   eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
@@ -1101,7 +1113,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
         predictions[[bin]]
       }
     })
-
+    names(probabilities) <- bin.nodes
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
 
@@ -1216,7 +1228,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[node]]
+  eq <- fit[[child]]
   eq_names <- colnames(eq) %||% names(eq)
   eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
@@ -1276,12 +1288,16 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
            "poisson" = {
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
-             sum_val <- function(pow) {
-               sum(sapply(0:max_x, function(x) (x^pow) * exp(LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp)) *
-                            prior_poisson(x, lambda_prior)))
-             }
-             denominator <- sum_val(0)
-             numerator <- sum_val(1)
+             x_vals <- 0:max_x
+             log_posterior_vec <- sapply(x_vals, function(x) {
+               log(prior_poisson(x, lambda_prior)) + LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp)
+             })
+             log_posterior_vec[is.na(log_posterior_vec)] <- -Inf
+             M <- max(log_posterior_vec)
+             if (is.infinite(M)) return(lambda_prior)
+             weights <- exp(log_posterior_vec - M)
+             denominator <- sum(weights)
+             numerator  <- sum(x_vals * weights)
              results <- numerator / denominator
              return(results)
            },
@@ -1311,7 +1327,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
         predictions[[bin]]
       }
     })
-
+    names(probabilities) <- bin.nodes
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
 
@@ -1426,7 +1442,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[node]]
+  eq <- fit[[child]]
   eq_names <- colnames(eq) %||% names(eq)
   eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
@@ -1592,7 +1608,7 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
     predictions <- c(predictions,evidence)
   }
 
-  eq <- fit[[node]]
+  eq <- fit[[child]]
   eq_names <- colnames(eq) %||% names(eq)
   eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
@@ -1718,7 +1734,7 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
         predictions[[bin]]
       }
     })
-
+    names(probabilities) <- bin.nodes
     levels_list <- lapply(probabilities,function(x) names(x))
     combinations <- expand.grid(levels_list)
 
