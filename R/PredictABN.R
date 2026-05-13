@@ -955,6 +955,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
         node_hat_baseline <- 1 / denominator
 
         node_hat <- c(node_hat_baseline, node_hat_others)
+        names(node_hat) <- levels.multi
       }
     }
   }
@@ -1049,13 +1050,26 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   names(continuous_part) <- c()
 
   y_val <- predictions[[child]][1]
-  y_var <- predictions[[child]][2]
+
+  if (length(predictions[[child]])>1){
+    y_var <- predictions[[child]][2]
+  } else {
+    y_var = 1
+  }
 
   compute_update <- function(intercept_tmp, node_type){
     switch(node_type,
            "binomial" = {
              p_prior <- predictions[[node]]
-             numerator <- function(x) L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) * prior_binomial(x, p_prior[2])
+             if (length(p_prior)==1){
+               ev_index <- as.numeric(as.factor(p_prior))
+               p_vector <- c(0, 0)
+               p_vector[ev_index] <- 1
+               names(p_vector) <- levels(p_prior)
+             } else {
+               p_vector <- p_prior
+             }
+             numerator <- function(x) L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) * prior_binomial(x, p_vector[2])
              denominator <- numerator(0) + numerator(1)
              results <- c(numerator(0)/denominator, 1-numerator(0)/denominator)
              names(results) <- levels(data[[node]])
@@ -1089,15 +1103,22 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
            },
            "multinomial" = {
              p_prior <- predictions[[node]]
-             levels_node <- names(p_prior)
+             if (length(p_prior) == 1) {
+               levels_node <- levels(data[[node]])
+               p_vector <- setNames(numeric(length(levels_node)), levels_node)
+               p_vector[as.character(p_prior)] <- 1
+             } else {
+               p_vector <- p_prior
+               levels_node <- names(p_prior)
+             }
 
              unnormalized <- sapply(levels_node, function(l){
                coef_name <- paste0(node, l)
                node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
                lik <- L_gaussian(y = y_val, x = 1, coef = node_coef, var = y_var, intercept_tmp)
-               return(lik * p_prior[l])
+               return(lik * p_vector[l])
              })
-             if (sum(unnormalized) == 0) return(p_prior)
+             if (sum(unnormalized) == 0) return(p_vector)
              return(unnormalized / sum(unnormalized))
            }
     )
@@ -1250,7 +1271,15 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     switch(node_type,
            "binomial" = {
              p_prior <- predictions[[node]]
-             numerator <- function(x) exp(LogL_poisson(y = y_val, x, coef = eq[[node]],intercept_tmp)) * prior_binomial(x, p_prior[2])
+             if (length(p_prior)==1){
+               ev_index <- as.numeric(as.factor(p_prior))
+               p_vector <- c(0, 0)
+               p_vector[ev_index] <- 1
+               names(p_vector) <- levels(p_prior)
+             } else {
+               p_vector <- p_prior
+             }
+             numerator <- function(x) exp(LogL_poisson(y = y_val, x, coef = eq[[node]],intercept_tmp)) * prior_binomial(x, p_vector[2])
              denominator <- numerator(0) + numerator(1)
 
              if (is.na(denominator) || denominator == 0) return(predictions[[node]]) # Numerical fallback
@@ -1303,15 +1332,22 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
            },
            "multinomial" = {
              p_prior <- predictions[[node]]
-             levels_node <- names(p_prior)
+             if (length(p_prior) == 1) {
+               levels_node <- levels(data[[node]])
+               p_vector <- setNames(numeric(length(levels_node)), levels_node)
+               p_vector[as.character(p_prior)] <- 1
+             } else {
+               p_vector <- p_prior
+               levels_node <- names(p_prior)
+             }
 
              unnormalized <- sapply(levels_node, function(l){
                coef_name <- paste0(node, l)
                node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
                log_lik <- LogL_poisson(y = y_val, x = 1, coef = node_coef, intercept_tmp)
-               return(exp(log_lik) * p_prior[l])
+               return(exp(log_lik) * p_vector[l])
              })
-             if (sum(unnormalized) == 0) return(p_prior)
+             if (sum(unnormalized) == 0) return(p_vector)
              return(unnormalized / sum(unnormalized))
            }
     )
@@ -1461,7 +1497,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
   if (child %in% names(evidence)){
     p_pred <- c(0,0)
     names(p_pred) <- levels(data[[child]])
-    p_pred[grep(predictions[[child]],names(p_pred))] <- 1
+    p_pred[grep(evidence[[child]],names(p_pred))] <- 1
   } else {
     p_pred <- predictions[[child]]
   }
@@ -1470,7 +1506,15 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     switch(node_type,
         "binomial" = {
            p_prior <- predictions[[node]]
-           numerator <- function(x, y) L_binomial(y, x, coef = eq[[node]], intercept_tmp) * prior_binomial(x, p_prior[2])
+           if (length(p_prior)==1){
+             ev_index <- as.numeric(as.factor(p_prior))
+             p_vector <- c(0, 0)
+             p_vector[ev_index] <- 1
+             names(p_vector) <- levels(p_prior)
+           } else {
+             p_vector <- p_prior
+           }
+           numerator <- function(x, y) L_binomial(y, x, coef = eq[[node]], intercept_tmp) * prior_binomial(x, p_vector[2])
            denominator <- (numerator(0, 0) * p_pred[1] + numerator(0, 1) * p_pred[2]) +
              (numerator(1, 0) * p_pred[1] + numerator(1, 1) * p_pred[2])
            prob_0 <- (numerator(0, 0) * p_pred[1] + numerator(0, 1) * p_pred[2]) / denominator
@@ -1506,16 +1550,22 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
         },
         "multinomial" = {
           p_prior <- predictions[[node]]
-          levels_node <- names(p_prior)
-
+          if (length(p_prior) == 1) {
+            levels_node <- levels(data[[node]])
+            p_vector <- setNames(numeric(length(levels_node)), levels_node)
+            p_vector[as.character(p_prior)] <- 1
+          } else {
+            p_vector <- p_prior
+            levels_node <- names(p_prior)
+          }
           unnormalized <- sapply(levels_node, function(l){
             coef_name <- paste0(node, l)
             node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
             lik <- L_binomial(y = 0, x = 1, coef = node_coef, intercept_tmp)*p_pred[1]+L_binomial(y = 1, x = 1, coef = node_coef, intercept_tmp)*p_pred[2]
-            return(lik * p_prior[l])
+            return(lik * p_vector[l])
           })
 
-          if (sum(unnormalized) == 0) return(p_prior)
+          if (sum(unnormalized) == 0) return(p_vector)
           return(unnormalized / sum(unnormalized))
         }
       )
@@ -1592,7 +1642,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 #' @import igraph
 #' @export
 #'
-predict_node_from_children_multinomial <- function(data, dists, fit, noode, evidence, child, parents, predictions){
+predict_node_from_children_multinomial <- function(data, dists, fit, node, evidence, child, parents, predictions){
   if (dists[[child]] != "multinomial"){
     stop("The child should follow a multinomial distribution.")
   }
@@ -1624,15 +1674,22 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
 
   lvl_names <- levels(data[[child]])
 
-  continuous_part <- sapply(lvl_names, function(p){
-    eq[paste0("intercept.",p)] + sum(eq[paste0(other.nodes,".",p)]*unlist(predictions_tmp))
+  continuous_part <- sapply(lvl_names, function(p) {
+    int_name <- paste0("intercept.", p)
+
+    if (int_name %in% names(eq)) {
+      val <- eq[int_name] + sum(eq[paste0(other.nodes, ".", p)] * unlist(predictions_tmp))
+      return(val)
+    } else {
+      return(0)
+    }
   })
   names(continuous_part) <- lvl_names
 
   if (child %in% names(evidence)){
     p_pred <- rep(0,length(lvl_names))
     names(p_pred) <- lvl_names
-    p_pred[names(p_pred) == predictions[[child]]] <- 1
+    p_pred[names(p_pred) == evidence[[child]]] <- 1
   } else {
     p_pred <- predictions[[child]]
   }
@@ -1647,8 +1704,17 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
            "binomial" = {
              p_prior <- predictions[[node]]
 
+             if (length(p_prior)==1){
+               ev_index <- as.numeric(as.factor(p_prior))
+               p_vector <- c(0, 0)
+               p_vector[ev_index] <- 1
+               names(p_vector) <- levels(p_prior)
+             } else {
+               p_vector <- p_prior
+             }
+
              numerator <- function(x, y){
-               L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) * prior_binomial(x, p_prior[2])
+               L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) * prior_binomial(x, p_vector[2])
              }
              denominator <- sum(sapply(seq_along(lvl_names), function(p){
                (numerator(0, p) +numerator(1, p)) * p_pred[p]
@@ -1704,8 +1770,14 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
            },
            "multinomial" = {
              p_prior <- predictions[[node]]
-             levels_node <- names(p_prior)
-
+             if (length(p_prior) == 1) {
+               levels_node <- levels(data[[node]])
+               p_vector <- setNames(numeric(length(levels_node)), levels_node)
+               p_vector[as.character(p_prior)] <- 1
+             } else {
+               p_vector <- p_prior
+               levels_node <- names(p_prior)
+             }
              unnormalized <- sapply(levels_node, function(l){
                current_parent_coefs <- sapply(lvl_names, function(clvl) {
                  c_name <- paste0(node, l, ".", clvl) # to check in practice
@@ -1715,10 +1787,10 @@ predict_node_from_children_multinomial <- function(data, dists, fit, noode, evid
                lik <- sum(sapply(seq_along(lvl_names),function(p){
                  L_binomial(y = p, x = 1, coef = current_parent_coefs, intercept_tmp) * p_pred[p]
                }))
-               return(lik * p_prior[l])
+               return(lik * p_vector[l])
              })
 
-             if (sum(unnormalized) == 0) return(p_prior)
+             if (sum(unnormalized) == 0) return(p_vector)
              return(unnormalized / sum(unnormalized))
            }
     )
