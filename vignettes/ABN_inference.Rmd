@@ -29,7 +29,7 @@ However, in Additive Bayesian Networks (ABN), inference is more challenging beca
 To address these challenges, we propose a two-step inference procedure, as described in Figure  \@ref(fig:workflow). First the node to infer is estimated using only its parents, and then this estimate is refined by incorporating information from both its children and its children's parents. The procedure involves topologically ordering the graph nodes, iteratively estimating each node's distribution based on its parents, and then updating the distribution in reverse order by incorporating information from its children and children's parents. 
 Our approach contrasts with traditional BN methods, which typically rely on exact probabilistic reasoning or approximate sampling techniques. Instead, our procedure offers an approximation tailored to the specificities of ABNs, including the use of GLMs and mixed data types. 
 
-```{r workflow, echo=FALSE, fig.cap="Workflow of the 2-steps inference procedure.",eval=TRUE}
+```{r workflow, echo=FALSE, fig.cap="Workflow of the 2-steps inference procedure.",eval=TRUE,out.width="80%"}
 knitr::include_graphics("Workflow.png")
 ```
 

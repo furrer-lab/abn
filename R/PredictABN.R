@@ -207,9 +207,9 @@ check_data <- function(data, dists,fit){
 
 #  multi.NA <- names(level.length.multi)[which(is.na(match(unlist(level.length.multi),unlist(true.levels.multi))))]
 #  if (length(multi.NA)>0){
-  if ((length(which(true.levels.multi<3))>0)){
+  if ((length(which(level.length.multi<3))>0)){
     #stop(paste0("Multinomial node ",multi.NA," does not have the expected number of levels (",true.levels.multi[multi.NA],"). Consider adding one level (data$multi.node <- factor(data$multi.node,levels=c(0,1)) before running the code."))
-    stop(paste0("Multinomial node ",names(level.length)[which(true.levels.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
+    stop(paste0("Multinomial node ",names(level.length)[which(level.length.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
   }
 }
 
@@ -1025,6 +1025,9 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
 
+  if (node %in% names(evidence)) {
+    return(predictions[[node]])
+  }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
     if (!all(nodes %in% names(evidence))){
@@ -1241,6 +1244,9 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
 
+  if (node %in% names(evidence)) {
+    return(predictions[[node]])
+  }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
     if (!all(nodes %in% names(evidence))){
@@ -1282,7 +1288,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              numerator <- function(x) exp(LogL_poisson(y = y_val, x, coef = eq[[node]],intercept_tmp)) * prior_binomial(x, p_vector[2])
              denominator <- numerator(0) + numerator(1)
 
-             if (is.na(denominator) || denominator == 0) return(predictions[[node]]) # Numerical fallback
+             if (is.na(denominator) || denominator == 0) return(p_vector) # Numerical fallback
              results <- c(numerator(0)/denominator, 1-numerator(0)/denominator)
              names(results) <- levels(data[[node]])
              return(results)
@@ -1470,6 +1476,9 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
 
+  if (node %in% names(evidence)) {
+    return(predictions[[node]])
+  }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
     if (!all(nodes %in% names(evidence))){
@@ -1649,7 +1658,9 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
   if (!node %in% names(predictions)){
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
-
+  if (node %in% names(evidence)) {
+    return(predictions[[node]])
+  }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
     if (!all(nodes %in% names(evidence))){
