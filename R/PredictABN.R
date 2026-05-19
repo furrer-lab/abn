@@ -407,9 +407,19 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
            return(res)
          },
          "multinomial" = {
+           node_levels <- levels(data[[node]])
+
+           if (is.null(ncol(raw_matrix)) || ncol(raw_matrix) == 1) {
+             res <- numeric(length(node_levels))
+             names(res) <- node_levels
+
+             chosen_index <- as.integer(raw_matrix[1, 1])
+             res[chosen_index] <- 1
+             return(res)
+           }
            res <- colMeans(raw_matrix)
            res <- res / sum(res)
-           names(res) <- levels(data[[node]])
+           names(res) <- node_levels
            return(res)
          },
          "poisson" = {
@@ -2106,159 +2116,6 @@ prior_poisson <- function(x,lambda){
   dpois(x,lambda)
 }
 
-#' Evaluate the performances
-#'
-#' This function evaluates the performances of the ABN inference procedure
-#'
-#' @param observations The observed values of a given node.
-#' @param predictions A list containing the predicted distributions of the same given node.
-#' @param distribution The distribution of the predicted node.
-#' @param compare.distrib TRUE/FALSE if we want to compare the distributions instead of comparing each sample separately.
-#' @return A list of performances.
-#'
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#'
-#' # infer the parameters of the network
-#' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
-#'
-#' hypothesis <- "g2"
-#'
-#' evidence <- as.list(data[1,-which(colnames(data) == hypothesis)])
-#'
-#' predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
-#'
-#' observations <- data[1,"g2"]
-#' distribution <- "gaussian" # the distribution of g2
-#'
-#' EvaluatePerf(observations, predictions = predictions$prediction_hypothesis, distribution)
-#'
-#' @export
-EvaluatePerf <- function(observations,predictions,distribution, compare.distrib = FALSE){
-  if (compare.distrib == TRUE){
-    predictions <- rep(list(predictions), length(observations))
-  }
-  Scores <- list()
-
-  pred.NA <- sapply(predictions, function(l){
-    is.na(l[[1]])
-  })
-  if (length(which(pred.NA==TRUE))>0){
-    predictions <- predictions[!pred.NA]
-    observations <- observations[!pred.NA]
-  }
-  n <- length(observations)
-
-  if (n==1){
-    predictions <- list(predictions)
-  }
-
-  if (distribution == "gaussian"){
-    # SPE
-    SPE <- (sapply(predictions,function(l){l[[1]]})-observations)^2
-
-    # log-score
-    logScore <- c()
-    for (i in (1:length(predictions))){
-      logScore_tmp <- 0.5*log(2*pi*predictions[[i]][2]) + (observations[i]-predictions[[i]][1])^2/(2*predictions[[i]][2])
-      logScore <- c(logScore,logScore_tmp)
-    }
-    logScore <- logScore
-
-    Scores=c(Scores, list(SPE_mean=mean(SPE),logScore_mean = mean(logScore),SPE = SPE, logScore = logScore))
-
-    if (compare.distrib == TRUE){
-      # log-likelihood
-      logL <- -n/2 * log(2*pi*predictions[[1]][2]) - sum((observations-predictions[[1]][1])^2/(2*predictions[[1]][2]))
-
-      # test
-      pval <- ks.test(observations,"pnorm", mean=predictions[[1]][1],sd = sqrt(predictions[[1]][2]))$p.value
-
-      Scores=c(Scores, list(logL=logL,pval=pval))
-    }
-  } else if (distribution == "poisson"){
-    # SPE
-    SPE <- (sapply(predictions,function(l){l[[1]]})-observations)^2
-
-    # log-score
-    logScore <- c()
-    for (i in (1:length(predictions))){
-      logScore_tmp <- - observations[i] * log(predictions[[i]]) + predictions[[i]] + lfactorial(observations[[i]])
-      logScore <- c(logScore,logScore_tmp)
-    }
-    logScore <- logScore
-
-    Scores=c(Scores, list(SPE_mean=mean(SPE),logScore_mean = mean(logScore),SPE = SPE, logScore = logScore))
-
-    if (compare.distrib==TRUE){
-      # log-likelihood
-      logL <- sum(observations*log(predictions[[1]][1])) - n*log(predictions[[1]][1]) - sum( lfactorial(observations))
-
-      # test
-      obs_freq <- table(factor(observations, levels = 0:max(observations)))
-      expected_freq <- dpois(as.numeric(names(obs_freq)), predictions[[1]][1]) * n
-      pval <- chisq.test(x = obs_freq, p = expected_freq / sum(expected_freq))$p.value
-
-      Scores=c(Scores, list(logL=logL,pval=pval))
-    }
-  } else if (distribution == "binomial"){
-    # Brier score
-    # need to be checked (factor - character,...)
-    observations_num <- unlist(sapply(observations, function(l){
-      which(l==levels(l)) - 1}))
-    BrierScore <- (observations_num-sapply(predictions,function(l){l[[2]]}))^2
-
-    # log-score
-    # need to be checked
-    logScore <- mapply(function(observation,prediction) {
-      if (observation == 1) {
-        return(log(prediction[2]))  # log(p) if y == 1
-      } else {
-        return(log(1 - prediction[2]))  # log(1-p) if y == 0
-      }
-    }, observations,predictions)
-
-    logScore <- logScore
-
-    Scores=c(Scores, list(BrierScore_mean=mean(BrierScore),logScore_mean = mean(logScore),BrierScore=BrierScore,logScore=logScore))
-
-    if (compare.distrib==TRUE){
-      # log-likelihood
-      logL <- sum(as.numeric(as.character(observations))*log(predictions[[1]][2]) + (1-as.numeric(as.character(observations)))*log(predictions[[1]][1]))
-
-      # test
-      observed_counts <- table(observations)
-      #expected_counts <- estimation * n
-      pval <- chisq.test(observed_counts, p = predictions[[1]], rescale.p = TRUE)$p.value
-
-      Scores=c(Scores, list(logL=logL, pval=pval))
-    }
-  }
-  return(Scores)
-}
-
 #' Plot ABN fitted network
 #'
 #' This function plots the ABN network with an emphasis on a specific node
@@ -2488,86 +2345,4 @@ createAnimation <- function(path = NULL){
     image_join() %>% # joins image
     image_animate(fps = 1) %>% # animates
     image_write(paste0(path,"/",file.name,".gif"))
-}
-
-#' Plot the posterior distribution
-#'
-#' This functions plots the posterior distribution
-#'
-#' @param predictions A list containing the predicted distributions of nodes of the graphs.
-#' @param hypothesis Node to predict.
-#' @param dists A list containing the distributions of the nodes of the graph.
-#' @return None
-#' @import ggplot2
-#'
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#'
-#' # infer the parameters of the network
-#' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
-#'
-#' hypothesis <- "g2"
-#' evidence <- list()
-#'
-#' predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
-#'
-#' plotPosteriorDistrib(predictions$predictions, hypothesis, mydists)
-#'
-#' @export
-plotPosteriorDistrib <- function(predictions, hypothesis, dists){
-  if (dists[[hypothesis]]=="gaussian"){
-    samples <- rnorm(1000, mean = predictions[[hypothesis]][1], sd = sqrt(predictions[[hypothesis]][2]))
-    posterior_df <- data.frame(samples)
-
-    g <- ggplot(posterior_df, aes(x = samples)) +
-      geom_density(fill = "blue", alpha = 0.5) +
-      labs(title = paste0("Posterior Distribution of ",hypothesis),
-           x = paste0("Value of ",hypothesis),
-           y = "Density") +
-      theme_minimal()
-  } else if (dists[[hypothesis]]=="poisson"){
-    values <- 0:(4*(round(predictions[[hypothesis]][1],0)+1))
-    posterior_probs <- dpois(values, lambda = predictions[[hypothesis]][1])
-    posterior_df <- data.frame(values, posterior_probs)
-
-    g <- ggplot(posterior_df, aes(x = values,y=posterior_probs)) +
-      geom_bar(stat="identity",fill = "blue", alpha=0.7) +
-      scale_x_continuous(breaks = values) +
-      labs(title = paste0("Posterior Distribution of ",hypothesis), x = paste0("Value of ",hypothesis), y = "Density") + theme_minimal()
-  } else {
-    values <- 0:10
-    posterior_probs <- dbinom(values, size = length(values), prob = predictions[[hypothesis]][2])
-    posterior_df <- data.frame(values, posterior_probs)
-
-    g <- ggplot(posterior_df, aes(x = values, y = posterior_probs)) +
-      geom_bar(stat = "identity", fill = "blue", alpha = 0.7) +
-      scale_x_continuous(breaks = values) +
-      labs(title = paste0("Posterior Distribution of ",hypothesis),
-           x = "Number of success",
-           y = "Probability") +
-      theme_minimal()
-  }
-  return(g)
 }
