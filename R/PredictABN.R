@@ -401,9 +401,20 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
            return(c(res_mean, res_var))
          },
          "binomial" = {
+           node_levels <- levels(data[[node]])
+
+           if (is.null(ncol(raw_matrix)) || ncol(raw_matrix) == 1) {
+             res <- numeric(length(node_levels))
+             names(res) <- node_levels
+
+             chosen_index <- as.integer(raw_matrix[1, 1])
+             res[chosen_index] <- 1
+             return(res)
+           }
+
            p_level2 <- mean(raw_matrix[, 2])
            res <- c(1 - p_level2, p_level2)
-           names(res) <- levels(data[[node]])
+           names(res) <- node_levels
            return(res)
          },
          "multinomial" = {
