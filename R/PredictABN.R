@@ -1103,14 +1103,32 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              mu_prior <- predictions[[node]][1]
              sigma_prior <- predictions[[node]][2]
 
-             int_val <- function(pow) {
-               integrate(function(x) (x^pow) * L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) *
-                           prior_gaussian(x, mu_prior, sigma_prior), -Inf, Inf)$value
+             build_integrand <- function(pow, shift = 0) {
+               function(x) {
+                 ((x - shift)^pow) *
+                   L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) *
+                   prior_gaussian(x, mu_prior, sigma_prior)
+               }
              }
-             denominator <- int_val(0)
-             m1  <- int_val(1) / denominator
-             m2  <- int_val(2) / denominator
-             results <- c(m1, m2 - m1^2)
+
+             run_integration <- function(f) {
+               res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
+               if (inherits(res, "try-error")) {
+                 res <- integrate(f, mu_prior - 5 * sigma_prior, mu_prior + 5 * sigma_prior)$value
+               }
+               return(res)
+             }
+
+             denominator <- run_integration(build_integrand(0))
+             if (denominator <= 0 || is.na(denominator)) {
+               warning(paste0("Numerical underflow for Gaussian-Gaussian update at node ", node, ". Reverting to prior."))
+               return(predictions[[node]])
+             }
+             f_mean <- build_integrand(1)
+             m1 <- run_integration(f_mean) / denominator
+             f_var <- build_integrand(2, shift = m1)
+             posterior_variance <- run_integration(f_var) / denominator
+             results <- c(m1, posterior_variance)
              return(results)
            },
            "poisson" = {
@@ -1318,24 +1336,35 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              mu_prior <- predictions[[node]][1]
              sigma_prior <- predictions[[node]][2]
 
-             int_val <- function(pow) {
-               f <- function(x) (x^pow) * exp(LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp)) *
-                 prior_gaussian(x, mu_prior, sigma_prior)
+             build_integrand <- function(pow, shift = 0) {
+               function(x) {
+                 ((x - shift)^pow) *
+                   exp(LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp)) *
+                   prior_gaussian(x, mu_prior, sigma_prior)
+               }
+             }
 
-               # Try full range
+             run_integration <- function(f) {
                res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
-               # Fallback to narrower range if Inf fails or returns 0
-               if (inherits(res, "try-error") || res == 0) {
-                 res <- integrate(f, -10, 10)$value
+               if (inherits(res, "try-error")) {
+                 res <- integrate(f, mu_prior - 5 * sigma_prior, mu_prior + 5 * sigma_prior, rel.tol=1e-6)$value
                }
                return(res)
              }
-             denominator <- int_val(0)
-             m1  <- int_val(1) / denominator
-             m2  <- int_val(2) / denominator
-             results <- c(m1, m2 - m1^2)
 
-             if (is.na(m2 - m1^2)) {
+             denominator <- run_integration(build_integrand(0))
+             if (denominator <= 0 || is.na(denominator)) {
+               warning(paste0("Numerical underflow for node ", node, ". Reverting to prior."))
+               return(predictions[[node]])
+             }
+             f_mean <- build_integrand(1)
+             m1 <- run_integration(f_mean) / denominator
+             f_var <- build_integrand(2, shift = m1)
+             posterior_variance <- run_integration(f_var) / denominator
+
+             results <- c(m1, posterior_variance)
+
+             if (is.na(posterior_variance) || posterior_variance <= 0) {
                warning(paste0("Numerical issues with variance of node ", node, ". Reverting to prior."))
                return(predictions[[node]])
              }
@@ -1556,14 +1585,41 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
           mu_prior <- predictions[[node]][1]
           sigma_prior <- predictions[[node]][2]
 
-          int_val <- function(pow, y) {
-            integrate(function(x) (x^pow) * L_binomial(y, x, coef = eq[[node]], intercept_tmp) *
-                        prior_gaussian(x, mu_prior, sigma_prior) * p_pred[y + 1], -Inf, Inf)$value
+          build_integrand <- function(pow, shift = 0) {
+            function(x) {
+              val_y0 <- ((x - shift)^pow) * L_binomial(y = 0, x, coef = eq[[node]], intercept_tmp) * p_pred[1]
+              val_y1 <- ((x - shift)^pow) * L_binomial(y = 1, x, coef = eq[[node]], intercept_tmp) * p_pred[2]
+
+              # Combined density at coordinate x
+              return((val_y0 + val_y1) * prior_gaussian(x, mu_prior, sigma_prior))
+            }
           }
-          denominator <- int_val(0, 0) + int_val(0, 1)
-          m1  <- (int_val(1, 0) + int_val(1, 1)) / denominator
-          m2  <- (int_val(2, 0) + int_val(2, 1)) / denominator
-          results <- c(m1, m2 - m1^2)
+
+          run_integration <- function(f) {
+            res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
+            # Dynamic fallback: center around prior parameters if Inf limits fail
+            if (inherits(res, "try-error")) {
+              res <- integrate(f, mu_prior - 5 * sigma_prior, mu_prior + 5 * sigma_prior)$value
+            }
+            return(res)
+          }
+          denominator <- run_integration(build_integrand(pow = 0))
+
+          if (denominator <= 0 || is.na(denominator)) {
+            warning(paste0("Numerical underflow for Gaussian-Binomial update at node ", node, ". Reverting to prior."))
+            return(predictions[[node]])
+          }
+
+          m1 <- run_integration(build_integrand(pow = 1)) / denominator
+
+          posterior_variance <- run_integration(build_integrand(pow = 2, shift = m1)) / denominator
+
+          if (is.na(posterior_variance) || posterior_variance <= 0) {
+            warning(paste0("Numerical issues with variance calculation at node ", node, ". Reverting to prior."))
+            return(predictions[[node]])
+          }
+
+          results <- c(m1, posterior_variance)
           return(results)
         },
         "poisson" = {
@@ -1762,27 +1818,42 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
              mu_prior <- predictions[[node]][1]
              sigma_prior <- predictions[[node]][2]
 
-             int_val <- function(pow, y) {
-               res <- try(integrate(function(x) (x^pow) * L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) *
-                           prior_gaussian(x, mu_prior, sigma_prior) * p_pred[y], -Inf, Inf)$value, silent=TRUE)
-               if (inherits(res, "try-error") || res == 0) {
+             build_integrand <- function(pow, shift = 0) {
+               function(x) {
+                 total_lik_density <- numeric(length(x))
+
+                 for (p in seq_along(lvl_names)) {
+                   total_lik_density <- total_lik_density +
+                     L_multinomial(y = p, x, coef = node_coef_vec, intercept_tmp) * p_pred[p]
+                 }
+
+                 # Combined density at coordinate points
+                 return(((x - shift)^pow) * total_lik_density * prior_gaussian(x, mu_prior, sigma_prior))
+               }
+             }
+
+             run_integration <- function(f) {
+               res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
+               if (inherits(res, "try-error")) {
                  low_b <- mu_prior - 10 * sigma_prior
                  upp_b <- mu_prior + 10 * sigma_prior
-                 res <- integrate(function(x) (x^pow) * L_multinomial(y, x, coef = node_coef_vec, intercept_tmp) *
-                                    prior_gaussian(x, mu_prior, sigma_prior) * p_pred[y], low_b, upp_b)$value
+                 res <- integrate(f, low_b, upp_b)$value
                }
                return(res)
              }
-             denominator <- sum(sapply(seq_along(lvl_names), function(p){
-               int_val(0, p)
-             }))
-             m1  <- sum(sapply(seq_along(lvl_names), function(p){
-               int_val(1, p)
-             })) / denominator
-             m2  <- sum(sapply(seq_along(lvl_names), function(p){
-               int_val(2, p)
-             })) / denominator
-             results <- c(m1, m2 - m1^2)
+
+             denominator <- run_integration(build_integrand(pow = 0))
+             if (denominator <= 0 || is.na(denominator)) {
+               warning(paste0("Numerical underflow for Gaussian-Multinomial update at node ", node, ". Reverting to prior."))
+               return(predictions[[node]])
+             }
+             m1 <- run_integration(build_integrand(pow = 1)) / denominator
+             posterior_variance <- run_integration(build_integrand(pow = 2, shift = m1)) / denominator
+             if (is.na(posterior_variance) || posterior_variance <= 0) {
+               warning(paste0("Numerical issues with variance calculation at node ", node, ". Reverting to prior."))
+               return(predictions[[node]])
+             }
+             results <- c(m1, posterior_variance)
              return(results)
            },
            "poisson" = {
