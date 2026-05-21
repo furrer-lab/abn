@@ -502,7 +502,6 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
     node_hat <- evidence[[node]]
   } else {
     if (length(parents)==0){
-      # no parents
       node_hat <- predict_root(data, dists, node)
     } else {
       eq <- fit[[node]]
@@ -517,9 +516,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
       }
 
       predictions_tmp <- predictions[other.nodes]
-      predictions_tmp <- lapply(predictions_tmp,function(l){
-        l[1]
-      })
+      predictions_tmp <- lapply(predictions_tmp, function(l){ l[1] })
       continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
       names(continuous_part) <- c()
 
@@ -528,7 +525,6 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 
         bin.nodes.evidence <- intersect(names(evidence),bin.nodes)
         if (length(bin.nodes.evidence)>0){
-          # at least one bin nodes is an evidence
           for (i in (1:length(bin.nodes.evidence))){
             proba_tmp <- rep(0,length(levels(probabilities[[bin.nodes.evidence[i]]])))
             names(proba_tmp) <- levels(data[[bin.nodes.evidence[i]]])
@@ -1045,7 +1041,6 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   if (!node %in% names(predictions)){
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
-
   if (node %in% names(evidence)) {
     return(predictions[[node]])
   }
@@ -1067,9 +1062,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   other.nodes <- setdiff(other.nodes, node)
 
   predictions_tmp <- predictions[other.nodes]
-  predictions_tmp <- lapply(predictions_tmp,function(l){
-    l[1]
-  })
+  predictions_tmp <- lapply(predictions_tmp, function(l){ l[1] })
   continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
   names(continuous_part) <- c()
 
@@ -1093,9 +1086,18 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              } else {
                p_vector <- p_prior
              }
-             numerator <- function(x) L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) * prior_binomial(x, p_vector[2])
-             denominator <- numerator(0) + numerator(1)
-             results <- c(numerator(0)/denominator, 1-numerator(0)/denominator)
+             numerator <- function(x) LogL_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) + log(prior_binomial(x, p_vector[2]))
+
+             log_num0 <- numerator(0)
+             log_num1 <- numerator(1)
+             max_log <- max(log_num0, log_num1)
+
+             exp_num0 <- exp(log_num0 - max_log)
+             exp_num1 <- exp(log_num1 - max_log)
+             denominator <- exp_num0 + exp_num1
+             prob_0 <- exp_num0 / denominator
+             prob_1 <- 1 - prob_0
+             results <- c(prob_0, prob_1)
              names(results) <- levels(data[[node]])
              return(results)
            },
@@ -1114,12 +1116,15 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              run_integration <- function(f) {
                res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
                if (inherits(res, "try-error")) {
-                 res <- integrate(f, mu_prior - 5 * sigma_prior, mu_prior + 5 * sigma_prior)$value
+                 low_b <- mu_prior - 10 * sigma_prior
+                 upp_b <- mu_prior + 10 * sigma_prior
+                 res <- try(integrate(f, low_b, upp_b)$value, silent = TRUE)
+                 if (inherits(res, "try-error")) return(NA)
                }
                return(res)
              }
 
-             denominator <- run_integration(build_integrand(0))
+             denominator <- run_integration(build_integrand(pow = 0))
              if (denominator <= 0 || is.na(denominator)) {
                warning(paste0("Numerical underflow for Gaussian-Gaussian update at node ", node, ". Reverting to prior."))
                return(predictions[[node]])
@@ -1139,6 +1144,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
                             prior_poisson(x, lambda_prior)))
              }
              denominator <- sum_val(0)
+             if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
              numerator <- sum_val(1)
              results <- numerator / denominator
              return(results)
@@ -1156,7 +1162,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 
              unnormalized <- sapply(levels_node, function(l){
                coef_name <- paste0(node, l)
-               node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
+               node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0
                lik <- L_gaussian(y = y_val, x = 1, coef = node_coef, var = y_var, intercept_tmp)
                return(lik * p_vector[l])
              })
@@ -1525,7 +1531,6 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
   if (!node %in% names(predictions)){
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
-
   if (node %in% names(evidence)) {
     return(predictions[[node]])
   }
@@ -1547,16 +1552,14 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
   other.nodes <- setdiff(other.nodes, node)
 
   predictions_tmp <- predictions[other.nodes]
-  predictions_tmp <- lapply(predictions_tmp,function(l){
-    l[1]
-  })
+  predictions_tmp <- lapply(predictions_tmp, function(l){ l[1] })
   continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
   names(continuous_part) <- c()
 
   if (child %in% names(evidence)){
     p_pred <- c(0,0)
     names(p_pred) <- levels(data[[child]])
-    p_pred[grep(evidence[[child]],names(p_pred))] <- 1
+    p_pred[names(p_pred) == evidence[[child]]] <- 1
   } else {
     p_pred <- predictions[[child]]
   }
@@ -1574,8 +1577,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
              p_vector <- p_prior
            }
            numerator <- function(x, y) L_binomial(y, x, coef = eq[[node]], intercept_tmp) * prior_binomial(x, p_vector[2])
-           denominator <- (numerator(0, 0) * p_pred[1] + numerator(0, 1) * p_pred[2]) +
-             (numerator(1, 0) * p_pred[1] + numerator(1, 1) * p_pred[2])
+           denominator <- (numerator(0, 0) + numerator(1, 0)) * p_pred[1] + (numerator(0, 1) + numerator(1, 1)) * p_pred[2]
            prob_0 <- (numerator(0, 0) * p_pred[1] + numerator(0, 1) * p_pred[2]) / denominator
            results <- c(prob_0, 1 - prob_0)
            names(results) <- levels(data[[node]])
@@ -1587,19 +1589,19 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 
           build_integrand <- function(pow, shift = 0) {
             function(x) {
-              val_y0 <- ((x - shift)^pow) * L_binomial(y = 0, x, coef = eq[[node]], intercept_tmp) * p_pred[1]
-              val_y1 <- ((x - shift)^pow) * L_binomial(y = 1, x, coef = eq[[node]], intercept_tmp) * p_pred[2]
-
-              # Combined density at coordinate x
-              return((val_y0 + val_y1) * prior_gaussian(x, mu_prior, sigma_prior))
+              total_lik_density <- L_binomial(y = 0, x, coef = eq[[node]], intercept_tmp) * p_pred[1] +
+                L_binomial(y = 1, x, coef = eq[[node]], intercept_tmp) * p_pred[2]
+              return(((x - shift)^pow) * total_lik_density * prior_gaussian(x, mu_prior, sigma_prior))
             }
           }
 
           run_integration <- function(f) {
             res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
-            # Dynamic fallback: center around prior parameters if Inf limits fail
             if (inherits(res, "try-error")) {
-              res <- integrate(f, mu_prior - 5 * sigma_prior, mu_prior + 5 * sigma_prior)$value
+              low_b <- mu_prior - 10 * sigma_prior
+              upp_b <- mu_prior + 10 * sigma_prior
+              res <- try(integrate(f, low_b, upp_b)$value, silent = TRUE)
+              if (inherits(res, "try-error")) return(NA)
             }
             return(res)
           }
@@ -1609,16 +1611,13 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
             warning(paste0("Numerical underflow for Gaussian-Binomial update at node ", node, ". Reverting to prior."))
             return(predictions[[node]])
           }
-
           m1 <- run_integration(build_integrand(pow = 1)) / denominator
-
           posterior_variance <- run_integration(build_integrand(pow = 2, shift = m1)) / denominator
 
           if (is.na(posterior_variance) || posterior_variance <= 0) {
             warning(paste0("Numerical issues with variance calculation at node ", node, ". Reverting to prior."))
             return(predictions[[node]])
           }
-
           results <- c(m1, posterior_variance)
           return(results)
         },
@@ -1630,6 +1629,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
                          prior_poisson(x, lambda_prior) * p_pred[y + 1]))
           }
           denominator <- sum_val(0, 0) + sum_val(0, 1)
+          if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
           numerator <- sum_val(1, 0) + sum_val(1, 1)
           results <- numerator / denominator
           return(results)
@@ -1646,7 +1646,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
           }
           unnormalized <- sapply(levels_node, function(l){
             coef_name <- paste0(node, l)
-            node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0 # to verify in practice
+            node_coef <- if(coef_name %in% names(eq)) as.numeric(eq[[coef_name]]) else 0
             lik <- L_binomial(y = 0, x = 1, coef = node_coef, intercept_tmp)*p_pred[1]+L_binomial(y = 1, x = 1, coef = node_coef, intercept_tmp)*p_pred[2]
             return(lik * p_vector[l])
           })
@@ -1661,8 +1661,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     probabilities <- lapply(bin.nodes, function(bin) {
       lvls <- levels(data[[bin]])
       if (bin %in% names(evidence)) {
-        vec <- as.numeric(lvls == evidence[[bin]])
-        setNames(vec, lvls)
+        setNames(as.numeric(lvls == evidence[[bin]]), lvls)
       } else {
         predictions[[bin]]
       }
@@ -2128,6 +2127,12 @@ L_gaussian <- function(y, x, coef, var, continuous_part){
   mu <-  coef*x + continuous_part
   sigma2 <- var
   dnorm(y, mean = mu, sd=sqrt(sigma2))
+}
+
+LogL_gaussian <- function(y, x, coef, var, continuous_part) {
+  mu <- continuous_part + coef * x
+  # Setting log = TRUE calculates the log-exponent directly without hitting the underflow wall!
+  return(dnorm(y, mean = mu, sd = sqrt(var), log = TRUE))
 }
 
 #' Compute prior probability for a binomial prior distribution
