@@ -5,6 +5,19 @@ computeCache_inForLoop <- function(adj.vars,
                                    data.df.lvl,
                                    max.parents,
                                    data.dists){
+  if(is.list(max.parents)){
+    stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
+    if(!is.null(which.nodes)){
+      stop("ISSUE: `max.parents` as list in combination with `which.nodes` is not yet implemented further down here. Try with single numeric as max.parents instead.")
+    }
+  } else if (is.numeric(max.parents) && length(max.parents)>1){
+    if (length(unique(max.parents)) == 1){
+      max.parents <- unique(max.parents)
+    } else {
+      stop("ISSUE: `max.parents` with node specific values that are not all the same, is not yet implemented further down here.")
+    }
+  }
+
   tmp.list <- vector('list', max.parents)
   tmp_nrow <- 1
   for (i in 1:(max.parents)) {
@@ -16,7 +29,7 @@ computeCache_inForLoop <- function(adj.vars,
   node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
   children.list <- vector('list', cache_nrow)
   for (child in 1:nvars){
-    res <- forLoopNode_withCache_mod(child = child,
+    res <- forLoopNode_withCache(child = child,
                                  tmp.list = tmp.list,
                                  tmp_nrow = tmp_nrow,
                                  max.parents = max.parents,
@@ -239,6 +252,18 @@ computeCache_prealloc <- function(adj.vars,
                                 data.df.lvl,
                                 max.parents,
                                 data.dists){
+  if(is.list(max.parents)){
+    stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
+    if(!is.null(which.nodes)){
+      stop("ISSUE: `max.parents` as list in combination with `which.nodes` is not yet implemented further down here. Try with single numeric as max.parents instead.")
+    }
+  } else if (is.numeric(max.parents) && length(max.parents)>1){
+    if (length(unique(max.parents)) == 1){
+      max.parents <- unique(max.parents)
+    } else {
+      stop("ISSUE: `max.parents` with node specific values that are not all the same, is not yet implemented further down here.")
+    }
+  }
   tmp.list <- vector('list', max.parents)
   cache_nrow <- 1
   for (i in 1:(max.parents)) {
