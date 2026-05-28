@@ -2,6 +2,7 @@ source("scripts/setup_score_cache_mle.R")
 source("scripts/cache_creation_refactoring.R")
 source("scripts/forLoopContent_refactoring.R")
 require(foreach)
+library(nnet)
 params <- readRDS(file = "tests/testthat/testdata/input_score_cache_mle.RData")
 params$max.parents <- unique(params$max.parents)
 
@@ -42,19 +43,23 @@ res <- bench::mark(call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mlep
 #  1 call_forLoo…   27s    27s    0.0370    1.83GB    0.926     1    25        27s <named list> <Rprofmem>
 #  # ℹ 2 more variables: time <list>, gc <list>
 
-res <- bench::mark(call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
+
+res <- bench::mark(orig = call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
                                             mleparams$data.df.multi, mleparams$data.df.lvl,
-                                            params$max.parents,params$data.dists,cache_orig,
+                                            mp, #params$max.parents,
+                                            params$data.dists,cache_orig,
                                             params$control,params$verbose),
-                   call_forLoopContent_foreachrows(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                   foreachrows = call_forLoopContent_foreachrows(params$adj.vars,mleparams$nvars,mleparams$data.df,
                                             mleparams$data.df.multi, mleparams$data.df.lvl,
-                                            params$max.parents,params$data.dists,cache_orig,
+                                            mp, #params$max.parents,
+                                            params$data.dists,cache_orig,
                                             params$control,params$verbose),
-                   call_forLoopContent_noforeach(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                   noforeach = call_forLoopContent_noforeach(params$adj.vars,mleparams$nvars,mleparams$data.df,
                                                    mleparams$data.df.multi, mleparams$data.df.lvl,
-                                                   params$max.parents,params$data.dists,cache_orig,
+                                                   mp, #params$max.parents,
+                                                   params$data.dists,cache_orig,
                                                    params$control,params$verbose),
-                   iterations = 50)
+                   iterations = 1)
 
 # A tibble: 2 × 13
 #expression     min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory
@@ -81,6 +86,10 @@ res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nv
                                                                  mleparams$data.df.multi, mleparams$data.df.lvl,
                                                                  params$max.parents,params$data.dists,cache_orig,
                                                                  params$control,params$verbose),
+                    precomputeXY_all = call_forLoopContent_precomputedXY_all(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                                     mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                                     params$max.parents,params$data.dists,cache_orig,
+                                                                     params$control,params$verbose),
 
                     iterations = 5)
 # A tibble: 2 × 13
@@ -88,6 +97,9 @@ res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nv
 #<bch:expr>   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                   <list>     <list>
 #  1 orig              25s      25s    0.0400    1.84GB   0.408      5    51      2.08m <named list [14]> <Rprofmem [245,167 × 3]> <bench_tm> <tibble>
 #  2 precomputeXY      19s    19.1s    0.0525  911.79MB   0.0839     5     8      1.59m <named list [14]> <Rprofmem [84,834 × 3]>  <bench_tm> <tibble>
+
+
+
 
 
 
@@ -153,4 +165,3 @@ res_test <- bench::mark(
 ## ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
 
 # If full_for is only a bit slower than only_rcpp, then the allocation solution is no longer the main problem; the forLoopContent function is.
-
