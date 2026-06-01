@@ -43,24 +43,26 @@ res <- bench::mark(call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mlep
 #  1 call_forLoo…   27s    27s    0.0370    1.83GB    0.926     1    25        27s <named list> <Rprofmem>
 #  # ℹ 2 more variables: time <list>, gc <list>
 
+######################
+# Benchmark foreach vs R for loop, using the original forLoopContent function
+# Compare results and performance between: foreach (as in the original code), foreach without "combine" option, R for loop
 
 res <- bench::mark(orig = call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
-                                            mleparams$data.df.multi, mleparams$data.df.lvl,
-                                            mp, #params$max.parents,
-                                            params$data.dists,cache_orig,
-                                            params$control,params$verbose),
-                   foreachrows = call_forLoopContent_foreachrows(params$adj.vars,mleparams$nvars,mleparams$data.df,
-                                            mleparams$data.df.multi, mleparams$data.df.lvl,
-                                            mp, #params$max.parents,
-                                            params$data.dists,cache_orig,
-                                            params$control,params$verbose),
-                   noforeach = call_forLoopContent_noforeach(params$adj.vars,mleparams$nvars,mleparams$data.df,
                                                    mleparams$data.df.multi, mleparams$data.df.lvl,
-                                                   mp, #params$max.parents,
+                                                   params$max.parents,
                                                    params$data.dists,cache_orig,
                                                    params$control,params$verbose),
-                   iterations = 1)
-
+                   foreachrows = call_forLoopContent_foreachrows(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                   mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                   params$max.parents,
+                                                   params$data.dists,cache_orig,
+                                                   params$control,params$verbose),
+                   noforeach = call_forLoopContent_noforeach(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                   mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                   params$max.parents,
+                                                   params$data.dists,cache_orig,
+                                                   params$control,params$verbose),
+                   iterations = 5)
 # A tibble: 2 × 13
 #expression     min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory
 #<bch:expr>   <bch> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>       <list>
@@ -75,8 +77,11 @@ res <- bench::mark(orig = call_forLoopContent_orig(params$adj.vars,mleparams$nva
 #  3 call_forLoopContent_noforeach(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.d… 24.4s  24.8s    0.0328    1.78GB    0.315    50   480      25.4m <named list> <Rprofmem> <bench_tm> <tibble>
 
 
-##########
-## Test X and Y preallocation
+
+######################
+# Benchmark the original forLoopContent function against the optimized version (X and Y preallocation)
+# Compare results and performance between: the original code, optimized function called within for loop,
+# optimized whole function called within a foreach loop
 
 res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nvars,mleparams$data.df,
                                                     mleparams$data.df.multi, mleparams$data.df.lvl,
@@ -97,9 +102,6 @@ res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nv
 #<bch:expr>   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                   <list>     <list>
 #  1 orig              25s      25s    0.0400    1.84GB   0.408      5    51      2.08m <named list [14]> <Rprofmem [245,167 × 3]> <bench_tm> <tibble>
 #  2 precomputeXY      19s    19.1s    0.0525  911.79MB   0.0839     5     8      1.59m <named list [14]> <Rprofmem [84,834 × 3]>  <bench_tm> <tibble>
-
-
-
 
 
 
@@ -165,3 +167,5 @@ res_test <- bench::mark(
 ## ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
 
 # If full_for is only a bit slower than only_rcpp, then the allocation solution is no longer the main problem; the forLoopContent function is.
+
+
