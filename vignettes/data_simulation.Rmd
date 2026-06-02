@@ -164,7 +164,5 @@ for (i in seq_along(variables)) {
 do.call(grid.arrange, c(plots, ncol = 1))
 ```
 
-![plot of chunk unnamed-chunk-3](unnamed-chunk-3-1.png)
-
 The plots show that the distributions of the original and simulated data are similar.
 
