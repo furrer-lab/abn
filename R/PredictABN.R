@@ -540,7 +540,9 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
         multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
         if(length(bin_parents) > 0) {
-          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+            as.numeric(as.factor(x)) - 1
+          }))
         } else {
           mat_bin <- NULL
         }
@@ -677,7 +679,9 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
         if(length(bin_parents) > 0) {
-          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+            as.numeric(as.factor(x)) - 1
+          }))
         } else {
           mat_bin <- NULL
         }
@@ -816,7 +820,9 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
         multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
         if(length(bin_parents) > 0) {
-          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+            as.numeric(as.factor(x)) - 1
+          }))
         } else {
           mat_bin <- NULL
         }
@@ -923,7 +929,9 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
         multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
         if(length(bin_parents) > 0) {
-          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+          mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+            as.numeric(as.factor(x)) - 1
+          }))
         } else {
           mat_bin <- NULL
         }
@@ -1190,7 +1198,9 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
     if(length(bin_parents) > 0) {
-      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+        as.numeric(as.factor(x)) - 1
+      }))
     } else {
       mat_bin <- NULL
     }
@@ -1433,7 +1443,9 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
     multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
     if(length(bin_parents) > 0) {
-      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+        as.numeric(as.factor(x)) - 1
+      }))
     } else {
       mat_bin <- NULL
     }
@@ -1675,7 +1687,9 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
     if(length(bin_parents) > 0) {
-      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+        as.numeric(as.factor(x)) - 1
+      }))
     } else {
       mat_bin <- NULL
     }
@@ -1916,7 +1930,9 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
     multi_parents <- names(combinations)[sapply(names(combinations), function(x) dists[[x]] == "multinomial")]
 
     if(length(bin_parents) > 0) {
-      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) as.numeric(as.character(x))))
+      mat_bin <- as.matrix(sapply(combinations[bin_parents], function(x) {
+        as.numeric(as.factor(x)) - 1
+      }))
     } else {
       mat_bin <- NULL
     }
