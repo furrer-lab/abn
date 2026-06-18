@@ -61,7 +61,7 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
   node_order <- names(topo_sort(graph, mode="out"))
 
   # Step 0: check the evidence and the data
-  check_data(data, dists,fit)
+  check_data(data, dists)
   evidence <- check_evidence(data, dists, hypothesis, evidence)
   if (!is.null(hypothesis)){
     mb <- find_MB(graph, hypothesis)
@@ -145,7 +145,7 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
 check_evidence <- function(data, dists, hypothesis, evidence){
   if (length(evidence)>0){
     # at least one evidence
-    if (hypothesis %in% names(evidence)){
+    if (!is.null(hypothesis) && hypothesis %in% names(evidence)){
       print(paste0("Node ",hypothesis," is already known (evidence)."))
       evidence <- evidence[hypothesis]
     } else {
@@ -184,7 +184,7 @@ check_evidence <- function(data, dists, hypothesis, evidence){
   return(evidence)
 }
 
-check_data <- function(data, dists,fit){
+check_data <- function(data, dists){
   data.bin <- data %>% dplyr::select(names(dists)[grep("b",names(dists))])
 
   level.length <- sapply(data.bin, function(b){
@@ -201,15 +201,8 @@ check_data <- function(data, dists,fit){
     length(levels(m))
   })
 
-#  true.levels.multi <- sapply(names(level.length.multi),function(m){
-#    length(grep("intercept",names(fit[[m]])))+1
-#  })
-
-#  multi.NA <- names(level.length.multi)[which(is.na(match(unlist(level.length.multi),unlist(true.levels.multi))))]
-#  if (length(multi.NA)>0){
   if ((length(which(level.length.multi<3))>0)){
-    #stop(paste0("Multinomial node ",multi.NA," does not have the expected number of levels (",true.levels.multi[multi.NA],"). Consider adding one level (data$multi.node <- factor(data$multi.node,levels=c(0,1)) before running the code."))
-    stop(paste0("Multinomial node ",names(level.length)[which(level.length.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
+    stop(paste0("Multinomial node ",names(level.length.multi)[which(level.length.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
   }
 }
 
