@@ -722,7 +722,10 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
              res[["coef"]] <- matrix(data = c(rep(NA,num.na),fit$coefficients),nrow = 1)
              res[["var"]] <- tryCatch(as.matrix(sqrt(diag(solve(fit$varcov)))),
                                       error=function(e){
-                                        as.matrix(sqrt(svd(fit$varcov)$d))
+                                        s <- svd(fit$varcov)
+                                        tol <- max(s$d) * .Machine$double.eps * length(s$d)
+                                        d_inv <- ifelse(s$d > tol, 1 / s$d, 0)
+                                        as.matrix(sqrt(rowSums(s$v^2 * rep(d_inv, each = nrow(s$v)))))
                                       }
              )
              res[["var"]] <- matrix(data = c(rep(NA,num.na),res[["var"]]),nrow = 1)
