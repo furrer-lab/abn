@@ -235,6 +235,22 @@ json_fixture_fit_ex1_bayes <- function() {
          method = "bayes", centre = FALSE)
 }
 
+json_fixture_fit_ex1_bayes_fixed <- function() {
+  data.df <- droplevels(ex1.dag.data[seq_len(1000), c("b1", "p1", "g1", "p2")])
+  dists <- list(
+    b1 = "binomial",
+    p1 = "poisson",
+    g1 = "gaussian",
+    p2 = "poisson"
+  )
+  dag <- json_fixture_empty_dag(dists)
+  dag["p2", c("b1", "p1")] <- 1
+
+  fitAbn(dag = dag, data.df = data.df, data.dists = dists,
+         method = "bayes", centre = FALSE, compute.fixed = TRUE,
+         control = fit.control(method = "bayes", n.grid = 100))
+}
+
 json_fixture_fit_ex3_mle_grouped <- function() {
   dists <- list(b1 = "binomial", b2 = "binomial")
 

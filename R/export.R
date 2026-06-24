@@ -709,6 +709,64 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   }
 }
 
+#' Convert R objects to JSON-native structures
+#'
+#' @param x Object to sanitize before passing to jsonlite.
+#' @param seen Environments already traversed; prevents recursive object graphs.
+#' @return A JSON-serializable R object made of lists, atomic vectors, and NULL.
+#' @keywords internal
+export_json_safe <- function(x, seen = list()) {
+  if (is.null(x)) return(NULL)
+
+  if (inherits(x, "abnFit")) {
+    if (is.atomic(x)) return(unclass(x))
+
+    return(list(
+      method = x[["method"]] %||% NULL,
+      mlik = x[["mlik"]] %||% NULL,
+      node_names = names(x[["abnDag"]][["data.dists"]]) %||%
+        names(x[["coef"]]) %||% NULL
+    ))
+  }
+
+  if (is.environment(x)) {
+    env_id <- format(x)
+    if (env_id %in% seen) return(NULL)
+    return(export_json_safe(as.list(x, all.names = TRUE), c(seen, env_id)))
+  }
+
+  if (is.factor(x)) return(as.character(x))
+  if (inherits(x, "Date") || inherits(x, "POSIXt")) return(as.character(x))
+
+  if (is.matrix(x)) {
+    dimnames_x <- dimnames(x)
+    rows <- lapply(seq_len(nrow(x)), function(i) as.list(unclass(x[i, , drop = TRUE])))
+    if (!is.null(rownames(x))) names(rows) <- rownames(x)
+    return(list(
+      values = rows,
+      row_names = dimnames_x[[1]] %||% NULL,
+      column_names = dimnames_x[[2]] %||% NULL
+    ))
+  }
+
+  if (is.data.frame(x)) {
+    out <- lapply(x, export_json_safe, seen = seen)
+    attr(out, "row.names") <- NULL
+    out$row_names <- rownames(x)
+    return(out)
+  }
+
+  if (is.list(x)) {
+    out <- lapply(x, export_json_safe, seen = seen)
+    names(out) <- names(x)
+    return(out)
+  }
+
+  if (is.atomic(x)) return(unclass(x))
+
+  as.character(x)
+}
+
 #' Export abnFit object fitted with MLE (non-mixed effects)
 #' @inheritParams export_abnFit
 #' @details This function handles abnFit objects fitted using Maximum Likelihood Estimation (MLE)
@@ -1085,6 +1143,8 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
             parent_var <- info$parent
             state_value <- info$state_value
           }
+        } else if (param_name %in% parent_nodes) {
+          parent_var <- param_name
         }
 
         cond <- if (!is.null(parent_var)) {
@@ -1745,24 +1805,95 @@ export_abnFit_bayes <- function(object, format, include_network,
     stop("This function only handles abnFit objects fitted with method = 'bayes'", call. = FALSE)
   }
 
-  # TODO: Extract variables, parameters, and arcs from Bayesian fit
-  # This should:
-  # 1. Extract posterior distributions for parameters
-  # 2. Compute summary statistics (mean, median, quantiles)
-  # 3. Include convergence diagnostics
-  # 4. Format according to variables/parameters/arcs structure
+  node_names <- names(object$abnDag$data.dists)
+  if (is.null(node_names) || length(node_names) == 0) {
+    node_names <- names(object$coef)
+  }
+  if (is.null(node_names) || length(node_names) == 0) {
+    stop("Bayesian abnFit object does not contain node names to export", call. = FALSE)
+  }
 
-  warning("Bayesian model export is not fully implemented yet. Returning placeholder structure.")
+  var_id_map <- stats::setNames(as.character(seq_along(node_names)), node_names)
+  dag_matrix <- as.matrix(object$abnDag$dag)
+  node_dists <- object$abnDag$data.dists
 
-  # Placeholder structure
+  variables_list <- lapply(node_names, function(node_id) {
+    distribution <- node_dists[[node_id]]
+    variable_entry <- list(
+      variable_id = var_id_map[node_id],
+      attribute_name = node_id,
+      model_type = distribution
+    )
+    if (identical(distribution, "multinomial")) {
+      variable_entry$states <- extract_states_from_data(object, node_id)
+    } else {
+      variable_entry$states <- NULL
+    }
+    variable_entry
+  })
+
+  parameters_list <- list()
+  parameter_counter <- 1
+  for (node_id in node_names) {
+    coef_mat <- object$coef[[node_id]]
+    if (is.null(coef_mat) || length(coef_mat) == 0) next
+
+    coef_vec <- as.numeric(coef_mat)
+    names(coef_vec) <- colnames(coef_mat)
+    if (is.null(names(coef_vec))) names(coef_vec) <- names(object$coef[[node_id]])
+    se_vec <- rep(NA_real_, length(coef_vec))
+    names(se_vec) <- names(coef_vec)
+
+    distribution <- node_dists[[node_id]]
+    link_function <- get_link_function(distribution)
+    node_idx <- which(colnames(dag_matrix) == node_id)
+    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
+    child_state_lookup <- if (identical(distribution, "multinomial")) {
+      build_state_lookup(object, node_id)
+    } else {
+      NULL
+    }
+    parent_state_lookups <- list()
+    for (p in parent_nodes) {
+      if (!is.null(node_dists[[p]]) && identical(node_dists[[p]], "multinomial")) {
+        parent_state_lookups[[p]] <- build_state_lookup(object, p)
+      }
+    }
+
+    param_result <- extract_parameters_by_distribution(
+      coef_vec, se_vec, distribution, node_id,
+      parent_nodes, parameter_counter, link_function, var_id_map,
+      child_state_lookup = child_state_lookup,
+      parent_state_lookups = parent_state_lookups
+    )
+
+    parameters_list <- c(parameters_list, param_result$parameters)
+    parameter_counter <- param_result$next_counter
+  }
+
+  arcs_details <- export_abnFit_mle_arcs(object, var_id_map = var_id_map)
+
   export_structure <- list()
   export_structure$scenario_id <- scenario_id
   export_structure$label <- label
-  export_structure$variables <- list()
-  export_structure$parameters <- list()
-  export_structure$arcs <- list()
-
-  # TODO: Populate with actual Bayesian model information
+  export_structure$method <- object$method
+  export_structure$variables <- variables_list
+  export_structure$parameters <- parameters_list
+  export_structure$arcs <- arcs_details
+  export_structure$original_model <- list(
+    mlik = object$mlik,
+    mliknode = object$mliknode,
+    used_INLA = object$used.INLA,
+    error_code = object$error.code,
+    error_code_desc = object$error.code.desc,
+    hessian_accuracy = object$hessian.accuracy
+  )
+  if (!is.null(object$marginals)) {
+    export_structure$original_model$marginals <- export_json_safe(object$marginals)
+  }
+  if (!is.null(object$marginal.quantiles)) {
+    export_structure$original_model$marginal_quantiles <- export_json_safe(object$marginal.quantiles)
+  }
 
   return(export_structure)
 }
