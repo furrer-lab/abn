@@ -40,6 +40,129 @@ json_fixture_assert_abnfit <- function(fit, method, dists, grouped = FALSE,
   invisible(fit)
 }
 
+json_fixture_parse_export <- function(fit) {
+  json <- export_abnFit(fit)
+  expect_type(json, "character")
+  expect_length(json, 1)
+  expect_true(jsonlite::validate(json))
+  jsonlite::fromJSON(json, simplifyVector = FALSE)
+}
+
+json_fixture_collect_rows <- function(x) {
+  if (is.null(x)) return(list())
+  if (is.data.frame(x)) return(split(x, seq_len(nrow(x))))
+  if (is.list(x) && length(x) > 0 && !is.null(names(x[[1]]))) return(x)
+  list()
+}
+
+json_fixture_field <- function(x, name) {
+  value <- x[[name]]
+  if (is.null(value) || length(value) == 0) return(NA_character_)
+  as.character(value[[1]])
+}
+
+json_fixture_expected_arc_count <- function(fit) {
+  sum(fit$abnDag$dag == 1)
+}
+
+json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
+                                       multinomial = FALSE,
+                                       require_parameters = TRUE) {
+  parsed <- json_fixture_parse_export(fit)
+  expect_true("variables" %in% names(parsed))
+  expect_true("parameters" %in% names(parsed))
+  expect_true("arcs" %in% names(parsed))
+  if (!is.null(parsed$method)) expect_equal(parsed$method, fit$method)
+
+  variables <- json_fixture_collect_rows(parsed$variables)
+  parameters <- json_fixture_collect_rows(parsed$parameters)
+  arcs <- json_fixture_collect_rows(parsed$arcs)
+  expect_equal(length(variables), length(dists))
+  if (require_parameters) expect_gt(length(parameters), 0)
+  expect_equal(length(arcs), json_fixture_expected_arc_count(fit))
+
+  variable_ids <- vapply(variables, function(variable) {
+    expect_true("variable_id" %in% names(variable))
+    expect_true("attribute_name" %in% names(variable))
+    expect_true("model_type" %in% names(variable))
+    json_fixture_field(variable, "variable_id")
+  }, character(1))
+  variable_names <- vapply(variables, json_fixture_field, character(1), "attribute_name")
+  variable_types <- vapply(variables, json_fixture_field, character(1), "model_type")
+  expect_equal(anyDuplicated(variable_ids), 0L)
+  expect_setequal(variable_names, names(dists))
+  expect_equal(unname(variable_types[match(names(dists), variable_names)]),
+               unname(unlist(dists)))
+
+  for (arc in arcs) {
+    expect_true("source_variable_id" %in% names(arc))
+    expect_true("target_variable_id" %in% names(arc))
+    expect_true(as.character(arc$source_variable_id) %in% variable_ids)
+    expect_true(as.character(arc$target_variable_id) %in% variable_ids)
+  }
+
+  multinomial_variable_ids <- character(0)
+  for (variable in variables) {
+    if (identical(variable$model_type, "multinomial")) {
+      multinomial_variable_ids <- c(multinomial_variable_ids,
+                                    as.character(variable$variable_id))
+      expect_true("states" %in% names(variable))
+      states <- json_fixture_collect_rows(variable$states)
+      expect_gt(length(states), 0)
+      state_ids <- vapply(states, function(state) {
+        expect_true("state_id" %in% names(state))
+        expect_true("value_name" %in% names(state))
+        expect_true("is_baseline" %in% names(state))
+        json_fixture_field(state, "state_id")
+      }, character(1))
+      expect_equal(anyDuplicated(state_ids), 0L)
+    }
+  }
+  if (multinomial) expect_gt(length(multinomial_variable_ids), 0)
+
+  condition_types <- character(0)
+  for (parameter in parameters) {
+    expect_true("parameter_id" %in% names(parameter))
+    expect_true("name" %in% names(parameter))
+    expect_true("link_function_name" %in% names(parameter))
+    expect_true("source" %in% names(parameter))
+    expect_true("coefficients" %in% names(parameter))
+
+    source <- parameter$source
+    if (is.list(source) && length(source) == 1 && is.list(source[[1]])) {
+      source <- source[[1]]
+    }
+    expect_true("variable_id" %in% names(source))
+    expect_true(json_fixture_field(source, "variable_id") %in% variable_ids)
+
+    coefficients <- json_fixture_collect_rows(parameter$coefficients)
+    expect_gt(length(coefficients), 0)
+    for (coefficient in coefficients) {
+      expect_true("value" %in% names(coefficient))
+      expect_true("stderr" %in% names(coefficient))
+      expect_true("condition_type" %in% names(coefficient))
+      expect_true("conditions" %in% names(coefficient))
+      condition_types <- c(condition_types, as.character(coefficient$condition_type))
+
+      conditions <- json_fixture_collect_rows(coefficient$conditions)
+      for (condition in conditions) {
+        expect_true("parent_variable_id" %in% names(condition))
+        expect_true(json_fixture_field(condition, "parent_variable_id") %in% variable_ids)
+        if (!is.null(condition$parent_state_id)) {
+          expect_true(json_fixture_field(condition, "parent_variable_id") %in% variable_ids)
+        }
+      }
+    }
+  }
+
+  if (grouped) {
+    expect_true(any(condition_types %in% c("variance", "random_variance",
+                                          "random_covariance")))
+  }
+
+  invisible(parsed)
+}
+
 json_fixture_fit_g2b2c_mle <- function() {
   dists <- list(
     G1 = "gaussian",
