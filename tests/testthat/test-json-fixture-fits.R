@@ -17,8 +17,6 @@ test_that("JSON stage 1: g2b2c_data constructs compact mixed MLE fit", {
 })
 
 test_that("JSON stage 1: g2pbcgrp constructs grouped mixed MLE fit", {
-  skip_on_cran()
-
   suppressMessages({
     suppressWarnings({
       expect_no_error(fit <- json_fixture_fit_g2pbcgrp_mle_grouped())
@@ -56,8 +54,6 @@ test_that("JSON stage 1: ex1.dag.data constructs classic mixed MLE fit", {
 })
 
 test_that("JSON stage 1: ex1.dag.data constructs supported Bayesian fit", {
-  skip_on_cran()
-
   suppressMessages({
     suppressWarnings({
       expect_no_error(fit <- json_fixture_fit_ex1_bayes())

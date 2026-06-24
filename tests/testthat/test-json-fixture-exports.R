@@ -15,8 +15,6 @@ test_that("JSON stage 2: g2b2c_data mixed MLE export is complete", {
 })
 
 test_that("JSON stage 2: g2pbcgrp grouped mixed MLE export is complete", {
-  skip_on_cran()
-
   suppressMessages({
     suppressWarnings({
       fit <- json_fixture_fit_g2pbcgrp_mle_grouped()
@@ -93,8 +91,6 @@ test_that("JSON stage 2: FCV real mixed multinomial MLE export is complete", {
 })
 
 test_that("JSON stage 2: ex1.dag.data Bayesian export is complete", {
-  skip_on_cran()
-
   suppressMessages({
     suppressWarnings({
       fit <- json_fixture_fit_ex1_bayes()

@@ -718,7 +718,13 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
 export_abnFit_mle <- function(object, format, include_network, scenario_id = NULL,
                                label = NULL, ...) {
   # Create variable ID mapping (numeric IDs in order of appearance)
-  node_names <- names(object$coef)
+  node_names <- if (!is.null(object$coef) && length(object$coef) > 0) {
+    names(object$coef)
+  } else if (!is.null(object$mu) && length(object$mu) > 0) {
+    names(object$mu)
+  } else {
+    names(object$abnDag$data.dists)
+  }
   var_id_map <- stats::setNames(
     as.character(seq_along(node_names)),
     node_names
@@ -748,6 +754,7 @@ export_abnFit_mle <- function(object, format, include_network, scenario_id = NUL
   # Add scenario_id and label first (will be null if not provided)
   export_structure$scenario_id <- scenario_id
   export_structure$label <- label
+  export_structure$method <- object$method
 
   # Add the main components
   export_structure$variables <- variables_list
