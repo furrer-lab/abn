@@ -462,14 +462,16 @@ reconstruct_abnfit_mle <- function(json_list) {
             # abn convention: <parent><state> with empty separator, no leading "child|".
             if (!is.null(parent_state_value)) {
               c_name <- paste0(parent_var, parent_state_value)
+            } else if (!is.null(child_state_value)) {
+              c_name <- paste0(parent_var, child_state_value)
             } else {
               c_name <- parent_var
             }
           } else {
             if (!is.null(parent_state_value)) {
-              c_name <- paste0(target_name, "|", parent_var, ".", parent_state_value)
+              c_name <- paste0(parent_var, parent_state_value)
             } else {
-              c_name <- paste0(target_name, "|", parent_var)
+              c_name <- parent_var
             }
           }
         } else {
@@ -510,7 +512,11 @@ reconstruct_abnfit_mle <- function(json_list) {
             }
           }
           if (child_dist == "multinomial") {
-            row_key <- if (!is.null(child_state_value)) child_state_value else "1"
+            row_key <- if (!is.null(child_state_value)) {
+              paste0(target_name, child_state_value)
+            } else {
+              target_name
+            }
             col_key <- if (!is.null(parent_state_value)) {
               paste0(parent_var, parent_state_value)
             } else {
@@ -521,7 +527,7 @@ reconstruct_abnfit_mle <- function(json_list) {
             betas_cols_acc[[target_name]] <- c(betas_cols_acc[[target_name]], col_key)
           } else {
             beta_name <- if (!is.null(parent_state_value)) {
-              paste0(parent_var, ".", parent_state_value)
+              paste0(parent_var, parent_state_value)
             } else {
               parent_var
             }
@@ -551,12 +557,15 @@ reconstruct_abnfit_mle <- function(json_list) {
     abnDag = abnDag,
     coef = coef_list,
     Stderror = stderror_list,
-    method = "mle",
+    method = json_list$method %||% "mle",
     multinomial.states = multinomial.states,
     scenario_id = json_list$scenario_id %||% json_list$scenarioId %||% NULL,
     label = json_list$label %||% NULL,
     call = match.call()
   )
+  if (!is.null(json_list$original_model)) {
+    abn_fit$original_model <- json_list$original_model
+  }
 
   if (is_grouped) {
     mu_list          <- stats::setNames(vector("list", n), variable_names)
@@ -604,9 +613,12 @@ reconstruct_abnfit_mle <- function(json_list) {
           # Determine matrix dimension from state_id_to_value lookup.
           lk <- state_id_to_value[[vn]]
           if (!is.null(lk)) {
-            ids <- names(lk)
-            vals <- unname(lk)
-            dnames <- paste0(vn, ".", vals)
+            ids <- unique(unlist(strsplit(names(cells), "_", fixed = TRUE)))
+            ids <- ids[!is.na(ids) & nzchar(ids)]
+            vals <- unname(lk[ids])
+            missing_vals <- is.na(vals)
+            vals[missing_vals] <- ids[missing_vals]
+            dnames <- paste0(vn, ".", vals, "~1")
             k <- length(ids)
             m <- matrix(NA_real_, nrow = k, ncol = k, dimnames = list(dnames, dnames))
             id_to_pos <- stats::setNames(seq_along(ids), ids)
@@ -651,7 +663,6 @@ reconstruct_abnfit_mle <- function(json_list) {
 #' Reconstruct abnFit object for Bayesian method from JSON
 #' @keywords internal
 reconstruct_abnfit_bayes <- function(json_list) {
-  warning("Bayesian model import is not fully implemented yet. Returning MLE-structured object.")
   abn_fit <- reconstruct_abnfit_mle(json_list)
   abn_fit$method <- "bayes"
   return(abn_fit)

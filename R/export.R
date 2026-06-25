@@ -941,7 +941,8 @@ export_abnFit_mle_nodes <- function(object, var_id_map = NULL, ...) {
       coef_vec, se_vec, distribution, node_id,
       parent_nodes, parameter_counter, link_function, var_id_map,
       child_state_lookup = child_state_lookup,
-      parent_state_lookups = parent_state_lookups
+      parent_state_lookups = parent_state_lookups,
+      node_dists = node_dists
     )
 
     # Add parameters to list
@@ -1065,7 +1066,8 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
                                                parent_nodes, start_counter, link_function,
                                                var_id_map = NULL,
                                                child_state_lookup = NULL,
-                                               parent_state_lookups = NULL) {
+                                               parent_state_lookups = NULL,
+                                               node_dists = NULL) {
   param_names <- names(coef_vec)
   parameters <- list()
   counter <- start_counter
@@ -1074,7 +1076,9 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
   # the parent state_id from the literal level value if the parent is multinomial.
   make_parent_condition <- function(parent_var, state_value) {
     parent_state_id <- NULL
-    if (!is.null(state_value) && !is.null(parent_state_lookups) &&
+    if (!is.null(state_value) && !is.null(node_dists[[parent_var]]) &&
+        node_dists[[parent_var]] == "multinomial" &&
+        !is.null(parent_state_lookups) &&
         !is.null(parent_state_lookups[[parent_var]])) {
       lk <- parent_state_lookups[[parent_var]]
       sid <- lk[state_value]
@@ -1145,6 +1149,19 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
           }
         } else if (param_name %in% parent_nodes) {
           parent_var <- param_name
+        } else {
+          for (p in parent_nodes[order(-nchar(parent_nodes))]) {
+            if (startsWith(param_name, p)) {
+              parent_var <- p
+              tail_part <- substr(param_name, nchar(p) + 1, nchar(param_name))
+              tail_part <- sub("^\\.", "", tail_part)
+              if (nchar(tail_part) > 0 && !is.null(node_dists[[p]]) &&
+                  node_dists[[p]] == "multinomial") {
+                state_value <- tail_part
+              }
+              break
+            }
+          }
         }
 
         cond <- if (!is.null(parent_var)) {
@@ -1266,7 +1283,13 @@ extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, n
             parent_var <- p
             tail_part <- substr(pname, nchar(p) + 1, nchar(pname))
             tail_part <- sub("^\\.", "", tail_part)
-            if (nchar(tail_part) > 0) parent_state_value <- tail_part
+            if (nchar(tail_part) > 0) {
+              if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
+                parent_state_value <- tail_part
+              } else {
+                child_state_value <- tail_part
+              }
+            }
             break
           }
         }
@@ -1693,10 +1716,15 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
     if (!is.null(sigma_alpha) && is.matrix(sigma_alpha)) {
       categories <- rownames(sigma_alpha)
 
+      extract_multinomial_random_state <- function(category) {
+        state <- sub(paste0("^", node_id, "\\."), "", category)
+        sub("~.*$", "", state)
+      }
+
       for (i in seq_len(nrow(sigma_alpha))) {
         for (j in i:ncol(sigma_alpha)) {
-          cat_i <- gsub(".*~", "", categories[i])
-          cat_j <- gsub(".*~", "", categories[j])
+          cat_i <- extract_multinomial_random_state(categories[i])
+          cat_j <- extract_multinomial_random_state(categories[j])
 
           # Look up state IDs (numeric) when possible.
           sid_i <- lookup_child_state_id(cat_i)
@@ -1864,7 +1892,8 @@ export_abnFit_bayes <- function(object, format, include_network,
       coef_vec, se_vec, distribution, node_id,
       parent_nodes, parameter_counter, link_function, var_id_map,
       child_state_lookup = child_state_lookup,
-      parent_state_lookups = parent_state_lookups
+      parent_state_lookups = parent_state_lookups,
+      node_dists = node_dists
     )
 
     parameters_list <- c(parameters_list, param_result$parameters)
