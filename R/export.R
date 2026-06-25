@@ -1626,10 +1626,16 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
     }
 
   } else if (distribution == "multinomial") {
+    normalize_multinomial_state_value <- function(value) {
+      value <- sub(paste0("^", node_id, "\\."), "", value)
+      value <- sub(paste0("^", node_id), "", value)
+      sub("~.*$", "", value)
+    }
+
     # For multinomial, mu contains category-specific intercepts
     if (!is.null(mu) && length(mu) > 0) {
       mu_names <- names(mu)
-      categories <- gsub(paste0(".*", node_id, "\\."), "", mu_names)
+      categories <- vapply(mu_names, normalize_multinomial_state_value, character(1))
 
       for (i in seq_along(mu)) {
         cat <- categories[i]
@@ -1662,7 +1668,7 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
       parent_names <- colnames(betas)
 
       for (i in seq_len(nrow(betas))) {
-        cat <- categories[i]
+        cat <- normalize_multinomial_state_value(categories[i])
         for (j in seq_len(ncol(betas))) {
           parent_name <- parent_names[j]
 
@@ -1716,15 +1722,10 @@ extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
     if (!is.null(sigma_alpha) && is.matrix(sigma_alpha)) {
       categories <- rownames(sigma_alpha)
 
-      extract_multinomial_random_state <- function(category) {
-        state <- sub(paste0("^", node_id, "\\."), "", category)
-        sub("~.*$", "", state)
-      }
-
       for (i in seq_len(nrow(sigma_alpha))) {
         for (j in i:ncol(sigma_alpha)) {
-          cat_i <- extract_multinomial_random_state(categories[i])
-          cat_j <- extract_multinomial_random_state(categories[j])
+          cat_i <- normalize_multinomial_state_value(categories[i])
+          cat_j <- normalize_multinomial_state_value(categories[j])
 
           # Look up state IDs (numeric) when possible.
           sid_i <- lookup_child_state_id(cat_i)
@@ -1909,19 +1910,24 @@ export_abnFit_bayes <- function(object, format, include_network,
   export_structure$variables <- variables_list
   export_structure$parameters <- parameters_list
   export_structure$arcs <- arcs_details
+  original_model <- object$original_model %||% list()
   export_structure$original_model <- list(
-    mlik = object$mlik,
-    mliknode = object$mliknode,
-    used_INLA = object$used.INLA,
-    error_code = object$error.code,
-    error_code_desc = object$error.code.desc,
-    hessian_accuracy = object$hessian.accuracy
+    mlik = object$mlik %||% original_model$mlik,
+    mliknode = object$mliknode %||% original_model$mliknode,
+    modes = export_json_safe(object$modes %||% original_model$modes),
+    mse = export_json_safe(object$mse %||% original_model$mse),
+    used_INLA = object$used.INLA %||% original_model$used_INLA,
+    error_code = object$error.code %||% original_model$error_code,
+    error_code_desc = object$error.code.desc %||% original_model$error_code_desc,
+    hessian_accuracy = object$hessian.accuracy %||% original_model$hessian_accuracy
   )
-  if (!is.null(object$marginals)) {
-    export_structure$original_model$marginals <- export_json_safe(object$marginals)
+  marginals <- object$marginals %||% original_model$marginals
+  marginal_quantiles <- object$marginal.quantiles %||% original_model$marginal_quantiles
+  if (!is.null(marginals)) {
+    export_structure$original_model$marginals <- export_json_safe(marginals)
   }
-  if (!is.null(object$marginal.quantiles)) {
-    export_structure$original_model$marginal_quantiles <- export_json_safe(object$marginal.quantiles)
+  if (!is.null(marginal_quantiles)) {
+    export_structure$original_model$marginal_quantiles <- export_json_safe(marginal_quantiles)
   }
 
   return(export_structure)

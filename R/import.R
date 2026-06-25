@@ -513,7 +513,7 @@ reconstruct_abnfit_mle <- function(json_list) {
           }
           if (child_dist == "multinomial") {
             row_key <- if (!is.null(child_state_value)) {
-              paste0(target_name, child_state_value)
+              child_state_value
             } else {
               target_name
             }
