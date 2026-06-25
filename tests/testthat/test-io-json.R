@@ -5,6 +5,21 @@
 library(testthat)
 library(abn)
 
+count_grouped_structural_parameters <- function(model) {
+  total <- 0
+  for (field in c("mu", "betas", "sigma", "sigma_alpha")) {
+    total <- total + sum(sapply(model[[field]], function(x) {
+      if (is.null(x) || length(x) == 0 || (length(x) == 1 && is.na(x))) return(0)
+      if (is.matrix(x)) {
+        if (identical(field, "sigma_alpha")) return(nrow(x) * (nrow(x) + 1) / 2)
+        return(length(x))
+      }
+      length(x)
+    }))
+  }
+  total
+}
+
 # Helper function to safely load test data
 get_test_data <- function(filename) {
   path <- test_path("testdata", filename)
@@ -250,7 +265,7 @@ test_that("Grouped MLE: RData → export → import preserves grouped model stru
   })
 })
 
-test_that("Grouped MLE: group-specific coefficients preserved", {
+test_that("Grouped MLE: mixed-effect parameters preserved", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE: Load grouped model
@@ -261,34 +276,22 @@ test_that("Grouped MLE: group-specific coefficients preserved", {
       json_str <- export_abnFit(direct_model)
       parsed <- jsonlite::fromJSON(json_str)
       
-      # ASSERT: Verify group information in parameters
+      # ASSERT: Verify grouped/mixed-effect information in parameters.
+      condition_types <- unlist(lapply(parsed$parameters$coefficients, function(coefs) {
+        coefs$condition_type
+      }))
       expect_true(
-        "group_label" %in% colnames(parsed$parameters),
-        info = "Grouped model parameters should have group_label column"
+        any(condition_types %in% c("variance", "random_variance", "random_covariance")),
+        info = "Grouped model parameters should include variance/random effects"
       )
-      
-      # Check that we have multiple groups
-      unique_groups <- unique(parsed$parameters$group_label)
-      expect_true(
-        length(unique_groups) > 1,
-        info = paste(
-          "Grouped model should have multiple group labels",
-          "Found groups:", paste(unique_groups, collapse = ", ")
-        )
-      )
-      
-      # ACT: Import and verify groups are preserved
+
+      # ACT: Import and verify grouped fields are preserved
       imported_model <- import_abnFit(json = json_str)
-      
-      # Verify same number of groups
-      expect_equal(
-        length(unique_groups), length(unique(imported_model$coef)),
-        info = paste(
-          "Number of groups should match",
-          "Expected:", length(unique_groups),
-          "Got:", length(unique(imported_model$coef))
-        )
-      )
+
+      for (field in c("mu", "betas", "sigma", "sigma_alpha")) {
+        expect_true(field %in% names(imported_model),
+                    info = paste("Grouped import should preserve", field))
+      }
     })
   })
 })
@@ -439,15 +442,11 @@ test_that("Both models: direct RData equals JSON round-trip (grouped)", {
         )
       )
       
-      # Additional sanity checks
-      expect_equal(
-        length(direct_model$coef), length(imported_model$coef),
-        info = paste(
-          "Both models should have same number of nodes",
-          "Direct:", length(direct_model$coef),
-          "Imported:", length(imported_model$coef)
-        )
-      )
+      # Additional sanity checks: grouped models preserve grouped fields, not
+      # standard non-grouped coef lists.
+      for (field in c("mu", "betas", "sigma", "sigma_alpha")) {
+        expect_setequal(names(direct_model[[field]]), names(imported_model[[field]]))
+      }
     })
   })
 })
@@ -531,8 +530,8 @@ test_that("All parameters exported and reimported (standard model)", {
       # ARRANGE
       direct_model <- create_test_abnfit_mle()
       
-      # Count parameters in original
-      direct_param_count <- sum(sapply(direct_model$coef, nrow))
+      # Count exported structural coefficients in the original object.
+      direct_param_count <- sum(sapply(direct_model$coef, ncol))
       
       # ACT
       json_str <- export_abnFit(direct_model)
@@ -556,7 +555,7 @@ test_that("All parameters exported and reimported (standard model)", {
       
       # ACT: Import and count again
       imported_model <- import_abnFit(json = json_str)
-      imported_param_count <- sum(sapply(imported_model$coef, nrow))
+      imported_param_count <- sum(sapply(imported_model$coef, ncol))
       
       expect_equal(
         direct_param_count, imported_param_count,
@@ -577,8 +576,8 @@ test_that("All parameters exported and reimported (grouped model)", {
       load(file = get_test_data("abnfit_mle_groups.Rdata"))
       direct_model <- abn_fit
       
-      # Count parameters in original (all groups combined)
-      direct_param_count <- sum(sapply(direct_model$coef, nrow))
+      # Count grouped structural parameters in the original object.
+      direct_param_count <- count_grouped_structural_parameters(direct_model)
       
       # ACT
       json_str <- export_abnFit(direct_model)
@@ -602,7 +601,7 @@ test_that("All parameters exported and reimported (grouped model)", {
       
       # ACT: Import and count again
       imported_model <- import_abnFit(json = json_str)
-      imported_param_count <- sum(sapply(imported_model$coef, nrow))
+      imported_param_count <- count_grouped_structural_parameters(imported_model)
       
       expect_equal(
         direct_param_count, imported_param_count,

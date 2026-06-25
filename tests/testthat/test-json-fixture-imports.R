@@ -188,6 +188,7 @@ test_that("JSON stage 3: grouped multinomial fields preserve abn names", {
   })
 
   expect_setequal(names(imported$betas$G2), names(original$betas$G2))
+  expect_setequal(rownames(imported$betas$C), rownames(original$betas$C))
   expect_equal(dim(imported$sigma_alpha$C), dim(original$sigma_alpha$C))
   expect_setequal(rownames(imported$sigma_alpha$C), rownames(original$sigma_alpha$C))
   expect_setequal(colnames(imported$sigma_alpha$C), colnames(original$sigma_alpha$C))

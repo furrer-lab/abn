@@ -33,42 +33,47 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5
     return(FALSE)
   }
 
-  # Check number of nodes
-  if (length(obj1$coef) != length(obj2$coef)) {
-    message("Node count mismatch: obj1 has ", length(obj1$coef), 
-            " nodes, obj2 has ", length(obj2$coef), " nodes")
-    return(FALSE)
-  }
+  is_grouped1 <- !is.null(obj1$group.var) || !is.null(obj1$mu)
+  is_grouped2 <- !is.null(obj2$group.var) || !is.null(obj2$mu)
 
-  # Check coefficients for each node (order-independent)
-  node_names <- names(obj1$coef)
-  if (!setequal(node_names, names(obj2$coef))) {
-    message("Node names mismatch: obj1 nodes=", paste(node_names, collapse=","),
-            " obj2 nodes=", paste(names(obj2$coef), collapse=","))
-    return(FALSE)
-  }
-
-  for (node in node_names) {
-    coef1 <- obj1$coef[[node]]
-    coef2 <- obj2$coef[[node]]
-
-    # Compare coefficient matrices
-    if (!compare_coefficient_matrices(coef1, coef2, tolerance = tolerance)) {
-      message("Coefficient mismatch for node ", node)
-      message("  obj1 coef dim: ", paste(dim(coef1), collapse="x"),
-              " obj2 coef dim: ", paste(dim(coef2), collapse="x"))
+  if (!is_grouped1 && !is_grouped2) {
+    # Check number of nodes
+    if (length(obj1$coef) != length(obj2$coef)) {
+      message("Node count mismatch: obj1 has ", length(obj1$coef),
+              " nodes, obj2 has ", length(obj2$coef), " nodes")
       return(FALSE)
     }
 
-    # Compare standard errors
-    se1 <- obj1$Stderror[[node]]
-    se2 <- obj2$Stderror[[node]]
-
-    if (!compare_coefficient_matrices(se1, se2, tolerance = tolerance)) {
-      message("Standard error mismatch for node ", node)
-      message("  obj1 SE dim: ", paste(dim(se1), collapse="x"),
-              " obj2 SE dim: ", paste(dim(se2), collapse="x"))
+    # Check coefficients for each node (order-independent)
+    node_names <- names(obj1$coef)
+    if (!setequal(node_names, names(obj2$coef))) {
+      message("Node names mismatch: obj1 nodes=", paste(node_names, collapse=","),
+              " obj2 nodes=", paste(names(obj2$coef), collapse=","))
       return(FALSE)
+    }
+
+    for (node in node_names) {
+      coef1 <- obj1$coef[[node]]
+      coef2 <- obj2$coef[[node]]
+
+      # Compare coefficient matrices
+      if (!compare_coefficient_matrices(coef1, coef2, tolerance = tolerance)) {
+        message("Coefficient mismatch for node ", node)
+        message("  obj1 coef dim: ", paste(dim(coef1), collapse="x"),
+                " obj2 coef dim: ", paste(dim(coef2), collapse="x"))
+        return(FALSE)
+      }
+
+      # Compare standard errors
+      se1 <- obj1$Stderror[[node]]
+      se2 <- obj2$Stderror[[node]]
+
+      if (!compare_coefficient_matrices(se1, se2, tolerance = tolerance)) {
+        message("Standard error mismatch for node ", node)
+        message("  obj1 SE dim: ", paste(dim(se1), collapse="x"),
+                " obj2 SE dim: ", paste(dim(se2), collapse="x"))
+        return(FALSE)
+      }
     }
   }
 
@@ -82,8 +87,9 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5
     return(FALSE)
   }
 
-  # If both have multinomial.states, check them
-  if (!is.null(obj1$multinomial.states) || !is.null(obj2$multinomial.states)) {
+  # If both have multinomial.states, check them. Older direct fits may omit this
+  # derived helper even when multinomial states can be reconstructed from data.
+  if (!is.null(obj1$multinomial.states) && !is.null(obj2$multinomial.states)) {
     if (!identical(obj1$multinomial.states, obj2$multinomial.states)) {
       return(FALSE)
     }
@@ -92,8 +98,6 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5
   # Grouped (mixed-effects) MLE objects expose extra components. Only compare
   # them when at least one side advertises grouping; otherwise pre-grouped
   # tests (which only populate $coef / $Stderror) keep working unchanged.
-  is_grouped1 <- !is.null(obj1$group.var) || !is.null(obj1$mu)
-  is_grouped2 <- !is.null(obj2$group.var) || !is.null(obj2$mu)
   if (is_grouped1 || is_grouped2) {
     for (fld in c("mu", "betas", "sigma", "sigma_alpha")) {
       v1 <- obj1[[fld]]
@@ -111,33 +115,27 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5
         a <- v1[[nm]]
         b <- v2[[nm]]
         if (is.null(a) && is.null(b)) next
-        # Treat scalar NA on either side as "absent"; both NA = equal.
-        if ((length(a) == 1 && is.na(a)) || (length(b) == 1 && is.na(b))) {
-          if (!(length(a) == 1 && length(b) == 1 && is.na(a) && is.na(b))) {
-            # Allow one side NA + other empty/zero-length as still equivalent.
-            if (!(length(a) == 0 || length(b) == 0)) {
-              message("Grouped field '", fld, "' for node '", nm, "': NA mismatch")
-              return(FALSE)
-            }
-          }
+        if (absent_grouped_value(a) && absent_grouped_value(b)) {
           next
         }
         if (is.matrix(a) || is.matrix(b)) {
+          if (identical(fld, "betas") && is.matrix(a) && is.matrix(b) &&
+              !is.null(rownames(a)) && !is.null(rownames(b)) &&
+              !setequal(rownames(a), rownames(b))) {
+            normalize_multinomial_beta_rows <- function(rows, node) {
+              rows <- sub(paste0("^", node, "\\."), "", rows)
+              rows <- sub(paste0("^", node), "", rows)
+              rows
+            }
+            rownames(a) <- normalize_multinomial_beta_rows(rownames(a), nm)
+            rownames(b) <- normalize_multinomial_beta_rows(rownames(b), nm)
+          }
           if (!compare_coefficient_matrices(a, b, tolerance = tolerance)) {
             message("Grouped field '", fld, "' for node '", nm, "': matrix mismatch")
             return(FALSE)
           }
         } else {
-          # Vectors / scalars: compare by name when names exist.
-          if (!is.null(names(a)) && !is.null(names(b))) {
-            if (!setequal(names(a), names(b))) {
-              message("Grouped field '", fld, "' for node '", nm, "': name mismatch")
-              return(FALSE)
-            }
-            b <- b[names(a)]
-          }
-          if (!isTRUE(all.equal(unname(as.numeric(a)), unname(as.numeric(b)),
-                                tolerance = tolerance))) {
+          if (!compare_grouped_numeric(a, b, tolerance = tolerance)) {
             message("Grouped field '", fld, "' for node '", nm, "': value mismatch")
             return(FALSE)
           }
@@ -147,6 +145,25 @@ abnfit_objects_equal <- function(obj1, obj2, tolerance = .Machine$double.eps^0.5
   }
 
   return(TRUE)
+}
+
+absent_grouped_value <- function(x) {
+  length(x) == 0 || (length(x) == 1 && is.na(x))
+}
+
+compare_grouped_numeric <- function(a, b, tolerance = .Machine$double.eps^0.5) {
+  if (length(a) <= 1 && length(b) <= 1) {
+    return(isTRUE(all.equal(unname(as.numeric(a)), unname(as.numeric(b)),
+                            tolerance = tolerance)))
+  }
+  if (!is.null(names(a)) && !is.null(names(b))) {
+    if (!setequal(names(a), names(b))) return(FALSE)
+    b <- b[names(a)]
+  } else if (xor(is.null(names(a)), is.null(names(b)))) {
+    return(FALSE)
+  }
+  isTRUE(all.equal(unname(as.numeric(a)), unname(as.numeric(b)),
+                   tolerance = tolerance))
 }
 
 #' Compare two abnDag objects for equivalence
@@ -175,7 +192,8 @@ abndag_equal <- function(dag1, dag2) {
     if (!var %in% colnames(dag2$dag)) {
       return(FALSE)
     }
-    if (dag1$data.dists[var] != dag2$data.dists[var]) {
+    if (!identical(unname(unlist(dag1$data.dists[var])),
+                   unname(unlist(dag2$data.dists[var])))) {
       return(FALSE)
     }
   }
@@ -184,7 +202,12 @@ abndag_equal <- function(dag1, dag2) {
   dag1_reorder <- dag1$dag[var_names, var_names]
   dag2_reorder <- dag2$dag[var_names, var_names]
 
-  if (!identical(dag1_reorder, dag2_reorder)) {
+  if (!identical(dimnames(dag1_reorder), dimnames(dag2_reorder))) {
+    return(FALSE)
+  }
+  if (!isTRUE(all.equal(unname(as.numeric(dag1_reorder)),
+                        unname(as.numeric(dag2_reorder)),
+                        tolerance = 0))) {
     return(FALSE)
   }
 

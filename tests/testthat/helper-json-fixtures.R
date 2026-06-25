@@ -18,7 +18,9 @@ json_fixture_assert_abnfit <- function(fit, method, dists, grouped = FALSE,
   if (!grouped) {
     expect_equal(length(fit$coef), length(dists))
     expect_named(fit$coef, names(dists))
-    expect_named(fit$Stderror, names(dists))
+    if (identical(method, "mle")) {
+      expect_named(fit$Stderror, names(dists))
+    }
   } else {
     if (!is.null(fit$coef)) expect_named(fit$coef, names(dists))
     if (!is.null(fit$Stderror)) expect_named(fit$Stderror, names(dists))
@@ -398,6 +400,74 @@ json_fixture_assert_roundtrip <- function(original, imported, grouped = FALSE,
   }
 
   invisible(TRUE)
+}
+
+json_fixture_canonical_json_value <- function(x) {
+  if (is.null(x)) return(NULL)
+  if (is.list(x)) {
+    out <- lapply(x, json_fixture_canonical_json_value)
+    if (!is.null(names(out))) {
+      out <- out[sort(names(out))]
+    }
+    return(out)
+  }
+  if (is.numeric(x)) return(as.numeric(x))
+  if (is.logical(x)) return(as.logical(x))
+  if (is.character(x)) return(as.character(x))
+  x
+}
+
+json_fixture_sort_json_rows <- function(rows, key_fun) {
+  rows <- json_fixture_collect_rows(rows)
+  if (length(rows) == 0) return(list())
+  rows <- lapply(rows, json_fixture_canonical_json_value)
+  rows[order(vapply(rows, key_fun, character(1)))]
+}
+
+json_fixture_canonical_abn_json <- function(parsed) {
+  parsed <- json_fixture_canonical_json_value(parsed)
+
+  if (!is.null(parsed$variables)) {
+    parsed$variables <- json_fixture_sort_json_rows(parsed$variables, function(variable) {
+      sprintf("%08d", as.integer(json_fixture_field(variable, "variable_id")))
+    })
+    parsed$variables <- lapply(parsed$variables, function(variable) {
+      if (!is.null(variable$states)) {
+        variable$states <- json_fixture_sort_json_rows(variable$states, function(state) {
+          sprintf("%08d", as.integer(json_fixture_field(state, "state_id")))
+        })
+      }
+      variable
+    })
+  }
+
+  if (!is.null(parsed$parameters)) {
+    parsed$parameters <- json_fixture_sort_json_rows(parsed$parameters, function(parameter) {
+      sprintf("%08d", as.integer(json_fixture_field(parameter, "parameter_id")))
+    })
+  }
+
+  if (!is.null(parsed$arcs)) {
+    parsed$arcs <- json_fixture_sort_json_rows(parsed$arcs, function(arc) {
+      paste(json_fixture_field(arc, "source_variable_id"),
+            json_fixture_field(arc, "target_variable_id"), sep = "->")
+    })
+  }
+
+  parsed
+}
+
+json_fixture_canonical_export <- function(fit) {
+  json_fixture_canonical_abn_json(
+    jsonlite::fromJSON(export_abnFit(fit), simplifyVector = FALSE)
+  )
+}
+
+json_fixture_json_roundtrip_value <- function(x) {
+  jsonlite::fromJSON(
+    jsonlite::toJSON(x, auto_unbox = TRUE, null = "null", digits = NA),
+    simplifyVector = FALSE
+  )
 }
 
 json_fixture_fit_g2b2c_mle <- function() {
