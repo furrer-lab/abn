@@ -163,6 +163,243 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
   invisible(parsed)
 }
 
+json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
+                                       multinomial = FALSE,
+                                       original_model = FALSE, parsed = NULL) {
+  json_fixture_assert_abnfit(imported, method = method, dists = dists,
+                             grouped = grouped, multinomial = multinomial)
+
+  expect_equal(imported$method, method)
+  expect_equal(length(imported$coef), length(dists))
+  expect_named(imported$coef, names(dists))
+  expect_named(imported$Stderror, names(dists))
+
+  expect_true(is.matrix(imported$abnDag$dag))
+  expect_equal(dim(imported$abnDag$dag), c(length(dists), length(dists)))
+  expect_setequal(rownames(imported$abnDag$dag), names(dists))
+  expect_setequal(colnames(imported$abnDag$dag), names(dists))
+
+  for (node in names(imported$coef)) {
+    expect_false(any(is.na(colnames(imported$coef[[node]]))))
+    expect_equal(anyDuplicated(colnames(imported$coef[[node]])), 0L)
+  }
+
+  if (grouped) {
+    expect_true(!is.null(imported$mu))
+    expect_true(!is.null(imported$betas))
+    expect_true(!is.null(imported$sigma))
+    expect_true(!is.null(imported$sigma_alpha))
+  }
+
+  if (original_model) {
+    expect_true("original_model" %in% names(imported))
+    expect_true(is.list(imported$original_model))
+  }
+
+  if (!is.null(parsed)) {
+    variables <- json_fixture_collect_rows(parsed$variables)
+    parameters <- json_fixture_collect_rows(parsed$parameters)
+    arcs <- json_fixture_collect_rows(parsed$arcs)
+
+    id_to_name <- stats::setNames(
+      vapply(variables, json_fixture_field, character(1), "attribute_name"),
+      vapply(variables, json_fixture_field, character(1), "variable_id")
+    )
+    expect_equal(length(variables), length(dists))
+    expect_equal(length(arcs), sum(imported$abnDag$dag == 1))
+
+    expected_dag <- matrix(0, nrow = length(dists), ncol = length(dists),
+                           dimnames = list(names(dists), names(dists)))
+    for (arc in arcs) {
+      source <- id_to_name[[json_fixture_field(arc, "source_variable_id")]]
+      target <- id_to_name[[json_fixture_field(arc, "target_variable_id")]]
+      expect_true(source %in% names(dists))
+      expect_true(target %in% names(dists))
+      expected_dag[source, target] <- 1
+    }
+    expect_equal(imported$abnDag$dag[names(dists), names(dists)], expected_dag)
+
+    exported_condition_types <- character(0)
+    for (parameter in parameters) {
+      coefficients <- json_fixture_collect_rows(parameter$coefficients)
+      exported_condition_types <- c(
+        exported_condition_types,
+        vapply(coefficients, json_fixture_field, character(1), "condition_type")
+      )
+    }
+    expected_coef_count <- sum(exported_condition_types %in% c("intercept", "linear_term"))
+    imported_coef_count <- sum(vapply(imported$coef, ncol, integer(1)))
+    expect_equal(imported_coef_count, expected_coef_count)
+
+    if (grouped) {
+      expect_true(any(exported_condition_types %in% c("variance", "random_variance",
+                                                      "random_covariance")))
+    }
+
+    if (original_model) {
+      for (field in c("mlik", "mliknode", "used_INLA", "error_code",
+                      "error_code_desc", "hessian_accuracy")) {
+        expect_true(field %in% names(imported$original_model))
+      }
+    }
+  }
+
+  invisible(imported)
+}
+
+json_fixture_compare_numeric <- function(x, y, tolerance = .Machine$double.eps^0.5) {
+  if (is.null(x) && is.null(y)) return(invisible(TRUE))
+  expect_false(xor(is.null(x), is.null(y)))
+  expect_equal(unname(as.numeric(x)), unname(as.numeric(y)), tolerance = tolerance)
+}
+
+json_fixture_absent_grouped_value <- function(x) {
+  length(x) == 0 || (length(x) == 1 && is.na(x))
+}
+
+json_fixture_as_named_matrix <- function(x) {
+  if (is.matrix(x)) return(x)
+  if (is.null(x) || length(x) == 0) return(matrix(numeric(0), nrow = 0, ncol = 0))
+  values <- as.numeric(x)
+  nms <- names(x)
+  out <- matrix(values, nrow = 1)
+  if (!is.null(nms)) colnames(out) <- nms
+  out
+}
+
+json_fixture_compare_matrix <- function(original, imported,
+                                        tolerance = .Machine$double.eps^0.5,
+                                        allow_imported_all_na = FALSE) {
+  original <- json_fixture_as_named_matrix(original)
+  imported <- json_fixture_as_named_matrix(imported)
+
+  if (allow_imported_all_na && length(original) == 0 &&
+      length(imported) > 0 && all(is.na(imported))) {
+    return(invisible(TRUE))
+  }
+
+  expect_equal(dim(imported), dim(original))
+
+  original_names <- colnames(original)
+  imported_names <- colnames(imported)
+  if (is.null(original_names) || is.null(imported_names)) {
+    expect_equal(imported_names, original_names)
+    imported_reordered <- imported
+  } else {
+    expect_setequal(imported_names, original_names)
+    imported_reordered <- imported[, original_names, drop = FALSE]
+  }
+
+  if (allow_imported_all_na && all(is.na(imported_reordered))) {
+    return(invisible(TRUE))
+  }
+
+  expect_equal(unname(as.numeric(imported_reordered)),
+               unname(as.numeric(original)), tolerance = tolerance)
+  invisible(TRUE)
+}
+
+json_fixture_compare_named_list <- function(original, imported,
+                                            tolerance = .Machine$double.eps^0.5) {
+  expect_equal(length(imported), length(original))
+  expect_setequal(names(imported), names(original))
+  for (node in names(original)) {
+    o <- original[[node]]
+    i <- imported[[node]]
+    if (json_fixture_absent_grouped_value(o) && json_fixture_absent_grouped_value(i)) {
+      next
+    }
+    if (is.matrix(o) || is.matrix(i)) {
+      json_fixture_compare_matrix(o, i, tolerance = tolerance)
+    } else if (length(o) == 1 && is.na(o) && length(i) == 1 && is.na(i)) {
+      next
+    } else {
+      if (!is.null(names(o)) && !is.null(names(i))) {
+        expect_setequal(names(i), names(o))
+        i <- i[names(o)]
+      } else if (is.null(names(o)) && is.null(names(i))) {
+        # Compare unnamed scalars/vectors positionally.
+      } else if (length(o) <= 1 && length(i) <= 1) {
+        # Allow scalar grouped fields to differ only in incidental naming.
+        names(o) <- NULL
+        names(i) <- NULL
+      } else {
+        stop("Grouped field lost names for a multi-value component", call. = FALSE)
+      }
+      json_fixture_compare_numeric(o, i, tolerance = tolerance)
+    }
+  }
+  invisible(TRUE)
+}
+
+json_fixture_assert_roundtrip <- function(original, imported, grouped = FALSE,
+                                          multinomial = FALSE, bayes = FALSE,
+                                          fixed = FALSE,
+                                          tolerance = .Machine$double.eps^0.5) {
+  expect_s3_class(imported, "abnFit")
+  expect_equal(imported$method, original$method)
+  expect_s3_class(imported$abnDag, "abnDag")
+
+  expect_setequal(colnames(imported$abnDag$dag), colnames(original$abnDag$dag))
+  expect_setequal(rownames(imported$abnDag$dag), rownames(original$abnDag$dag))
+  node_order <- colnames(original$abnDag$dag)
+  expect_equal(imported$abnDag$dag[node_order, node_order],
+               original$abnDag$dag[node_order, node_order])
+  expect_equal(unlist(imported$abnDag$data.dists[node_order]),
+               unlist(original$abnDag$data.dists[node_order]))
+
+  if (!is.null(names(original$coef)) && !is.null(names(imported$coef))) {
+    expect_setequal(names(imported$coef), names(original$coef))
+    for (node in names(original$coef)) {
+      json_fixture_compare_matrix(original$coef[[node]], imported$coef[[node]],
+                                  tolerance = tolerance)
+      json_fixture_compare_matrix(original$Stderror[[node]], imported$Stderror[[node]],
+                                  tolerance = tolerance,
+                                  allow_imported_all_na = bayes)
+    }
+  } else if (!grouped) {
+    expect_setequal(names(imported$coef), names(original$coef))
+  }
+
+  if (multinomial) {
+    expect_true(!is.null(imported$multinomial.states))
+    for (node in names(original$coef)) {
+      expect_equal(anyDuplicated(colnames(imported$coef[[node]])), 0L)
+    }
+  }
+
+  if (grouped) {
+    for (field in c("mu", "betas", "sigma", "sigma_alpha")) {
+      expect_true(field %in% names(imported))
+      json_fixture_compare_named_list(original[[field]], imported[[field]],
+                                      tolerance = tolerance)
+    }
+  }
+
+  if (bayes) {
+    expect_true("original_model" %in% names(imported))
+    expect_equal(imported$original_model$mlik, original$mlik, tolerance = tolerance)
+    expect_equal(unlist(imported$original_model$mliknode), unname(original$mliknode),
+                 tolerance = tolerance)
+    expect_equal(unlist(imported$original_model$used_INLA), unname(original$used.INLA))
+    expect_equal(unlist(imported$original_model$error_code), unname(original$error.code))
+    expect_equal(unlist(imported$original_model$error_code_desc),
+                 unname(original$error.code.desc))
+    expect_equal(unlist(imported$original_model$hessian_accuracy),
+                 unname(original$hessian.accuracy), tolerance = tolerance)
+  }
+
+  if (fixed) {
+    expect_true("marginals" %in% names(imported$original_model))
+    expect_true("marginal_quantiles" %in% names(imported$original_model))
+    expect_equal(length(imported$original_model$marginals), length(original$marginals))
+    expect_equal(length(imported$original_model$marginal_quantiles),
+                 length(original$marginal.quantiles))
+  }
+
+  invisible(TRUE)
+}
+
 json_fixture_fit_g2b2c_mle <- function() {
   dists <- list(
     G1 = "gaussian",

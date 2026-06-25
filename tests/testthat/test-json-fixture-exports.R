@@ -14,6 +14,42 @@ test_that("JSON stage 2: g2b2c_data mixed MLE export is complete", {
   })
 })
 
+test_that("JSON stage 2: multinomial child slopes encode child states structurally", {
+  suppressMessages({
+    suppressWarnings({
+      fit <- json_fixture_fit_g2b2c_mle()
+      parsed <- json_fixture_parse_export(fit)
+    })
+  })
+
+  variables <- json_fixture_collect_rows(parsed$variables)
+  name_to_id <- stats::setNames(
+    vapply(variables, json_fixture_field, character(1), "variable_id"),
+    vapply(variables, json_fixture_field, character(1), "attribute_name")
+  )
+
+  c_slope_params <- Filter(function(parameter) {
+    source <- parameter$source
+    if (is.list(source) && length(source) == 1 && is.list(source[[1]])) {
+      source <- source[[1]]
+    }
+    identical(json_fixture_field(source, "variable_id"), name_to_id[["C"]]) &&
+      !is.na(json_fixture_field(source, "state_id"))
+  }, json_fixture_collect_rows(parsed$parameters))
+
+  slope_conditions <- unlist(lapply(c_slope_params, function(parameter) {
+    coefficients <- json_fixture_collect_rows(parameter$coefficients)
+    vapply(coefficients, function(coefficient) {
+      conditions <- json_fixture_collect_rows(coefficient$conditions)
+      if (length(conditions) == 0) return(NA_character_)
+      json_fixture_field(conditions[[1]], "parent_state_id")
+    }, character(1))
+  }))
+
+  expect_gt(length(c_slope_params), 0)
+  expect_true(all(is.na(slope_conditions)))
+})
+
 test_that("JSON stage 2: g2pbcgrp grouped mixed MLE export is complete", {
   suppressMessages({
     suppressWarnings({
