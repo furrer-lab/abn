@@ -43,9 +43,7 @@ test_that("No '|' character leaks into parameter `name` (standard MLE)", {
                          function(p) as.character(p$name %||% ""),
                          character(1))
     bad <- names_seen[grepl("\\|", names_seen)]
-    expect_length(bad, 0,
-                  info = paste0("Found relational `|` in name(s): ",
-                                paste(unique(bad), collapse = ", ")))
+    expect_length(bad, 0)
   }))
 })
 
@@ -57,9 +55,7 @@ test_that("All parameter `name` values come from the allowed label set", {
                                 function(p) as.character(p$name %||% ""),
                                 character(1)))
     extras <- setdiff(names_seen, ALLOWED_NAMES)
-    expect_length(extras, 0,
-                  info = paste0("Unexpected name labels: ",
-                                paste(extras, collapse = ", ")))
+    expect_length(extras, 0)
   }))
 })
 
