@@ -38,13 +38,6 @@ jobs:
           r-version: "4.5.2"
           use-public-rspm: true
 
-      - name: fixing folder perms for local lib
-        run: |
-          sudo chown root:adm -R /usr/lib/R
-          sudo chmod g+w -R /usr/lib/R
-          sudo chown root:adm -R /usr/local/lib/R
-          sudo chmod g+w -R /usr/local/lib/R
-
       - name: install config and build dependencies
         run: |
           sudo apt-get -y install libcurl4-openssl-dev  # needed for pak
