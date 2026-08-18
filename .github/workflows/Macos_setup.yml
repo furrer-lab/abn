@@ -49,7 +49,7 @@ jobs:
       - name: install INLA dependencies
         run: |
           brew install udunits 
-          brew install openssl@1.1  # s2 package
+          brew install openssl@3  # s2 package
           brew install gdal  # installs geos as dependency
                              # for s2 fmesher terra)
           brew install proj  # sf package
