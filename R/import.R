@@ -558,6 +558,7 @@ reconstruct_abnfit_mle <- function(json_list) {
     coef = coef_list,
     Stderror = stderror_list,
     method = json_list$method %||% "mle",
+    group.var = json_list$group_var %||% NULL,
     multinomial.states = multinomial.states,
     scenario_id = json_list$scenario_id %||% json_list$scenarioId %||% NULL,
     label = json_list$label %||% NULL,
@@ -653,7 +654,9 @@ reconstruct_abnfit_mle <- function(json_list) {
     abn_fit$betas       <- betas_list
     abn_fit$sigma       <- sigma_list
     abn_fit$sigma_alpha <- sigma_alpha_list
-    abn_fit$group.var   <- TRUE
+    if (is.null(abn_fit$group.var)) {
+      abn_fit$group.var <- TRUE
+    }
   }
 
   class(abn_fit) <- "abnFit"

@@ -813,6 +813,7 @@ export_abnFit_mle <- function(object, format, include_network, scenario_id = NUL
   export_structure$scenario_id <- scenario_id
   export_structure$label <- label
   export_structure$method <- object$method
+  export_structure$group_var <- object$group.var %||% NULL
 
   # Add the main components
   export_structure$variables <- variables_list
@@ -1907,6 +1908,7 @@ export_abnFit_bayes <- function(object, format, include_network,
   export_structure$scenario_id <- scenario_id
   export_structure$label <- label
   export_structure$method <- object$method
+  export_structure$group_var <- object$group.var %||% NULL
   export_structure$variables <- variables_list
   export_structure$parameters <- parameters_list
   export_structure$arcs <- arcs_details
