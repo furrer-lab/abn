@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - "main"
-      - "fix_os_installs"
       - "187-issue-with-ragg-within-the-installation-workflow-for-windows"
 env:
   BUILD_LOC: "./build"
