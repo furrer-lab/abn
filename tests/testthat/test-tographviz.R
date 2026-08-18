@@ -159,34 +159,37 @@ test_that("toGraphviz() works with all distributions.", {
   })
 
   # check if works with a specific outfile
-  outfile <- tempfile(fileext = ".dot")
+  # The three input forms (abnFit, matrix, abnLearned) are expected to produce
+  # identical dot output for the same underlying DAG. We snapshot the abnFit
+  # variant once and assert the other two match it byte-for-byte.
+  outfile_abnFit <- tempfile(fileext = ".dot")
   # ...with dag as "abnFit"
   expect_no_error({
     toGraphviz(dag=myres.mle,
                # data.df=df,
                # data.dists=mydists,
                # group.var = "Pedigree",
-               outfile=outfile)
+               outfile=outfile_abnFit)
   })
-  expect_snapshot_file(outfile, "graph.dot")
+  expect_snapshot_file(outfile_abnFit, "graph.dot")
   # ...with dag as matrix
-  outfile <- tempfile(fileext = ".dot")
+  outfile_matrix <- tempfile(fileext = ".dot")
   expect_no_error({
     toGraphviz(dag=myres.mle$abnDag$dag,
                data.df=df,
                data.dists=myres.mle$abnDag$data.dists,
                group.var = myres.mle$group.var,
-               outfile=outfile)
+               outfile=outfile_matrix)
   })
-  expect_snapshot_file(outfile, "graph.dot")
+  expect_equal(readLines(outfile_matrix), readLines(outfile_abnFit))
   # ...with dag as "abnLearned"
-  outfile <- tempfile(fileext = ".dot")
+  outfile_abnLearned <- tempfile(fileext = ".dot")
   expect_no_error({
     toGraphviz(dag=mp.dag.mle,
                data.df=df,
                data.dists=mydists,
                group.var = "Pedigree",
-               outfile=outfile)
+               outfile=outfile_abnLearned)
   })
-  expect_snapshot_file(outfile, "graph.dot")
+  expect_equal(readLines(outfile_abnLearned), readLines(outfile_abnFit))
 })
