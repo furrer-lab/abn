@@ -665,6 +665,14 @@ export_abnFit <- function(object, format = "json", include_network = TRUE,
     stop("Unsupported method in abnFit object. Supported methods are 'mle' and 'bayes'.")
   }
 
+  export_list <- normalize_abn_network_document(
+    export_list,
+    object = object,
+    include_network = include_network,
+    scenario_id = scenario_id,
+    label = label
+  )
+
   # Convert to desired format
   if (format == "json") {
     return(export_to_json(export_list, format, file, pretty))
@@ -691,9 +699,9 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   }
 
   # Validate export list structure - scenario_id and label are optional
-  required_keys <- c("variables", "parameters", "arcs")
+  required_keys <- c("metadata", "parameters", "inference")
   if (!is.list(export_list) || !all(required_keys %in% names(export_list))) {
-    stop("export_list must be a named list with components: variables, parameters, arcs")
+    stop("export_list must contain metadata, parameters, and inference")
   }
 
   # Convert to JSON
@@ -709,6 +717,231 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
   }
 }
 
+normalize_abn_network_document <- function(export_list, object,
+                                           include_network = TRUE,
+                                           scenario_id = NULL, label = NULL) {
+  node_names <- names(object$abnDag$data.dists)
+  if (is.null(node_names)) node_names <- names(object$coef)
+  distributions <- object$abnDag$data.dists
+
+  variable_ids <- stats::setNames(seq_along(node_names), node_names)
+  variables <- lapply(node_names, function(node) {
+    legacy <- export_list$variables[[which(vapply(export_list$variables,
+                                                   function(x) identical(as.character(x$attribute_name), node),
+                                                   logical(1)))[1]]]
+    type <- switch(as.character(distributions[[node]]),
+                   gaussian = "continuous", binomial = "binary",
+                   poisson = "count", multinomial = "categorical",
+                   as.character(distributions[[node]]))
+    states <- legacy$states
+    retained_states <- attr(object, "generic_states")[[node]] %||% NULL
+    if (!is.null(retained_states)) states <- retained_states
+    if (!is.null(states)) {
+      states <- lapply(seq_along(states), function(index) {
+        state <- states[[index]]
+        list(`_id` = as.integer(index),
+             label = as.character(state$value_name %||% state$label))
+      })
+    }
+    result <- list(`_id` = unname(variable_ids[[node]]), name = node, type = type)
+    if (!is.null(states)) result$states <- states
+    result
+  })
+
+  generic_parameters <- list()
+  abn_parameters <- list()
+  parameter_counter <- 1L
+  retained_parameters <- attr(object, "generic_parameters")
+  for (parameter in export_list$parameters %||% list()) {
+    source <- parameter$source %||% list()
+    target <- node_names[match(as.character(source$variable_id),
+                               vapply(export_list$variables,
+                                      function(x) as.character(x$variable_id), character(1)))]
+    if (is.na(target) || is.null(target)) target <- as.character(source$variable_id)
+    state_id <- source$state_id %||% NULL
+    for (coefficient in parameter$coefficients %||% list()) {
+      kind <- switch(as.character(coefficient$condition_type),
+                     linear_term = "coefficient",
+                     intercept = "intercept",
+                     variance = "variance",
+                     random_variance = "random_variance",
+                     random_covariance = "random_covariance",
+                     as.character(coefficient$condition_type))
+      conditions <- coefficient$conditions %||% list()
+      parents <- vapply(conditions, function(condition) {
+        parent_index <- match(as.character(condition$parent_variable_id),
+                              vapply(export_list$variables,
+                                     function(x) as.character(x$variable_id), character(1)))
+        if (is.na(parent_index)) as.character(condition$parent_variable_id) else node_names[parent_index]
+      }, character(1))
+      parent_state_ids <- vapply(conditions, function(condition) {
+        state_id <- condition$parent_state_id %||% NA_character_
+        as.character(state_id)
+      }, character(1))
+      entry <- list(
+        `_id` = parameter_counter,
+        target = unname(variable_ids[[target]]),
+        kind = kind,
+        link = as.character(parameter$link_function_name %||% "identity"),
+        value = as.numeric(coefficient$value)
+      )
+      if (length(parents) > 0) {
+        entry$parents <- as.list(unname(variable_ids[parents]))
+        if (any(!is.na(parent_state_ids))) {
+          entry$parent_states <- as.list(as.integer(parent_state_ids))
+        }
+      }
+      if (!is.null(state_id)) {
+        if (grepl("_", state_id, fixed = TRUE)) {
+          entry$states <- as.list(as.integer(strsplit(state_id, "_", fixed = TRUE)[[1]]))
+        } else {
+          entry$target_state <- as.integer(state_id)
+        }
+      }
+      if (!is.null(coefficient$stderr)) {
+        entry$uncertainty <- list(standard_error = as.numeric(coefficient$stderr))
+      }
+      generic_parameters[[length(generic_parameters) + 1]] <- entry
+      abn_parameters[[as.character(parameter_counter)]] <- list(
+        native_name = parameter$name %||% NULL,
+        state_id = state_id,
+        conditions = export_json_safe(conditions)
+      )
+      parameter_counter <- parameter_counter + 1L
+    }
+  }
+
+  arcs <- lapply(export_list$arcs %||% list(), function(arc) {
+    source_index <- match(as.character(arc$source_variable_id),
+                           vapply(export_list$variables,
+                                  function(x) as.character(x$variable_id), character(1)))
+    target_index <- match(as.character(arc$target_variable_id),
+                           vapply(export_list$variables,
+                                  function(x) as.character(x$variable_id), character(1)))
+    list(source = unname(variable_ids[[node_names[source_index]]]),
+         target = unname(variable_ids[[node_names[target_index]]]))
+  })
+
+  method <- object$method
+  inference <- list(
+    type = if (identical(method, "bayes")) "bayesian" else "maximum_likelihood",
+    estimates = list(), uncertainty = list(), diagnostics = list()
+  )
+  extensions <- list(abn = list(configs = list(), variables = list(),
+                                parameters = abn_parameters, inference = list(),
+                                native_fields = list()))
+  native_excluded <- c("abnDag", "coef", "Stderror", "method", "call")
+  for (field in setdiff(names(object), native_excluded)) {
+    extensions$abn$native_fields[[field]] <- export_json_safe(object[[field]])
+  }
+  if (!is.null(scenario_id)) inference$diagnostics$scenario_id <- scenario_id
+  if (!is.null(label)) inference$diagnostics$label <- label
+  if (!is.null(object$group.var)) extensions$abn$configs$group_var <- object$group.var
+  if (!is.null(object$group.ids)) extensions$abn$configs$group_ids <- export_json_safe(object$group.ids)
+  if (!is.null(object$grouped.vars)) extensions$abn$configs$grouped_vars <- export_json_safe(object$grouped.vars)
+  if (!is.null(object$multinomial.states)) {
+    extensions$abn$configs$multinomial_states <- export_json_safe(object$multinomial.states)
+  }
+  mle_fields <- c("mliknode", "mlik", "aicnode", "aic", "bicnode", "bic",
+                  "mdlnode", "mdl", "df", "sse", "mse", "pvalue")
+  for (field in mle_fields) {
+    if (!is.null(object[[field]])) {
+      extensions$abn$inference[[field]] <- export_json_safe(object[[field]])
+      inference$diagnostics[[field]] <- export_json_safe(object[[field]])
+    }
+  }
+
+  if (identical(method, "bayes")) {
+    original_model <- object$original_model %||% list()
+    bayes_fields <- list(
+      mlik = object$mlik %||% original_model$mlik,
+      mliknode = object$mliknode %||% original_model$mliknode,
+      modes = object$modes %||% original_model$modes,
+      mse = object$mse %||% original_model$mse,
+      used_INLA = object$used.INLA %||% original_model$used_INLA,
+      error_code = object$error.code %||% original_model$error_code,
+      error_code_desc = object$error.code.desc %||% original_model$error_code_desc,
+      hessian_accuracy = object$hessian.accuracy %||% original_model$hessian_accuracy
+    )
+    extensions$abn$inference <- utils::modifyList(
+      extensions$abn$inference,
+      export_json_safe(bayes_fields)
+    )
+    if (!is.null(object$marginals %||% original_model$marginals)) {
+      inference$posterior$marginals <- export_json_safe(object$marginals %||% original_model$marginals)
+    }
+    if (!is.null(object$marginal.quantiles %||% original_model$marginal_quantiles)) {
+      inference$posterior$quantiles <- export_json_safe(object$marginal.quantiles %||% original_model$marginal_quantiles)
+    }
+  }
+
+  configs <- list()
+  if (!is.null(scenario_id)) configs$scenario_id <- scenario_id
+  if (!is.null(label)) configs$label <- label
+  result <- list(
+    metadata = list(schema_version = "bayesian-network-v1",
+                    issuer = "abn::export_abnFit", configs = configs,
+                    extensions = extensions),
+    parameters = generic_parameters,
+    inference = inference
+  )
+  if (!is.null(retained_parameters) && length(retained_parameters) == length(generic_parameters)) {
+    for (index in seq_along(generic_parameters)) {
+      retained <- retained_parameters[[index]]
+      for (field in c("parents", "parent_states", "target_state", "states", "kind", "link")) {
+        if (!is.null(retained[[field]])) generic_parameters[[index]][[field]] <- retained[[field]]
+      }
+    }
+    result$parameters <- generic_parameters
+  }
+  if (isTRUE(include_network)) {
+    result$variables <- variables
+    result$arcs <- arcs
+    result <- result[c("metadata", "variables", "arcs", "parameters", "inference")]
+  }
+  validate_generic_network_document(result)
+  result
+}
+
+validate_generic_network_document <- function(document) {
+  if (!is.list(document) || is.null(document$metadata) ||
+      is.null(document$parameters) || is.null(document$inference)) {
+    stop("Generic network document is missing required components.", call. = FALSE)
+  }
+
+  check_ids <- function(rows, collection) {
+    if (is.null(rows)) return(invisible(character()))
+    ids <- vapply(rows, function(row) as.character(row$`_id`), character(1))
+    if (anyNA(ids) || anyDuplicated(ids)) {
+      stop("Duplicate or missing _id values in ", collection, ".", call. = FALSE)
+    }
+    invisible(ids)
+  }
+
+  variable_ids <- check_ids(document$variables, "variables")
+  check_ids(document$parameters, "parameters")
+  has_network <- length(variable_ids) > 0L
+  if (has_network && !is.null(document$arcs)) {
+    for (arc in document$arcs) {
+      if (!as.character(arc$source) %in% variable_ids ||
+          !as.character(arc$target) %in% variable_ids) {
+        stop("Arc reference does not resolve to a variable _id.", call. = FALSE)
+      }
+    }
+  }
+  for (parameter in document$parameters) {
+    if (has_network && !as.character(parameter$target) %in% variable_ids) {
+      stop("Parameter target does not resolve to a variable _id.", call. = FALSE)
+    }
+    if (has_network && !is.null(parameter$parents) &&
+        !all(unlist(parameter$parents) %in% variable_ids)) {
+      stop("Parameter parent reference does not resolve to a variable _id.",
+           call. = FALSE)
+    }
+  }
+  invisible(document)
+}
+
 #' Convert R objects to JSON-native structures
 #'
 #' @param x Object to sanitize before passing to jsonlite.
@@ -717,6 +950,20 @@ export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
 #' @keywords internal
 export_json_safe <- function(x, seen = list()) {
   if (is.null(x)) return(NULL)
+
+  if (is.matrix(x) || is.array(x)) {
+    dimnames_x <- dimnames(x)
+    values <- lapply(seq_len(dim(x)[1]), function(i) {
+      if (length(dim(x)) == 2L) {
+        as.list(unclass(x[i, , drop = TRUE]))
+      } else {
+        as.list(x[i])
+      }
+    })
+    return(list(values = values,
+                row_names = dimnames_x[[1]] %||% NULL,
+                column_names = dimnames_x[[2]] %||% NULL))
+  }
 
   if (inherits(x, "abnFit")) {
     if (is.atomic(x)) return(unclass(x))
@@ -737,17 +984,6 @@ export_json_safe <- function(x, seen = list()) {
 
   if (is.factor(x)) return(as.character(x))
   if (inherits(x, "Date") || inherits(x, "POSIXt")) return(as.character(x))
-
-  if (is.matrix(x)) {
-    dimnames_x <- dimnames(x)
-    rows <- lapply(seq_len(nrow(x)), function(i) as.list(unclass(x[i, , drop = TRUE])))
-    if (!is.null(rownames(x))) names(rows) <- rownames(x)
-    return(list(
-      values = rows,
-      row_names = dimnames_x[[1]] %||% NULL,
-      column_names = dimnames_x[[2]] %||% NULL
-    ))
-  }
 
   if (is.data.frame(x)) {
     out <- lapply(x, export_json_safe, seen = seen)

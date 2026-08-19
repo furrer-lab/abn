@@ -1,64 +1,3 @@
-json_import_generic_document <- function() {
-  list(
-    metadata = list(
-      schema_version = "bayesian-network-v1",
-      issuer = "independent-bn-tool::export",
-      configs = list(),
-      extensions = list()
-    ),
-    variables = list(
-      list(`_id` = 1, name = "height", type = "continuous"),
-      list(
-        `_id` = 2,
-        name = "status",
-        type = "binary",
-        states = list(
-          list(`_id` = 1, label = "no"),
-          list(`_id` = 2, label = "yes")
-        )
-      )
-    ),
-    arcs = list(list(source = 1, target = 2)),
-    parameters = list(
-      list(
-        `_id` = 1,
-        target = 1,
-        kind = "intercept",
-        link = "identity",
-        value = 1.2,
-        uncertainty = list(standard_error = 0.1)
-      ),
-      list(
-        `_id` = 2,
-        target = 2,
-        kind = "intercept",
-        link = "logit",
-        value = -0.42,
-        uncertainty = list(standard_error = 0.2)
-      ),
-      list(
-        `_id` = 3,
-        target = 2,
-        parents = list(1),
-        kind = "coefficient",
-        link = "logit",
-        value = 0.87,
-        uncertainty = list(standard_error = 0.3)
-      )
-    ),
-    inference = list(
-      type = "maximum_likelihood",
-      estimates = list(),
-      uncertainty = list(),
-      diagnostics = list()
-    )
-  )
-}
-
-json_import_string <- function(document) {
-  jsonlite::toJSON(document, auto_unbox = TRUE, null = "null", digits = NA)
-}
-
 test_that("import_abnFit imports a genuine generic network document", {
   imported <- import_abnFit(json = json_import_string(json_import_generic_document()))
 
@@ -87,13 +26,14 @@ test_that("import_abnFit ingests ABN-specific fit properties", {
         used_inla = unname(fit$used.INLA)
       ),
       inference = list(
-        mlik = fit$mlik,
-        mliknode = fit$mliknode,
-        error_code = fit$error.code,
-        error_code_desc = fit$error.code.desc,
-        hessian_accuracy = fit$hessian.accuracy,
-        marginals = fit$marginals,
-        marginal_quantiles = fit$marginal.quantiles
+        mlik = export_json_safe(fit$mlik),
+        mliknode = export_json_safe(fit$mliknode),
+        used_inla = export_json_safe(fit$used.INLA),
+        error_code = export_json_safe(fit$error.code),
+        error_code_desc = export_json_safe(fit$error.code.desc),
+        hessian_accuracy = export_json_safe(fit$hessian.accuracy),
+        marginals = export_json_safe(fit$marginals),
+        marginal_quantiles = export_json_safe(fit$marginal.quantiles)
       )
     )
   )
@@ -136,8 +76,8 @@ test_that("non-ABN extensions are ignored without changing generic import", {
   document$metadata$extensions <- list(
     another_bn_tool = list(
       configs = list(private_engine_setting = "ignore-me"),
-      variables = list(status = list(private_color = "red")),
-      parameters = list(`status-height` = list(private_precision = 4)),
+      variables = list(`2` = list(private_color = "red")),
+      parameters = list(`3` = list(private_precision = 4)),
       inference = list(private_trace = list(1, 2, 3))
     )
   )

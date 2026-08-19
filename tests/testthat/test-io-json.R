@@ -46,8 +46,8 @@ test_that("import ignores non-ABN extension properties", {
   document <- json_import_generic_document()
   document$metadata$extensions <- list(
     other_tool = list(
-      variables = list(status = list(display_color = "red")),
-      parameters = list(`status-height` = list(display_precision = 4)),
+      variables = list(`2` = list(display_color = "red")),
+      parameters = list(`3` = list(display_precision = 4)),
       inference = list(private_trace = list(1, 2, 3))
     )
   )

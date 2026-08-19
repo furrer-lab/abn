@@ -4,6 +4,35 @@ json_fixture_empty_dag <- function(dists) {
   dag
 }
 
+json_import_generic_document <- function() {
+  list(
+    metadata = list(schema_version = "bayesian-network-v1",
+                    issuer = "independent-bn-tool::export"),
+    variables = list(
+      list(`_id` = 1, name = "height", type = "continuous"),
+      list(`_id` = 2, name = "status", type = "binary",
+           states = list(list(`_id` = 1, label = "no"),
+                         list(`_id` = 2, label = "yes")))
+    ),
+    arcs = list(list(source = 1, target = 2)),
+    parameters = list(
+      list(`_id` = 1, target = 1, kind = "intercept", link = "identity",
+           value = 1.2, uncertainty = list(standard_error = 0.1)),
+      list(`_id` = 2, target = 2, kind = "intercept", link = "logit",
+           value = -0.42, uncertainty = list(standard_error = 0.2)),
+      list(`_id` = 3, target = 2, parents = list(1), kind = "coefficient",
+           link = "logit", value = 0.87,
+           uncertainty = list(standard_error = 0.3))
+    ),
+    inference = list(type = "maximum_likelihood", estimates = list(),
+                     uncertainty = list(), diagnostics = list())
+  )
+}
+
+json_import_string <- function(document) {
+  jsonlite::toJSON(document, auto_unbox = TRUE, null = "null", digits = NA)
+}
+
 json_fixture_assert_abnfit <- function(fit, method, dists, grouped = FALSE,
                                        multinomial = FALSE) {
   expect_s3_class(fit, "abnFit")
@@ -412,14 +441,40 @@ json_fixture_generic_document <- function(json) {
     json
   }
   document$metadata <- NULL
+  document <- json_fixture_resolve_internal_ids(document)
+  document
+}
+
+json_fixture_resolve_internal_ids <- function(document) {
+  variables <- json_fixture_collect_rows(document$variables)
+  if (length(variables) == 0) return(document)
+  ids <- vapply(variables, function(x) as.character(x$`_id`), character(1))
+  names_by_id <- stats::setNames(vapply(variables, function(x) x$name, character(1)), ids)
+  document$variables <- lapply(variables, function(x) {
+    x$`_id` <- NULL
+    x
+  })
+  document$arcs <- lapply(json_fixture_collect_rows(document$arcs), function(x) {
+    x$source <- names_by_id[[as.character(x$source)]]
+    x$target <- names_by_id[[as.character(x$target)]]
+    x
+  })
+  document$parameters <- lapply(json_fixture_collect_rows(document$parameters), function(x) {
+    x$`_id` <- NULL
+    x$target <- names_by_id[[as.character(x$target)]]
+    if (!is.null(x$parents)) {
+      x$parents <- lapply(x$parents, function(parent) names_by_id[[as.character(parent)]])
+    }
+    x
+  })
   document
 }
 
 json_fixture_assert_generic_roundtrip <- function(first, second,
                                                   tolerance = .Machine$double.eps^0.5) {
   expect_equal(
-    json_fixture_generic_document(first),
-    json_fixture_generic_document(second),
+    json_fixture_canonical_json_value(json_fixture_generic_document(first)),
+    json_fixture_canonical_json_value(json_fixture_generic_document(second)),
     tolerance = tolerance
   )
   invisible(TRUE)

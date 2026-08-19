@@ -65,7 +65,7 @@ compute_data_json_summary <- function(x) {
 #' @examples
 #' data_json <- list(
 #'   metadata = list(
-#'     schema_version = "abn-data-v1",
+#'     schema_version = "bn-data-v1",
 #'     orientation = "columnar",
 #'     column_order = c("G1", "B1"),
 #'     columns = list(

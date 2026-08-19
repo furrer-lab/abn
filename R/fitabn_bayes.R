@@ -787,8 +787,6 @@ get.ind.quantiles <- function(outmat,inmat){
     row <- row+1
   }
 
-  class(outmat) <- c("abnFit")
-
   return(outmat)
 }
 

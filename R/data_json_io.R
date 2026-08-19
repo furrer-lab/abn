@@ -23,7 +23,8 @@ export_abnData <- function(data.df, data.dists, group.var = NULL, file = NULL,
   data.dists <- as.list(data.dists)
   column_order <- colnames(data.df)
   metadata <- list(
-    schema_version = "abn-data-v1",
+    schema_version = "bn-data-v1",
+    issuer = "abn::export_abnData",
     orientation = "columnar",
     column_order = column_order,
     missing_values = list(
@@ -156,7 +157,7 @@ validate_abn_data_inputs <- function(data.df, data.dists, group.var) {
 
 validate_abn_data_json_object <- function(object) {
   validate_data_json_shape(object)
-  if (!identical(object$metadata$schema_version, "abn-data-v1")) {
+  if (!identical(object$metadata$schema_version, "bn-data-v1")) {
     stop("unsupported data JSON schema version", call. = FALSE)
   }
   if (!identical(object$metadata$orientation, "columnar")) {
