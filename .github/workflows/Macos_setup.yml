@@ -32,6 +32,7 @@ jobs:
           brew install R
           brew install pkg-config
           brew install automake  # needed to run autoconf
+          brew install graphviz  # needed for Rgraphviz
 
       - name: install GSL
         run: |
@@ -50,7 +51,7 @@ jobs:
       - name: install INLA dependencies
         run: |
           brew install udunits 
-          brew install openssl@1.1  # s2 package
+          brew install openssl@3  # s2 package
           brew install gdal  # installs geos as dependency
                              # for s2 fmesher terra)
           brew install proj  # sf package
@@ -62,7 +63,19 @@ jobs:
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       # - name: install from CRAN with pak
