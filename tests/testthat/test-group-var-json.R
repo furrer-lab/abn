@@ -14,7 +14,8 @@ test_that("Grouped MLE: grouping column name survives JSON round-trip", {
 
   json_str <- export_abnFit(direct_model)
   parsed <- jsonlite::fromJSON(json_str)
-  expect_identical(parsed$group_var, group_var)
+  expect_equal(parsed$metadata$issuer, "abn::export_abnFit")
+  expect_identical(parsed$metadata$extensions$abn$configs$group_var, group_var)
 
   imported_model <- import_abnFit(json = json_str)
   expect_identical(imported_model$group.var, group_var)

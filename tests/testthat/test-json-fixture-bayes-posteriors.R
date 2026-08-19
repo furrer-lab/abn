@@ -6,10 +6,11 @@ test_that("JSON stage 4: Bayesian fixed marginal names round-trip through JSON",
     })
   })
 
-  expect_true("marginals" %in% names(parsed$original_model))
-  expect_true("marginal_quantiles" %in% names(parsed$original_model))
-  expect_setequal(names(parsed$original_model$marginals), names(fit$marginals))
-  expect_setequal(names(parsed$original_model$marginal_quantiles),
+  expect_true("posterior" %in% names(parsed$inference))
+  expect_true("marginals" %in% names(parsed$inference$posterior))
+  expect_true("quantiles" %in% names(parsed$inference$posterior))
+  expect_setequal(names(parsed$inference$posterior$marginals), names(fit$marginals))
+  expect_setequal(names(parsed$inference$posterior$quantiles),
                   names(fit$marginal.quantiles))
 })
 
@@ -23,7 +24,7 @@ test_that("JSON stage 4: Bayesian fixed marginal numeric contents are exported",
 
   first_node <- names(fit$marginals)[[1]]
   first_param <- names(fit$marginals[[first_node]])[[1]]
-  exported <- parsed$original_model$marginals[[first_node]][[first_param]]
+  exported <- parsed$inference$posterior$marginals[[first_node]][[first_param]]
   original <- fit$marginals[[first_node]][[first_param]]
 
   expect_true("values" %in% names(exported))
@@ -42,7 +43,7 @@ test_that("JSON stage 4: Bayesian fixed quantile numeric contents are exported",
   })
 
   first_node <- names(fit$marginal.quantiles)[[1]]
-  exported <- parsed$original_model$marginal_quantiles[[first_node]]
+  exported <- parsed$inference$posterior$quantiles[[first_node]]
   original <- json_fixture_json_roundtrip_value(
     export_json_safe(fit$marginal.quantiles[[first_node]])
   )

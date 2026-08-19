@@ -452,12 +452,12 @@ json_fixture_canonical_abn_json <- function(parsed) {
 
   if (!is.null(parsed$variables)) {
     parsed$variables <- json_fixture_sort_json_rows(parsed$variables, function(variable) {
-      sprintf("%08d", as.integer(json_fixture_field(variable, "variable_id")))
+      json_fixture_field(variable, "id")
     })
     parsed$variables <- lapply(parsed$variables, function(variable) {
       if (!is.null(variable$states)) {
         variable$states <- json_fixture_sort_json_rows(variable$states, function(state) {
-          sprintf("%08d", as.integer(json_fixture_field(state, "state_id")))
+          json_fixture_field(state, "id")
         })
       }
       variable
@@ -466,14 +466,14 @@ json_fixture_canonical_abn_json <- function(parsed) {
 
   if (!is.null(parsed$parameters)) {
     parsed$parameters <- json_fixture_sort_json_rows(parsed$parameters, function(parameter) {
-      sprintf("%08d", as.integer(json_fixture_field(parameter, "parameter_id")))
+      json_fixture_field(parameter, "id")
     })
   }
 
   if (!is.null(parsed$arcs)) {
     parsed$arcs <- json_fixture_sort_json_rows(parsed$arcs, function(arc) {
-      paste(json_fixture_field(arc, "source_variable_id"),
-            json_fixture_field(arc, "target_variable_id"), sep = "->")
+      paste(json_fixture_field(arc, "source"),
+            json_fixture_field(arc, "target"), sep = "->")
     })
   }
 
