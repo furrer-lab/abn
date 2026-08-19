@@ -1,7 +1,7 @@
 make_valid_data_json <- function() {
   list(
     metadata = list(
-      schema_version = "abn-data-v1",
+      schema_version = "bn-data-v1",
       orientation = "columnar",
       column_order = c("G1", "B1", "C"),
       missing_values = list(

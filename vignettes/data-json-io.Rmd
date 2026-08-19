@@ -20,17 +20,17 @@ library(abn)
 library(jsonlite)
 ```
 
-# Motivation
+# Purpose
 
-The `export_abnFit()` and `import_abnFit()` functions serialize fitted ABN
-models: variables, arcs, parameters, grouped fields, Bayesian metadata, and
-posterior payloads. This vignette drafts a separate JSON structure for tabular
-data used by `abn` workflows.
+This vignette specifies the portable JSON format for raw observations used by
+Bayesian-network tools. It is a genuine data-exchange format, not an
+`abn`-specific dump of an R data frame. `abn` provides one adapter through
+`export_abnData()` and `import_abnData()`.
 
-The data JSON format should be useful beyond R. The main payload should therefore
-use language-neutral metadata such as `semantic_type`, `categories`, and
-`missing_values`. R-specific reconstruction hints may be present, but should live
-under an adapter-specific namespace rather than defining the general schema.
+The format is intended for use beyond R. The main payload therefore uses
+language-neutral metadata such as `semantic_type`, `categories`, and
+`missing_values`. R-specific reconstruction hints may be present, but should
+live under an adapter-specific namespace rather than defining the general schema.
 
 The guiding rule is:
 
@@ -42,10 +42,8 @@ The guiding rule is:
   `row_count` and `column_count` can be computed from `data` and should be added
   only when they provide clear value.
 
-This vignette currently uses small hand-written JSON snippets to document the
-intended structure. Once data JSON import/export helpers exist, replace these
-snippets with executable examples generated from shipped datasets such as
-`g2b2c_data` and `g2pbcgrp`.
+The examples use small hand-written documents for clarity and executable
+`abn` examples for round trips.
 
 # Top-level structure
 
@@ -54,7 +52,8 @@ The proposed top-level structure separates interpretation from payload:
 ```json
 {
     "metadata": {
-      "schema_version": "abn-data-v1",
+      "schema_version": "bn-data-v1",
+      "issuer": "abn::export_abnData",
       "orientation": "columnar",
       "column_order": ["G1", "B1", "B2", "C", "G2"],
       "missing_values": {
@@ -91,6 +90,9 @@ General metadata applies to the whole table:
 | `column_order` | Authoritative order of columns. |
 | `missing_values` | Declared tokens for missing and special numeric values. |
 | `columns` | Per-column metadata entries. |
+| `issuer` | Tool and operation that produced the document. |
+| `configs` | Optional settings relevant to interpretation or reproduction. |
+| `extensions` | Optional namespaced issuer-specific annotations. |
 | `adapters` | Optional language/tool-specific reconstruction hints. |
 
 The `column_order` field is important for `abn`: many data validation paths
@@ -123,6 +125,31 @@ belong under `metadata.summary`:
 Such summaries should be treated as assertions: importers must recompute and
 validate them whenever the full `data` payload is available.
 
+## Issuer-specific extensions
+
+Issuer-specific annotations belong under `metadata.extensions` and should be
+namespaced by issuer. They can annotate real columns without changing the
+portable column definition:
+
+```json
+{
+  "metadata": {
+    "issuer": "some-tool::export-data",
+    "extensions": {
+      "some-tool": {
+        "columns": {
+          "C": {"display_color": "red"}
+        }
+      }
+    }
+  }
+}
+```
+
+An extension that refers to a column absent from `column_order` is non-fatal.
+Importers should ignore it and issue a warning. Consumers should also ignore
+unknown extension namespaces and properties.
+
 The helper `validate_data_json_summary()` implements this policy. A missing
 summary is valid because it can be recomputed from inline data. A stale summary
 errors by default, can be returned as diagnostics, or can be repaired by replacing
@@ -131,7 +158,7 @@ errors by default, can be returned as diagnostics, or can be repaired by replaci
 ```{r}
 data_json <- list(
   metadata = list(
-    schema_version = "abn-data-v1",
+    schema_version = "bn-data-v1",
     orientation = "columnar",
     column_order = c("G1", "B1"),
     columns = list(
@@ -256,7 +283,7 @@ A small data JSON document for the first three rows could look like this:
 ```json
 {
     "metadata": {
-      "schema_version": "abn-data-v1",
+      "schema_version": "bn-data-v1",
       "orientation": "columnar",
       "column_order": ["G1", "B1", "B2", "C", "G2"],
     "missing_values": {
@@ -301,7 +328,7 @@ data table, but its role is `group`, not `node`:
 ```json
 {
     "metadata": {
-      "schema_version": "abn-data-v1",
+      "schema_version": "bn-data-v1",
       "orientation": "columnar",
       "column_order": ["G1", "P", "B", "C", "G2", "group"],
     "columns": [
@@ -347,32 +374,28 @@ An importer should validate at least:
 
 # Relationship to fitted-model JSON
 
-The fitted-model JSON currently uses top-level `variables`, `parameters`, and
-`arcs`. A future data-enabled export could add this data format beside those
-fields:
+The data and fitted-network formats are complementary. Data JSON describes
+observations and their interpretation; network JSON describes a graph and its
+fitted quantities. They may be stored separately and joined using stable
+variable or column IDs. A combined document may place both genuine objects in
+one document, but model export remains model-only by default:
 
 ```json
 {
   "variables": [],
   "parameters": [],
   "arcs": [],
-  "metadata": {},
+  "metadata": {"issuer": "some-tool::export-bundle"},
   "data": {}
 }
 ```
 
-Whether observations should be included by default is still an open design
-decision. For privacy and file-size reasons, fitted-model export should probably
-remain model-only by default, with data export enabled explicitly.
+For privacy and file-size reasons, fitted-network export should remain model-only
+by default, with data export enabled explicitly.
 
-# Open questions
+# Design summary
 
-- Should values be embedded inline or referenced externally with a path, URI,
-  checksum, and row/column metadata?
-- Should categorical values be stored as labels or integer codes plus category
-  metadata?
-- Should row names be preserved, ignored, or represented in adapter metadata?
-- Should there be any per-row metadata? The current preference is no, unless a
-  concrete use case such as weights, provenance, or exclusion flags appears.
-- How should this data JSON relate to the issue-226 `graph`/`nodes`/`arcs`
-  proposal?
+The format separates values from their interpretation, records provenance with
+`metadata.issuer`, and leaves room for namespaced extensions. Stable column names
+allow annotations to be exchanged without making tool-specific properties part
+of the general data schema.

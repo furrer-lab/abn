@@ -1,217 +1,285 @@
 ---
-title: "JSON Format Quick Reference"
+title: "Interoperable JSON Formats for Bayesian Networks"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{JSON Format Quick Reference}
+  %\VignetteIndexEntry{Interoperable JSON Formats for Bayesian Networks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>",
-  eval = FALSE
-)
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
 ```
 
 ```{r setup}
 library(abn)
+library(jsonlite)
 ```
 
-# JSON Format Quick Reference
+# Purpose
 
-This vignette provides a quick reference guide for the JSON format used by `export_abnFit()` and `import_abnFit()` functions in the `abn` package. The JSON format enables round-trip serialization of Bayesian network models, making it ideal for sharing, archiving, and integration with external tools like abnScripts.
+This vignette specifies the JSON formats used to exchange Bayesian-network data
+and fitted networks between tools. The formats are deliberately generic. `abn`
+is one producer and consumer of these documents, but the documents are not a
+serialization of the internal R `abnFit` object.
 
-## Complete Field Reference
+There are two complementary formats:
 
-The JSON format contains 10 top-level fields organized into three categories:
+* **Data JSON** stores observations and the metadata needed to interpret them.
+* **Network JSON** stores variables, graph structure, model parameters, and
+  inference results.
 
-### Required Fields (must always be present)
+They can be exchanged independently or used together. A model-only network
+document does not contain observations by default.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `variables` | Array | Definition of all variables in the network (name, id, type, n_categories) |
-| `parameters` | Array | Fitted parameters for each node and its parent configurations |
-| `arcs` | Array | Directed edges in the network structure (parent_id, child_id) |
+# Metadata and extensions
 
-### Optional Fields (may be absent or null)
+Both formats use a top-level `metadata` object. Generic fields describe the
+document itself; issuer-specific settings and annotations are kept in extensions.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `scenario_id` | String or null | User-defined scenario identifier for grouping related models |
-| `label` | String or null | Human-readable label or description of the model |
-| `method` | String or null | Fitting method used: "bayes", "mle", or null |
-| `linkFunctions` | Object or null | Link functions per node (e.g., log, logit, identity) |
-| `constraints` | Array or null | Constraints applied during structure learning (prohibited/enforced arcs) |
-| `subset_metadata` | Object or null | Metadata about data subsetting (row selection, filtering criteria) |
-| `original_model` | Object or null | Reference to the source model for tracing model lineage |
-| `original_data_path` | String or null | Path or URI to the original data file used for fitting |
-
-## Common Workflow Examples
-
-### 1. Export a Fitted Model
-
-Export an `abnFit` object after parameter learning:
-
-```{r eval = FALSE}
-# After fitting a model with fitAbn()
-fit <- fitAbn(...)
-
-# Export to JSON string
-json_string <- export_abnFit(fit, format = "json")
-
-# Or export to file
-export_abnFit(fit, format = "json", 
-              outfile = "my_model.json")
-```
-
-### 2. Import and Re-use a Model
-
-Import a previously exported model for prediction or inspection:
-
-```{r eval = FALSE}
-# Import from file
-fit <- import_abnFit(infile = "my_model.json")
-
-# Or import from JSON string
-json_string <- readLines("my_model.json")
-fit <- import_abnFit(data_or_string = json_string)
-```
-
-### 3. Round-Trip Verification
-
-Export a model and re-import to verify consistency:
-
-```{r eval = FALSE}
-# Original model
-fit_original <- fitAbn(...)
-
-# Export and re-import
-json_data <- export_abnFit(fit_original)
-fit_reimported <- import_abnFit(data_or_string = json_data)
-
-# Both models should be equivalent for predictions
-```
-
-### 4. Error Handling
-
-The `import_abnFit()` function validates JSON structure and provides informative errors:
-
-```{r eval = FALSE}
-tryCatch(
-  fit <- import_abnFit("invalid.json"),
-  error = function(e) {
-    message("Import failed: ", e$message)
-    # Handle error - provide feedback to user
+```json
+{
+  "metadata": {
+    "schema_version": "bayesian-network-v1",
+    "issuer": "abn::export_abnFit",
+    "issuer_version": "3.1.13",
+    "configs": {},
+    "extensions": {
+      "abn": {
+        "configs": {},
+        "variables": {
+          "status": {"color": "red"}
+        }
+      }
+    }
   }
+}
+```
+
+`issuer` identifies the tool and operation that produced the document. Generic
+consumers should not need to understand it. `configs` contains settings that
+affect interpretation or reproducibility. `extensions` contains issuer-specific
+information attached to genuine objects in the document.
+
+Extension namespaces should identify their issuer. Within an extension, object
+annotations are keyed by the corresponding object ID. For example,
+`extensions.abn.variables.status` annotates the variable with ID `status`.
+Extensions may contain `variables`, `arcs`, `parameters`, `inference`, or other
+object collections, but only the issuer-specific properties are included there.
+
+IDs must be unique within each object collection and stable within a document.
+References must use IDs, never display names. An extension referring to an ID
+that is absent from the genuine object is not fatal: importers should ignore it
+and issue a warning. Unknown extension namespaces and properties should likewise
+be ignored by consumers that do not understand them.
+
+# Data JSON
+
+The data format is identified by `metadata.schema_version = "bn-data-v1"`.
+The payload is column-oriented and contains values only; interpretation belongs
+in metadata.
+
+```json
+{
+  "metadata": {
+    "schema_version": "bn-data-v1",
+    "issuer": "abn::export_abnData",
+    "orientation": "columnar",
+    "column_order": ["height", "status"],
+    "missing_values": {
+      "missing": null,
+      "not_a_number": "NaN",
+      "positive_infinity": "Infinity",
+      "negative_infinity": "-Infinity"
+    },
+    "columns": [
+      {
+        "name": "height",
+        "role": "node",
+        "semantic_type": "continuous",
+        "model_distribution": "gaussian",
+        "value_encoding": "number"
+      },
+      {
+        "name": "status",
+        "role": "node",
+        "semantic_type": "binary",
+        "model_distribution": "binomial",
+        "value_encoding": "labels",
+        "categories": ["no", "yes"]
+      }
+    ],
+    "extensions": {}
+  },
+  "data": {
+    "height": [1.72, 1.81, 1.65],
+    "status": ["yes", "no", "yes"]
+  }
+}
+```
+
+Column metadata can describe node, group, ignored, and auxiliary columns.
+`model_distribution` is used for node columns and is omitted for grouping
+columns. Categories, encodings, ordering, nullability, and declared special
+numeric values make the representation portable across languages.
+
+R-specific details such as factor levels and row names may be placed under an
+adapter namespace such as `metadata.adapters.r`; they do not define the general
+format. Optional derived summaries belong under `metadata.summary` and must be
+validated against inline data.
+
+## Using data JSON with `abn`
+
+`abn` can export and import the portable data document as follows:
+
+```{r}
+data(g2b2c_data)
+data_json <- export_abnData(
+  data.df = g2b2c_data,
+  data.dists = list(G1 = "gaussian", B1 = "binomial", B2 = "binomial",
+                    C = "multinomial", G2 = "gaussian")
 )
+restored <- import_abnData(json = data_json)
+str(restored$data.df)
+restored$data.dists
 ```
 
-## Variable Definition Structure
+The restored `data.df` and `data.dists` can then be supplied to the normal
+`abn` structure-learning workflow.
 
-Each variable in the `variables` array must include:
+# Network JSON
+
+The network format is identified by `metadata.schema_version =
+"bayesian-network-v1"`. Its interoperable core consists of four concepts:
+
+* `variables` declares nodes and their types or states.
+* `arcs` declares directed edges using source and target IDs.
+* `parameters` declares fitted quantities and their targets, parents, links, and
+  values.
+* `inference` contains generic fitting method, estimates, uncertainty, and
+  diagnostics.
 
 ```json
 {
-  "id": "unique_identifier",
-  "name": "variable_name",
-  "type": "gaussian|binomial|poisson|multinomial",
-  "n_categories": 2
+  "metadata": {
+    "schema_version": "bayesian-network-v1",
+    "issuer": "abn::export_abnFit",
+    "issuer_version": "3.1.13",
+    "configs": {},
+    "extensions": {}
+  },
+  "variables": [
+    {"id": "height", "name": "height", "type": "continuous"},
+    {
+      "id": "status", "name": "status", "type": "binary",
+      "states": [{"id": "no", "label": "no"},
+                  {"id": "yes", "label": "yes"}]
+    }
+  ],
+  "arcs": [{"source": "height", "target": "status"}],
+  "parameters": [
+    {
+      "id": "status-intercept",
+      "target": "status",
+      "kind": "intercept",
+      "link": "logit",
+      "value": -0.42
+    },
+    {
+      "id": "status-height",
+      "target": "status",
+      "parents": ["height"],
+      "kind": "coefficient",
+      "link": "logit",
+      "value": 0.87
+    }
+  ],
+  "inference": {
+    "type": "bayesian",
+    "estimates": {},
+    "uncertainty": {},
+    "diagnostics": {}
+  }
 }
 ```
 
-- **id**: Unique identifier used to reference the variable in arcs and parameters
-- **name**: Human-readable variable name
-- **type**: Data type of the variable
-- **n_categories**: For multinomial variables, the number of categories (≥2)
+The core deliberately uses generic terms such as `type`, `kind`, `target`,
+`parents`, and `value`. A tool may add standard uncertainty fields or richer
+posterior representations without exposing its internal object layout.
 
-## Parameter Definition Structure
-
-Each parameter represents either node intercepts or parent-conditional parameters:
+For example, an `abn` exporter may record native settings and diagnostics under
+`metadata.extensions.abn`, while generic inference information remains in
+`inference`:
 
 ```json
 {
-  "id": "unique_identifier",
-  "node_id": "variable_id",
-  "parent_ids": ["parent_var_id_1", "parent_var_id_2"],
-  "coefficient": 0.5,
-  "intercept": -0.2
+  "metadata": {
+    "extensions": {
+      "abn": {
+        "configs": {"compute_fixed": true},
+        "inference": {
+          "used_inla": {"status": true}
+        }
+      }
+    }
+  }
 }
 ```
 
-- **id**: Unique parameter identifier
-- **node_id**: ID of the variable this parameter belongs to
-- **parent_ids**: Array of parent variable IDs (empty for root nodes)
-- **coefficient**: Fitted coefficient value
-- **intercept**: Fitted intercept value (may be null for some models)
+## Network structure and `include_network`
 
-## Arc Definition Structure
+`export_abnFit(..., include_network = TRUE)` includes the DAG representation:
+the `variables` and `arcs` collections. This is the default because a fitted
+network is normally not interpretable without its graph. With
+`include_network = FALSE`, the exporter omits the network structure while still
+exporting fitted quantities and their object references. Such a document is
+useful when the graph is managed separately, but a consumer must obtain the
+referenced variables and arcs from another source.
 
-Each arc represents a directed edge from parent to child:
+## Using network JSON with `abn`
 
-```json
-{
-  "parent_id": "parent_variable_id",
-  "child_id": "child_variable_id"
-}
+An `abn` fit can be exchanged through the generic network format:
+
+```{r}
+data(ex1.dag.data)
+mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
+                b2 = "binomial", p2 = "poisson", g2 = "gaussian",
+                b3 = "binomial", g3 = "gaussian")
+cache <- buildScoreCache(ex1.dag.data, data.dists = mydists,
+                          method = "mle", max.parents = 2)
+fit <- fitAbn(mostProbable(cache), method = "mle")
+
+network_json <- export_abnFit(fit, include_network = TRUE)
+fit_again <- import_abnFit(json = network_json)
 ```
 
-- **parent_id**: ID of the parent variable
-- **child_id**: ID of the child variable
-- Arcs define the network structure; parameters define the relationships
+The import operation is an `abn` adapter: it reconstructs an R-native object
+from the generic document. Other Bayesian-network tools can consume the generic
+core without reconstructing an `abnFit` object.
 
-## Quick Reference Tables
+# Validation and compatibility
 
-### Supported Variable Types
+Consumers should validate the following core rules:
 
-| Type | Support | Use Case |
-|------|---------|----------|
-| Gaussian | Bayes, MLE | Continuous data (heights, measurements) |
-| Binomial | Bayes, MLE | Binary outcomes (yes/no, 0/1) |
-| Poisson | Bayes, MLE | Count data (events, occurrences) |
-| Multinomial | MLE only | Categorical data with 3+ categories |
+1. The schema version is supported and required collections have the right shape.
+2. IDs are unique within each collection.
+3. Arc, parameter, state, and extension references resolve to declared IDs.
+4. Variable types, states, links, and parameter kinds are compatible.
+5. Arcs do not contain self-links or duplicate edges.
+6. A network declared as a DAG contains no directed cycles.
+7. Data columns have consistent lengths and obey their declared encodings.
 
-### Fitting Methods
+Unknown top-level optional fields, metadata fields, extension namespaces, and
+extension properties should be ignored unless strict validation is requested.
+Missing extension IDs are specifically non-fatal and should produce warnings.
 
-| Method | Algorithm | When to Use |
-|--------|-----------|------------|
-| "bayes" | Bayesian inference | Default; handles small sample sizes well |
-| "mle" | Maximum likelihood | Preferred for multinomial variables; larger datasets |
+# Design summary
 
-### Link Functions (when applicable)
+The formats separate portable Bayesian-network concepts from implementation
+details. `metadata.issuer` provides provenance, `metadata.configs` records
+interpretation-relevant settings, and `metadata.extensions` provides namespaced
+annotations. Stable IDs make these annotations safe to exchange without making
+issuer-specific properties part of the generic schema.
 
-| Link Function | Applicable To | Interpretation |
-|---------------|---------------|-----------------|
-| identity | Gaussian | No transformation of linear predictor |
-| log | Poisson | Exponential relationship; parameters on log scale |
-| logit | Binomial | Odds ratio interpretation; probabilities on logit scale |
-
-## JSON Validation Rules
-
-When importing JSON, the following rules are enforced:
-
-1. **Structure**: Must be a valid JSON object with required fields
-2. **Arrays**: `variables`, `parameters`, and `arcs` must be arrays
-3. **IDs**: Variable IDs must be unique and consistently referenced
-4. **Parent References**: Parent IDs in `arcs` and `parameters` must reference valid variables
-5. **Types**: Variable types must be one of: "gaussian", "binomial", "poisson", "multinomial"
-6. **Categories**: Multinomial variables must have `n_categories ≥ 2`
-
-## Integration with abnScripts
-
-The JSON format includes fields specifically designed for integration with the abnScripts framework:
-
-- **constraints**: Stores structure learning constraints (prohibited/enforced arcs)
-- **subset_metadata**: Tracks data subsetting operations for reproducibility
-- **original_model**: Enables model lineage tracking
-- **original_data_path**: References the source data for auditing
-
-These fields are optional but recommended when models are part of a larger analysis pipeline.
-
-## See Also
-
-- `export_abnFit()`: Export `abnFit` objects to JSON
-- `import_abnFit()`: Import JSON back to `abnFit` objects
-- `fitAbn()`: Fit parameters of Bayesian network structures
-- `buildScoreCache()`: Score networks for structure learning
+See `export_abnData()`, `import_abnData()`, `export_abnFit()`, and
+`import_abnFit()` for the `abn` adapters.

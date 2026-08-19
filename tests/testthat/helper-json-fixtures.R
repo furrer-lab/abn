@@ -71,10 +71,21 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
                                        multinomial = FALSE,
                                        require_parameters = TRUE) {
   parsed <- json_fixture_parse_export(fit)
+  expect_true("metadata" %in% names(parsed))
+  expect_equal(parsed$metadata$schema_version, "bayesian-network-v1")
+  expect_equal(parsed$metadata$issuer, "abn::export_abnFit")
+  expect_true("configs" %in% names(parsed$metadata))
+  expect_true("extensions" %in% names(parsed$metadata))
+  expect_true("inference" %in% names(parsed))
+  expected_inference <- if (identical(fit$method, "bayes")) {
+    "bayesian"
+  } else {
+    "maximum_likelihood"
+  }
+  expect_equal(parsed$inference$type, expected_inference)
   expect_true("variables" %in% names(parsed))
   expect_true("parameters" %in% names(parsed))
   expect_true("arcs" %in% names(parsed))
-  if (!is.null(parsed$method)) expect_equal(parsed$method, fit$method)
 
   variables <- json_fixture_collect_rows(parsed$variables)
   parameters <- json_fixture_collect_rows(parsed$parameters)
@@ -84,38 +95,41 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
   expect_equal(length(arcs), json_fixture_expected_arc_count(fit))
 
   variable_ids <- vapply(variables, function(variable) {
-    expect_true("variable_id" %in% names(variable))
-    expect_true("attribute_name" %in% names(variable))
-    expect_true("model_type" %in% names(variable))
-    json_fixture_field(variable, "variable_id")
+    expect_true("id" %in% names(variable))
+    expect_true("name" %in% names(variable))
+    expect_true("type" %in% names(variable))
+    json_fixture_field(variable, "id")
   }, character(1))
-  variable_names <- vapply(variables, json_fixture_field, character(1), "attribute_name")
-  variable_types <- vapply(variables, json_fixture_field, character(1), "model_type")
+  variable_names <- vapply(variables, json_fixture_field, character(1), "name")
+  variable_types <- vapply(variables, json_fixture_field, character(1), "type")
   expect_equal(anyDuplicated(variable_ids), 0L)
   expect_setequal(variable_names, names(dists))
+  expected_types <- unname(unlist(stats::setNames(lapply(dists, function(x) {
+    switch(x, gaussian = "continuous", binomial = "binary",
+           poisson = "count", multinomial = "categorical")
+  }), names(dists))))
   expect_equal(unname(variable_types[match(names(dists), variable_names)]),
-               unname(unlist(dists)))
+               expected_types)
 
   for (arc in arcs) {
-    expect_true("source_variable_id" %in% names(arc))
-    expect_true("target_variable_id" %in% names(arc))
-    expect_true(as.character(arc$source_variable_id) %in% variable_ids)
-    expect_true(as.character(arc$target_variable_id) %in% variable_ids)
+    expect_true("source" %in% names(arc))
+    expect_true("target" %in% names(arc))
+    expect_true(as.character(arc$source) %in% variable_ids)
+    expect_true(as.character(arc$target) %in% variable_ids)
   }
 
   multinomial_variable_ids <- character(0)
   for (variable in variables) {
-    if (identical(variable$model_type, "multinomial")) {
+    if (identical(variable$type, "categorical")) {
       multinomial_variable_ids <- c(multinomial_variable_ids,
-                                    as.character(variable$variable_id))
+                                    as.character(variable$id))
       expect_true("states" %in% names(variable))
       states <- json_fixture_collect_rows(variable$states)
       expect_gt(length(states), 0)
       state_ids <- vapply(states, function(state) {
-        expect_true("state_id" %in% names(state))
-        expect_true("value_name" %in% names(state))
-        expect_true("is_baseline" %in% names(state))
-        json_fixture_field(state, "state_id")
+        expect_true("id" %in% names(state))
+        expect_true("label" %in% names(state))
+        json_fixture_field(state, "id")
       }, character(1))
       expect_equal(anyDuplicated(state_ids), 0L)
     }
@@ -124,40 +138,19 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
 
   condition_types <- character(0)
   for (parameter in parameters) {
-    expect_true("parameter_id" %in% names(parameter))
-    expect_true("name" %in% names(parameter))
-    expect_true("link_function_name" %in% names(parameter))
-    expect_true("source" %in% names(parameter))
-    expect_true("coefficients" %in% names(parameter))
-
-    source <- parameter$source
-    if (is.list(source) && length(source) == 1 && is.list(source[[1]])) {
-      source <- source[[1]]
-    }
-    expect_true("variable_id" %in% names(source))
-    expect_true(json_fixture_field(source, "variable_id") %in% variable_ids)
-
-    coefficients <- json_fixture_collect_rows(parameter$coefficients)
-    expect_gt(length(coefficients), 0)
-    for (coefficient in coefficients) {
-      expect_true("value" %in% names(coefficient))
-      expect_true("stderr" %in% names(coefficient))
-      expect_true("condition_type" %in% names(coefficient))
-      expect_true("conditions" %in% names(coefficient))
-      condition_types <- c(condition_types, as.character(coefficient$condition_type))
-
-      conditions <- json_fixture_collect_rows(coefficient$conditions)
-      for (condition in conditions) {
-        expect_true("parent_variable_id" %in% names(condition))
-        expect_true(json_fixture_field(condition, "parent_variable_id") %in% variable_ids)
-        if (!is.null(condition$parent_state_id)) {
-          expect_true(json_fixture_field(condition, "parent_variable_id") %in% variable_ids)
-        }
-      }
+    expect_true("id" %in% names(parameter))
+    expect_true("target" %in% names(parameter))
+    expect_true("kind" %in% names(parameter))
+    expect_true("value" %in% names(parameter))
+    expect_true(parameter$target %in% variable_ids)
+    condition_types <- c(condition_types, as.character(parameter$kind))
+    if (!is.null(parameter$parents)) {
+      expect_true(all(unlist(parameter$parents) %in% variable_ids))
     }
   }
 
   if (grouped) {
+    expect_true("abn" %in% names(parsed$metadata$extensions))
     expect_true(any(condition_types %in% c("variance", "random_variance",
                                           "random_covariance")))
   }
@@ -194,8 +187,9 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
   }
 
   if (original_model) {
-    expect_true("original_model" %in% names(imported))
-    expect_true(is.list(imported$original_model))
+    expect_true("metadata" %in% names(parsed))
+    expect_equal(parsed$metadata$issuer, "abn::export_abnFit")
+    expect_true("abn" %in% names(parsed$metadata$extensions))
   }
 
   if (!is.null(parsed)) {
@@ -204,8 +198,8 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
     arcs <- json_fixture_collect_rows(parsed$arcs)
 
     id_to_name <- stats::setNames(
-      vapply(variables, json_fixture_field, character(1), "attribute_name"),
-      vapply(variables, json_fixture_field, character(1), "variable_id")
+      vapply(variables, json_fixture_field, character(1), "name"),
+      vapply(variables, json_fixture_field, character(1), "id")
     )
     expect_equal(length(variables), length(dists))
     expect_equal(length(arcs), sum(imported$abnDag$dag == 1))
@@ -213,8 +207,8 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
     expected_dag <- matrix(0, nrow = length(dists), ncol = length(dists),
                            dimnames = list(names(dists), names(dists)))
     for (arc in arcs) {
-      source <- id_to_name[[json_fixture_field(arc, "source_variable_id")]]
-      target <- id_to_name[[json_fixture_field(arc, "target_variable_id")]]
+      source <- id_to_name[[json_fixture_field(arc, "source")]]
+      target <- id_to_name[[json_fixture_field(arc, "target")]]
       expect_true(source %in% names(dists))
       expect_true(target %in% names(dists))
       expected_dag[source, target] <- 1
@@ -223,11 +217,8 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
 
     exported_condition_types <- character(0)
     for (parameter in parameters) {
-      coefficients <- json_fixture_collect_rows(parameter$coefficients)
-      exported_condition_types <- c(
-        exported_condition_types,
-        vapply(coefficients, json_fixture_field, character(1), "condition_type")
-      )
+      exported_condition_types <- c(exported_condition_types,
+                                    json_fixture_field(parameter, "kind"))
     }
     expected_coef_count <- sum(exported_condition_types %in% c("intercept", "linear_term"))
     imported_coef_count <- sum(vapply(imported$coef, ncol, integer(1)))
@@ -239,10 +230,8 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
     }
 
     if (original_model) {
-      for (field in c("mlik", "mliknode", "used_INLA", "error_code",
-                      "error_code_desc", "hessian_accuracy")) {
-        expect_true(field %in% names(imported$original_model))
-      }
+      expect_true("abn" %in% names(parsed$metadata$extensions))
+      expect_true("inference" %in% names(parsed$metadata$extensions$abn))
     }
   }
 
@@ -379,26 +368,60 @@ json_fixture_assert_roundtrip <- function(original, imported, grouped = FALSE,
   }
 
   if (bayes) {
-    expect_true("original_model" %in% names(imported))
-    expect_equal(imported$original_model$mlik, original$mlik, tolerance = tolerance)
-    expect_equal(unlist(imported$original_model$mliknode), unname(original$mliknode),
+    expect_equal(imported$method, "bayes")
+    expect_equal(imported$mlik, original$mlik, tolerance = tolerance)
+    expect_equal(unlist(imported$mliknode), unname(original$mliknode),
                  tolerance = tolerance)
-    expect_equal(unlist(imported$original_model$used_INLA), unname(original$used.INLA))
-    expect_equal(unlist(imported$original_model$error_code), unname(original$error.code))
-    expect_equal(unlist(imported$original_model$error_code_desc),
-                 unname(original$error.code.desc))
-    expect_equal(unlist(imported$original_model$hessian_accuracy),
+    expect_equal(unlist(imported$used.INLA), unname(original$used.INLA))
+    expect_equal(unlist(imported$error.code), unname(original$error.code))
+    expect_equal(unlist(imported$error.code.desc), unname(original$error.code.desc))
+    expect_equal(unlist(imported$hessian.accuracy),
                  unname(original$hessian.accuracy), tolerance = tolerance)
   }
 
   if (fixed) {
-    expect_true("marginals" %in% names(imported$original_model))
-    expect_true("marginal_quantiles" %in% names(imported$original_model))
-    expect_equal(length(imported$original_model$marginals), length(original$marginals))
-    expect_equal(length(imported$original_model$marginal_quantiles),
+    expect_true("marginals" %in% names(imported))
+    expect_true("marginal.quantiles" %in% names(imported))
+    expect_equal(length(imported$marginals), length(original$marginals))
+    expect_equal(length(imported$marginal.quantiles),
                  length(original$marginal.quantiles))
   }
 
+  json_fixture_assert_native_fields(original, imported, tolerance = tolerance)
+
+  invisible(TRUE)
+}
+
+json_fixture_assert_native_fields <- function(original, imported,
+                                              tolerance = .Machine$double.eps^0.5) {
+  expect_setequal(
+    setdiff(names(imported), c("call", "abnDag")),
+    setdiff(names(original), c("call", "abnDag"))
+  )
+  for (field in setdiff(names(original), c("call", "abnDag"))) {
+    expect_equal(imported[[field]], original[[field]], tolerance = tolerance,
+                 info = paste("native field:", field))
+  }
+  invisible(TRUE)
+}
+
+json_fixture_generic_document <- function(json) {
+  document <- if (is.character(json)) {
+    jsonlite::fromJSON(json, simplifyVector = FALSE)
+  } else {
+    json
+  }
+  document$metadata <- NULL
+  document
+}
+
+json_fixture_assert_generic_roundtrip <- function(first, second,
+                                                  tolerance = .Machine$double.eps^0.5) {
+  expect_equal(
+    json_fixture_generic_document(first),
+    json_fixture_generic_document(second),
+    tolerance = tolerance
+  )
   invisible(TRUE)
 }
 

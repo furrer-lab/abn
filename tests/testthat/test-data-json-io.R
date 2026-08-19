@@ -161,7 +161,8 @@ data_json_column_metadata <- function(parsed, column_name) {
 expect_data_json_metadata <- function(parsed, data.df, spec) {
   expect_true("metadata" %in% names(parsed))
   expect_true("data" %in% names(parsed))
-  expect_equal(parsed$metadata$schema_version, "abn-data-v1")
+  expect_equal(parsed$metadata$schema_version, "bn-data-v1")
+  expect_equal(parsed$metadata$issuer, "abn::export_abnData")
   expect_equal(parsed$metadata$orientation, "columnar")
   expect_equal(unlist(parsed$metadata$column_order), colnames(data.df))
   expect_equal(names(parsed$data), colnames(data.df))
