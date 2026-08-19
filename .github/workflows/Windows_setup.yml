@@ -31,7 +31,19 @@ jobs:
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       - name: install GSL

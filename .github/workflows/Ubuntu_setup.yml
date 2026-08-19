@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "fix_os_installs"
 
 env:
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -32,23 +33,31 @@ jobs:
           sudo apt-get update && sudo apt-get upgrade
 
       - name: install R
-        run: |
-          sudo apt-get -y install r-base
-
-      - name: fixing folder perms for local lib
-        run: |
-          sudo chown root:adm -R /usr/lib/R
-          sudo chmod g+w -R /usr/lib/R
-          sudo chown root:adm -R /usr/local/lib/R
-          sudo chmod g+w -R /usr/local/lib/R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: "4.5.2"
+          use-public-rspm: true
 
       - name: install config and build dependencies
         run: |
           sudo apt-get -y install libcurl4-openssl-dev  # needed for pak
+          sudo apt-get -y install graphviz libgraphviz-dev  # needed for Rgraphviz
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       # - name: install from CRAN with pak
