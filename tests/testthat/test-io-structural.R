@@ -8,8 +8,8 @@ library(abn)
 test_that("generic parameter IDs and references are structural", {
   fit <- create_test_abnfit_mle()
   parsed <- .parse_json(export_abnFit(fit))
-  variable_ids <- vapply(parsed$variables, function(x) as.character(x$id), character(1))
-  parameter_ids <- vapply(parsed$parameters, function(x) as.character(x$id), character(1))
+  variable_ids <- vapply(parsed$variables, function(x) as.character(x$`_id`), character(1))
+  parameter_ids <- vapply(parsed$parameters, function(x) as.character(x$`_id`), character(1))
 
   expect_equal(anyDuplicated(variable_ids), 0L)
   expect_equal(anyDuplicated(parameter_ids), 0L)

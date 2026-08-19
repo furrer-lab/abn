@@ -5,7 +5,7 @@ json_export_rows <- function(value) {
 }
 
 json_export_ids <- function(rows) {
-  vapply(rows, function(row) as.character(row$id), character(1))
+  vapply(rows, function(row) as.character(row$`_id`), character(1))
 }
 
 test_that("export_abnFit emits the generic network document", {
@@ -42,23 +42,25 @@ test_that("network objects use stable generic IDs and references", {
 
   expect_equal(anyDuplicated(variable_ids), 0L)
   expect_equal(anyDuplicated(parameter_ids), 0L)
-  expect_setequal(variable_ids, names(fit$abnDag$data.dists))
+  expect_equal(variable_ids, as.character(seq_along(variable_ids)))
 
   for (variable in variables) {
-    expect_named(variable, c("id", "name", "type"), ignore.order = TRUE)
-    expect_equal(variable$id, variable$name)
+    expect_true(all(c("_id", "name", "type") %in% names(variable)))
+    optional <- setdiff(names(variable), c("_id", "name", "type"))
+    expect_setequal(optional,
+                    if (identical(variable$type, "categorical")) "states" else character())
   }
 
   for (arc in json_export_rows(document$arcs)) {
     expect_named(arc, c("source", "target"), ignore.order = TRUE)
-    expect_true(arc$source %in% variable_ids)
-    expect_true(arc$target %in% variable_ids)
+    expect_true(as.character(arc$source) %in% variable_ids)
+    expect_true(as.character(arc$target) %in% variable_ids)
     expect_false(identical(arc$source, arc$target))
   }
 
   for (parameter in json_export_rows(document$parameters)) {
-    expect_true(parameter$id %in% parameter_ids)
-    expect_true(parameter$target %in% variable_ids)
+    expect_true(parameter$`_id` %in% as.integer(parameter_ids))
+    expect_true(as.character(parameter$target) %in% variable_ids)
     if (!is.null(parameter$parents)) {
       expect_true(all(unlist(parameter$parents) %in% variable_ids))
     }

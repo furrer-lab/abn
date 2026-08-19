@@ -7,39 +7,39 @@ json_import_generic_document <- function() {
       extensions = list()
     ),
     variables = list(
-      list(id = "height", name = "height", type = "continuous"),
+      list(`_id` = 1, name = "height", type = "continuous"),
       list(
-        id = "status",
+        `_id` = 2,
         name = "status",
         type = "binary",
         states = list(
-          list(id = "no", label = "no"),
-          list(id = "yes", label = "yes")
+          list(`_id` = 1, label = "no"),
+          list(`_id` = 2, label = "yes")
         )
       )
     ),
-    arcs = list(list(source = "height", target = "status")),
+    arcs = list(list(source = 1, target = 2)),
     parameters = list(
       list(
-        id = "height-intercept",
-        target = "height",
+        `_id` = 1,
+        target = 1,
         kind = "intercept",
         link = "identity",
         value = 1.2,
         uncertainty = list(standard_error = 0.1)
       ),
       list(
-        id = "status-intercept",
-        target = "status",
+        `_id` = 2,
+        target = 2,
         kind = "intercept",
         link = "logit",
         value = -0.42,
         uncertainty = list(standard_error = 0.2)
       ),
       list(
-        id = "status-height",
-        target = "status",
-        parents = list("height"),
+        `_id` = 3,
+        target = 2,
+        parents = list(1),
         kind = "coefficient",
         link = "logit",
         value = 0.87,

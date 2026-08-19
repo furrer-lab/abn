@@ -95,10 +95,10 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
   expect_equal(length(arcs), json_fixture_expected_arc_count(fit))
 
   variable_ids <- vapply(variables, function(variable) {
-    expect_true("id" %in% names(variable))
+    expect_true("_id" %in% names(variable))
     expect_true("name" %in% names(variable))
     expect_true("type" %in% names(variable))
-    json_fixture_field(variable, "id")
+    json_fixture_field(variable, "_id")
   }, character(1))
   variable_names <- vapply(variables, json_fixture_field, character(1), "name")
   variable_types <- vapply(variables, json_fixture_field, character(1), "type")
@@ -122,14 +122,14 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
   for (variable in variables) {
     if (identical(variable$type, "categorical")) {
       multinomial_variable_ids <- c(multinomial_variable_ids,
-                                    as.character(variable$id))
+                                     as.character(variable$`_id`))
       expect_true("states" %in% names(variable))
       states <- json_fixture_collect_rows(variable$states)
       expect_gt(length(states), 0)
       state_ids <- vapply(states, function(state) {
-        expect_true("id" %in% names(state))
+        expect_true("_id" %in% names(state))
         expect_true("label" %in% names(state))
-        json_fixture_field(state, "id")
+        json_fixture_field(state, "_id")
       }, character(1))
       expect_equal(anyDuplicated(state_ids), 0L)
     }
@@ -138,7 +138,7 @@ json_fixture_assert_export <- function(fit, dists, grouped = FALSE,
 
   condition_types <- character(0)
   for (parameter in parameters) {
-    expect_true("id" %in% names(parameter))
+    expect_true("_id" %in% names(parameter))
     expect_true("target" %in% names(parameter))
     expect_true("kind" %in% names(parameter))
     expect_true("value" %in% names(parameter))
@@ -199,7 +199,7 @@ json_fixture_assert_import <- function(imported, method, dists, grouped = FALSE,
 
     id_to_name <- stats::setNames(
       vapply(variables, json_fixture_field, character(1), "name"),
-      vapply(variables, json_fixture_field, character(1), "id")
+      vapply(variables, json_fixture_field, character(1), "_id")
     )
     expect_equal(length(variables), length(dists))
     expect_equal(length(arcs), sum(imported$abnDag$dag == 1))
@@ -452,12 +452,12 @@ json_fixture_canonical_abn_json <- function(parsed) {
 
   if (!is.null(parsed$variables)) {
     parsed$variables <- json_fixture_sort_json_rows(parsed$variables, function(variable) {
-      json_fixture_field(variable, "id")
+      json_fixture_field(variable, "_id")
     })
     parsed$variables <- lapply(parsed$variables, function(variable) {
       if (!is.null(variable$states)) {
         variable$states <- json_fixture_sort_json_rows(variable$states, function(state) {
-          json_fixture_field(state, "id")
+          json_fixture_field(state, "_id")
         })
       }
       variable
@@ -466,7 +466,7 @@ json_fixture_canonical_abn_json <- function(parsed) {
 
   if (!is.null(parsed$parameters)) {
     parsed$parameters <- json_fixture_sort_json_rows(parsed$parameters, function(parameter) {
-      json_fixture_field(parameter, "id")
+      json_fixture_field(parameter, "_id")
     })
   }
 
