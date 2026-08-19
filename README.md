@@ -158,7 +158,7 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
  
   ```bash
   brew install wget
-  brew install openssl@1.1
+  brew install openssl@3
   ```
 
   <ins>**Dependencies**</ins>
