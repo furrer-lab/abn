@@ -183,14 +183,11 @@ array within each coefficient.
 
 \examples{
 \dontrun{
-# Load example data and fit a model
-library(abn)
-data(ex1.dag.data)
-
-# Define distributions
+# Fit a model
 mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
                 b2 = "binomial", p2 = "poisson", g2 = "gaussian",
-                b3 = "binomial", g3 = "gaussian")
+                b3 = "binomial", b4 = "binomial", b5 = "binomial",
+                g3 = "gaussian")
 
 # Build score cache
 mycache <- buildScoreCache(data.df = ex1.dag.data,
