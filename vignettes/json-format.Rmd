@@ -1,0 +1,308 @@
+---
+title: "Interoperable JSON Formats for Bayesian Networks"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Interoperable JSON Formats for Bayesian Networks}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+```{r setup}
+library(abn)
+library(jsonlite)
+```
+
+# Purpose
+
+This vignette specifies the JSON formats used to exchange Bayesian-network data
+and fitted networks between tools. The formats are deliberately generic. `abn`
+is one producer and consumer of these documents, but the documents are not a
+serialization of the internal R `abnFit` object.
+
+There are two complementary formats:
+
+* **Data JSON** stores observations and the metadata needed to interpret them.
+* **Network JSON** stores variables, graph structure, model parameters, and
+  inference results.
+
+They can be exchanged independently or used together. A model-only network
+document does not contain observations by default.
+
+# Metadata and extensions
+
+Both formats use a top-level `metadata` object. Generic fields describe the
+document itself; issuer-specific settings and annotations are kept in extensions.
+
+```json
+{
+  "metadata": {
+    "schema_version": "bayesian-network-v1",
+    "issuer": "abn::export_abnFit",
+    "issuer_version": "3.1.13",
+    "configs": {},
+    "extensions": {
+      "abn": {
+        "configs": {},
+        "extra": {
+          "variables": {
+            "2": {"native_name": "status"}
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`issuer` identifies the tool and operation that produced the document. Generic
+consumers should not need to understand it. `configs` contains settings that
+affect interpretation or reproducibility. `extensions` contains issuer-specific
+information attached to genuine objects in the document.
+
+Extension namespaces should identify their issuer. Within an extension, object
+annotations are keyed by the corresponding object ID. For example,
+`extensions.abn.variables["2"]` annotates the variable with `_id` `2`.
+The `extra` object may contain `variables`, `arcs`, `parameters`, or `inference`
+collections keyed by the corresponding document-local `_id`. These are overlays:
+they contain only issuer-specific properties and must not repeat generic values.
+
+`_id` values are document-local join keys. They must be unique within each
+object collection, but have no meaning outside the document and need not be
+preserved across exports. References must use `_id` values, never display names.
+An extension referring to an ID
+that is absent from the genuine object is not fatal: importers should ignore it
+and issue a warning. Unknown extension namespaces and properties should likewise
+be ignored by consumers that do not understand them.
+
+# Data JSON
+
+The data format is identified by `metadata.schema_version = "bn-data-v1"`.
+The payload is column-oriented and contains values only; interpretation belongs
+in metadata.
+
+```json
+{
+  "metadata": {
+    "schema_version": "bn-data-v1",
+    "issuer": "abn::export_abnData",
+    "orientation": "columnar",
+    "column_order": ["height", "status"],
+    "missing_values": {
+      "missing": null,
+      "not_a_number": "NaN",
+      "positive_infinity": "Infinity",
+      "negative_infinity": "-Infinity"
+    },
+    "columns": [
+      {
+        "name": "height",
+        "role": "node",
+        "semantic_type": "continuous",
+        "model_distribution": "gaussian",
+        "value_encoding": "number"
+      },
+      {
+        "name": "status",
+        "role": "node",
+        "semantic_type": "binary",
+        "model_distribution": "binomial",
+        "value_encoding": "labels",
+        "categories": ["no", "yes"]
+      }
+    ],
+    "extensions": {}
+  },
+  "data": {
+    "height": [1.72, 1.81, 1.65],
+    "status": ["yes", "no", "yes"]
+  }
+}
+```
+
+Column metadata can describe node, group, ignored, and auxiliary columns.
+`model_distribution` is used for node columns and is omitted for grouping
+columns. Categories, encodings, ordering, nullability, and declared special
+numeric values make the representation portable across languages.
+
+R-specific details such as factor levels and row names may be placed under an
+adapter namespace such as `metadata.adapters.r`; they do not define the general
+format. Optional derived summaries belong under `metadata.summary` and must be
+validated against inline data.
+
+## Using data JSON with `abn`
+
+`abn` can export and import the portable data document as follows:
+
+```{r}
+data(g2b2c_data)
+data_json <- export_abnData(
+  data.df = g2b2c_data,
+  data.dists = list(G1 = "gaussian", B1 = "binomial", B2 = "binomial",
+                    C = "multinomial", G2 = "gaussian")
+)
+restored <- import_abnData(json = data_json)
+str(restored$data.df)
+restored$data.dists
+```
+
+The restored `data.df` and `data.dists` can then be supplied to the normal
+`abn` structure-learning workflow.
+
+This section is the normative description of the raw-data format. The former
+standalone data JSON vignette has been consolidated here so that the two JSON
+formats have one authoritative documentation home.
+
+# Network JSON
+
+The network format is identified by `metadata.schema_version =
+"bayesian-network-v1"`. Its interoperable core consists of four concepts:
+
+* `variables` declares nodes and their types or states.
+* `arcs` declares directed edges using source and target `_id` values.
+* `parameters` declares fitted quantities and their targets, parents, links, and
+  values.
+* `inference` contains generic fitting method, estimates, uncertainty, posterior
+  results, and diagnostics that are meaningful independently of the producing
+  software.
+
+```json
+{
+  "metadata": {
+    "schema_version": "bayesian-network-v1",
+    "issuer": "abn::export_abnFit",
+    "issuer_version": "3.1.13",
+    "configs": {},
+    "extensions": {}
+  },
+  "variables": [
+    {"_id": 1, "name": "height", "type": "continuous"},
+    {
+      "_id": 2, "name": "status", "type": "binary",
+      "states": [{"_id": 1, "label": "no"},
+                  {"_id": 2, "label": "yes"}]
+    }
+  ],
+  "arcs": [{"source": 1, "target": 2}],
+  "parameters": [
+    {
+      "_id": 1,
+      "target": 2,
+      "kind": "intercept",
+      "link": "logit",
+      "value": -0.42
+    },
+    {
+      "_id": 2,
+      "target": 2,
+      "parents": [1],
+      "kind": "coefficient",
+      "link": "logit",
+      "value": 0.87
+    }
+  ],
+  "inference": {
+    "type": "bayesian",
+    "estimates": {},
+    "uncertainty": {},
+    "diagnostics": {}
+  }
+}
+```
+
+The core deliberately uses generic terms such as `type`, `kind`, `target`,
+`parents`, and `value`. A tool may add standard uncertainty fields or richer
+posterior representations without exposing its internal object layout.
+
+The generic core contains only information needed by an independent
+Bayesian-network tool to understand, display, or use the mathematical model.
+For example, an `abn` exporter records engine-specific diagnostics under
+`metadata.extensions.abn`, while generic inference information remains in
+`inference`:
+
+```json
+{
+  "metadata": {
+    "extensions": {
+      "abn": {
+        "configs": {"compute_fixed": true},
+        "diagnostics": {
+          "used_inla": {"status": true},
+          "error_code": {"status": 0},
+          "error_code_desc": {"status": "success"},
+          "hessian_accuracy": {"status": 0}
+        },
+        "extra": {
+          "parameters": {
+            "3": {"native_name": "status|height"}
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+## Network structure and `include_network`
+
+`export_abnFit(..., include_network = TRUE)` includes the DAG representation:
+the `variables` and `arcs` collections. This is the default because a fitted
+network is normally not interpretable without its graph. With
+`include_network = FALSE`, the exporter omits the network structure while still
+exporting fitted quantities and their object references. Such a document is
+useful when the graph is managed separately, but a consumer must obtain the
+referenced variables and arcs from another source.
+
+## Using network JSON with `abn`
+
+An `abn` fit can be exchanged through the generic network format:
+
+```{r}
+data(ex1.dag.data)
+mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
+                b2 = "binomial", p2 = "poisson", g2 = "gaussian",
+                b3 = "binomial", g3 = "gaussian")
+cache <- buildScoreCache(ex1.dag.data, data.dists = mydists,
+                          method = "mle", max.parents = 2)
+fit <- fitAbn(mostProbable(cache), method = "mle")
+
+network_json <- export_abnFit(fit, include_network = TRUE)
+fit_again <- import_abnFit(json = network_json)
+```
+
+The import operation is an `abn` adapter: it reconstructs an R-native object
+from the generic document. Other Bayesian-network tools can consume the generic
+core without reconstructing an `abnFit` object.
+
+# Validation and compatibility
+
+Consumers should validate the following core rules:
+
+1. The schema version is supported and required collections have the right shape.
+2. `_id` values are unique within each collection and all references resolve.
+3. Arc, parameter, state, and extension references resolve to declared `_id` values.
+4. Variable types, states, links, and parameter kinds are compatible.
+5. Arcs do not contain self-links or duplicate edges.
+6. A network declared as a DAG contains no directed cycles.
+7. Data columns have consistent lengths and obey their declared encodings.
+
+Unknown top-level optional fields, metadata fields, extension namespaces, and
+extension properties should be ignored unless strict validation is requested.
+The `extra` overlay must not repeat a generic value under `metadata.extensions`;
+duplicate values are malformed even when they happen to be equal.
+Missing extension `_id` references are specifically non-fatal and should produce warnings.
+
+# Design summary
+
+The formats separate portable Bayesian-network concepts from implementation
+details. `metadata.issuer` provides provenance, `metadata.configs.label` may
+provide an optional document label, and `metadata.extensions` provides
+namespaced ABN annotations and engine diagnostics. Document-local `_id` values
+are JSON bookkeeping only; they make overlays safe to join and may be
+regenerated by every export.
+
+See `export_abnData()`, `import_abnData()`, `export_abnFit()`, and
+`import_abnFit()` for the `abn` adapters.
