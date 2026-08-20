@@ -1,0 +1,309 @@
+---
+title: "The fitAbn JSON Property Specification"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The fitAbn JSON Property Specification}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", eval = FALSE)
+```
+
+# Purpose and scope
+
+The vignette **Interoperable JSON Formats for Bayesian Networks** defines the
+generic network and raw-data JSON formats. This vignette defines the adapter
+between that generic network format and the R-specific `fitAbn` object.
+
+The specification has two purposes:
+
+1. document where each relevant native `fitAbn` property is represented;
+2. drive property-specific import and export routines.
+
+The generic JSON core is the interoperability contract. The specification below
+does not make `fitAbn` fields into generic JSON fields. ABN-specific information
+belongs in the namespaced overlay described under
+`metadata.extensions.abn.extra`.
+
+This is the only vignette describing conversion between the generic JSON
+document and the native `abnFit` object. The executable property specification
+in `R/json_property_spec.R` is its implementation counterpart.
+
+# What is a `fitAbn` object?
+
+`fitAbn()` returns an object of class `abnFit`. Its contents depend on the fitting
+method and on whether a grouping variable was used. The object contains a
+fitted Bayesian network together with the fitted conditional models for its
+nodes.
+
+The common network component is `abnDag`, which contains, among other things:
+
+* `abnDag$dag`, the directed adjacency matrix;
+* `abnDag$data.dists`, the distribution assigned to each node;
+* `abnDag$data.df`, the data used by the R fitting workflow.
+
+Model JSON represents the first two through the generic `variables` and `arcs`
+collections. `data.df` is not part of a model-only network document. Raw data
+has its own `bn-data-v1` format, described in `json-format.Rmd`.
+
+The fitting method is stored in the native property `method`, with values
+`"mle"` or `"bayes"`.
+
+## JSON bookkeeping is not a `fitAbn` property
+
+The generic JSON document uses `_id` values for internal references:
+
+```json
+{
+  "variables": [
+    {"_id": 1, "name": "height", "type": "continuous"},
+    {"_id": 2, "name": "status", "type": "binary"}
+  ],
+  "arcs": [{"source": 1, "target": 2}]
+}
+```
+
+`_id` is not part of `fitAbn`, is not a persistent parameter or node identity,
+and must not appear in the native-property inventory. It is only a
+document-local join key. An exporter may regenerate it, and an importer may
+discard it after resolving references.
+
+# Single source of truth
+
+Every native property has one authoritative value location. A value must not be
+copied into both the generic core and ABN metadata. The ABN overlay may add
+information needed to interpret a generic object, but it must not repeat generic
+values.
+
+The specification uses these concepts:
+
+* **Generic core**: interoperable network, parameter, inference, or posterior
+  data;
+* **ABN-only value**: information with no suitable generic representation;
+* **ABN overlay**: additional ABN-specific properties attached to core objects
+  using the same document-local `_id`;
+* **Derived**: a native property reconstructed from other declared values;
+* **Excluded**: a non-portable property deliberately not exchanged.
+
+The overlay is an object-specific extension layer:
+
+```json
+{
+  "variables": [
+    {"_id": 2, "name": "status", "type": "binary"}
+  ],
+  "metadata": {
+    "extensions": {
+      "abn": {
+        "extra": {
+          "variables": {
+            "2": {"native_distribution": "binomial"}
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The overlay entry keyed by `"2"` refers to the variable with `_id = 2`. It may
+contain `native_distribution`, but must not repeat `name`, `type`, or other
+generic values. Unknown overlay properties are ignored by consumers that do not
+understand them.
+
+# Import and export procedure
+
+Both routines are driven by the property specification.
+
+## Export
+
+For each native property, export:
+
+1. inspect whether the property is present for this fit type;
+2. write its value to its one authoritative generic or ABN-only location;
+3. write only required ABN overlay information for core objects;
+4. validate that no value has been duplicated elsewhere.
+
+## Import
+
+For each native property, import:
+
+1. inspect its declared generic core source, if any;
+2. inspect its declared generic metadata source, if any;
+3. inspect its declared ABN-only or overlay source, if any;
+4. merge a generic value with overlay information only where specified;
+5. reconstruct or omit the native property according to its presence rule.
+
+If two sources contain the same logical value, the JSON is malformed. Equal
+duplicates produce a warning; conflicting values produce an error by default.
+An explicit permissive mode may choose `core` or `metadata`, but still warns
+about the duplicate. Overlay coordinates or names are not duplicate values and
+may be merged with a core value.
+
+# Common native properties
+
+| Native property | Presence | Generic representation | ABN-only information |
+|---|---|---|---|
+| `abnDag$dag` | Always | `variables` and `arcs` | None |
+| `abnDag$data.dists` | Always | `variables[].type` | Optional native distribution detail in overlay |
+| `abnDag$data.df` | Always in the R object | Not in model-only network JSON | Optional separate raw-data document |
+| `method` | Always | `inference.type` | None |
+| `call` | Not a portable fit property | None | Excluded |
+
+`label` is an optional JSON-adapter/document field stored in
+`metadata.configs.label`. It is not a property created by `fitAbn()`. The
+`scenario_id` adapter option is deliberately not part of this format.
+
+# Maximum-likelihood fits
+
+## Ungrouped MLE
+
+For an ungrouped MLE fit, the native fitted-model properties are:
+
+| Native property | Presence | Generic location | ABN overlay use |
+|---|---|---|---|
+| `coef` | Present | `parameters[].value` | Native names or matrix paths only if needed |
+| `Stderror` | Present | `parameters[].uncertainty.standard_error` | Native layout only if needed |
+| `mliknode` | Present | `inference.diagnostics.mliknode` | None |
+| `mlik` | Present | `inference.diagnostics.mlik` | None |
+| `aicnode` | Present | `inference.diagnostics.aicnode` | None |
+| `aic` | Present | `inference.diagnostics.aic` | None |
+| `bicnode` | Present | `inference.diagnostics.bicnode` | None |
+| `bic` | Present | `inference.diagnostics.bic` | None |
+| `mdlnode` | Present | `inference.diagnostics.mdlnode` | None |
+| `mdl` | Present | `inference.diagnostics.mdl` | None |
+| `df` | Present | `inference.diagnostics.df` | None |
+| `sse` | Present | `inference.diagnostics.sse` | None |
+| `mse` | Present | `inference.diagnostics.mse` | None |
+
+## Grouped MLE
+
+For a grouped MLE fit, the native object contains grouping configuration and
+random-effect summaries rather than the ungrouped `coef`/`Stderror` layout:
+
+| Native property | Presence | Generic location | ABN-only location |
+|---|---|---|---|
+| `group.var` | Grouped fits | None | `metadata.extensions.abn.configs.group_var` |
+| `group.ids` | Grouped fits | None | `metadata.extensions.abn.configs.group_ids` |
+| `grouped.vars` | Grouped fits | None | `metadata.extensions.abn.configs.grouped_vars` |
+| `mu` | Grouped fits | `parameters[].value` | Overlay layout only if needed |
+| `betas` | Grouped fits | `parameters[].value` | Overlay layout only if needed |
+| `sigma` | Grouped fits | `parameters[].value` | Overlay layout only if needed |
+| `sigma_alpha` | Grouped fits | `parameters[].value` | Overlay layout only if needed |
+| MLE diagnostics | Present | `inference.diagnostics` | None |
+
+Grouping configuration is ABN-specific. Grouped parameter values remain in the
+generic `parameters` collection and must not be copied into the overlay.
+
+# Bayesian fits
+
+Bayesian fitting produces the following native properties:
+
+| Native property | Presence | Generic location | ABN overlay use |
+|---|---|---|---|
+| `coef` | Present | `parameters[].value` | Native layout only if needed |
+| `modes` | Present | `inference.estimates` | Native names only if needed |
+| `mliknode` | Present | `inference.diagnostics.mliknode` | None |
+| `mlik` | Present | `inference.diagnostics.mlik` | None |
+| `mse` | Conditional | `inference.diagnostics.mse` | None |
+| `used.INLA` | Present | None | `metadata.extensions.abn.diagnostics.used_inla` |
+| `error.code` | Present | None | `metadata.extensions.abn.diagnostics.error_code` |
+| `error.code.desc` | Present | None | `metadata.extensions.abn.diagnostics.error_code_desc` |
+| `hessian.accuracy` | Present | None | `metadata.extensions.abn.diagnostics.hessian_accuracy` |
+
+## Bayesian posterior results
+
+When posterior computation is requested, the native properties are:
+
+| Native property | Presence | Generic location | ABN overlay use |
+|---|---|---|---|
+| `marginals` | Conditional | `inference.posterior.marginals` | Layout only if needed |
+| `marginal.quantiles` | Conditional | `inference.posterior.quantiles` | Layout only if needed |
+
+Posterior values belong to the generic core. They must not be repeated under
+`metadata.extensions.abn.extra`.
+
+# What does `coef` mean?
+
+For a node `Y`, `fitAbn$coef[[Y]]` contains the fitted parameters of the node's
+conditional distribution:
+
+```text
+P(Y | parents(Y))
+```
+
+The DAG identifies `parents(Y)`, and `abnDag$data.dists` identifies the node's
+distribution. Together, they determine the conditional model:
+
+* a Gaussian node uses a conditional Gaussian regression;
+* a binomial node uses a conditional logistic model;
+* a Poisson node uses a conditional log-linear model;
+* a multinomial node uses state-specific conditional models.
+
+The generic `parameters` collection is therefore the Bayesian-network
+representation of these conditional-model parameters. A parameter can be
+represented as:
+
+```json
+{
+  "_id": 3,
+  "target": 2,
+  "parents": [1],
+  "kind": "coefficient",
+  "link": "logit",
+  "value": 0.87
+}
+```
+
+Here `target` is the child node, `parents` are its parent nodes, `kind` identifies
+an intercept, coefficient, variance, or covariance term, `link` describes the
+conditional model link, and `value` is one fitted conditional-model parameter.
+
+The generic fields are sufficient when they uniquely determine the native R
+layout. An overlay is needed only when they do not, for example to preserve a
+native coefficient name or an unambiguous matrix position:
+
+```json
+{
+  "metadata": {
+    "extensions": {
+      "abn": {
+        "extra": {
+          "parameters": {
+            "3": {
+              "native_name": "status|height",
+              "native_path": ["coef", "status", 1, 2]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The overlay does not repeat the parameter's `value`, `target`, `parents`, or
+`kind`; those remain solely in the generic parameter object.
+
+# Specification-driven routines
+
+The implementation is intended to provide two internal routines driven by the
+property specification:
+
+```r
+abn_json_export_property(fit, specification, property, context)
+abn_json_import_property(document, specification, property,
+                         conflict = "error", context)
+```
+
+The export routine returns a JSON fragment and an ownership record. The import
+routine returns a native property, its source locations, and whether overlay
+information or derivation was used.
+
+# Reference
+
+See `vignettes/json-format.Rmd` for the complete generic network and raw-data
+formats. This vignette specifies only the `abn` adapter mapping and does not
+replace the generic JSON format.
