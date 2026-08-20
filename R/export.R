@@ -672,6 +672,7 @@ export_abnFit <- function(object, format = "json", include_network = TRUE,
     scenario_id = scenario_id,
     label = label
   )
+  abn_json_validate_document_sources(export_list, conflict = "error")
 
   # Convert to desired format
   if (format == "json") {
@@ -829,13 +830,15 @@ normalize_abn_network_document <- function(export_list, object,
   )
   extensions <- list(abn = list(configs = list(), variables = list(),
                                 parameters = abn_parameters, inference = list(),
-                                native_fields = list()))
+                                native_fields = list(), native_presence = list()))
   native_excluded <- c("abnDag", "coef", "Stderror", "method", "call")
   for (field in setdiff(names(object), native_excluded)) {
     extensions$abn$native_fields[[field]] <- export_json_safe(object[[field]])
+    extensions$abn$native_presence[[field]] <- TRUE
   }
-  if (!is.null(scenario_id)) inference$diagnostics$scenario_id <- scenario_id
-  if (!is.null(label)) inference$diagnostics$label <- label
+  for (field in c("coef", "Stderror", "multinomial.states", "scenario_id", "label")) {
+    extensions$abn$native_presence[[field]] <- field %in% names(object)
+  }
   if (!is.null(object$group.var)) extensions$abn$configs$group_var <- object$group.var
   if (!is.null(object$group.ids)) extensions$abn$configs$group_ids <- export_json_safe(object$group.ids)
   if (!is.null(object$grouped.vars)) extensions$abn$configs$grouped_vars <- export_json_safe(object$grouped.vars)
@@ -876,7 +879,6 @@ normalize_abn_network_document <- function(export_list, object,
   }
 
   configs <- list()
-  if (!is.null(scenario_id)) configs$scenario_id <- scenario_id
   if (!is.null(label)) configs$label <- label
   result <- list(
     metadata = list(schema_version = "bayesian-network-v1",
@@ -984,6 +986,17 @@ export_json_safe <- function(x, seen = list()) {
 
   if (is.factor(x)) return(as.character(x))
   if (inherits(x, "Date") || inherits(x, "POSIXt")) return(as.character(x))
+
+  if (is.atomic(x) && !is.null(names(x))) {
+    return(list(
+      `__abn_type` = "named_vector",
+      type = typeof(x),
+      values = lapply(unname(unclass(x)), function(value) {
+        if (length(value) == 0L || is.na(value)) NULL else value
+      }),
+      names = names(x)
+    ))
+  }
 
   if (is.data.frame(x)) {
     out <- lapply(x, export_json_safe, seen = seen)

@@ -165,7 +165,9 @@
 #'
 #' @importFrom jsonlite fromJSON
 #' @export
-import_abnFit <- function(file = NULL, json = NULL, validate = TRUE, ...) {
+import_abnFit <- function(file = NULL, json = NULL, validate = TRUE,
+                          conflict = c("error", "prefer_core", "prefer_metadata"), ...) {
+  conflict <- match.arg(conflict)
   # Input validation
   if (is.null(file) && is.null(json)) {
     stop("Either 'file' or 'json' must be provided")
@@ -193,6 +195,9 @@ import_abnFit <- function(file = NULL, json = NULL, validate = TRUE, ...) {
 
   # Validate the generic document structure.
   validate_json_structure(json_list)
+  if (isTRUE(validate)) {
+    abn_json_validate_document_sources(json_list, conflict = conflict)
+  }
 
   # Determine method (default to mle if not specified)
   method <- if (identical(json_list$inference$type, "bayesian")) {
@@ -650,10 +655,16 @@ reconstruct_abnfit_mle <- function(json_list) {
         abn_fit[[field]] <- import_json_safe(native_fields[[field]])
       }
     }
-    abn_fit$mlik <- import_abn_vector(native_inference$mlik, "numeric")
-    abn_fit$mliknode <- import_abn_vector(native_inference$mliknode, "numeric")
+    presence <- abn_extension$native_presence %||% list()
+    for (field in names(presence)) {
+      if (!isTRUE(presence[[field]]) && field %in% names(abn_fit)) {
+        abn_fit[[field]] <- NULL
+      }
+    }
+    abn_fit$mlik <- import_json_safe(native_inference$mlik)
+    abn_fit$mliknode <- import_json_safe(native_inference$mliknode)
     abn_fit$modes <- import_json_safe(native_inference$modes %||% NULL)
-    abn_fit$mse <- import_abn_vector(native_inference$mse, "numeric")
+    abn_fit$mse <- import_json_safe(native_inference$mse)
     abn_fit$used.INLA <- import_abn_vector(
       native_inference$used_INLA %||% native_inference$used_inla,
       "logical"
@@ -661,16 +672,16 @@ reconstruct_abnfit_mle <- function(json_list) {
     abn_fit$error.code <- import_abn_vector(native_inference$error_code, "numeric")
     abn_fit$error.code.desc <- import_abn_vector(native_inference$error_code_desc, "character")
     abn_fit$hessian.accuracy <- import_abn_vector(native_inference$hessian_accuracy, "numeric")
-    abn_fit$mliknode <- import_abn_vector(native_inference$mliknode, "numeric")
+    abn_fit$mliknode <- import_json_safe(native_inference$mliknode)
     abn_fit$pvalue <- import_abn_vector(native_inference$pvalue, "numeric")
     for (field in c("mlik", "aic", "bic", "mdl", "df", "sse", "mse")) {
       if (!is.null(native_inference[[field]])) {
-        abn_fit[[field]] <- import_abn_vector(native_inference[[field]], "numeric")
+        abn_fit[[field]] <- import_json_safe(native_inference[[field]])
       }
     }
     for (field in c("aicnode", "bicnode", "mdlnode")) {
       if (!is.null(native_inference[[field]])) {
-        abn_fit[[field]] <- import_abn_vector(native_inference[[field]], "numeric")
+        abn_fit[[field]] <- import_json_safe(native_inference[[field]])
       }
     }
   }
@@ -678,7 +689,7 @@ reconstruct_abnfit_mle <- function(json_list) {
   for (field in c("mliknode", "mlik", "aicnode", "aic", "bicnode", "bic",
                   "mdlnode", "mdl", "df", "sse", "mse", "pvalue")) {
     if (is.null(abn_fit[[field]]) && !is.null(generic_diagnostics[[field]])) {
-      abn_fit[[field]] <- import_abn_vector(generic_diagnostics[[field]], "numeric")
+      abn_fit[[field]] <- import_json_safe(generic_diagnostics[[field]])
     }
   }
   posterior <- json_list$inference$posterior %||% list()
@@ -816,6 +827,30 @@ validate_abnfit_object <- function(object) {
 
 import_json_safe <- function(x) {
   if (is.null(x)) return(NULL)
+  if (is.list(x) && identical(x$`__abn_type`, "named_vector")) {
+    raw_values <- x$values %||% list()
+    value_type <- x$type %||% "double"
+    values <- switch(value_type,
+                     double = numeric(length(raw_values)),
+                     numeric = numeric(length(raw_values)),
+                     integer = integer(length(raw_values)),
+                     logical = logical(length(raw_values)),
+                     character = character(length(raw_values)),
+                     vector(length(raw_values)))
+    for (index in seq_along(raw_values)) {
+      value <- raw_values[[index]]
+      if (is.null(value)) {
+        values[[index]] <- switch(value_type,
+                                  double = NA_real_, numeric = NA_real_,
+                                  integer = NA_integer_, logical = NA,
+                                  character = NA_character_, NA)
+      } else {
+        values[[index]] <- value
+      }
+    }
+    if (!is.null(x$names)) names(values) <- unlist(x$names, use.names = FALSE)
+    return(values)
+  }
   if (is.list(x) && length(x) > 0 &&
       all(vapply(x, function(value) !is.list(value) && length(value) == 1,
                  logical(1)))) {
