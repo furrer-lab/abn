@@ -1,0 +1,62 @@
+The ABN model was fitted using a Maximum Likelihood Estimation (MLE) approach.
+
+Coefficients:
+$gender
+     gender|intercept
+[1,]            -1.12
+
+$age_Consultation
+     age_Consultation|intercept
+[1,]                  -1.78e-17
+
+$Positive_familial_history
+     Positive_familial_history|intercept
+[1,]                                2.44
+
+$prf_hypertension_awareness
+     prf_hypertension_awareness|intercept
+[1,]                               -0.397
+
+$prf_smokedtobacco
+     prf_smokedtobacco|intercept.Former prf_smokedtobacco|intercept.Never
+[1,]                             -0.611                             0.111
+
+$aneurisk
+     aneurisk|intercept.Low aneurisk|intercept.Medium
+[1,]                 0.0356                     0.462
+
+$maxdiam
+     maxdiam|intercept
+[1,]         -1.68e-17
+
+$type
+     type|intercept
+[1,]         -0.567
+
+$side
+     side|intercept.Midline side|intercept.Right
+[1,]                 -0.558                0.364
+
+$modality
+     age_ConsultationMicroneurosurgery aneuriskLowMicroneurosurgery aneuriskMediumMicroneurosurgery
+[1,]                             0.275                         0.65                           -1.27
+     aneuriskHighMicroneurosurgery maxdiamMicroneurosurgery typeMicroneurosurgery mR_BaselineMicroneurosurgery
+[1,]                         0.685                     1.82                  1.34                        0.659
+     age_ConsultationObservation aneuriskLowObservation aneuriskMediumObservation aneuriskHighObservation
+[1,]                     -0.0308                 -0.369                    -0.983                   -2.61
+     maxdiamObservation typeObservation mR_BaselineObservation
+[1,]              0.456           0.593                     12
+
+$mR_Baseline
+     aneuriskLow aneuriskMedium aneuriskHigh maxdiam
+[1,]       -1.11         -0.992        -1.82  -0.172
+
+$mR_Discharge
+     modalityObservation modalityEndovascular modalityMicroneurosurgery mR_Baseline
+[1,]               -1.57               -0.081                    -0.275       0.993
+
+$mR_1
+     mR_1|intercept Positive_familial_history prf_hypertension_awareness maxdiam mR_Discharge
+[1,]         -0.347                    -0.488                      0.335  -0.131        0.326
+
+Number of nodes in the network:  13 
