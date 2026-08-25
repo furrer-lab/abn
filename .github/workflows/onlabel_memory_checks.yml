@@ -82,7 +82,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Installing valgrind
-        if: ${{ !startsWith(matrix.container, 'valgrind') }}
+        if: ${{ !startsWith(matrix.container, 'fedora-valgrind') }}
         run: |
           apt-get update && apt-get install valgrind -y
         shell: bash
