@@ -3,6 +3,7 @@
    Memcheck:Leak
    match-leak-kinds: definite
    fun:malloc
+   fun:malloc
    fun:resize_scopes
    ...
    fun:AddDLL
