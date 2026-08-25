@@ -108,13 +108,14 @@ jobs:
         shell: Rscript {0}
       - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |
-          R -d "valgrind --tool=memcheck \
-          --leak-check=full \
-          --errors-for-leak-kinds=definite \
-          --track-origins=yes \
-          --error-exitcode=1" \
-          --vanilla \
-          -e "devtools::test_active_file('${{ matrix.testfile }}')"
+           R -d "valgrind --tool=memcheck \
+           --leak-check=full \
+           --suppressions=.github/valgrind-r.supp \
+           --errors-for-leak-kinds=definite \
+           --track-origins=yes \
+           --error-exitcode=1" \
+           --vanilla \
+           -e "devtools::test_active_file('${{ matrix.testfile }}')"
         shell: bash
 
   report_memory_checks:
