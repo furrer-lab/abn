@@ -649,7 +649,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                  
                  edf <- (length(tmp$lev) - 1) * X_rank
                  fit$aic <- 2 * tmp$value + 2 * edf
-                 fit$bic <- 2 * tmp$value + edf * log(nrow(df_mult))
+                 fit$bic <- 2 * tmp$value + edf * log(nobs)
                  fit$sse <- sum(residuals(tmp)^2)
                  
                  fit$var.out <- tryCatch({
