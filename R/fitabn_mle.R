@@ -457,11 +457,10 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               model_random <- as.formula(paste("~ 1|", group.var, sep = ""))
               if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
 
-              # Set strict mclogit control parameters to bound steps and limit maximum iterations
-              mb_control <- mclogit::mclogit.control(
-                maxit = 40,           # Prevents IWLS from drifting endlessly toward infinity
-                epsilon = 1e-03,       # Slightly looser tolerance to stop near smooth convergence
-                avoid.increase = TRUE
+              # Define control parameters to bound steps and limit maximum iterations
+              mb_control <- list(
+                maxit = 40,
+                epsilon = 1e-03
               )
               
               if (control[["catcov.mblogit"]] == "free"){
