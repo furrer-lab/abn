@@ -488,6 +488,14 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               } else {
                 stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
               }
+              if (!is.null(fit)){
+                coef_vals <- stats::coef(fit)
+                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
+                  if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
+                  fit <- NULL
+                }
+              }
+              }
               if (is.null(fit)){
                 # relax tolerances for change in parameter values and objective function.
                 tryCatch({fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping,
