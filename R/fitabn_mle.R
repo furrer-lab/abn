@@ -823,8 +823,19 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     } else if(child.dist=="multinomial"){
       separator = ""
       if("multinomial" %in% parent.dists){
-        colnames(res[["coef"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
-        colnames(res[["var"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
+        total_coef_count <- length(res[["coef"]])
+        num_intercepts   <- length(fit$names.coef)
+        
+        if (total_coef_count > num_intercepts && !is.null(parents.names.multi)) {
+          # Full model with multinomial parent coefficients fitted
+          col_names <- as.vector(outer(parents.names.multi, fit$names.coef, paste, sep = separator))
+        } else {
+          # Intercept-only fallback (e.g. after complete separation)
+          col_names <- paste(child.name, "|intercept.", fit$names.coef, sep = "")
+        }
+        
+        colnames(res[["coef"]]) <- col_names
+        colnames(res[["var"]])  <- col_names
       }else{
         if (USED_NNET){
           colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
