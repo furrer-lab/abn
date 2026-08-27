@@ -518,7 +518,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               }
               if (!is.null(fit)){
                 coef_vals <- stats::coef(fit)
-                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
+                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 15.0, na.rm = TRUE)) {
                   if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
                   fit <- NULL
                 }
@@ -605,12 +605,27 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
              "multinomial"={
                tmp <- multinom(formula = Y~-1+X,Hess = FALSE,trace=FALSE)
 
+               co <- if (!is.null(tmp)) coef(tmp) else NULL
+               
+               if (is.null(tmp) || tmp$convergence != 0 || any(is.na(co)) || any(abs(co) > 15.0, na.rm = TRUE)) {
+                 warning(paste0("Separation detected in node '", child.name, "'. Falling back to intercept-only model."), call. = FALSE)
+                 
+                 tmp <- multinom(
+                   formula = Y ~ 1, 
+                   Hess = FALSE, 
+                   trace = FALSE
+                 )
+                 X_rank <- 1
+               } else {
+                 X_rank <- if (!is.null(X)) qr(X)$rank else 1
+               }
+                 
                # Calculate scores and prepare output
                fit <- list()
                fit$coefficients <- as.matrix(as.vector(coef(tmp)))
                fit$names.coef <- row.names((coef(tmp)))
                fit$loglik <- - tmp$value
-               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * qr(X)$rank
+               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * X_rank
                fit$aic <- 2 * tmp$value + 2 * edf
                fit$bic <- 2 * tmp$value + edf * log(nobs)
                fit$sse <- sum(residuals(tmp)^2)
