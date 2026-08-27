@@ -503,13 +503,13 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                                                                                      trace = control[["trace.mblogit"]]), control = mb_control)
                 }, error=function(e)NULL)
               }
-              if (!is.null(fit) && inherits(fit, "mblogit")) {
-                coef_vals <- stats::coef(fit)
-                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
-                  if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
-                  fit <- NULL
-                }
-              }
+              #if (!is.null(fit) && inherits(fit, "mblogit")) {
+              #  coef_vals <- stats::coef(fit)
+              #  if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
+              #    if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
+              #    fit <- NULL
+              #  }
+              #}
               if (is.null(fit)) {
                 # if fit is still NULL, try other (all available) optimizer:
                 # fit same as above (not very elegant)
