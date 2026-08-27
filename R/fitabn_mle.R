@@ -454,9 +454,11 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               } else {
                 model_basic <- as.formula(paste(child.name, "~ ", paste(parents.names, collapse = "+")))
               }
-              model_random <- as.formula(paste("~ 1|", group.var, sep = ""))
-              if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
-
+              
+             model_random <- as.formula(paste("~ 1|", group.var, sep = ""))
+             
+             if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
+              
               # Define control parameters to bound steps and limit maximum iterations
               mb_control <- list(
                 maxit = 40,
@@ -488,7 +490,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                   fit$VarCov <- fit_vcov
                 }, error=function(e) NULL)
               } else if (control[["catcov.mblogit"]] == "single"){
-                stop("'catcov.mblogit' == 'single' is not yet implemented.")
+                top("'catcov.mblogit' == 'single' is not yet implemented.")
                 fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single")
                 # manipulate VarCov to bring in correct shape
               } else {
@@ -497,7 +499,8 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               if (is.null(fit)){
                 # relax tolerances for change in parameter values and objective function.
                 tryCatch({fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping,
-                                                  control = mb_control)
+                                                  control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
+                                                                                     trace = control[["trace.mblogit"]]), control = mb_control)
                 }, error=function(e)NULL)
               }
               if (!is.null(fit) && inherits(fit, "mblogit")) {
