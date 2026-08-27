@@ -454,16 +454,24 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               } else {
                 model_basic <- as.formula(paste(child.name, "~ ", paste(parents.names, collapse = "+")))
               }
-              model_random <- as.formula(paste("~ 1|", group.var, sep = ""))
-              if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
-
+              
+             model_random <- as.formula(paste("~ 1|", group.var, sep = ""))
+             
+             if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
+              
+              # Define control parameters to bound steps and limit maximum iterations
+              mb_control <- list(
+                maxit = 40,
+                epsilon = 1e-03
+              )
+              
               if (control[["catcov.mblogit"]] == "free"){
                 tryCatch({
-                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free")
+                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free", control = mb_control)
                 }, error=function(e) NULL)
               } else if (control[["catcov.mblogit"]] == "diagonal"){
                 tryCatch({
-                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal")
+                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal", control = mb_control)
                   # manipulate VarCov to bring in correct shape
                   fit_vcov <- matrix(0, nrow = length(fit$VarCov), ncol = length(fit$VarCov))
                   diag(fit_vcov) <- unlist(fit$VarCov, use.names = FALSE)
@@ -482,7 +490,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                   fit$VarCov <- fit_vcov
                 }, error=function(e) NULL)
               } else if (control[["catcov.mblogit"]] == "single"){
-                stop("'catcov.mblogit' == 'single' is not yet implemented.")
+                top("'catcov.mblogit' == 'single' is not yet implemented.")
                 fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single")
                 # manipulate VarCov to bring in correct shape
               } else {
@@ -492,8 +500,15 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                 # relax tolerances for change in parameter values and objective function.
                 tryCatch({fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping,
                                                   control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
-                                                                                     trace = control[["trace.mblogit"]]))
+                                                                                     trace = control[["trace.mblogit"]]), control = mb_control)
                 }, error=function(e)NULL)
+              }
+              if (!is.null(fit) && inherits(fit, "mblogit")) {
+                coef_vals <- stats::coef(fit)
+                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
+                  if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
+                  fit <- NULL
+                }
               }
               if (is.null(fit)) {
                 # if fit is still NULL, try other (all available) optimizer:
@@ -596,17 +611,39 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                fit <- irls_poisson_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "multinomial"={
-               tmp <- multinom(formula = Y~-1+X,Hess = FALSE,trace=FALSE)
+               tmp <- multinom(
+                   formula = Y ~ -1 + X,
+                   Hess = FALSE,
+                   trace = FALSE
+                 )
+               
+               co <- if (!is.null(tmp)) coef(tmp) else NULL
+               
+               if (is.null(tmp) || tmp$convergence != 0 || any(is.na(co)) || any(abs(co) > 15.0, na.rm = TRUE)) {
+                 warning(paste0("Separation detected in node '", child.name, "'. Falling back to intercept-only model."), call. = FALSE)
+                 
+                 tmp <- multinom(
+                     formula = Y ~ 1, 
+                     Hess = FALSE, 
+                     trace = FALSE
+                   )
 
-               # Calculate scores and prepare output
+                 X_rank <- 1
+               } else {
+                 X_rank <- if (!is.null(X)) qr(X)$rank else 1
+               }
+               
+               # 4. Populate output structure safely for abn
                fit <- list()
                fit$coefficients <- as.matrix(as.vector(coef(tmp)))
-               fit$names.coef <- row.names((coef(tmp)))
-               fit$loglik <- - tmp$value
-               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * qr(X)$rank
+               fit$names.coef <- row.names(coef(tmp))
+               fit$loglik <- -tmp$value
+                 
+               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * X_rank
                fit$aic <- 2 * tmp$value + 2 * edf
                fit$bic <- 2 * tmp$value + edf * log(nobs)
                fit$sse <- sum(residuals(tmp)^2)
+                 
                fit$var.out <- as.matrix(as.vector(summary(tmp)$standard.errors))
                USED_NNET <- TRUE
              }
@@ -801,15 +838,44 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     } else if(child.dist=="multinomial"){
       separator = ""
       if("multinomial" %in% parent.dists){
-        colnames(res[["coef"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
-        colnames(res[["var"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
+        # Check if parents were actually fitted or if we fell back to intercept-only
+        total_coef_count <- length(fit$coefficients)
+        num_intercepts   <- length(fit$names.coef)
+        
+        if (total_coef_count > num_intercepts && !is.null(parents.names.multi)) {
+          # Full model with multinomial parent coefficients fitted
+          col_names <- as.vector(outer(parents.names.multi, fit$names.coef, paste, sep = separator))
+        } else {
+          # Intercept-only fallback (e.g. after complete separation)
+          col_names <- paste(child.name, "|intercept.", fit$names.coef, sep = "")
+        }
+        
+        colnames(res[["coef"]]) <- col_names
+        colnames(res[["var"]])  <- col_names
       }else{
         if (USED_NNET){
-          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
-          colnames(res[["var"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+          if (!is.null(parents.names) && length(parents.names) > 0 && length(fit$coefficients) > length(fit$names.coef)) {
+            col_names <- c(
+              paste(child.name, "|intercept.", fit$names.coef, sep = ""),
+              as.vector(outer(parents.names, fit$names.coef, paste, sep = separator))
+            )
+          } else {
+            # Intercept-only fallback (e.g. after complete separation)
+            col_names <- paste(child.name, "|intercept.", fit$names.coef, sep = "")
+          }
+          colnames(res[["coef"]]) <- col_names
+          colnames(res[["var"]])  <- col_names
         } else if (USED_MBLOGIT){
-          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
-          colnames(res[["var"]]) <-c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
+          if (!is.null(parents.names) && length(parents.names) > 0 && length(fit$coefficients) > length(rownames(fit$coefmat))) {
+            col_names <- c(
+              paste(child.name, "|intercept.", rownames(fit$coefmat), sep = ""),
+              as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep = separator))
+            )
+          } else {
+            col_names <- paste(child.name, "|intercept.", rownames(fit$coefmat), sep = "")
+          }
+          colnames(res[["coef"]]) <- col_names
+          colnames(res[["var"]])  <- col_names
         } else {
           colnames(res[["coef"]]) <- tryCatch({
             c(paste(child.name,"|intercept.",names(stats::coefficients(fit)),sep = ""),as.vector(outer(parents.names, names(stats::coefficients(fit)), paste, sep=separator)))
