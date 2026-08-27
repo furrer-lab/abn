@@ -503,13 +503,13 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                                                                                      trace = control[["trace.mblogit"]]), control = mb_control)
                 }, error=function(e)NULL)
               }
-              #if (!is.null(fit) && inherits(fit, "mblogit")) {
-              #  coef_vals <- stats::coef(fit)
-              #  if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
-              #    if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
-              #    fit <- NULL
-              #  }
-              #}
+              if (!is.null(fit) && inherits(fit, "mblogit")) {
+                coef_vals <- stats::coef(fit)
+                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 10.0, na.rm = TRUE)) {
+                  if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
+                  fit <- NULL
+                }
+              }
               if (is.null(fit)) {
                 # if fit is still NULL, try other (all available) optimizer:
                 # fit same as above (not very elegant)
@@ -611,59 +611,41 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                fit <- irls_poisson_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "multinomial"={
-               # Fit multinom with controlled iterations and strict error handling
-               tmp <- tryCatch({
-                 nnet::multinom(
+               tmp <- multinom(
                    formula = Y ~ -1 + X,
                    Hess = FALSE,
-                   trace = FALSE,
-                   maxit = 150,
-                   MaxNWts = 10000
+                   trace = FALSE
                  )
-               }, error = function(e) NULL)
                
                co <- if (!is.null(tmp)) coef(tmp) else NULL
                
                if (is.null(tmp) || tmp$convergence != 0 || any(is.na(co)) || any(abs(co) > 15.0, na.rm = TRUE)) {
                  warning(paste0("Separation detected in node '", child.name, "'. Falling back to intercept-only model."), call. = FALSE)
                  
-                 tmp <- tryCatch({
-                   nnet::multinom(
+                 tmp <- multinom(
                      formula = Y ~ 1, 
                      Hess = FALSE, 
-                     trace = FALSE, 
-                     maxit = 150
+                     trace = FALSE
                    )
-                 }, error = function(e) NULL)
-                 
+
                  X_rank <- 1
                } else {
                  X_rank <- if (!is.null(X)) qr(X)$rank else 1
                }
                
                # 4. Populate output structure safely for abn
-               if (!is.null(tmp)) {
-                 fit <- list()
-                 co <- coef(tmp)
-                 fit$coefficients <- as.matrix(as.vector(co))
-                 fit$names.coef <- row.names(co)
-                 fit$loglik <- -tmp$value
+               fit <- list()
+               fit$coefficients <- as.matrix(as.vector(coef(tmp)))
+               fit$names.coef <- row.names(coef(tmp))
+               fit$loglik <- -tmp$value
                  
-                 edf <- (length(tmp$lev) - 1) * X_rank
-                 fit$aic <- 2 * tmp$value + 2 * edf
-                 fit$bic <- 2 * tmp$value + edf * log(nobs)
-                 fit$sse <- sum(residuals(tmp)^2)
+               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * X_rank
+               fit$aic <- 2 * tmp$value + 2 * edf
+               fit$bic <- 2 * tmp$value + edf * log(nobs)
+               fit$sse <- sum(residuals(tmp)^2)
                  
-                 fit$var.out <- tryCatch({
-                   suppressWarnings(as.matrix(as.vector(summary(tmp)$standard.errors)))
-                 }, error = function(e) {
-                   matrix(NA, nrow = length(fit$coefficients), ncol = 1)
-                 })
-                 
-                 USED_NNET <- TRUE
-               } else {
-                 fit <- NULL
-               }
+               fit$var.out <- as.matrix(as.vector(summary(tmp)$standard.errors))
+               USED_NNET <- TRUE
              }
       )}
 
