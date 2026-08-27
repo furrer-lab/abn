@@ -460,8 +460,8 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               # Set strict mclogit control parameters to bound steps and limit maximum iterations
               mb_control <- mclogit::mclogit.control(
                 maxit = 40,           # Prevents IWLS from drifting endlessly toward infinity
-                step.max = 1.0,       # Caps parameter update step sizes to prevent huge jumps
-                epsilon = 1e-03       # Slightly looser tolerance to stop near smooth convergence
+                epsilon = 1e-03,       # Slightly looser tolerance to stop near smooth convergence
+                avoid.increase = TRUE
               )
               
               if (control[["catcov.mblogit"]] == "free"){
