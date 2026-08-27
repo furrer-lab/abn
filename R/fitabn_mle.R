@@ -627,8 +627,7 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                  
                  tmp <- tryCatch({
                    nnet::multinom(
-                     formula = Y_target ~ 1, 
-                     data = df_mult, 
+                     formula = Y ~ 1, 
                      Hess = FALSE, 
                      trace = FALSE, 
                      maxit = 150
