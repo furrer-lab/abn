@@ -741,7 +741,7 @@ test_that("simulateAbn() simulation works with method 'mle'", {
                                n.chains = 10L,
                                n.adapt = 1000L,
                                n.thin = 100L,
-                               n.iter = 10000L,
+                               n.iter = 50000L,
                                seed = 42L,
                                verbose = FALSE)
     })
