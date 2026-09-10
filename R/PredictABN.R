@@ -78,7 +78,7 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
     mb <- NULL
   }
   if (all(mb %in% names(evidence)) && !is.null(hypothesis)){
-    message("The Markov blanket of the node to infer is enterily known.")
+    #message("The Markov blanket of the node to infer is enterily known.")
     prediction <- predict_node_from_parent(data, dists, graph, fit, node = hypothesis, evidence)
     predictions <- list(prediction)
     names(predictions) <- hypothesis
@@ -2187,18 +2187,32 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
     })
     colnames(scenario_effects) <- lvl_names
 
-    proba_cond_values <- apply(scenario_effects, 1, function(c) {
-      compute_update(continuous_part + c, dists[[node]])
-    })
     prob_grid <- expand.grid(probabilities)
     comb_probs <- apply(prob_grid, 1, prod)
 
-    if (is.matrix(proba_cond_values)) {
-      final_res <- proba_cond_values %*% comb_probs
-      final_res <- as.vector(final_res)
-      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
+    active_idx <- which(comb_probs > 0)
+
+    if (length(active_idx) == 1) {
+      # MB is known: Execute compute_update EXACTLY ONCE
+      active_c  <- scenario_effects[active_idx, ]
+      final_res <- compute_update(continuous_part + active_c, dists[[node]])
     } else {
-      final_res <- sum(proba_cond_values * comb_probs)
+      # Fallback only for active scenarios (skipping 0-probability rows)
+      active_effects <- scenario_effects[active_idx, , drop = FALSE]
+      active_probs   <- comb_probs[active_idx]
+
+      proba_cond_values <- apply(active_effects, 1, function(c) {
+        compute_update(continuous_part + c, dists[[node]])
+      })
+
+      if (is.matrix(proba_cond_values)) {
+        final_res <- as.vector(proba_cond_values %*% active_probs)
+      } else {
+        final_res <- sum(proba_cond_values * active_probs)
+      }
+    }
+    if (dists[[node]] %in% c("binomial", "multinomial")) {
+      names(final_res) <- levels(data[[node]])
     }
   } else {
     final_res <- compute_update(continuous_part, dists[[node]])
