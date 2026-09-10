@@ -1,6 +1,8 @@
 ---
 title: "Inference with ABN"
-output: rmarkdown::html_vignette
+output: 
+  bookdown::html_document2:
+    base_format: rmarkdown::html_vignette
 bibliography: references.bib  
 vignette: >
   %\VignetteIndexEntry{Inference with ABN}
@@ -12,11 +14,13 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  eval = FALSE
+  eval = TRUE
 )
+
+source("/Users/mchampion/Documents/GitHub/abn_public/R/PredictABN.R")
 ```
 
-This vignette provides an overview of how to perform inference with `ABN`.
+This vignette provides an overview of how to perform inference with `ABN` across mixed-distribution DAGs.
 
 ## Background
 
@@ -24,237 +28,267 @@ In Bayesian Networks (BN), inference refers to the process of computing the post
 This is achieved using exact methods such as variable elimination, belief propagation, and the junction tree algorithm, or approximate techniques such as Monte Carlo sampling and likelihood weighting [@Darwiche_2009].
 These methods rely on the assumption that conditional dependencies are explicitly defined and that the joint probability distribution can be factorized accordingly [@Pearl_1988].
 
-However, in Additive Bayesian Networks (ABN), inference is more challenging because ABNs are designed primarily for structure learning rather than direct probabilistic reasoning. Unlike standard BNs, ABNs model conditional dependencies through Generalized Linear Models (GLMs), making exact inference impractical. The likelihood functions in ABNs are often non-standard and computationally expensive to integrate. Additionally, the presence of mixed data types (Gaussian, Poisson, binomial and multinomial) further complicates inference.
+However, performing exact probabilistic inference in Additive Bayesian Networks (ABN) is challenging. While traditional BNs focus heavily on direct probabilistic reasoning, ABNs model conditional dependencies through Generalized Linear Models (GLMs). Consequently, exact numerical integration across mixed continuous and discrete distributions (Gaussian, Poisson, Binomial, and Multinomial) quickly becomes computationally expensive.
 
-To address these challenges, we propose a two-step inference procedure, as described in Figure  \@ref(fig:workflow). First the node to infer is estimated using only its parents, and then this estimate is refined by incorporating information from both its children and its children's parents. The procedure involves topologically ordering the graph nodes, iteratively estimating each node's distribution based on its parents, and then updating the distribution in reverse order by incorporating information from its children and children's parents. 
-Our approach contrasts with traditional BN methods, which typically rely on exact probabilistic reasoning or approximate sampling techniques. Instead, our procedure offers an approximation tailored to the specificities of ABNs, including the use of GLMs and mixed data types. 
 
-```{r workflow, echo=FALSE, fig.cap="Workflow of the 2-steps inference procedure.",eval=TRUE,out.width="80%"}
+To address these challenges, we propose a two-step inference procedure, as described in Figure  \@ref(fig:workflow):
+
+1. Upstream estimation: The node to infer is estimated conditionally given its parents.
+
+2. Downstream refinement: This estimate is updated by incorporating information from both its children and its co-parents (the Markov blanket).
+
+```{r workflow, echo=FALSE, fig.cap="Workflow of the two-step inference procedure.",eval=TRUE,out.width="80%"}
 knitr::include_graphics("Workflow.png")
 ```
 
+When the full Markov blanket is not observed, the procedure generalizes to global network propagation. This involves topologically ordering the graph nodes, iteratively estimating each node's distribution based on its parents, and subsequently updating the distributions in reverse order by incorporating information from its children and co-parents. 
 
 Some useful definitions:
 
-- **Hypothesis**: the hypothesis refers to the variables whose values we want to infer.
+- **Hypothesis**: The variable(s) whose value or probability distribution we want to infer.
 
-- **Evidence**: evidence refers to the set of known or observed values of other variables in the network. 
+- **Evidence**: The set of known or observed values of other variables in the network. 
 
-- **Markov blanket**: the Markov blanket of a node in a BN is the set of variables that makes the node conditionally independent of all other variables in the network. It includes the node's parents, its children, and the parents of its children.
+- **Markov blanket**: The set of variables consisting of a node's parents, its children, and its children's parents (co-parents). A node is conditionnally independent of all other nodes in the network given its Markov blanket.
 
 
 ## Inference when the Markov blanket is known
 
-In this section, we focus on the scenario where we have complete information about the Markov blanket of the node we want to infer. The Markov blanket captures all the relevant dependencies necessary to perform inference for that node. When we know the Markov blanket, the inference process becomes more straightforward, as we can directly estimate the node of interest using the available information from its surrounding network structure.
+In this section, we focus on the scenario where we have complete information about the Markov blanket of the node we want to infer. The Markov blanket captures all the relevant dependencies necessary to perform inference for that node. When the Markov blanket is fully observed, the inference process becomes more straightforward, as the target node is conditionally independent of all other nodes in the network given this surrounding set.
 
-Consider the following graph, where:
+Consider the following graph topology:
 
-- $X$ is the node to infer (the hypothesis),
+- $X$ is the target node to infer (the hypothesis),
 
 - $\mathscr{A}=\{A1,A2\}$ is the set of parents of $X$,
 
 - $\mathscr{B}=\{B1,B2,B3,B4\}$ is the set of children of $X$,
 
-- $\mathscr{C}=\{C1,C2\}$ is the set of parents of the children of $X$,
+- $\mathscr{C}=\{C1,C2\}$ is the set of parents of the children of $X$ (co-parents of $X$),
 
-- there may be edges between $\mathscr{A}$ and $\mathscr{B}$, and between $\mathscr{A}$ and $\mathscr{C}$.
+- directed edges may also exist between $\mathscr{A}$ and $\mathscr{B}$, as well as between $\mathscr{A}$ and $\mathscr{C}$.
 
-```{r diagram, echo=FALSE}
-library(DiagrammeR)
-grViz("
-digraph G {
-  graph [layout = dot]
-  node [shape = ellipse, width = 0.75, height = 0.5, fixedsize = true]
-  A1 -> X
-  A2 -> X
-  X -> B1
-  X -> B2
-  X -> B3
-  X -> B4
-  C1 -> B1
-  C1 -> B2
-  C2 -> B2
-  C2 -> B3
-  C2 -> B4 
-  A2 -> C2 [style = dashed]
-  A1 -> B1 [style = dashed]
-}
-", width=300, height=200)
+```{r diagram, echo=FALSE, eval=TRUE, fig.keep='all', warning = FALSE, message = FALSE}
+library(igraph)
+
+# Define edge list
+edges <- c(
+  "A1", "X",
+  "A2", "X",
+  "X", "B1",
+  "X", "B2",
+  "X", "B3",
+  "X", "B4",
+  "C1", "B1",
+  "C1", "B2",
+  "C2", "B2",
+  "C2", "B3",
+  "C2", "B4",
+  "A2", "C2",
+  "A1", "B1"
+)
+
+# Create graph object
+g <- graph(edges, directed = TRUE)
+
+# Set line styles: dashed (lty=2) for A2->C2 and A1->B1, solid (lty=1) for others
+E(g)$lty <- 1
+E(g)$lty[get.edge.ids(g, c("A2", "C2", "A1", "B1"))] <- 2
+
+# Set node coordinates to mirror the hierarchical DOT layout
+layout_coords <- matrix(c(
+  -1.2,  2.0, # A1
+   0.0,  0.0, # A2
+  1.2,  2.0, # C1
+   -3.0, -2.0, # X
+   -1.0, -2.0, # C2
+  1.0, -2.0, # B1
+   3.0, -2.0,  # B2
+   -2.5,  0.0, # B3
+    2.5,  0.0  # B4
+), ncol = 2, byrow = TRUE)
+
+par(mar = c(0.5, 0.5, 0.5, 0.5))
+plot(
+  g,
+  layout = layout_coords,
+  rescale = FALSE,
+  xlim = c(-3.5, 3.5),
+  ylim = c(-2.5, 2.5),
+  vertex.shape = "circle",
+  vertex.size = 75,
+  vertex.color = "white",
+  vertex.frame.color = "black",
+  vertex.label.color = "black",
+  vertex.label.cex = 0.9,
+  edge.arrow.size = 0.4,
+  edge.color = "black",
+  edge.lty = E(g)$lty
+)
 ```
 
 
-These nodes $\mathscr{A} \cup \mathscr{B} \cup \mathscr{C}$ constitute the Markov blanket of the node $X$, which provide all the information needed to infer $X$.
+The set of nodes $\mathscr{A} \cup \mathscr{B} \cup \mathscr{C}$ constitutes the Markov blanket of $X$, containing all necessary information to infer the distribution of $X$.
 
-The procedure involves two steps:
+The inference procedure follows two steps:
 
-- Estimate the node $X$ using its parents $\mathscr{A}$,
+- Step 1: Estimate the initial distribution of $X$ given its parents $\mathscr{A}$,
 
-- Update the estimate by incorporating information from its children $\mathscr{B}$ and its children's parents $\mathscr{C}$.
-
-
+- Step 2: Update this estimate by incorporating observed information from its children $\mathscr{B}$ and their co-parents $\mathscr{C}$.
 
 
 ### Step 1: estimation using the parents 
 
+The first step of the procedure computes the prior conditional distribution of $X$ given its parents, i.e. $\mathbb{P}(X \mid \mathscr{A})$.
 
-The first step of the procedure consists in estimating $X$ given its parents only, i.e. $\mathbb{P}(X|\mathscr{A})$.
+The calculation depends on the parametric famility of $X$: 
 
-The procedure varies depending on the type of the node $X$: 
+- Gaussian distribution: 
 
-- if $X$ is Gaussian: 
+    - Mean:
+$\mathbb{E}(X \mid \mathscr{A}) = \beta_{0} + \beta_{1} A1 +  \beta_{2} A2.$ 
 
-    - the expectation of $X$ given $\mathscr{A}$ is
-$\mathbb{E}(X|\mathscr{A}) = \beta_{0} + \beta_{1} A1 +  \beta_{2} A2.$ 
+    - Variance: $var(X \mid \mathscr{A}) = \frac{1}{\tau},$ where $\tau$ is the node's precision estimated during model fitting.
 
-    - the variance of $X$ given $\mathscr{A}$ is defined by the precision $\tau$ of the node, which is estimated during the model fitting process
-$var(X|\mathscr{A}) = \frac{1}{\tau}.$
+*Remark: In practice, if the precision parameter $\tau$ is explicitly estimated during model fitting, the variance is computed as $var(X \mid \mathscr{A})= 1 / \tau$. Otherwise, if precision estimation is unavailable or omitted, the variance falls back to the empirical variance of the observed data for that node.*
 
-- if $X$ is Poisson: 
-$\mathbb{E}(X|\mathscr{A}) = \exp \left( \beta_{0} + \beta_{1} A1 +  \beta_{2} A2 \right).$ 
+- Poisson distribution:
+$\mathbb{E}(X \mid \mathscr{A}) = \exp \left( \beta_{0} + \beta_{1} A1 +  \beta_{2} A2 \right).$ 
 
-- if $X$ is binomial:
+- Binomial distribution:
 
-    - the probability of $X=1$ given $\mathscr{A}$ is:
-$\mathbb{P}(X=1|\mathscr{A}) = \frac{1}{1+\exp \left( - (\beta_{0} + \beta_{1} A1 +  \beta_{2} A2)\right)}$.
+    - Sucess probability:
+$\mathbb{P}(X=1 \mid \mathscr{A}) = \frac{1}{1+\exp \left( - (\beta_{0} + \beta_{1} A1 +  \beta_{2} A2)\right)}$.
 
-    - the probability of $X=0$ given $\mathscr{A}$ is:  $\mathbb{P}(X=0|\mathscr{A})=1-\mathbb{P}(X=1|\mathscr{A}).$ 
+    - Complementary probability:
+    $\mathbb{P}(X=0 \mid \mathscr{A})=1-\mathbb{P}(X=1 \mid \mathscr{A}).$ 
 
-- if $X$ is multinomial:
+- Multinomial distribution ($K$ categories):
 
-    - the probability of $X=\ell$ (for a given category $\ell$ of $X$) given $\mathscr{A}$ is:
-$\mathbb{P}(X=\ell|\mathscr{A}) = \frac{\exp \left( \beta_{0,\ell} + \beta_{1,\ell} A1 + \beta_{2,\ell} A2 \right)}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}$.
+    - Category probability ($\ell \in \{1, \dots, K-1\}$):
+$\mathbb{P}(X=\ell\mid \mathscr{A}) = \frac{\exp \left( \beta_{0,\ell} + \beta_{1,\ell} A1 + \beta_{2,\ell} A2 \right)}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}$.
 
-    - the probability of $X=K$ (the last reference category) given $\mathscr{A}$ is:  $\mathbb{P}(X=K|\mathscr{A})=\frac{1}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}.$ 
-
-
-To compute these quantities, substitute the known values of the parents $\mathscr{A}$ directly into the formula to estimate the conditional distribution.
-
+    - Reference category probability ($K$):
+    $\mathbb{P}(X=K\mid\mathscr{A})=\frac{1}{1+ \sum_{j=1}^{K-1} \exp \left( \beta_{0,j} + \beta_{1,j} A1 + \beta_{2,j} A2\right)}.$ 
 
 
-
-### Step 2: estimate's update using the children and its parents
-
-At the end of Step 1, we have a first estimate of the distribution of node $X$ given its parents. In this step, we aim at updating this estimate using the information from its children and its children's parents: $\mathbb{P}(X|\mathscr{A},\mathscr{B},\mathscr{C})$.
-
-Let's first consider the case where $X$ has only one child $B$, which can be one of $B1$, $B2$, $B3$ or $B4$. 
-Depending on the case: 
-
-- If $X$ is binomial or multinomial, Bayes' theorem gives us: 
-$$ \mathbb{P}(X|B) = \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\mathbb{P}(B)}= \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\sum_X \mathbb{P}(B|X) \mathbb{P}(X)}.$$ 
-
-- If $X$ is Poisson, the same applies for $\mathbb{E}(X|B)$: 
-$$\mathbb{E}(X|B) = \sum_{X=0}^{\infty} X \mathbb{P}(X|B)  = \sum_{X=0}^{\infty} X \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\mathbb{P}(B)} = \frac{\sum_{X=0}^{\infty} X \mathbb{P}(B|X) \mathbb{P}(X) }{\sum_{X=0}^{\infty} \mathbb{P}(B|X) \mathbb{P}(X)}.$$ 
-- If $X$ is Gaussian:
-
-    - the expectation $\mathbb{E}(X|B)$ is: 
-$$\mathbb{E}(X|B) = \int X \mathbb{P}(X|B) dX = \int X \frac{\mathbb{P}(B|X) \mathbb{P}(X)}{\mathbb{P}(B)} dX= \frac{\int X \mathbb{P}(B|X) \mathbb{P}(X) dX}{\int \mathbb{P}(B|X) \mathbb{P}(X) dX}.$$ 
-
-    - the variance $var(X|B)$ is:
-$$var(X|B) = \mathbb{E}(X^2|B) - \left(\mathbb{E}(X|B)^2\right),$$
-with: 
-$$\mathbb{E}(X^2|B) =  \frac{\int X^2 \mathbb{P}(B|X) \mathbb{P}(X) dX}{\int \mathbb{P}(B|X) \mathbb{P}(X) dX}.$$ 
+To calculate these quantities, substitute the observed or estimated values of the parent nodes $\mathscr{A}$ directly into the linear predictor formula.
 
 
-In the formula above, we use the estimated distribution of $X$ from Step 1 as a prior:
+### Step 2: estimate's update using children and co-parents
 
-- if $X$ is binomial, we have $X \sim B(p_X)$, where $p_X$ is estimated in Step 1. 
+At the end of Step 1, we have an initial estimate of the distribution of $X$ given its parents, $\mathbb{P}(X\mid \mathscr{A})$. In this second step, we refine this estimate by incorporating information from its children $\mathscr{B}$ and their co-parents $\mathscr{C}$, yielding the updated conditional distribution $\mathbb{P}(X|\mathscr{A},\mathscr{B},\mathscr{C})$.
 
-- if $X$ is Gaussian, we have $X \sim N(\mu_X,\sigma_X^2)$, where $\mu_X$ and $\sigma_X^2$ are estimated in Step 1. 
+First, consider the case where $X$ has a single child $B\in\mathscr{B}$. Depending on the parametric family of $X$:
 
-- if $X$ is Poisson, we have $X \sim P(\lambda_X)$, where $\lambda_X$ is estimated in Step 1. 
+- Binomial or Multinomial: Bayes' theorem gives the updated categorical distribution: 
+$$ \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\mathbb{P}(B \mid \mathscr{A},\mathscr{C})}= \frac{\mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\sum_X \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
 
-- if $X$ is multinomial, we have $X \sim Cat(p_{X,1},...,p_{X,K})$, where $p_{X,1},...,p_{X,K}$ are estimated in Step 1.
+- Poisson: the updated conditional expectation $\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C})$ is given by: 
+$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \sum_{X=0}^{\infty} X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\sum_{X=0}^{\infty} X \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) }{\sum_{X=0}^{\infty} \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
+- Gaussian:
 
-The conditional probability $\mathbb{P}(B|X)$ is derived from the likelihood function $L(B|X)$: 
+    - expectation: 
+$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \int X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) dX = \frac{\int X \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
 
-- if $B$ is Binomial, $B \sim B(p_B)$, with $p_B = \frac{1}{1+\exp \left( - (\beta_{B0} + \beta_{B1} X + \beta_{B2} C)\right)},$ 
+    - variance:
+$$var(X \mid \mathscr{A}, B, \mathscr{C}) = \mathbb{E}(X^2 \mid \mathscr{A}, B, \mathscr{C}) - \left(\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C})^2\right),$$
+where: 
+$$\mathbb{E}(X^2 \mid \mathscr{A}, B, \mathscr{C}) =  \frac{\int X^2 \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
 
-- if $B$ is Gaussian, $B \sim N(\mu_B,\sigma_B^2)$, with:
-    - $\mu_B = \beta_{B0} + \beta_{B1} X+ \beta_{B2} C$, and
-    
-    - $\sigma_B = \frac{1}{\tau_B},$
+
+In these expressions, the conditional distribution $\mathbb{P}(X\mid \mathscr{A})$ computed in Step 1 is used as the prior:
+
+- Binomial: $X \sim B(p_X)$, where $p_X$ is estimated in Step 1. 
+
+- Gaussian: $X \sim N(\mu_X,\sigma_X^2)$, where $\mu_X$ and $\sigma_X^2$ are estimated in Step 1. 
+
+- Poisson: $X \sim P(\lambda_X)$, where $\lambda_X$ is estimated in Step 1. 
+
+- Multinomial: $X \sim Cat(p_{X,1},...,p_{X,K})$, where $p_{X,1},...,p_{X,K}$ are estimated in Step 1.
+
+The conditional probability $\mathbb{P}(B \mid X, \mathscr{C})$ is derived from the regression model of child $B$:
+
+- Binomial child: $B \sim B(p_B)$, with $p_B = \frac{1}{1+\exp \left( - (\beta_{B0} + \beta_{B1} X + \beta_{B2} C)\right)},$ 
+
+- Gaussian child: $B \sim N(\mu_B,\sigma_B^2)$, with $\mu_B = \beta_{B0} + \beta_{B1} X+ \beta_{B2} C$ and variance $\sigma_B = \frac{1}{\tau_B},$
 where $\tau_B$ is the precision parameter extracted directly from the ABN model fit.
 
-- if $B$ is Poisson, $B \sim P(\lambda_B)$, with $\lambda_B = \exp \left( \beta_{B0} + \beta_{B1} X + \beta_{B2} C \right)$.
+- Poisson child: $B \sim P(\lambda_B)$, with $\lambda_B = \exp \left( \beta_{B0} + \beta_{B1} X + \beta_{B2} C \right)$.
 
-Here, for simplicity reasons, $C$ represents the unique parent of $B$, aside from $X$.
+Here, for simplicity, $C \in \mathscr{C}$ represents the co-parent of child $B$, aside from $X$. Known or observed values of $C$ are directly substituted into the linear predictor.
 
-Substitute the known values of the parents $\mathscr{C}$ of the child $B$ into the expression to estimate the conditional distribution.
+When $X$ has multiple children ($\# \mathscr{B}>1$), the estimation procedure is repeated for each child $B_j \in\mathscr{B}$, and the resulting estimates are averaged across all children:
 
-If $X$ has more than one child, repeat the same procedure for all children $B$ of $X$. In this case, for each type of distribution for $X$, the estimates are averaged over the children of $X$:
+- Poisson:
+$\mathbb{E}(X\mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{E}(X \mid \mathscr{A},B_j,\mathscr{C}_j),$
 
-- if $X$ is Poisson:
-$\mathbb{E}(X|\mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{E}(X|\mathscr{A},B_j,\mathscr{C}_j),$
+- Gaussian:
 
-- if $X$ is Gaussian:
+    - expectation: $\mathbb{E}(X \mid \mathscr{A},\mathscr{B},\mathscr{C})$ is given by:
+$\mathbb{E}(X \mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{E}(X\mid \mathscr{A},B_j,\mathscr{C}_j),$
 
-    - the expected value $\mathbb{E}(X|\mathscr{A},\mathscr{B},\mathscr{C})$ is given by:
-$\mathbb{E}(X|\mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{E}(X|\mathscr{A},B_j,\mathscr{C}_j),$
-
-    - the variance  $var(X|\mathscr{A},\mathscr{B},\mathscr{C})$ is given by:
-    $var(X|\mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}^2} \sum_{B_j \in\mathscr{B}}  var(X|\mathscr{A},B_j,\mathscr{C}_j),$
+    - variance:  $var(X \mid \mathscr{A},\mathscr{B},\mathscr{C})$ is given by:
+    $var(X\mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}^2} \sum_{B_j \in\mathscr{B}}  var(X\mid \mathscr{A},B_j,\mathscr{C}_j),$
     
-- if $X$ is Binomial:
+- Binomial:
 
-    - $\mathbb{P}(X=1|\mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{P}(X=1|\mathscr{A},B_j,\mathscr{C}_j),$
+    - success probability: $\mathbb{P}(X=1 \mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{P}(X=1\mid \mathscr{A},B_j,\mathscr{C}_j),$
     
-    - $\mathbb{P}(X=0|\mathscr{A},\mathscr{B},\mathscr{C}) = 1-\mathbb{P}(X=1|\mathscr{A},\mathscr{B},\mathscr{C}),$
+    - complementary probability: $\mathbb{P}(X=0 \mid \mathscr{A},\mathscr{B},\mathscr{C}) = 1-\mathbb{P}(X=1\mid \mathscr{A},\mathscr{B},\mathscr{C}),$
 
-where $\mathscr{C}_j$ denotes the set of parents of $B_j$. 
+where $\mathscr{C}_j$ denotes the set of co-parents corresponding to child $B_j$. 
 
 
 ## Inference with partial information
 
-In this section, we tackle the more general case, where we do not have access to the full Markov blanket of a node. To estimate the conditional distribution of such a node, we go through the graph iteratively. We begin by estimating the values of the nodes using upstream information (from the parents), and then, we refine these estimates by incorporating downstream information (from the children and the children's parents), as described in Section 2. We thus propagate the estimates throughout the network to refine our understanding of the node's distribution, given the partial information available.
+In this section, we tackle the more general case, where the full Markov blanket of a target node is not completely observed. To estimate the conditional distribution of such a node, we go through the graph iteratively. We first compute initial estimates using upstream information (from parents), and subsequently refine these estimates by incorporating downstream information (from children and co-parents), applying the two-step procedure described in Section 2. By propagating information across the DAG, we progressively refine the target node's estimated distribution given the available partial evidence.
 
-We proceeed with the following steps: 
+The general inference procedure follows three main steps:
 
-1. We first order the nodes of the graph in a topological order, ensuring that each node appears before all the nodes it is connected to.
+1. Topological sorting: We first determine a topological ordering of the DAG nodes, ensuring that each node appears after all of its parents and before all of its children.
 
 
-2. Following the topological order, we iteratively estimate the distribution of each node based only on its parents (as described in Step 1).
+2. Upstream propagation: Following the topological order from roots to leaves, we iteratively estimate the distribution of each node given its parents (applying the logic from Step 1):
 
-For nodes with no parents (i.e. root nodes in the graph), the distribution is directly estimated using the observed data:
+- Root nodes (no parents): distributions are estimated directly from empirical data:
 
-  - observed mean for Poisson nodes, 
+  - Gaussian: sample mean $\widehat{\mu}$ and variance $\widehat{\sigma}^2$ (derived from precision $\tau$ or empirical variance),
   
-  - observed mean and variance for Gaussian nodes,
+  - Poisson: sample mean $\widehat{\lambda}$, 
   
-  - observed frequencies for binomial nodes,
+  - Binomial/Multinomial: sample class frequencies/proportions.
+
+- Child nodes: distributions are computed using the current estimated distributions of their parents. If a parent node is observed (acts as an evidence), its fixed value is used directly. Otherwise:
+
+  - Gaussian parent $A$: we substitute its estimated conditional expectation $\mathbb{E}(A)$, 
+
+  - Poisson parent $A$: we substitute its estimated conditional expectation $\mathbb{E}(A)$,
+
+  - Binomial parent $A$: we marginalize over its binary state space ($A\in \{0,1\}$),
   
-  - observed frequencies for multinomial nodes.
+  - Multinomial parent $A$: we marginalize over all $K$ categories ($A\in \{1,...,K\}$).
 
-For the remaining nodes, we use the estimated distributions of their parents as values in the formula, unless those parent nodes are evidence (i.e. observed). Specifically:
+3. Downstream propagation: Going through the network in reverse topological order (from leaves to roots), we iteratively update each node's distribution using information from its children and co-parents (applying the logic from Step 2) until reaching the target node of interest:
 
-  - if a parent $A$ is Gaussian, we use its estimated expectation as its value, 
+- Leaves nodes (no children): distributions remain unchanged:
 
-  - if a parent $A$ is Poisson, we use its estimated expectation as its value,
+- Parents nodes: Distributions are updated using the estimated distributions of their children and co-parents. If a co-parent node $C$ is observed, its known value is used directly. Otherwise:
 
-  - if a parent $A$ is binomial, we marginalize over its possible values.
+  - Gaussian co-parent $C$: we substitute its estimated expectation $\mathbb{E}(C)$,
+
+  - Poisson co-parent $C$: we substitute its estimated expectation $\mathbb{E}(C)$,
+
+  - Binomial co-parent $C$: we marginalize over its binary outcomes,
   
-  - if a parent $A$ is multinomial, we marginalize over its possible values.
+  - Multinomial co-parent $C$:  we marginalize over all $K$ categories.
 
-3. Following the reverse topological order (from leaves to roots), we iteratively update the distribution of each node based on its children and their parents (as described in Step 2) until reaching the node of interest.
-
-For nodes with no children (i.e. leaf nodes in the graph), the distribution remains unchanged.
-
-For the remaining nodes, we use the estimated distributions of their children's parents as values in the formula, unless those parent nodes are evidence (i.e. observed). Specifically:
-
-  - if a parents $C$ is Gaussian, we use its estimated expectation as its value,
-
-  - if a parent $C$ is Poisson, we use its estimated expectation as its value,
-
-  - if a parent $C$ is Binomial, we marginalize over its possible values. 
-
-
-*Note*: The multinomial case is not yet implemented in the current version of the `PredictABN` function. However, if it were to be included, the procedure would remain the same. In this case, we would treat multinomial nodes as binomial nodes, but we would need to marginalize over all possible values of the multinomial distribution.
 
 ## Example
 
-In the following, we focus on a specific example taken from the `ABN` package.
-The data set consists of 10 variables, including a mix of continuous (Gaussian), binary (Binomial) and count (Poisson) data, with 10,000 observations. It was generated from a known network structure.
+To illustrate the inference procedure in practice, we consider an illustrative example from the `abn` package. The dataset `ex1.dag.data` contains 10 variables, including a mix of continuous (Gaussian), binary (Binomial), and count (Poisson) nodes, with 10,000 observations generated from a known DAG structure.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning = FALSE}
 library(abn)
 
 # Load an illustrative example
@@ -262,9 +296,9 @@ mydat <- ex1.dag.data
 str(mydat)
 ```
 
-First, we used `ABN` to learn the network structure and estimate its parameters.
+First, we define the parametric distribution family for each variable, then learn the network structure and estimate its parameters using `abn`.
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 # Specify the distributions of the nodes
 mydists <- list(b1="binomial", 
                 p1="poisson",
@@ -284,68 +318,82 @@ mycache <- buildScoreCache(data.df = mydat,
                            method = "bayes",max.parents = max.par) 
 mp.dag <- mostProbable(score.cache = mycache)
 myfit <- fitAbn(object = mp.dag)
-plot(myfit)
 ```
 
-Our goal is to infer the value of node $g2$, by estimating its probability distribution. Specifically, we aim at computing the conditional expectation $\mathbb{E}(g2|b2="yes",b5="yes")$, given that the values of $b2$ and $b5$ are observed.
+```{r, echo=FALSE,eval=TRUE,out.width="80%"}
+knitr::include_graphics("fitted_dag.png")
+```
 
-Let's go through the procedure: we can first estimate the distribution of $g2$ given its parents $p1$, $b2$ and $g1$.
+
+
+Our goal is to infer the target variable $g2$, by computing its posterior conditional distribution given observed evidence. 
+
+As a first scenario, suppose the full Markov blanket of $g2$ is known: its parents $p1=3$, $b2=\text{"y"}$, $g1=2$, and its child $b5=\text{"y"}$.
+We first compute the conditional expected mean $\mathbb{E}(g2 \mid p1=3, b2=\text{"y"}, g1=2)$ and variance using only its parent set.
+
+
 ```{r, message=FALSE}
 library(igraph)
 
 hypothesis <- "g2"
-evidence <- list("b2"="y","p1"=3,"g1"=2)
+evidence <- list("p1"=3, "b2"=factor("y",levels = c("n","y")),"g1"=2)
 graph <- graph_from_adjacency_matrix(t(mp.dag$dag))
 
-# Estimate E(g2|b2=yes,p1=3,g1=2)
-prediction <- predict_node_from_parent(data = mydat, mydists, graph, myfit = myfit$modes, node = "g2", evidence = evidence)
+# Estimate E(g2|p1=3, b2=y, g1=2)
+prediction <- predict_node_from_parent(data = mydat, dists = mydists, graph, 
+                        fit = myfit$modes, node = "g2", evidence = evidence)
 ```
 
-```{r, echo=FALSE}
-print(paste0("The estimated expected value E(g2|b2=yes,p1=3,g1=2) is equal to  ",round(prediction[1],2),"."))
-print(paste0("The estimated variance var(g2|b2=yes,p1=3,g1=2) is equal to ",round(prediction[2],2),"."))
+```{r print-prediction, echo=FALSE}
+cat(sprintf("Estimated E(g2 | p1=3, b2='y', g1=2)  = %.2f\n", prediction[1]))
+cat(sprintf("Estimated var(g2 | p1=3, b2='y', g1=2) = %.2f\n", prediction[2]))
 ```
 
-Next, we can incorporate the only child $b5$ of $g2$ as an additional evidence, which fully determines the Markov blanket of $g2$.
-We can update the distribution of $g2$ accordingly.
+Next, we incorporate downstream information from its child $b5 = \text{"y"}$ to obtain the fully updated Markov blanket conditional expectation $\mathbb{E}(g2 \mid p1 = 3, b2=\text{"y"}, g1=2, b5=\text{"y"})$.
 
 ```{r}
-evidence <- list("b2"="y","p1"=3,"g1"=2,"b5"="y")
+evidence <- list("p1"=3, "b2"=factor("y",levels = c("n","y")),"g1"=2, 
+                 "b5"=factor("y",levels = c("n","y")))
 
 # Update the estimated value using the children
-prediction_updated <- predict_node_from_children(data = mydat, mydists, graph, myfit$modes, node = "g2", evidence, predictions = c(evidence,list("g2"=prediction)))
+prediction_updated <- predict_node_from_children(data = mydat, dists = mydists, graph, 
+                            fit = myfit$modes, node = "g2", evidence, 
+                            predictions = c(evidence,list("g2"=prediction)))
 ```
 
 ```{r, echo=FALSE}
-print(paste0("The estimated expected value E(g2|b2=yes,p1=3,g1=2,b5=yes) is equal to ",round(prediction_updated[1],2),"."))
-print(paste0("The estimated variance var(g2|b2=yes,p1=3,g1=2,b5=yes) is equal to ",round(prediction_updated[2],2),"."))
+cat(sprintf("Updated E(g2 | p1=3, b2='y', g1=2, b5 = 'y')  = %.2f\n", prediction_updated[1]))
+cat(sprintf("Updated var(g2 | p1=3, b2='y', g1=2, b5 = 'y') = %.2f\n", prediction_updated[2]))
 ```
 
-This updated distribution matches the result obtained when running the complete inference procedure.
+This manual step-by-step update matches the exact output returned when calling the complete `predictABN()` workflow across the network:
 
 ```{r}
-predictions <- predictABN(data = mydat, mydists, mp.dag$dag, myfit$modes, hypothesis = "g2", evidence = evidence)
+predictions <- predictABN(data = mydat, dists = mydists, dag = mp.dag$dag, 
+                  fit = myfit$modes, hypothesis = "g2", evidence = evidence)
 ```
 
 ```{r, echo=FALSE}
-print(paste0("The estimated expected value E(g2|b2=yes,p1=3,g1=2,b5=yes) is equal to ",round(prediction_updated[1],2),"."))
-print(paste0("The estimated variance var(g2|b2=yes,p1=3,g1=2,b5=yes) is equal to ",round(prediction_updated[2],2),"."))
+cat(sprintf("Estimated E(g2|b2='y',p1=3,g1=2,b5='y') = %.2f\n",round(predictions$prediction_hypothesis[1],2)))
+cat(sprintf("Estimated var(g2|b2='y',p1=3,g1=2,b5='y') = %.2f\n",round(predictions$prediction_hypothesis[2],2)))
 ```
 
-Now, let's consider that we only observe $b2$ and $b5$. The topological order of the graph is given by:
-
+In practice, we rarely observe the complete Markov blanket. Suppose now that we only observe partial evidence from nodes $b2 = \text{"y"}$ and $b5 = \text{"y"}$. To compute $\mathbb{E}(g2 \mid b2=\text{"y"}, b5=\text{"y"})$, `predictABN()` first determines the topological ordering of the network to guide forward and backward message passing:
+ 
 ```{r}
 node_order <- names(topo_sort(graph, mode="out"))
 node_order
 ```
 
-We will thus explore the graph from node $b1$ to node $b5$ and then from node $b5$ back to node $g2$, which is to infer.
+The algorithm goes through the network from root node $b1$ down to $b5$ (forward propagation, marginalizing unobserved parents) and propagates likelihood information back to $g2$ (backward propagation):
 
 ```{r}
-predictions <- predictABN(data = mydat, mydists, mp.dag$dag, myfit$modes, hypothesis = "g2", evidence = list("b2"="y",b5="y"))
+predictions <- predictABN(data = mydat, dists = mydists, dag = mp.dag$dag, 
+                          fit = myfit$modes, hypothesis = "g2", 
+                          evidence = list("b2"="y",b5="y"))
 ```
 
 ```{r, echo=FALSE}
-print(paste0("The estimated expected value E(g2|b2=yes,b5=yes) is equal to ",round(predictions$prediction_hypothesis[1],2),"."))
-print(paste0("The estimated variance var(g2|b2=yes,b5=yes) is equal to ",round(predictions$prediction_hypothesis[2],2),"."))
+cat(sprintf("Estimated E(g2 | b2='y', b5='y')  = %.2f\n", predictions$prediction_hypothesis[1]))
+cat(sprintf("Estimated var(g2 | b2='y', b5='y') = %.2f\n", predictions$prediction_hypothesis[2]))
 ```
