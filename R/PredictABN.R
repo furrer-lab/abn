@@ -2190,7 +2190,8 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
     prob_grid <- expand.grid(probabilities)
     comb_probs <- apply(prob_grid, 1, prod)
 
-    active_idx <- which(comb_probs > 0)
+    # to reduce comp time when MB is partially known
+    active_idx <- which(comb_probs>0)
 
     if (length(active_idx) == 1) {
       # MB is known: Execute compute_update EXACTLY ONCE
@@ -2206,13 +2207,14 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
       })
 
       if (is.matrix(proba_cond_values)) {
-        final_res <- as.vector(proba_cond_values %*% active_probs)
+        final_res <- proba_cond_values %*% active_probs
+        final_res <- as.vector(final_res)
       } else {
         final_res <- sum(proba_cond_values * active_probs)
       }
-    }
-    if (dists[[node]] %in% c("binomial", "multinomial")) {
-      names(final_res) <- levels(data[[node]])
+      if (dists[[node]] %in% c("binomial","multinomial")) {
+        names(final_res) <- levels(data[[node]])
+      }
     }
   } else {
     final_res <- compute_update(continuous_part, dists[[node]])
