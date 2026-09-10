@@ -27,6 +27,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - name: prepare fedora
         run: |
@@ -37,6 +38,7 @@ jobs:
           dnf -y install lapack*  # is needed on fedora server
           dnf -y install blas*
           dnf -y install atlas*
+          dnf -y install awk
 
       - name: install R
         run: |
@@ -45,10 +47,23 @@ jobs:
       - name: install config and build dependencies
         run: |
           dnf -y install libcurl-devel  # needed for pak
+          dnf -y install graphviz-devel  # needed for Rgraphviz
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       - name: install JAGS
@@ -78,11 +93,6 @@ jobs:
       #     library('abn')
       #   shell: Rscript {0}
 
-      - name: temporal workaround for ragg
-        run: |
-          pak::pak("r-lib/ragg")
-        shell: Rscript {0}
-
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
@@ -92,11 +102,6 @@ jobs:
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
-
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
 
       - name: install from source
         run: |

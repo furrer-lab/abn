@@ -53,19 +53,17 @@ jobs:
       - associated_pr
     runs-on: ubuntu-latest
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian/gcc/release/abn:latest
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian-gcc-release/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
     permissions:
       contents: write
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
       - name: Create build location
         run: |
             mkdir ${{ env.BUILD_LOC }}
         shell: bash
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure
@@ -109,12 +107,12 @@ jobs:
           pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
       - name: Upload pkgdown artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.DOC_LOC }}/
-        
+
   release-version:
     # NOTE: Currently this workflow only runs if a release- branch has an open pull request
     needs:
@@ -130,7 +128,7 @@ jobs:
       contents: write
       pull-requests: write
       repository-projects: write
-      pages: write  
+      pages: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -167,7 +165,7 @@ jobs:
           awk '/# abn ${{ steps.release_version.outputs.version }}*/{a=1};a;/# abn ${{ steps.release_version.outputs.previous_version }}*/{exit}' NEWS.md | head -n -1 >> body.md
       - name: Create tag and release  # 2
         run: |
-          echo $GITHUB_SHA 
+          echo $GITHUB_SHA
           gh release create ${{ steps.release_version.outputs.version }} \
             --target $GITHUB_SHA \
             --latest \
@@ -175,7 +173,7 @@ jobs:
             --notes-file body.md \
             --repo ${{ env.OWNER }}/${{ env.REPO }} \
       - name: Get the built package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name:
             package
@@ -187,7 +185,7 @@ jobs:
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
       - name: Adding the label ${{ env.LABEL_PUBLISHED }}  # 2
         run: |
           gh pr edit ${{ needs.associated_pr.outputs.event }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}

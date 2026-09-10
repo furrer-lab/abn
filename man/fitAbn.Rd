@@ -67,7 +67,8 @@ regressionLoop(
   nvars = NULL,
   nobs = NULL,
   dag.multi = NULL,
-  verbose = NULL
+  verbose = NULL,
+  only_glmmTMB_poisson = FALSE
 )
 }
 \arguments{
@@ -116,6 +117,8 @@ regressionLoop(
 \item{nobs}{number of observations in data.df.}
 
 \item{dag.multi}{extended dag for one-hot-encoded multinomial variables.}
+
+\item{only_glmmTMB_poisson}{logical, if TRUE only use \code{glmmTMB} to fit Poisson nodes with random effects. This is useful if \code{glmer} fails due to convergence issues. Default is FALSE.}
 }
 \value{
 An object of class \code{abnFit}. A named list. One entry for each of the variables in \code{data.df} (excluding the grouping variable, if present) which contains an estimate of the log marginal likelihood for that individual node. An entry "mlik" which is the total log marginal likelihood for the full ABN model. A vector of \code{error.codes} - non-zero if a numerical error or warning occurred, and a vector error.code.desc giving a text description of the error. A list \code{modes}, which contains all the mode estimates for each parameter at each node. A vector called Hessian accuracy, which is the estimated local error in the log marginal likelihood for each node.  If \code{compute.fixed=TRUE} then a list entry called \code{marginals} which contains a named entry for every parameter in the ABN and each entry in this list is a two-column matrix where the first column is the value of the marginal parameter, say x, and the second column is the respective density value, pdf(x). Also, a list called \code{marginal.quantiles} is produced, giving the quantiles for each marginal posterior distribution.

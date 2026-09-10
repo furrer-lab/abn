@@ -23,6 +23,7 @@ jobs:
     permissions:
       pull-requests: read
       repository-projects: read
+      contents: write
     outputs:
       published: ${{ steps.published.outputs.labeled }}
       event: ${{ github.event.number }}
@@ -48,19 +49,27 @@ jobs:
       - associated_pr
     runs-on: ubuntu-latest
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian/gcc/release/abn:latest
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/debian-gcc-release/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
     permissions:
       contents: write
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
       - name: Create build location
         run: |
            mkdir ${{ env.BUILD_LOC }}
         shell: bash
-      - name: Disable renv
+# Workaround to have glmmTMB available in the container
+      - name: Install system dependencies
         run: |
-           renv::deactivate()
+          apt-get update && apt-get install -y libglpk-dev
+        shell: bash
+      - name: Install R dependencies
+        run: |
+          install.packages(c("glmmTMB", "devtools"), dependencies = TRUE)
         shell: Rscript {0}
+# End workaround
       - name: Change permissions of configure
         run: |
            chmod +x configure
@@ -104,14 +113,14 @@ jobs:
           pkgdown::build_site_github_pages(dest_dir= "${{ env.DOC_LOC }}", new_process = FALSE, install = FALSE)
         shell: Rscript {0}
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v5
       - name: Upload pkgdown artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ env.DOC_LOC }}/
 
   release-version:
-    needs: 
+    needs:
       - associated_pr
       - build-release-content
       - build-pkgdown-content
@@ -124,7 +133,7 @@ jobs:
       contents: write
       pull-requests: write
       repository-projects: write
-      pages: write  
+      pages: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -161,7 +170,7 @@ jobs:
             --notes-file body.md \
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Get the built package
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name:
             package
@@ -173,7 +182,7 @@ jobs:
             --repo ${{ env.OWNER }}/${{ env.REPO }}
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
       - name: Adding the label ${{ env.LABEL_PUBLISHED }}
         run: |
           gh pr edit ${{ needs.associated_pr.outputs.event }} --add-label ${{ env.LABEL_PUBLISHED }} --repo ${{ env.OWNER }}/${{ env.REPO }}

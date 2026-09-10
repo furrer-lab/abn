@@ -67,27 +67,28 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     strategy:
       fail-fast: false
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
+        container:
+          - 'valgrind-gcc-devel'
+          - 'debian-gcc-release'
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Installing valgrind
+        if: ${{ !startsWith(matrix.container, 'valgrind') }}
         run: |
-          apt-get install valgrind -y
+          apt-get update && apt-get install valgrind -y
         shell: bash
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure
@@ -103,7 +104,7 @@ jobs:
         shell: bash
       - name: Install package
         run: |
-          devtools::install(upgrade='never')
+          devtools::install(upgrade=FALSE)
         shell: Rscript {0}
       - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |
@@ -139,15 +140,15 @@ jobs:
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} passed! :rocket:" >> $GITHUB_STEP_SUMMARY
-            exit 0
+            exit 0;
           elif [ ${{ needs.run_memory_check.result }} == "failure" ]; then
             gh pr edit ${{ env.EVENT }} --remove-label ${{ env.LABEL_SUCCESS }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             gh pr edit ${{ env.EVENT  }} --add-label ${{ env.LABEL_FAILURE }} --repo ${{ env.OWNER }}/${{ env.REPO }}
             echo "### ${{ github.event.label.url }} failed!" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            exit 1;
           else
             gh pr edit ${{ env.EVENT }} --add-label ${{ env.LABEL_CHECK }} --repo ${{ env.OWNER }}/${{ env.REPO }}
-            echo "On demand task outcome was ${{ steps.some_task.outcome }}"
+            echo "On demand task outcome was ${{ steps.some_task.outcome }}";
           fi
         shell: bash
         env:
@@ -171,9 +172,9 @@ jobs:
         id: passed
         run: |
           if $( gh pr view ${{ env.EVENT }} --repo ${{ env.OWNER }}/${{ env.REPO }} --json "labels" --jq ".[].[].name" | grep --quiet ${{ env.LABEL_SUCCESS }}); then
-            echo "PASSED=true" >> $GITHUB_OUTPUT
+            echo "PASSED=true" >> $GITHUB_OUTPUT;
           else
-            echo "PASSED=false" >> $GITHUB_OUTPUT
+            echo "PASSED=false" >> $GITHUB_OUTPUT;
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -182,7 +183,7 @@ jobs:
   memory_check_passed:
     if: ${{ always() }}
     needs:
-      - run_memory_check 
+      - run_memory_check
       - record_passed_label
     runs-on: ubuntu-latest
     env:
@@ -192,6 +193,29 @@ jobs:
     steps:
       - name: Assert that either checks passed on the label is present
         run: |
-          if [[ ${{ needs.run_memory_check.result }} == 'success' || ${{ needs.record_passed_label.outputs.passed }} == 'true' ]]; then
-            echo 'memory checks status ok';
-          else exit 1; fi
+          # First, check if the workflow was triggered by the correct label.
+          # If not, the relevant jobs were likely skipped, and we should not fail the workflow.
+          if [[ "${{ github.event.label.name }}" != "${{ env.LABEL_CHECK }}" ]]; then
+            echo "Workflow not triggered by '${{ env.LABEL_CHECK }}' label (actual label: '${{ github.event.label.name }}')."
+            echo "Skipping status assertion and exiting gracefully."
+            exit 0
+          fi
+
+          # If triggered by the correct label, proceed with the status check.
+          run_memory_check_RESULT="${{ needs.run_memory_check.result }}"
+          PASSED_LABEL_EXISTS="${{ needs.record_passed_label.outputs.passed }}"
+
+          echo "Verifying R CMD check status..."
+          echo "  - run_memory_check job result: ${run_memory_check_RESULT}"
+          echo "  - '${{ env.LABEL_SUCCESS }}' label found on PR: ${PASSED_LABEL_EXISTS}"
+
+          if [[ "${run_memory_check_RESULT}" == 'success' ]]; then
+            echo "=> Success: run_memory_check job passed."
+            exit 0
+          elif [[ "${PASSED_LABEL_EXISTS}" == 'true' ]]; then
+            echo "=> Success: Although run_memory_check job result was '${run_memory_check_RESULT}', the '${{ env.LABEL_SUCCESS }}' label already exists on the PR."
+            exit 0
+          else
+            echo "=> Failure: run_memory_check job result was '${run_memory_check_RESULT}' and the '${{ env.LABEL_SUCCESS }}' label was not found."
+            exit 1
+          fi

@@ -3,6 +3,7 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 \.Rhistory
+\.Renviron
 \.gitignore
 \.git
 Makefile
@@ -11,6 +12,7 @@ Makefile
 \.lintr
 ^\.Rbuildignore$
 ^\.codecov\.yml$
+^codecov\.yml$
 
 ^_pkgdown\.yml$
 ^docs$
@@ -41,5 +43,3 @@ Makefile
 ^inst/figures/abn_logo.png$
 ^inst/figures/abn_logo_white.png$
 ^Meta$
-^\.positai$
-^\.claude$

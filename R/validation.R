@@ -41,23 +41,25 @@ createAbnDag <- function(dag,
                          data.df = NULL,
                          data.dists = NULL,
                          ...) {
+  # Check dag
+  if (is.null(dag)) {
+    stop("'dag' must be a matrix or a formula")
+  }
+
+  # Check data.dists
   if (!is.null(data.dists)) {
     data.dists <- validate_dists(data.dists, returnDists = TRUE)
+  } else {
+    # warning("No distribution provided. Will sample from the data.")
   }
 
+  # Check data.df
   if (is.null(data.df)) {
-    dag <- validate_abnDag(dag, data.df = data.dists, returnDag = TRUE) # Little hack to get the data distribution names in the correct format
-  } else{
-    if(is.data.frame(data.df)) {
-      dag <- validate_abnDag(dag, data.df = data.df, returnDag = TRUE)
-    } else {
-      stop("'data.df' must be a data.frame")
-    }
-  }
-
-  if (is.null(dimnames(dag))) {
-    dag <- provideDimnames(dag, base = list(letters))
-    validate_abnDag(dag)
+    dag <- check.valid.dag(dag = dag)
+  } else if(is.data.frame(data.df)) {
+      dag <- check.valid.dag(dag = dag, data.df = data.df)
+  } else {
+    stop("'data.df' must be a data.frame or NULL")
   }
 
   out <- list(dag = dag,
@@ -97,60 +99,4 @@ validate_dists <- function(data.dists, returnDists=TRUE,...) {
 
   if( returnDists) return( as.list( data.dists)) else return( TRUE)
 
-}
-
-#' Check for valid DAG of class `abnDag`
-#'
-#' Beside some basic checks, this function also checks for square matrix with no undirected cycles (trivial cycles) and
-#' for no undirected cycles.
-#'
-#' Similar to `check.valid.dag()`.
-#'
-#' @param dag dag is either a formula, a matrix  or an object of class 'abnDag'
-#' @param data.df data frame
-#' @param returnDag if TRUE (default) returns DAG as matrix.
-#' @param ... additional arguments.
-#'
-#' @return Either TRUE/FALSE or DAG as matrix.
-#' @keywords internal
-validate_abnDag <- function( dag, data.df=NULL, returnDag=TRUE, ...) {
-    # we already have a valid container. can be used to extract...
-  if (inherits(x = dag, what = "abnDag"))  dag <- dag$dag
-
-
-  # case of formula
-  if  (inherits(x = dag, what = "formula")) {
-    if (is.null( data.df))
-      stop( 'DAG specification with formula requires a named data frame or named vector')
-
-    name <- if ( is.matrix( data.df)) colnames( data.df) else names( data.df)
-    if (is.null( name))
-      stop( 'Improperly named object "data.df" for DAG specification')
-
-    dag <- formula_abn(f = dag, name = name)
-  }   # proceed checking!!
-
-  # case of matrix
-
-  if ( is.matrix( dag)) {
-    dimm <- dim( dag)
-    if (dimm[1] != dimm[2])   stop("DAG matrix is not square")
-    if (any(diag(dag)!=0))  stop("DAG matrix contains trivial cycles (nonzero values on diagonal)")
-
-    if (!is.null(data.df))  {    # if data.df given we take over the names.
-      name <- if ( is.matrix( data.df)) colnames( data.df) else names( data.df)
-
-      if(length(name) != dimm[1])  stop("DAG matrix not coherent with names")
-      colnames(dag) <- rownames(dag) <- name
-    } else {
-      if (any(colnames(dag)!=rownames(dag)))  stop("DAG matrix with incoherent row-/colnames")
-    }
-
-    res <- .Call("checkforcycles", as.integer(dag), dimm[1], PACKAGE = "abn")
-    if (res!=0) stop("DAG contains at least one cycle.")
-
-    if( returnDag) return( dag) else return( TRUE)
-  }   else {
-    stop( "DAG specification with should be via formula or matrix")
-  }
 }

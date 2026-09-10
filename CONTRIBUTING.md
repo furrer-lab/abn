@@ -84,41 +84,217 @@ following workflow for development:
 
 ## Testing
 
-The `abn` package uses several testing pipelines.
-When developing (i.e. not on the `main` branch) we recommend running the
-[quick-testthat.yml](https://github.com/furrer-lab/abn/blob/24-documentation-of-the-testing-procedure-noT/.github/workflows/quick-testthat.yml) action.
-This pipeline runs by default on push event on all branches other than `main`
-and executes all the test defined withing the `abn` package by calling
-[`devtools::test`](https://devtools.r-lib.org/reference/test.html).
-It does so in a docker container from the
-[r-containers](https://github.com/furrer-lab/r-containers) package which builds
-container images that are setup with all the required dependencies.
+The `abn` package uses a comprehensive multi-layered testing infrastructure designed to ensure code quality while being efficient during development. Understanding when and how different tests run is essential for effective contribution.
 
-By default, a container based on `Debian` using `clang` as compiler front-end
-and the current R development version version (`debian/clang/devel`) is used.
-However, [other configurations are available](https://github.com/orgs/furrer-lab/packages?repo_name=r-containers).
+### Automatic Testing During Development
 
-If you want to change the container image to use for testing your branch against,
-you can append the desired configuration to the name of your branch with the
-prefix `'__'`.
-Hence, a branch named `my-awesome-branch__debian/gcc/release` would use the
-container image based on Debian, using `gcc` and the current release version of
-R to run the tests.
+#### Development Tests (`development_run.yml`)
+When you create a pull request to any branch (except `main` and release branches), the package automatically runs **intelligent testing**:
 
-You can also completely opt-out of testing by adding the flag `noT` to your
-branch name.
-It does not matter where you put the string `noT` in the branch name, so a
-branch named `"monoTestingBranch"` will also make you opt-out of testing.
+- **Smart test selection**: Only runs tests related to the files you modified
+  - If you modify files in `src/`: runs all tests (C code changes can affect anything)
+  - If you modify files in `R/`: runs only tests for the specific R files changed
+  - If you modify other files: may skip testing entirely
 
-_Note:_ If you start a commit message with `"noT"` then the testing pipeline
-will also not run for this commit. In a commit message, however, the message
-has to start with `noT`, it will be ignored otherwise.
+- **Default environment**: Tests run in a Docker container with Debian, `clang` compiler, and R development version (`debian/clang/devel`)
 
-### Memory Checks
+- **Custom environments**: You can test against different configurations by appending `__<config>` to your branch name:
+  ```
+  my-feature-branch__debian/gcc/release    # Use Debian + GCC + R release
+  my-feature-branch__fedora/clang/devel    # Use Fedora + clang + R devel
+  ```
+  [See available configurations](https://github.com/orgs/furrer-lab/packages?repo_name=r-containers).
 
-By default our testing pipelines do not perform checks for proper memory usage.
-However, if you are working on the C code, you have to option to run computationally
-more expensive (i.e. slower) memory checks.
+- **Opt-out option**: Skip testing by including `noT` anywhere in your branch name or starting a commit message with `noT`.
 
-To run such checks, your development branch needs to have an open Pull request and you
-simply have to label the request with https://github.com/furrer-lab/abn/labels/memory%3A%3Acheck
+### On-Demand Testing via Labels
+
+For thorough testing beyond the basic development tests, apply labels to your pull request to trigger specialized checks:
+
+| Label | Purpose | When to Use |
+|-------|---------|-------------|
+| `CRAN::check` | Full R CMD check across multiple OS/compiler combinations | Before merging significant changes, especially for CRAN submission |
+| `memory::check` | Memory leak detection with Valgrind | When modifying C/C++ code in `src/` |
+| `linting::check` | Code style and linting validation | For code cleanup or style improvements |
+| `URL::check` | Validates all URLs in documentation | When updating documentation or links |
+| `pkgdown::check` | Builds package website | When modifying documentation or vignettes |
+| `CompVignettes::build` | Rebuilds computational vignettes | When vignette code or examples change |
+
+**How to trigger**: Simply add the appropriate label to your pull request. The workflow will automatically run and update the label to indicate success (`::passed`) or failure (`::failed`).
+
+### Release Testing
+
+#### Release Branch Testing (`release_run.yml`)
+When working on release branches (named `release-X.Y.Z`):
+- Automatic linting checks
+- Preparation for CRAN submission
+
+#### Installation Testing
+On pushes to `main`, the package is automatically tested for installation across:
+- Ubuntu (latest)
+- Fedora (latest) 
+- macOS (setup workflows)
+- Windows (setup workflows)
+
+### Testing Strategy by Contribution Type
+
+#### Small Bug Fixes or Documentation Changes
+- Development tests are usually sufficient
+- Consider `linting::check` for style consistency
+
+#### New Features or Significant Changes
+1. Start with development tests during development
+2. Before requesting review, add `CRAN::check` label
+3. If modifying C code, add `memory::check` label
+4. If changing vignettes, add `CompVignettes::build` label
+
+#### Pre-Release Preparation
+- All on-demand tests should pass
+- Full CRAN check across all platforms
+- Memory checks for any C code changes
+- Documentation and vignette rebuilds
+
+## Version Bump and Release
+
+The `abn` package follows a structured release process using **Semantic Versioning (SemVer)** and automated workflows. Understanding this process is essential for maintainers and contributors involved in preparing releases.
+
+### Semantic Versioning
+
+The `abn` package uses semantic versioning with the format `MAJOR.MINOR.PATCH`:
+
+- **MAJOR** (`X.0.0`): Breaking changes that are not backward compatible
+- **MINOR** (`X.Y.0`): New functionality added in a backward compatible manner  
+- **PATCH** (`X.Y.Z`): Backward compatible bug fixes and minor improvements
+
+For example, the package is currently at version `3.1.10`, indicating it's in the third major version with ongoing minor updates and patches.
+
+### Release Process Overview
+
+The release process is fully automated through GitHub Actions and consists of three main phases:
+
+1. **Initiation**: Triggered by creating a release candidate tag
+2. **Testing & Validation**: Comprehensive testing of the release candidate
+3. **Publishing**: Creating the final release and distributing artifacts
+
+### Step-by-Step Release Process
+
+#### 1. Prepare for Release
+
+Before initiating a release:
+
+- Ensure all planned features/fixes are merged into `main`
+- Verify that all tests pass on `main` branch
+- Update documentation and vignettes if needed
+- Review and update `NEWS.md` manually if necessary (though it's auto-generated)
+
+#### 2. Initiate Release Process
+
+**Trigger**: Create a release candidate tag with the format `X.Y.Z-rc`
+
+```bash
+# Example for version 3.1.11
+git tag 3.1.11-rc
+git push origin 3.1.11-rc
+```
+
+**What happens automatically** (`initiate_version_release.yml`):
+
+1. **Version Detection**: Extracts the target version (e.g., `3.1.11` from `3.1.11-rc`)
+2. **Changelog Generation**: Updates `NEWS.md` using git-chglog with changes since the last release
+3. **File Updates**:
+   - `DESCRIPTION`: Updates version and date
+   - `configure.ac`: Updates version number
+   - `README.md`: Updates status badge branch references
+4. **Release Branch Creation**: Creates a `release-3.1.11` branch
+5. **Pull Request Creation**: Opens a draft PR from the release branch to `main`
+6. **Automatic Labeling**: Adds testing labels (`CRAN::check`, `memory::check`, `linting::check`, `URL::check`)
+
+#### 3. Release Validation Phase
+
+Once the release PR is created, **all comprehensive tests run automatically**:
+
+- **CRAN Checks**: Full `R CMD check` across multiple OS/compiler combinations
+- **Memory Checks**: Valgrind testing for memory leaks (if C code changed)
+- **Linting**: Code style validation
+- **URL Validation**: Checks all documentation links
+- **Release Branch Testing**: Basic linting on the release branch
+
+**Manual Steps Required**:
+1. Review the automatically generated changelog in `NEWS.md`
+2. Make any necessary manual edits to the release PR
+3. Ensure all automated tests pass (labels show `::passed`)
+4. Convert the draft PR to ready for review
+5. Get the release approved by maintainers
+
+#### 4. Publishing the Release
+
+**Option A: Merge Release PR** (Recommended)
+
+When the release PR is merged, `publish_version_merging.yml` automatically:
+1. Builds the R package tarball
+2. Generates pkgdown documentation
+3. Creates a GitHub release with artifacts
+4. Deploys documentation to GitHub Pages
+5. Labels the PR as `release::published`
+
+**Option B: Push Final Tag** 
+
+Alternatively, push the final version tag directly:
+
+```bash
+git tag 3.1.11
+git push origin 3.1.11
+```
+
+This triggers `publish_version_enforce.yml` with the same publishing actions.
+
+### Making Minor Changes During Release
+
+#### Before the Release PR is Merged
+
+**Small fixes** (typos, documentation):
+1. Make changes directly to the release branch (`release-X.Y.Z`)
+2. Push to the release branch
+3. Changes will be included when the PR is merged
+
+**Significant changes**:
+1. Consider if the version number needs adjustment
+2. Update the release branch accordingly
+3. Rerun testing by adding/removing labels to the PR
+
+#### After Release is Published
+
+**Patch releases** (urgent bug fixes):
+1. Create a new patch version (e.g., `3.1.11` → `3.1.12`)
+2. Follow the same release process
+
+**Post-release minor changes**:
+1. Make changes on `main` branch
+2. Include in next scheduled release
+
+### CRAN Submission Process
+
+After a successful GitHub release:
+
+1. **Download the Package**: Get the built `.tar.gz` from the GitHub release
+2. **Final CRAN Check**: Run additional CRAN checks locally:
+   ```bash
+   R CMD check --as-cran abn_X.Y.Z.tar.gz
+   ```
+3. **Submit to CRAN**: Upload through the [CRAN submission portal](https://cran.r-project.org/submit.html)
+4. **Monitor Submission**: Check for automated CRAN feedback and address any issues
+
+### Best Practices
+
+- **Release Frequency**: Plan releases according to accumulated changes and user needs
+- **Version Planning**: Use patch versions for bug fixes, minor versions for new features
+- **Testing**: Always let all automated tests complete before finalizing a release  
+- **Documentation**: Ensure pkgdown site builds successfully before release
+- **Communication**: Announce significant releases to users through appropriate channels
+
+### Troubleshooting Releases
+
+- **Failed Tests**: Address test failures before proceeding with release
+- **Build Issues**: Check container configurations and dependencies
+- **Version Conflicts**: Ensure version numbers are consistent across all files
+- **CRAN Rejections**: Address CRAN feedback and create a patch release if needed

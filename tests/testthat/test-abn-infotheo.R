@@ -1,4 +1,6 @@
 test_that("discretization() works", {
+  skip_if_not_installed("entropy")
+
   mydists <- list(a="gaussian",
                  b="gaussian",
                  c="gaussian")
@@ -30,6 +32,8 @@ test_that("discretization() works", {
 })
 
 test_that("miData() works", {
+  skip_if_not_installed("entropy")
+
   mydists <- list(a="binomial",
                   b="binomial",
                   c="binomial")
@@ -65,6 +69,8 @@ test_that("miData() works", {
 })
 
 test_that("entropyData() works", {
+  skip_if_not_installed("entropy")
+
   mydists <- list(a="gaussian",
                   b="gaussian",
                   c="gaussian")

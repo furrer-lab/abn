@@ -43,6 +43,7 @@ edge.strength <- matrix(c(0,0.5,0.5,0.7,0.1,0,   #Define a matrix formulation
                           0,0,0,0,0,0.8,
                           0,0,0,0,0,0),nrow = 6L, ncol = 6L, byrow = TRUE)
 colnames(edge.strength) <- rownames(edge.strength) <- names(dist)  #Naming of the matrix
+data <- data.frame(a=rnorm(100), b=rnorm(100), c=rnorm(100), d=rnorm(100), e=rbinom(100, 1, 0.5), f=rbinom(100, 1, 0.5))  #Generate random data
 
 test_that("Plot from a formula works", {
   dag.mat <- formula_abn(f = ~a|b:c:e+b|c:d:f+e|f, name = letters[1:6])
@@ -71,30 +72,30 @@ test_that("Plot from a formula works", {
   expect_equal(unname(plt@renderInfo@nodes$shape), shapes_by_dists)
 
   # Markov blanket
-  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = "e")
+  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = "e", data.df = data)
   plt_fill <- plt@renderInfo@nodes$fill
-  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "e")
+  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "e", data.df = data)
   expect_equal(length(unique(plt_fill[true_mb])), 1) # check for one color among those nodes from true_mb
   idx <- which(plt_fill %in% plt_fill[true_mb]) # get indexes from true_mb nodes
   expect_false(any(names(plt_fill[-idx]) %in% true_mb)) # None of the other nodes (that are in true_mb) should be in true_mb
 
-  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = "c")
+  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = "c", data.df = data)
   plt_fill <- plt@renderInfo@nodes$fill
-  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "c")
+  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "c", data.df = data)
   expect_equal(length(unique(plt_fill[true_mb])), 1) # check for one color among those nodes from true_mb
   idx <- which(plt_fill %in% plt_fill[true_mb]) # get indexes from true_mb nodes
   expect_false(any(names(plt_fill[-idx]) %in% true_mb)) # None of the other nodes (that are in true_mb) should be in true_mb
 
-  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = c("d"))
+  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = c("d"), data.df = data)
   plt_fill <- plt@renderInfo@nodes$fill
-  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "d")
+  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = "d", data.df = data)
   expect_equal(length(unique(plt_fill[true_mb])), 1) # check for one color among those nodes from true_mb
   idx <- which(plt_fill %in% plt_fill[true_mb]) # get indexes from true_mb nodes
   expect_false(any(names(plt_fill[-idx]) %in% true_mb)) # None of the other nodes (that are in true_mb) should be in true_mb
 
-  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = c("d","f"))
+  plt <- plotAbn(dag = ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, markov.blanket.node = c("d","f"), data.df = data)
   plt_fill <- plt@renderInfo@nodes$fill
-  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = c("d","f"))
+  true_mb <- mb(dag= ~a|b:c:e+b|c:d:f+e|f, data.dists = dist, node = c("d","f"), data.df = data)
   expect_equal(length(unique(plt_fill[true_mb])), 2) # check for one color among those nodes from true_mb
   idx <- which(plt_fill %in% plt_fill[true_mb]) # get indexes from true_mb nodes
   expect_false(any(names(plt_fill[-idx]) %in% true_mb)) # None of the other nodes (that are in true_mb) should be in true_mb
@@ -110,7 +111,7 @@ test_that("Plot from a formula works", {
   tmp[1,6] <- 1
   expect_error(plotAbn(tmp, edge.strength=-edge.strength-4, data.dist = dist),
                "'edge.strength' should be positive")
-  expect_no_error(plotAbn(tmp, edge.strength=edge.strength, data.dist = dist)) # zeros allowd
+  expect_no_error(plotAbn(tmp, edge.strength=edge.strength, data.dist = dist)) # zeros allowed
   expect_error(plotAbn(edge.strength, edge.strength=tmp, data.dist = dist),"'edge.strength' does not match dag")
 
   # classic view

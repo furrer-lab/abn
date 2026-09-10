@@ -160,6 +160,42 @@ test_that("buildScoreCache.mle() with Poisson nodes", {
   }
 })
 
+test_that("buildScoreCache.mle() works with two Poisson nodes",{
+  if(.Platform$OS.type == "unix") {
+    capture.output({
+      # Poisson with two nodes
+      mydists <- list(a = "poisson",
+                      b = "poisson")
+      a <- rpois(1000, lambda = 1)
+      z <- exp(1+2*a)
+      b <- rpois(1000, lambda = z)
+      mydf <- data.frame("a" = a,
+                         "b" = as.integer(b))
+    },
+    file = "/dev/null")
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
+  }
+  mycache.mle <- buildScoreCache(data.df = mydf,
+                                 data.dists = mydists,
+                                 method = "mle",
+                                 max.parents = 1,
+                                 verbose = FALSE)
+
+  # mLik
+  expect_equal(mycache.mle$mlik[1], as.numeric(logLik(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$mlik[2], as.numeric(logLik(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$mlik[3], as.numeric(logLik(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+  # AIC
+  expect_equal(mycache.mle$aic[1], as.numeric(AIC(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$aic[2], as.numeric(AIC(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$aic[3], as.numeric(AIC(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+  # BIC
+  expect_equal(mycache.mle$bic[1], as.numeric(BIC(glm(formula=mydf$a ~ 1, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$bic[2], as.numeric(BIC(glm(formula=mydf$a ~ 1 + mydf$b, family=poisson))), tolerance = 0.00005)
+  expect_equal(mycache.mle$bic[3], as.numeric(BIC(glm(formula=mydf$b ~ 1, family=poisson))), tolerance = 0.00005)
+})
+
 test_that("buildScoreCache.mle() with Multinomial nodes", {
   if(.Platform$OS.type == "unix") {
     capture.output({
@@ -261,6 +297,32 @@ test_that("buildScoreCache.mle() corresponds with simulation results", {
   }
 })
 
+test_that("buildScoreCache.mle() without group.var and all 4 distribution types", {
+  if(.Platform$OS.type == "unix") {
+    if (requireNamespace("Matrix", quietly = TRUE)) {
+      # load data
+      # load(file = "tests/testthat/testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+      load(file = "testdata/n_250_k_2_groups_Even_mp_7_nodedists_Balanced_s_04_graph1.Rdata")
+
+
+      # build cache
+      expect_no_error({
+        mycache <- buildScoreCache(data.df = data$data,
+                                   data.dists = data$dists,
+                                   method = "mle",
+                                   max.parents = data$max.parents,
+                                   group.var = NULL,
+                                   debugging = FALSE,
+                                   verbose = FALSE)
+      })
+    } else {
+      skip("Package Matrix is required for this test.")
+    }
+  } else {
+    skip("`buildScoreCache.mle()` is tested mainly on Unix-like systems.")
+  }
+})
+
 test_that("forLoopContent() works as expected.", {
   # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
   load(file = "testdata/forLoopContent_data.Rdata")
@@ -304,4 +366,86 @@ test_that("forLoopContent() works as expected.", {
       }
     })
   })
+})
+
+test_that("forLoopContent() prints local model when verbose.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      capture.output({
+        # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
+        load(file = "testdata/forLoopContent_data.Rdata")
+
+        verbose <- TRUE
+        # with group.var
+        expect_message(
+          forLoopContent(row.num = 1,
+                         mycache = mycache,
+                         data.dists = data.dists,
+                         data.df.multi = data.df.multi,
+                         adj.vars = adj.vars,
+                         data.df = data.df,
+                         data.df.lvl = data.df.lvl,
+                         group.var = group.var,
+                         group.ids = group.ids,
+                         control = control,
+                         n = nvars,
+                         verbose = verbose),
+          regexp = "using glmer with model"
+        )
+
+        # without group.var
+        expect_message(
+          forLoopContent(row.num = 2, # row.num = 1 has no parents
+                         mycache = mycache,
+                         data.dists = data.dists,
+                         data.df.multi = data.df.multi,
+                         adj.vars = adj.vars,
+                         data.df = data.df,
+                         data.df.lvl = data.df.lvl,
+                         group.var = NULL,
+                         control = control,
+                         n = nvars,
+                         verbose = verbose),
+          regexp = "regressing Outdoor on Sex"
+        )
+      },
+      file = "/dev/null")
+    })
+  } else {
+    skip("`forLoopContent()` is tested mainly on Unix-like systems.")
+  }
+})
+
+test_that("Poisson nodes step into calling glmmTMB.", {
+  if(.Platform$OS.type == "unix") {
+    suppressMessages({
+      # Suppress messages that are not related to the test but are printed when verbose
+      capture.output({
+        # load(file = "tests/testthat/testdata/forLoopContent_data.Rdata")
+        load(file = "testdata/forLoopContent_data.Rdata")
+
+        verbose <- TRUE
+        # with group.var
+        expect_message(
+          forLoopContent(row.num = 9,
+                         mycache = mycache,
+                         data.dists = data.dists,
+                         data.df.multi = data.df.multi,
+                         adj.vars = adj.vars,
+                         data.df = data.df,
+                         data.df.lvl = data.df.lvl,
+                         group.var = group.var,
+                         group.ids = group.ids,
+                         control = build.control(method = "mle", only_glmmTMB_poisson=TRUE),
+                         n = nvars,
+                         verbose = verbose),
+          regexp = "trying glmmTMB with model"
+        )
+      },
+      file = "/dev/null")
+    })
+  } else {
+    skip("`forLoopContent()` is tested mainly on Unix-like systems.")
+  }
 })

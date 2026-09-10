@@ -57,6 +57,7 @@ forLoopContent <-
     # Main part: Depending on child's distribution, call the appropriate modelling function
     switch (as.character(child.dist),
             gaussian = {
+              if (verbose) {message(paste("using lmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::lmer(model, data = data.df.grouping)
                 }, error=function(e)NULL)
@@ -74,9 +75,10 @@ forLoopContent <-
                   }, error=function(e)NULL)
                 }
 
-                # if fit is still NULL, try fixed effect only
+              # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             binomial = {
+                if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
                 }, error=function(e)NULL)
@@ -98,6 +100,10 @@ forLoopContent <-
                 # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             poisson = {
+              if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
+
+              fit <- NULL
+              if(control[["only_glmmTMB_poisson"]] == FALSE) {
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
                 }, error=function(e)NULL)
@@ -115,8 +121,19 @@ forLoopContent <-
                                                                                            ftol = control[["ftol_abs"]])))
                   }, error=function(e)NULL)
                 }
+              } else if(control[["only_glmmTMB_poisson"]] == TRUE) {
+                if (is.null(fit)){
+                  # try glmmTMB as alternative
+                  if (verbose) {message(paste("trying glmmTMB with model:", deparse1(model)))} else NA
+                  tryCatch({
+                    fit <- glmmTMB::glmmTMB(model, data = data.df.grouping, family = "poisson")
+                  }, error=function(e)NULL)
+                }
+              } else {
+                stop("Invalid 'only_glmmTMB_poisson' argument. Must be one of TRUE or FALSE.")
+              }
 
-                # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
+              # if fit is still NULL, do not modify model further as this would change the structure of the dag but return very low score (further down)
             },
             multinomial = {
               if (length(parents.names) == 0){
@@ -212,6 +229,9 @@ forLoopContent <-
     ###
     # collect values to return
     if(!is.null(fit)){
+      if (verbose) {
+        message("Successfully fitted local model.")
+      }
       fit_loglik <- logLik(fit)
       fit_aic <- AIC(fit)
       fit_bic <- BIC(fit)
@@ -220,16 +240,27 @@ forLoopContent <-
 
       c(fit_loglik, fit_aic, fit_bic, fit_mdl)
     } else if(is.null(fit)){
-      # no convergence, singularity, rank-deficiency, return very low score
+      if (verbose) {
+        message("Failed to fit local model. Returning very low scores.")
+      }
+      # no convergence, singularity, rank-deficiency, return very low scores
       c(rep(-Inf, 4))
     } else {
       stop("Unknown state of fit. I should never end up here.")
     }
   } else if (is.null(group.var)) {
     # we have no grouping (do what was always done).
-    child <- mycache[["children"]][row.num]
+    if (verbose) message("we have no grouping (no mixed-effects model)")
+    child <- mycache[["children"]][row.num] # child as integer
     distribution <- data.dists[child]
     Y <- data.matrix(data.df[, child])
+    if (verbose) {
+      # current node's name
+      child.name <- colnames(mycache[["node.defn"]])[child]
+      # current node's parents names
+      parents.names <- names(which(mycache[["node.defn"]][row.num,] != 0))
+      message(paste("regressing", child.name, "on", paste(parents.names, collapse = ", ")))
+    }
 
     if (is.null(adj.vars)) {
       if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])]) {
@@ -300,10 +331,25 @@ forLoopContent <-
                fit$bic <- 2 * tmp$value + edf * log(dim(data.df)[1])
              })
     }
-    c(fit$loglik,
-      fit$aic,
-      fit$bic,
-      fit$bic + (1 + sum(mycache[["node.defn.multi"]][row.num, ]) - num.na) * log(n))
+
+    # Prepare return values
+    if (!is.null(fit)) {
+      if (verbose) {
+        message("Successfully fitted local model.")
+      }
+      c(fit$loglik,
+        fit$aic,
+        fit$bic,
+        fit$bic + (1 + sum(mycache[["node.defn.multi"]][row.num, ]) - num.na) * log(n))
+    } else if (is.null(fit)) {
+      if (verbose) {
+        message("Failed to fit local model. Returning very low scores.")
+      }
+      # no convergence, singularity, rank-deficiency, return very low scores
+      c(rep(-Inf, 4))
+    } else {
+      stop("Unknown state of fit. I should never end up here.")
+    }
   } else {
     stop("Invalid `group.var`.")
   }

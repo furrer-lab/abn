@@ -9,7 +9,8 @@
 #'                node.fillcolor=c("lightblue", "brown3", "chartreuse3"),
 #'                node.fillcolor.list=NULL,
 #'                node.shape=c("circle", "box", "ellipse", "diamond"),
-#'                plot=TRUE , ...)
+#'                plot=TRUE,
+#'                data.df=NULL, ...)
 #'
 #' @param dag a matrix or a formula statement (see details for format) defining
 #' the network structure, a Directed Acyclic Graph (DAG).
@@ -35,6 +36,7 @@
 #' @param node.fillcolor.list the list of node that should be coloured.
 #' @param node.shape the shape of the nodes according the Gaussian, binomial, Poisson and multinomial distributions.
 #' @param plot logical variable, if set to \code{TRUE} then the graph is plotted.
+#' @param data.df NULL or a data frame containing the data for the nodes in the network. Only needed if \code{dag} is a formula statement. If dag is an object of class \code{abnFit}, then \code{data.df} is used from there.
 #' @param ... arguments passed to the plotting function.
 #'
 #' @details
@@ -75,6 +77,14 @@
 #' ## Naming of the matrix
 #' colnames(edge_strength) <- rownames(edge_strength) <- names(dist)
 #'
+#' ## Random Data
+#' df <- data.frame(a = rnorm(100),
+#'                 b = rnorm(100),
+#'                 c = rnorm(100),
+#'                 d = rnorm(100),
+#'                 e = rbinom(100, 1, 0.5),
+#'                 f = rbinom(100, 1, 0.5))
+#'
 #' ## Plot form a matrix
 #' plotAbn(dag = edge_strength,
 #'         data.dists = dist)
@@ -82,28 +92,33 @@
 #' ## Edge strength
 #' plotAbn(dag = ~ a | b:c:d:e + b | c:d:f + c | d:e + d | e + e | f,
 #'         data.dists = dist,
-#'         edge.strength = edge_strength)
+#'         edge.strength = edge_strength,
+#'         data.df = df)
 #'
 #' ## Plot from a formula for a different DAG!
 #' plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
-#'         data.dists = dist)
+#'         data.dists = dist,
+#'         data.df = df)
 #'
 #' ## Markov blanket
 #' plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
 #'         data.dists = dist,
-#'         markov.blanket.node = "e")
+#'         markov.blanket.node = "e",
+#'         data.df = df)
 #'
 #' ## Change col for all edges
 #' tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
 #'                data.dists = dist,
-#'                plot = FALSE)
+#'                plot = FALSE,
+#'                data.df = df)
 #' graph::edgeRenderInfo(tmp) <- list(col = "blue")
 #' Rgraphviz::renderGraph(tmp)
 #'
 #' ## Change lty for individual ones. Named vector is necessary
 #' tmp <- plotAbn(dag = ~ a | b:c:e + b | c:d:f + e | f,
 #'                data.dists = dist,
-#'                plot = FALSE)
+#'                plot = FALSE,
+#'                data.df = df)
 #' edgelty <- rep(c("solid", "dotted"), c(6, 1))
 #' names(edgelty) <- names(graph::edgeRenderInfo(tmp, "col"))
 #' graph::edgeRenderInfo(tmp) <- list(lty = edgelty)
@@ -125,6 +140,7 @@ plotAbn <- function(dag,
                     node.fillcolor.list = NULL,
                     node.shape = c("circle", "box", "ellipse", "diamond"),
                     plot = TRUE,
+                    data.df = NULL,
                     ...) {
   # Actually, the plot argument is wrong! i do not need the adjacency structure only. I need all but the plotting. i.e., all but the rendering of the graph.
 
@@ -140,6 +156,7 @@ plotAbn <- function(dag,
   if (inherits(x = dag, what = "abnFit")) {
     data.dists <- dag$abnDag$data.dists
     dag <- dag$abnDag$dag
+    data.df <- dag$abnDag$data.df
   }
   if (is.null(data.dists)) stop("'data.dist' need to be provided.")
   name <- names(data.dists)
@@ -164,7 +181,7 @@ plotAbn <- function(dag,
       if (grepl("~", as.character(dag)[1], fixed = TRUE)) {
         dag <- formula_abn(f = dag, name = name)
         ## run a series of checks on the DAG passed
-        dag <- check.valid.dag(dag = dag, is.ban.matrix = FALSE, group.var = NULL)
+        dag <- check.valid.dag(dag = dag, data.df = data.df, is.ban.matrix = FALSE, group.var = NULL)
       }
     }
   } else {
@@ -199,7 +216,7 @@ plotAbn <- function(dag,
   ## =============== MARKOV BLANKET ===============
   ## Markov Blanket: plot the MB of a given node
   if (!is.null(markov.blanket.node)) {
-    markov.blanket <- mb(dag, node =markov.blanket.node, data.dists = data.dists)
+    markov.blanket <- mb(dag, node =markov.blanket.node, data.dists = data.dists, data.df = data.df)
     fillcolor[names(data.dists) %in%  markov.blanket]  <- node.fillcolor[3]
     fillcolor[names(data.dists) %in%  markov.blanket.node]  <- node.fillcolor[2]
 

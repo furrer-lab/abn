@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - "main"
-
 env:
   BUILD_LOC: "./build"
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -27,11 +26,24 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       - name: install GSL
@@ -41,6 +53,23 @@ jobs:
           start-bitstransfer -source https://cygwin.com/setup-x86_64.exe "C:\Program Files\cygwin\setup-x86_64.exe"
           Start-Process -Wait -FilePath "C:\Program Files\cygwin\setup-x86_64.exe" -ArgumentList "--quiet-mode --packages=gsl --site=https://cygwin.mirror.constant.com" -PassThru
 
+      # - name: GSL troubleshoot
+      #   run: |
+      #     cygcheck -cd |grep gsl
+      #     cygcheck -c libgsl-devel
+      #     cygcheck -l libgsl-devel
+      #     echo "-------------\n"
+      #     echo "$GITHUB_CONTEXT"
+      #     echo "-------------\n"
+      #     echo "GSL DLLs in Cygwin:"
+      #     Get-ChildItem "C:\cygwin64\bin\cyggsl*" -ErrorAction SilentlyContinue
+      #     echo "GSL include directory:"
+      #     Get-ChildItem "C:\cygwin64\usr\include\gsl" -ErrorAction SilentlyContinue
+      #     echo "GSL lib directory:"
+      #     Get-ChildItem "C:\cygwin64\lib\libgsl*" -ErrorAction SilentlyContinue
+      #     echo "LIB_GSL:"
+      #     echo $env:LIB_GSL
+          
       - name: install JAGS
         run: |
           Import-Module bitstransfer
@@ -61,11 +90,6 @@ jobs:
       #     library('abn')
       #   shell: Rscript {0}
 
-      - name: temporal workaround for ragg
-        run: |
-          pak::pak("r-lib/ragg")
-        shell: Rscript {0}
-
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
@@ -76,11 +100,6 @@ jobs:
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
 
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
-
       - name: install from source
         run: |
             pak::local_install(dependencies=TRUE)
@@ -88,7 +107,6 @@ jobs:
 
       - name: run the tests
         run: |
-            pak::pak('r-lib/testthat')
             library("abn")
             testthat::test_local(path='tests', load_package='none')
         shell: Rscript {0}

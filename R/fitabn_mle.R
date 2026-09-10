@@ -232,6 +232,7 @@ fitAbn.mle <- function(dag = NULL,
 #' @param nobs number of observations in data.df.
 #' @param data.df.multi extended data.df for one-hot-encoded multinomial variables.
 #' @param dag.multi extended dag for one-hot-encoded multinomial variables.
+#' @param only_glmmTMB_poisson logical, if TRUE only use \code{glmmTMB} to fit Poisson nodes with random effects. This is useful if \code{glmer} fails due to convergence issues. Default is FALSE.
 #' @importFrom stats coefficients coef residuals df.residual vcov AIC BIC sd model.matrix as.formula lm glm logLik
 #' @importFrom methods is
 #' @return list
@@ -248,7 +249,8 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                            nvars = NULL,
                            nobs = NULL,
                            dag.multi = NULL,
-                           verbose = NULL){
+                           verbose = NULL,
+                           only_glmmTMB_poisson=FALSE){
 
   child.dist <- data.dists[[i]] # current nodes/response variable's distribution
   parent.dists <- data.dists[as.logical(dag[i,])] # distributions of parent nodes from current child node/response
@@ -260,6 +262,9 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
 
   if (!is.null(group.var)) {
     # we have grouping (mixed-effects model) GLMM
+    if (verbose) {
+      message("we have grouping (mixed-effects model) glmm")
+    }
 
     ###
     # Build arguments for GLMM
@@ -280,105 +285,109 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       stop("Cannot build model formula. Unknown predictor names of parent nodes in 'parents.name'.")
     }
 
-    if(verbose) message(paste("\n", deparse1(model), "\n")) else NA
-
     # Main part GLMM: Depending on child's distribution, call the appropriate modelling function
     switch (as.character(child.dist),
             gaussian = {
-                tryCatch({
-                  fit <- lme4::lmer(model, data = data.df.grouping)
-                }, error=function(e)NULL)
+              if (verbose) message(paste("using lmer with model:", deparse1(model))) else NA
+              tryCatch({
+                fit <- lme4::lmer(model, data = data.df.grouping)
+              }, error=function(e)NULL)
 
-                if (is.null(fit)){
-                  # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::lmer(model, data = data.df.grouping,
-                                              control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+              if (is.null(fit)){
+                # relax tolerances for change in parameter values and objective function.
+                tryCatch({fit <- lme4::lmer(model, data = data.df.grouping,
+                                            control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+                                                                        check.scaleX = control[["check.scaleX"]],
+                                                                        check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
+                                                                        check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
+                                                                        check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
+                                                                        optCtrl = list(xtol_abs = control[["xtol_abs"]],
+                                                                                       ftol = control[["ftol_abs"]])))
+                }, error=function(e)NULL)
+              }
+
+              if (is.null(fit)) {
+                # if fit is still NULL, try other (all available) optimizer:
+                # fit same as above (not very elegant)
+                fit <- lme4::lmer(model, data = data.df.grouping,
+                                  control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+                                                              check.scaleX = control[["check.scaleX"]],
+                                                              check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
+                                                              check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
+                                                              check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
+                                                              optCtrl = list(xtol_abs = control[["xtol_abs"]],
+                                                                             ftol = control[["ftol_abs"]])))
+                # refit with all available optimizers
+                fit_all <- lme4::allFit(fit)
+                # keep only results from optimizers that were reported as OK
+                fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
+                # extract messages from each optimizer
+                convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
+                # Get only results from optimizer without any message (meaning they did converge etc.)
+                converged_idx <- sapply(convergence_results, is.null)
+                # Keep only results from first optimizer (arbitrarily) that did converge without any message
+                if(sum(converged_idx) == 0){
+                  if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
+                  fit <- NULL
+                } else {
+                  fit <- fit_all[converged_idx][[1]]
+                }
+              }
+            },
+            binomial = {
+              if (verbose) message(paste("using glmer with model:", deparse1(model))) else NA
+              tryCatch({
+                fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
+              }, error=function(e)NULL)
+
+              if (is.null(fit)){
+                # relax tolerances for change in parameter values and objective function.
+                tryCatch({fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
+                                             control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
+                                                                          check.rankX = control[["check.rankX"]],
                                                                           check.scaleX = control[["check.scaleX"]],
                                                                           check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
                                                                           check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                           check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                           optCtrl = list(xtol_abs = control[["xtol_abs"]],
                                                                                          ftol = control[["ftol_abs"]])))
-                  }, error=function(e)NULL)
-                }
+                }, error=function(e)NULL)
+              }
 
-                if (is.null(fit)) {
-                  # if fit is still NULL, try other (all available) optimizer:
-                  # fit same as above (not very elegant)
-                  fit <- lme4::lmer(model, data = data.df.grouping,
-                                    control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
+              if (is.null(fit)) {
+                # if fit is still NULL, try other (all available) optimizer:
+                # fit same as above (not very elegant)
+                fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
+                                   control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
+                                                                check.rankX = control[["check.rankX"]],
                                                                 check.scaleX = control[["check.scaleX"]],
                                                                 check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
                                                                 check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                 check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                 optCtrl = list(xtol_abs = control[["xtol_abs"]],
                                                                                ftol = control[["ftol_abs"]])))
-                  # refit with all available optimizers
-                  fit_all <- lme4::allFit(fit)
-                  # keep only results from optimizers that were reported as OK
-                  fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
-                  # extract messages from each optimizer
-                  convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
-                  # Get only results from optimizer without any message (meaning they did converge etc.)
-                  converged_idx <- sapply(convergence_results, is.null)
-                  # Keep only results from first optimizer (arbitrarily) that did converge without any message
-                  if(sum(converged_idx) == 0){
-                    if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
-                    fit <- NULL
-                  } else {
-                    fit <- fit_all[converged_idx][[1]]
-                  }
+                # refit with all available optimizers
+                fit_all <- lme4::allFit(fit)
+                # keep only results from optimizers that were reported as OK
+                fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
+                # extract messages from each optimizer
+                convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
+                # Get only results from optimizer without any message (meaning they did converge etc.)
+                converged_idx <- sapply(convergence_results, is.null)
+                # Keep only results from first optimizer (arbitrarily) that did converge without any message
+                if(sum(converged_idx) == 0){
+                  if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
+                  fit <- NULL
+                } else {
+                  fit <- fit_all[converged_idx][[1]]
                 }
-            },
-            binomial = {
-                tryCatch({
-                  fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
-                }, error=function(e)NULL)
-
-                if (is.null(fit)){
-                  # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
-                                               control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
-                                                                            check.rankX = control[["check.rankX"]],
-                                                                            check.scaleX = control[["check.scaleX"]],
-                                                                            check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
-                                                                            check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
-                                                                            check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
-                                                                            optCtrl = list(xtol_abs = control[["xtol_abs"]],
-                                                                                           ftol = control[["ftol_abs"]])))
-                  }, error=function(e)NULL)
-                }
-
-                if (is.null(fit)) {
-                  # if fit is still NULL, try other (all available) optimizer:
-                  # fit same as above (not very elegant)
-                  fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
-                                     control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
-                                                                  check.rankX = control[["check.rankX"]],
-                                                                  check.scaleX = control[["check.scaleX"]],
-                                                                  check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
-                                                                  check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
-                                                                  check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
-                                                                  optCtrl = list(xtol_abs = control[["xtol_abs"]],
-                                                                                 ftol = control[["ftol_abs"]])))
-                  # refit with all available optimizers
-                  fit_all <- lme4::allFit(fit)
-                  # keep only results from optimizers that were reported as OK
-                  fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
-                  # extract messages from each optimizer
-                  convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
-                  # Get only results from optimizer without any message (meaning they did converge etc.)
-                  converged_idx <- sapply(convergence_results, is.null)
-                  # Keep only results from first optimizer (arbitrarily) that did converge without any message
-                  if(sum(converged_idx) == 0){
-                    if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
-                    fit <- NULL
-                  } else {
-                    fit <- fit_all[converged_idx][[1]]
-                  }
-                }
+              }
             },
             poisson = {
+              if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
+              fit <- NULL
+              if(control[["only_glmmTMB_poisson"]] == FALSE) {
+
                 tryCatch({
                   fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
                 }, error=function(e)NULL)
@@ -425,6 +434,19 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                     fit <- fit_all[converged_idx][[1]]
                   }
                 }
+              }
+
+              else if(control[["only_glmmTMB_poisson"]] == TRUE) {
+                if (is.null(fit)){
+                  # try glmmTMB as alternative
+                  if (verbose) {message(paste("trying glmmTMB with model:", deparse1(model)))} else NA
+                  tryCatch({
+                    fit <- glmmTMB::glmmTMB(model, data = data.df.grouping, family = "poisson")
+                  }, error=function(e)NULL)
+                }
+              } else {
+                stop("Invalid 'only_glmmTMB_poisson' argument. Must be one of TRUE or FALSE.")
+              }
             },
             multinomial = {
               if (length(parents.names) == 0){
@@ -466,42 +488,64 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
               } else {
                 stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
               }
-                if (is.null(fit)){
-                  # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping,
-                                                    control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
-                                                                                       trace = control[["trace.mblogit"]]))
-                  }, error=function(e)NULL)
+              if (is.null(fit)){
+                # relax tolerances for change in parameter values and objective function.
+                tryCatch({fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping,
+                                                  control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
+                                                                                     trace = control[["trace.mblogit"]]))
+                }, error=function(e)NULL)
+              }
+              if (is.null(fit)) {
+                # if fit is still NULL, try other (all available) optimizer:
+                # fit same as above (not very elegant)
+                fit <- lme4::lmer(model, data = data.df.grouping,
+                                  control = lme4::lmerControl(optCtrl = list(xtol_abs=1e-6, ftol_abs=1e-6)))
+                # refit with all available optimizers
+                fit_all <- lme4::allFit(fit)
+                # keep only results from optimizers that were reported as OK
+                fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
+                # extract messages from each optimizer
+                convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
+                # Get only results from optimizer without any message (meaning they did converge etc.)
+                converged_idx <- sapply(convergence_results, is.null)
+                # Keep only results from first optimizer (arbitrarily) that did converge without any message
+                if(sum(converged_idx) == 0){
+                  if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
+                  fit <- NULL
+                } else {
+                  fit <- fit_all[converged_idx][[1]]
                 }
-                if (is.null(fit)) {
-                  # if fit is still NULL, try other (all available) optimizer:
-                  # fit same as above (not very elegant)
-                  fit <- lme4::lmer(model, data = data.df.grouping,
-                                    control = lme4::lmerControl(optCtrl = list(xtol_abs=1e-6, ftol_abs=1e-6)))
-                  # refit with all available optimizers
-                  fit_all <- lme4::allFit(fit)
-                  # keep only results from optimizers that were reported as OK
-                  fit_all_OK <- fit_all[sapply(fit_all, methods::is, "merMod")]
-                  # extract messages from each optimizer
-                  convergence_results <- lapply(fit_all_OK, function(x) x@optinfo$conv$lme4$messages)
-                  # Get only results from optimizer without any message (meaning they did converge etc.)
-                  converged_idx <- sapply(convergence_results, is.null)
-                  # Keep only results from first optimizer (arbitrarily) that did converge without any message
-                  if(sum(converged_idx) == 0){
-                    if(verbose){message("No algorithms from allFit converged. You may still be able to use the results, but proceed with extreme caution.")}
-                    fit <- NULL
-                  } else {
-                    fit <- fit_all[converged_idx][[1]]
-                  }
+              }
+              if (!is.null(fit)){
+                coef_vals <- stats::coef(fit)
+                if (any(is.na(coef_vals)) || any(abs(coef_vals) > 15.0, na.rm = TRUE)) {
+                  if (verbose) message(paste("Diverged coefficients detected in node", child.name, "- discarding fit."))
+                  fit <- NULL
                 }
+              }
               USED_MBLOGIT <- TRUE
             }
     )
     ###
     # End of GLMM
     ###
+    if (is.null(fit)) {
+      if (verbose) message("Failed to fit local model. Returning empty list. You may still be able to use the results, but proceed with extreme caution.")
+      # if fit is NULL, return empty list
+      fit <- list()
+      fit$coefficients <- NULL
+      fit$loglik <- NULL
+      fit$aic <- NULL
+      fit$bic <- NULL
+      fit$mdl <- NULL
+      fit$sse <- NULL
+      fit$varcov <- NULL
+    } else {
+      if (verbose) message("Successfully fitted local model.")
+    }
   } else if (is.null(group.var)) {
     # we have no grouping (do what was always done).
+    if (verbose) message("we have no grouping (no mixed-effects model)")
 
     # Separate outcome and predictor variables
     Y <- data.matrix(data.df[,i])
@@ -514,19 +558,27 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       X <- data.matrix(cbind(rep(1,length(data.df[,1])),data.df[,as.logical(dag[i,])]))
     }
 
+    if (verbose) {
+      # current node's name (outcome variable)
+      child.name <- names(data.df)[i]
+      # names of parent nodes (predictor variables)
+      parents.names <- names(data.df)[as.logical(dag[i,])]
+      message(paste("regressing", child.name, "on", paste(parents.names, collapse = ", ")))
+    }
+
     num.na <- 0
 
     # Check for collinearity
     if(qr(X)$rank/ncol(X)!=1 & as.character(data.dists[i])=="binomial"){
       # if collinear, iteratively remove last variable from predictors and retry with internal IRLS.
       Y <- as.numeric(as.character(Y))
-      fit <- tryCatch(irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),error=function(e){
+      fit <- tryCatch(irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),error=function(e){
         while((qr(X)$rank/ncol(X))!=1){
           X <- X[,-1]
           num.na <- num.na+1
           if(is.null(ncol(X))) X <- as.matrix(X)
         }
-        list(irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),num.na)
+        list(irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),num.na)
       })
       num.na <- fit[[2]]
       fit <- fit[[1]]
@@ -535,30 +587,45 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       switch(as.character(data.dists[i]),
              "binomial"={
                Y <- as.numeric(as.character(Y))
-               fit <- tryCatch(irls_binomial_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),
+               fit <- tryCatch(irls_binomial_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]]),
                                error=function(e){
-                                 irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+                                 irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
                                }
                )
                if(is.na(sum(fit[[1]]))) {
-                 fit <- irls_binomial_cpp_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+                 fit <- irls_binomial_cpp_fast_br(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
                }
              },
              "gaussian"={
-               fit <- irls_gaussian_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+               fit <- irls_gaussian_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "poisson"={
-               fit <- irls_poisson_cpp(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
+               fit <- irls_poisson_cpp_fast(A = X, b = Y, maxit = control[["max.irls"]],tol = control[["tol"]])
              },
              "multinomial"={
                tmp <- multinom(formula = Y~-1+X,Hess = FALSE,trace=FALSE)
 
+               co <- if (!is.null(tmp)) coef(tmp) else NULL
+               
+               if (is.null(tmp) || tmp$convergence != 0 || any(is.na(co)) || any(abs(co) > 15.0, na.rm = TRUE)) {
+                 warning(paste0("Separation detected in node '", child.name, "'. Falling back to intercept-only model."), call. = FALSE)
+                 
+                 tmp <- multinom(
+                   formula = Y ~ 1, 
+                   Hess = FALSE, 
+                   trace = FALSE
+                 )
+                 X_rank <- 1
+               } else {
+                 X_rank <- if (!is.null(X)) qr(X)$rank else 1
+               }
+                 
                # Calculate scores and prepare output
                fit <- list()
                fit$coefficients <- as.matrix(as.vector(coef(tmp)))
                fit$names.coef <- row.names((coef(tmp)))
                fit$loglik <- - tmp$value
-               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * qr(X)$rank
+               edf <- ifelse(length(tmp$lev) == 2L, 1, length(tmp$lev) - 1) * X_rank
                fit$aic <- 2 * tmp$value + 2 * edf
                fit$bic <- 2 * tmp$value + edf * log(nobs)
                fit$sse <- sum(residuals(tmp)^2)
@@ -566,6 +633,22 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
                USED_NNET <- TRUE
              }
       )}
+
+    # Prepare return values
+    if (is.null(fit) && is.na(sum(fit[[1]]))) {
+      if (verbose) message("Failed to fit local model. Returning empty list. You may still be able to use the results, but proceed with extreme caution.")
+      # if fit is NULL or NA, return empty list
+      fit <- list()
+      fit$coefficients <- NULL
+      fit$loglik <- NULL
+      fit$aic <- NULL
+      fit$bic <- NULL
+      fit$mdl <- NULL
+      fit$sse <- NULL
+      fit$varcov <- NULL
+    } else {
+      if (verbose) message("Successfully fitted local model.")
+    }
   } else {
     stop("Invalid `group.var`.")
   } # EOF regression loop main part
@@ -603,12 +686,28 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
         }
         res[["sigma"]] <- NA
         res[["sigma_alpha"]] <- as.matrix(fit$VarCov[[group.var]]) # matrix size kxk for k = (number of factor levels of response)
-      } else {
+      }
+      ## not USED MBLOGIT
+      else {
         # not multinomial response
+        if(control[["only_glmmTMB_poisson"]] == FALSE) {
         res[["mu"]] <- lme4::fixef(fit)[[1]] # fixed-effect intercept (beta_0)
         res[["betas"]] <- lme4::fixef(fit)[-1] # fixed-effect slopes (beta_1, beta_2, ...)
         res[["sigma"]] <- as.data.frame(lme4::VarCorr(fit))$sdcor[-1] # random-effect residual
         res[["sigma_alpha"]] <- as.data.frame(lme4::VarCorr(fit))$sdcor[1] # random-effect intercept
+        }
+        else if(control[["only_glmmTMB_poisson"]] == TRUE) {
+          res[["mu"]] <- unname(glmmTMB::fixef(fit)$cond[1]) # fixed-effect intercept (beta_0)
+          res[["betas"]] <- glmmTMB::fixef(fit)$cond[-1] # fixed-effect slopes (beta_1, beta_2, ...)
+
+          vc <- glmmTMB::VarCorr(fit)
+          sdcor <- attr(vc$cond[[1]], "stddev")
+
+          res[["sigma_alpha"]] <- sdcor[1]  # random-effect intercept
+          res[["sigma"]] <- sdcor[-1]       # random-effect residuals (if any)
+        }     else {
+          stop("Invalid 'only_glmmTMB_poisson' argument. Must be one of TRUE or FALSE.")
+        }
       }
     } else if(is.null(fit)){
       # no convergence, return very low score
@@ -645,7 +744,10 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
              res[["coef"]] <- matrix(data = c(rep(NA,num.na),fit$coefficients),nrow = 1)
              res[["var"]] <- tryCatch(as.matrix(sqrt(diag(solve(fit$varcov)))),
                                       error=function(e){
-                                        as.matrix(sqrt(svd(fit$varcov)$d))
+                                        s <- svd(fit$varcov)
+                                        tol <- max(s$d) * .Machine$double.eps * length(s$d)
+                                        d_inv <- ifelse(s$d > tol, 1 / s$d, 0)
+                                        as.matrix(sqrt(rowSums(s$v^2 * rep(d_inv, each = nrow(s$v)))))
                                       }
              )
              res[["var"]] <- matrix(data = c(rep(NA,num.na),res[["var"]]),nrow = 1)
@@ -653,8 +755,11 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
            "poisson"={
              fit$coefficients <- cbind(t(rep(NA,num.na)),t(fit$coefficients))
              res[["coef"]] <- fit$coefficients
-
-             res[["var"]] <- as.matrix(sqrt(diag(solve(fit$varcov))))
+             res[["var"]] <- tryCatch(as.matrix(sqrt(diag(solve(fit$varcov)))),
+                                      error=function(e){
+                                        as.matrix(sqrt(diag(solve(fit$varcov, tol = 1e-25))))
+                                      }
+             )
              res[["var"]] <- matrix(data = cbind(t(rep(NA,num.na)),t(res[["var"]])),nrow = 1)
            },
            "multinomial"={
@@ -718,8 +823,19 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     } else if(child.dist=="multinomial"){
       separator = ""
       if("multinomial" %in% parent.dists){
-        colnames(res[["coef"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
-        colnames(res[["var"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
+        total_coef_count <- length(res[["coef"]])
+        num_intercepts   <- length(fit$names.coef)
+        
+        if (total_coef_count > num_intercepts && !is.null(parents.names.multi)) {
+          # Full model with multinomial parent coefficients fitted
+          col_names <- as.vector(outer(parents.names.multi, fit$names.coef, paste, sep = separator))
+        } else {
+          # Intercept-only fallback (e.g. after complete separation)
+          col_names <- paste(child.name, "|intercept.", fit$names.coef, sep = "")
+        }
+        
+        colnames(res[["coef"]]) <- col_names
+        colnames(res[["var"]])  <- col_names
       }else{
         if (USED_NNET){
           colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))

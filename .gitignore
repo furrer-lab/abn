@@ -2,9 +2,11 @@ docs
 inst/doc
 /doc/
 /Meta/
+/src/Makevars
 
 .Rproj.user
 .Rhistory
+.Renviron
 *.o
 *.so
 config.log

@@ -7,8 +7,8 @@ bibentry(bibtype = "Manual",
                person(given = "Jonas I.", family = "Liechti", email = "j-i-l@t4d.ch", role = "ctb", comment = c(ORCID = "0000-0003-3447-3060")),
                person(given = "Marta", family = "Pittavino", email = "marta.pittavino@math.uzh.ch", role = "ctb", comment = c(ORCID = "0000-0002-1232-1034")),
                person(given = "Kalina", family = "Cherneva", email = "kalinacherneva@gmail.com", role = "ctb")),
-    year = "2024",
-    note = "R package version 3.1.3",
+    year = "2025",
+    note = "R package version >3.0.0",
     url = "https://CRAN.R-project.org/package=abn",
     header = "To cite the software implementation of the R package 'abn' use:"
 )
@@ -60,6 +60,5 @@ bibentry(bibtype = "Article",
   year         = "2020",
   journal      = "Frontiers in Veterinary Science",
   header       = "To cite an example of a typical ABN analysis use:",
-  textVersion  =
-  paste("Kratzer, G., Lewis, F.I., Willi, B., Meli, M.L., Boretti, F.S., Hofmann-Lehmann, R., Torgerson, P., Furrer, R. and Hartnack, S. (2020). Bayesian Network Modeling Applied to Feline Calicivirus Infection Among Cats in Switzerland. Frontiers in Veterinary Science, 7, 73")
+  url = "https://doi.org/10.3389/fvets.2020.00073"
 )

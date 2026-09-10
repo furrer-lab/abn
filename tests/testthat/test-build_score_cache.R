@@ -23,99 +23,106 @@ test_that("build.control() works fine", {
 })
 
 test_that("buildScoreCache() checks work fine", {
-  df <- airquality[complete.cases(airquality), ]
+  if(!testthat:::on_cran()) {
+    if(requireNamespace("INLA", quietly = TRUE)){
 
-  # distribution (gaussian)
-  dists <- list(Ozone="gaussian", Solar.R="gaussian", Wind="gaussian", Temp="gaussian", Month="gaussian", Day="gaussian")
-  names(dists) <- colnames(df)
+      df <- airquality[complete.cases(airquality), ]
 
-  # Check arguments
-  suppressWarnings({
-    suppressMessages({
+      # distribution (gaussian)
+      dists <- list(Ozone="gaussian", Solar.R="gaussian", Wind="gaussian", Temp="gaussian", Month="gaussian", Day="gaussian")
+      names(dists) <- colnames(df)
 
-      expect_error(buildScoreCache(data.df=NULL, data.dists=dists))
-      expect_error(buildScoreCache(data.df=df, data.dists=NULL))
-      expect_error(buildScoreCache(data.df=df, data.dists=dists[1:3]))
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, group.var = NULL, cor.vars = c("Ozone")))
+      # Check arguments
+      suppressWarnings({
+        suppressMessages({
 
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "Bayes"))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes"))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "MLE"))
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "foo"), regexp = "unknown")
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = NA), regexp = "is NA")
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = NULL), regexp = "not provided")
+          expect_error(buildScoreCache(data.df=NULL, data.dists=dists))
+          expect_error(buildScoreCache(data.df=df, data.dists=NULL))
+          expect_error(buildScoreCache(data.df=df, data.dists=dists[1:3]))
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, group.var = NULL, cor.vars = c("Ozone")))
 
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, dag.banned = ~ Ozone | Solar.R))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "Bayes"))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes"))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "MLE"))
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "foo"), regexp = "unknown")
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = NA), regexp = "is NA")
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = NULL), regexp = "not provided")
 
-      ban <- matrix(0, nrow = dim(df)[2], ncol = dim(df)[2], dimnames = list(names(df), names(df)))
-      ban[1,2] <- ban[2,1] <- 1
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, dag.banned = ~ Ozone | Solar.R))
 
-      reta <- matrix(0, nrow = dim(df)[2], ncol = dim(df)[2], dimnames = list(names(df), names(df)))
-      # ban and retain can not be on the same edge
-      reta[1,2] <- reta[2,3] <- 1
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban, dag.retained = reta))
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban, dag.retained = reta))
-      reta[1,2] <- 0
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban, dag.retained = reta))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban, dag.retained = reta))
+          ban <- matrix(0, nrow = dim(df)[2], ncol = dim(df)[2], dimnames = list(names(df), names(df)))
+          ban[1,2] <- ban[2,1] <- 1
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban))
 
-      max.parents.faulty <- list(Ozone=6, Solar.R=6, Wind=6, Temp=6, Month=6, Day=6)
-      expect_warning(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents.faulty), regexp = "555555")
-      expect_warning(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents.faulty), regexp = "555555")
-      max.parents <- list(Ozone=5, Solar.R=5, Wind=5, Temp=5, Month=5, Day=5)
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = 5))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = 5))
+          reta <- matrix(0, nrow = dim(df)[2], ncol = dim(df)[2], dimnames = list(names(df), names(df)))
+          # ban and retain can not be on the same edge
+          reta[1,2] <- reta[2,3] <- 1
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban, dag.retained = reta))
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban, dag.retained = reta))
+          reta[1,2] <- 0
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", dag.banned = ban, dag.retained = reta))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", dag.banned = ban, dag.retained = reta))
 
-      # Test compatability of max.parents and dag.retain
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents, dag.banned = ban, dag.retained = reta))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents, dag.banned = ban, dag.retained = reta))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = 5, dag.banned = ban, dag.retained = reta))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = 5, dag.banned = ban, dag.retained = reta))
-      reta[2,4] <- 1
-      max.parents.nope <- list(Ozone=1, Solar.R=1, Wind=1, Temp=1, Month=1, Day=1)
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents.nope, dag.banned = ban, dag.retained = reta)) # 2 nodes restricted but only 1 max parent allowed should throw error.
-      expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents.nope, dag.banned = ban, dag.retained = reta))
+          max.parents.faulty <- list(Ozone=6, Solar.R=6, Wind=6, Temp=6, Month=6, Day=6)
+          expect_warning(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents.faulty), regexp = "555555")
+          expect_warning(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents.faulty), regexp = "555555")
+          max.parents <- list(Ozone=5, Solar.R=5, Wind=5, Temp=5, Month=5, Day=5)
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = 5))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = 5))
 
-      # check group.var argument
-      group <- sample(as.factor(c(1,2)), size = nrow(df), prob = c(0.3, 0.7), replace = TRUE)
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", group.var = NULL))
-      expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", group.var = NULL))
+          # Test compatability of max.parents and dag.retain
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents, dag.banned = ban, dag.retained = reta))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents, dag.banned = ban, dag.retained = reta))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = 5, dag.banned = ban, dag.retained = reta))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = 5, dag.banned = ban, dag.retained = reta))
+          reta[2,4] <- 1
+          max.parents.nope <- list(Ozone=1, Solar.R=1, Wind=1, Temp=1, Month=1, Day=1)
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", max.parents = max.parents.nope, dag.banned = ban, dag.retained = reta)) # 2 nodes restricted but only 1 max parent allowed should throw error.
+          expect_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", max.parents = max.parents.nope, dag.banned = ban, dag.retained = reta))
 
-      if(!testthat:::on_cran()) {
-        if(requireNamespace("INLA", quietly = TRUE)){
-          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
-        }
-      }
-      expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group"))
+          # check group.var argument
+          group <- sample(as.factor(c(1,2)), size = nrow(df), prob = c(0.3, 0.7), replace = TRUE)
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "bayes", group.var = NULL))
+          expect_no_error(buildScoreCache(data.df=df, data.dists=dists, method = "mle", group.var = NULL))
 
-      expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group1=group, group2=group), data.dists=dists[1:2], method = "bayes", group.var = c("group1", "group2"))) # only one grouping variable is implemented
-      expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group1=group, group2=group), data.dists=dists[1:2], method = "mle", group.var = c("group1", "group2")))
+          if(!testthat:::on_cran()) {
+            if(requireNamespace("INLA", quietly = TRUE)){
+              expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group")) # taking only the first two columns to increase performance
+            }
+          }
+          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group"))
 
-      # check control argument
-      expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                   control= list(max.mode.error=101)))
-      if(!testthat:::on_cran()) {
-        if(requireNamespace("INLA", quietly = TRUE)){
-          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
-                                          control= list(max.mode.error=100)))
-        }
-      }
-      # increase convergence tolerances for GLMMs
-      if(!testthat:::on_cran()) {
-        if(requireNamespace("INLA", quietly = TRUE)){
-          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+          expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group1=group, group2=group), data.dists=dists[1:2], method = "bayes", group.var = c("group1", "group2"))) # only one grouping variable is implemented
+          expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group1=group, group2=group), data.dists=dists[1:2], method = "mle", group.var = c("group1", "group2")))
+
+          # check control argument
+          expect_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                       control= list(max.mode.error=101)))
+          if(!testthat:::on_cran()) {
+            if(requireNamespace("INLA", quietly = TRUE)){
+              expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                              control= list(max.mode.error=100)))
+            }
+          }
+          # increase convergence tolerances for GLMMs
+          if(!testthat:::on_cran()) {
+            if(requireNamespace("INLA", quietly = TRUE)){
+              expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "bayes", group.var = "group",
+                                              control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
+            }
+          }
+          expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group",
                                           control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
-        }
-      }
-      expect_no_error(buildScoreCache(data.df=data.frame(df[,1:2], group=group), data.dists=dists[1:2], method = "mle", group.var = "group",
-                                      control= list(xtol_abs=1e-8, ftol_abs=1e-8, epsilon=1e-10)))
-    })
-  })
+        })
+      })
+    }
+  } else {
+    skip("INLA is not tested on CRAN")
+  }
 })
 
 test_that("buildScoreCache()'s methods `bayes` and `mle` behave similarly", {

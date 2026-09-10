@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "solid-expect-clauses"
 
 env:
   BUILD_LOC: "./build"
@@ -24,12 +25,14 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - name: prepare macos
         run: |
           brew install R
           brew install pkg-config
           brew install automake  # needed to run autoconf
+          brew install graphviz  # needed for Rgraphviz
 
       - name: install GSL
         run: |
@@ -48,7 +51,7 @@ jobs:
       - name: install INLA dependencies
         run: |
           brew install udunits 
-          brew install openssl@1.1  # s2 package
+          brew install openssl@3  # s2 package
           brew install gdal  # installs geos as dependency
                              # for s2 fmesher terra)
           brew install proj  # sf package
@@ -60,7 +63,19 @@ jobs:
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       # - name: install from CRAN with pak
@@ -68,11 +83,6 @@ jobs:
       #     pak::pkg_install('abn', dependencies=TRUE)
       #     library('abn')
       #   shell: Rscript {0}
-      
-      - name: temporal workaround for ragg
-        run: |
-          pak::pak("r-lib/ragg")
-        shell: Rscript {0}
 
       - name: pak install from GitHub
         run: |
@@ -83,11 +93,6 @@ jobs:
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
-
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
 
       - name: install from source
         run: |
