@@ -318,6 +318,93 @@ computeCache_prealloc <- function(adj.vars,
   return(mycache)
 }
 
+# Extracted from buildScoreCache.bayes()
+# Use the C-level combination call
+# Note: adjustment is ignored (mycache$node.defn.adj <- mycache$node.defn)
+computeCache_C <- function(adj.vars,
+                              nvars,
+                              data.df,
+			      data.df.multi,
+                              data.df.lvl,
+                              max.parents,
+                              data.dists,
+			      defn.res,
+			      dag.banned,
+			      dag.retained,
+			      which.nodes){
+
+    if (is.null(defn.res)) {
+      res <- .Call("buildcachematrix",
+                   dim(dag.banned)[1],
+                   as.integer(dag.banned),
+                   as.integer(dag.retained),
+                   as.integer(max.parents),
+                   which.nodes,
+                   PACKAGE = "abn"
+      )
+      # extract the results from the list
+      children <- res[[1]] # this is a vector of node numbers for each node and its parent combinations
+      node.defn <- matrix(data = res[[2]],
+                          byrow = TRUE,
+                          ncol = dim(data.df)[2],
+                          dimnames = list(NULL, names(data.df))) # this is a matrix of 0/1 for each node and its parent combinations.
+      rm(res)
+    } else {
+      ## some check since user has supplied defn.res
+      if (!is.list(defn.res)) {
+        stop("'defn.res' must be a list")
+      }
+      if (length(defn.res) != 2) {
+        stop("'defn.res' must have two entries")
+      }
+      if (!(is.vector(defn.res[[1]]) &&
+            is.matrix(defn.res[[2]]))) {
+        stop("'defn.res' is wrong format")
+      }
+      if (!(max(defn.res[[2]]) == 1 &&
+            min(defn.res[[2]]) == 0)) {
+        stop("'defn.res' is wrong format - must only be 0,1 in node definitions")
+      }
+      # extract the results from the list
+      children <- defn.res[["children"]]
+      node.defn <- defn.res[["node.defn"]]
+    }
+
+    # dry run - don't do any computation just return the node definitions
+    if(dry.run){
+      if (verbose) cat("No computation - returning only the node combinations\n")
+      return(list(children=children,node.defn=node.defn))
+    }
+
+  mycache <- list(children = (children), node.defn = (node.defn))
+
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache$node.defn.adj <- mycache$node.defn
+
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
+    } else {
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
+    }
+  }
+  if (!is.null(adj.vars)) {
+    mycache$node.defn.multi <- mycache$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache$node.defn.adj)]
+  } else {
+    mycache$node.defn.multi <- mycache$node.defn[, rep(1:nvars, repetition.multi)]
+
+  }
+
+  return(mycache)
+}
+
 
 # In buildScoreCache.mle(): replace the growing node.defn objects within the loop with a matrix preallocation
 # Optimize the tmp matrix calculation

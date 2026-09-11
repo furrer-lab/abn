@@ -4,7 +4,7 @@ params <- readRDS(file = "tests/testthat/testdata/input_score_cache_mle.RData")
 
 # Note:
 # adjustment is not included/tested in the functions defined in "scripts/cache_creation_refactoring.R"
-
+max_parents <- params$max.parents
 params$max.parents <- unique(params$max.parents)
 
 mleparams <- setupScoreCache.mle_orig(data.df = params$data.df,
@@ -101,11 +101,15 @@ res <- bench::mark(setupScoreCache.mle_orig(data.df = params$data.df,
 
 ## Microbenchmarking cache creation
 # It also check if the outputs are the same, it returns error otherwise
+# Compare cache creation: pure R using combn VS C implementation also used by the Bayes method
 (lb <- bench::mark(
 cache_orig = computeCache_orig(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_doCall = computeCache_doCall(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_inForLoop = computeCache_inForLoop(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_prealloc = computeCache_prealloc(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
+cache_C = computeCache_C(params$adj.vars, mleparams$nvars, mleparams$data.df,
+                               mleparams$data.df.multi, mleparams$data.df.lv, max_parents, params$data.dists,
+                               params$defn.res, params$dag.banned, params$dag.retained, params$which.nodes),
 min_time = 0.5,
 iterations = 100))
 # Results of the benchmark:
@@ -141,6 +145,17 @@ iterations = 100))
 # Performance has to be compared when this logic is integrated in the fit calculation, which would change the length
 # of the foreach loop and would avoid passing the cache matrix to the forLoopContent function at every iteration.
 
+#   expression     min  median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time
+#   <bch:expr> <bch:t> <bch:t>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm>
+# 1 cache_orig 70.12ms 74.03ms      13.0   47.88MB    20.2    100   156      7.71s
+# 2 cache_doC…  56.7ms 60.95ms      15.9   10.66MB     6.99   100    44      6.29s
+# 3 cache_inF… 37.07ms 38.14ms      25.0   11.21MB    10.3    100    41      3.99s
+# 4 cache_pre… 35.81ms 37.98ms      24.5    9.38MB     8.58   100    35      4.08s
+# 5 cache_C     4.05ms  4.24ms     221.     2.04MB    11.1    100     5   452.02ms
+# # ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
+# Warning message:
+# Some expressions had a GC in every iteration; so filtering is disabled.
+# The GC warning is triggered by the R implementation in computeCache_orig, the cache_C implementation would solve the issue.
 
 # To visualize results:
 library(ggplot2)
