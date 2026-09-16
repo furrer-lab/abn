@@ -169,8 +169,18 @@ iterations = 100))
 # # ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
 # The cache_prealloc_mod function instead of shifting each element to the temp.list[[i]] matrix is filling the
 # node.defn_all.list except for the column -j which is already initialized with 0.
-# The loop `for (i in 1:(max.parents))` could also be removed if the full `combs <- do.call(rbind, tmp.list)` matrix
-# is used (not implemented yet).
+
+#   expression     min  median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time
+#   <bch:expr> <bch:t> <bch:t>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm>
+# 1 cache_orig 70.95ms 74.43ms      12.8   47.88MB    17.1    100   134      7.83s
+# 2 cache_doC… 57.06ms 60.61ms      15.8   10.66MB     6.95   100    44      6.33s
+# 3 cache_inF… 37.55ms 38.87ms      24.7   11.21MB     8.89   100    36      4.05s
+# 4 cache_pre… 36.19ms 38.27ms      24.3    9.38MB     8.03   100    33      4.11s
+# 5 cache_pre…  2.09ms  2.14ms     422.     1.74MB    12.7    100     3   237.02ms
+# 6 cache_C     4.09ms  4.39ms     215.     2.04MB     8.59   100     4   465.53ms
+# New version of the cache_prealloc_mod function: the loop `for (i in 1:(max.parents))` is removed and the `combs <- do.call(rbind, tmp.list)` matrix
+# is used to compute `node.defn` and the `children` vector
+
 
 
 # To visualize results:

@@ -339,7 +339,6 @@ computeCache_prealloc_mod <- function(adj.vars,
     }
   }
 
-
   tmp.list <- vector('list', max.parents)
   for (i in 1:(max.parents)) {
     tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
@@ -347,26 +346,17 @@ computeCache_prealloc_mod <- function(adj.vars,
   combs <- do.call(rbind, tmp.list)
   storage.mode(combs) <- "integer"
 
-  n_filled <- 0
   cache_nrow <- nrow(combs) + 1L
-  node.defn_all.list <- matrix(data = 0L,
+  node.defn <- matrix(data = 0L,
                       nrow = nvars * cache_nrow,
                       ncol = nvars,
                       dimnames = list(NULL, colnames(data.df)))
 
-  children.list <- vector('list', cache_nrow)
   for (j in 1:nvars) {
-    n_filled <- n_filled + 1
-    node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-    children.list[[n_filled]] <- j
-    for (i in 1:(max.parents)) {
-      tmp <- tmp.list[[i]]
-      node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)), -j] <- tmp
-      n_filled <- n_filled + nrow(tmp)
-    }
+    n_filled <- (j - 1L) * cache_nrow
+    node.defn[(n_filled + 2L):(n_filled + cache_nrow), -j] <- combs
   }
   children <- rep(1:nvars, each = cache_nrow)
-  node.defn <- node.defn_all.list
   mycache <- list(children = (children), node.defn = (node.defn))
 
   # ASSUMING adj=NULL and ignore adjustment
@@ -445,12 +435,6 @@ computeCache_C <- function(adj.vars,
       # extract the results from the list
       children <- defn.res[["children"]]
       node.defn <- defn.res[["node.defn"]]
-    }
-
-    # dry run - don't do any computation just return the node definitions
-    if(dry.run){
-      if (verbose) cat("No computation - returning only the node combinations\n")
-      return(list(children=children,node.defn=node.defn))
     }
 
   mycache <- list(children = (children), node.defn = (node.defn))
