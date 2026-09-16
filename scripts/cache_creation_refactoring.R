@@ -318,6 +318,83 @@ computeCache_prealloc <- function(adj.vars,
   return(mycache)
 }
 
+# In buildScoreCache.mle(): replace the growing node.defn objects within the loop with a matrix preallocation
+# Optimize the tmp matrix calculation
+computeCache_prealloc_mod <- function(adj.vars,
+                                nvars,
+                                data.df,
+                                data.df.lvl,
+                                max.parents,
+                                data.dists){
+  if(is.list(max.parents)){
+    stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
+    if(!is.null(which.nodes)){
+      stop("ISSUE: `max.parents` as list in combination with `which.nodes` is not yet implemented further down here. Try with single numeric as max.parents instead.")
+    }
+  } else if (is.numeric(max.parents) && length(max.parents)>1){
+    if (length(unique(max.parents)) == 1){
+      max.parents <- unique(max.parents)
+    } else {
+      stop("ISSUE: `max.parents` with node specific values that are not all the same, is not yet implemented further down here.")
+    }
+  }
+
+
+  tmp.list <- vector('list', max.parents)
+  for (i in 1:(max.parents)) {
+    tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+  }
+  combs <- do.call(rbind, tmp.list)
+  storage.mode(combs) <- "integer"
+
+  n_filled <- 0
+  cache_nrow <- nrow(combs) + 1L
+  node.defn_all.list <- matrix(data = 0L,
+                      nrow = nvars * cache_nrow,
+                      ncol = nvars,
+                      dimnames = list(NULL, colnames(data.df)))
+
+  children.list <- vector('list', cache_nrow)
+  for (j in 1:nvars) {
+    n_filled <- n_filled + 1
+    node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+    children.list[[n_filled]] <- j
+    for (i in 1:(max.parents)) {
+      tmp <- tmp.list[[i]]
+      node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)), -j] <- tmp
+      n_filled <- n_filled + nrow(tmp)
+    }
+  }
+  children <- rep(1:nvars, each = cache_nrow)
+  node.defn <- node.defn_all.list
+  mycache <- list(children = (children), node.defn = (node.defn))
+
+  # ASSUMING adj=NULL and ignore adjustment
+  mycache$node.defn.adj <- mycache$node.defn
+
+  ##----------------------
+  ## multinomial adaptation
+  ##----------------------
+  # unpacking the multinomial variables in the cache
+  repetition.multi <- vector(length = nvars)
+  for (i in 1:nvars) {
+    if (data.dists[[i]] %in% c("binomial", "poisson", "gaussian")) {
+      repetition.multi[i] <- 1
+    } else {
+      repetition.multi[i] <- nlevels(data.df.lvl[, i])
+    }
+  }
+  if (!is.null(adj.vars)) {
+    mycache$node.defn.multi <- mycache$node.defn.adj[, rep(1:nvars, repetition.multi)]
+    data.df <- data.df.adj[, colnames(mycache$node.defn.adj)]
+  } else {
+    mycache$node.defn.multi <- mycache$node.defn[, rep(1:nvars, repetition.multi)]
+
+  }
+
+  return(mycache)
+}
+
 # Extracted from buildScoreCache.bayes()
 # Use the C-level combination call
 # Note: adjustment is ignored (mycache$node.defn.adj <- mycache$node.defn)
@@ -409,7 +486,8 @@ computeCache_C <- function(adj.vars,
 # In buildScoreCache.mle(): replace the growing node.defn objects within the loop with a matrix preallocation
 # Optimize the tmp matrix calculation
 # Include pre-calculation of the X and Y matrices to be passed to the forLoopContent function (only for performance comparison)
-computeCache_precomputeX <- function(adj.vars,
+# Replace the apply in the for(j in 1:nvars) loop with a do.call
+computeCache_precomputeX_doCall <- function(adj.vars,
                                   nvars,
                                   data.df,
                                   data.df.multi,
@@ -417,31 +495,50 @@ computeCache_precomputeX <- function(adj.vars,
                                   max.parents,
                                   data.dists){
   tmp.list <- vector('list', max.parents)
-  cache_nrow <- 1
-  for (i in 1:(max.parents)) {
-    tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
-    cache_nrow <- cache_nrow + nrow(tmp.list[[i]])
+  for (i in seq_len(max.parents)) {
+	  tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
   }
-  cache_nrow <- nvars * (cache_nrow)
-  n_filled <- 0
-  node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
-  children.list <- vector('list', cache_nrow)
-  for (j in 1:nvars) {
-    n_filled <- n_filled + 1
-    node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-    children.list[[n_filled]] <- j
-    for (i in 1:(max.parents)) {
-      tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-      node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
-      children.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(j, length(tmp[, 1])))
-      n_filled <- n_filled + nrow(tmp)
-    }
+  combs <- do.call(rbind, tmp.list)
+  storage.mode(combs) <- "integer"
+
+  ## One block per child: an all-zero row (no parents) followed by `combs`
+  ## inserted into every column except the child's own.
+  rows.per.child <- nrow(combs) + 1L
+  node.defn <- matrix(data = 0L,
+                      nrow = nvars * rows.per.child,
+                      ncol = nvars,
+                      dimnames = list(NULL, colnames(data.df)))
+  for (j in seq_len(nvars)) {
+    offset <- (j - 1L) * rows.per.child
+    node.defn[(offset + 2L):(offset + rows.per.child), -j] <- combs
   }
-  node.defn <- node.defn_all.list
-  children <- unlist(children.list)
-  colnames(node.defn) <- colnames(data.df)
-  mode(node.defn) <- "integer"
-  children <- as.integer(children)
+  children <- rep.int(seq_len(nvars), rows.per.child)
+
+ # cache_nrow <- 1
+ # for (i in 1:(max.parents)) {
+ #   tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+ #   cache_nrow <- cache_nrow + nrow(tmp.list[[i]])
+ # }
+ # cache_nrow <- nvars * (cache_nrow)
+ # n_filled <- 0
+ # node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
+ # children.list <- vector('list', cache_nrow)
+ # for (j in 1:nvars) {
+ #   n_filled <- n_filled + 1
+ #   node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
+ #   children.list[[n_filled]] <- j
+ #   for (i in 1:(max.parents)) {
+ #     tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
+ #     node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
+ #     children.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(j, length(tmp[, 1])))
+ #     n_filled <- n_filled + nrow(tmp)
+ #   }
+ # }
+ # node.defn <- node.defn_all.list
+ # children <- unlist(children.list)
+ # colnames(node.defn) <- colnames(data.df)
+ # mode(node.defn) <- "integer"
+ # children <- as.integer(children)
 
   mycache <- list(children = (children), node.defn = (node.defn))
 
@@ -483,13 +580,13 @@ computeCache_precomputeX <- function(adj.vars,
       X_list[[k]] <- obj
     }
   }
-  mycache$X <- X_list
+  #mycache$X <- X_list
 
-  Y_list <- vector("list", nvars)
-  for (k in 1:nvars){
-   Y_list[[k]] <- data.df[, k, drop = FALSE]
-  }
-  mycache$Y <- Y_list
+  #Y_list <- vector("list", nvars)
+  #for (k in 1:nvars){
+  # Y_list[[k]] <- data.df[, k, drop = FALSE]
+  #}
+  #mycache$Y <- Y_list
 
   return(mycache)
 }

@@ -107,6 +107,7 @@ cache_orig = computeCache_orig(params$adj.vars, mleparams$nvars, mleparams$data.
 cache_doCall = computeCache_doCall(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_inForLoop = computeCache_inForLoop(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_prealloc = computeCache_prealloc(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
+cache_prealloc_mod = computeCache_prealloc_mod(params$adj.vars, mleparams$nvars, mleparams$data.df, mleparams$data.df.lv, params$max.parents, params$data.dists),
 cache_C = computeCache_C(params$adj.vars, mleparams$nvars, mleparams$data.df,
                                mleparams$data.df.multi, mleparams$data.df.lv, max_parents, params$data.dists,
                                params$defn.res, params$dag.banned, params$dag.retained, params$which.nodes),
@@ -156,6 +157,21 @@ iterations = 100))
 # Warning message:
 # Some expressions had a GC in every iteration; so filtering is disabled.
 # The GC warning is triggered by the R implementation in computeCache_orig, the cache_C implementation would solve the issue.
+
+#   expression     min  median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time
+#   <bch:expr> <bch:t> <bch:t>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm>
+# 1 cache_orig 68.22ms 68.88ms      14.6   47.88MB   602.       3   124   206.04ms
+# 2 cache_doC… 56.83ms  59.9ms      16.8   10.66MB    10.7     61    39      3.63s
+# 3 cache_inF… 36.94ms 38.16ms      26.2   11.21MB    11.8     69    31      2.63s
+# 4 cache_pre… 35.74ms 37.74ms      26.6    9.38MB    11.9     69    31       2.6s
+# 5 cache_pre…  3.09ms  3.13ms     306.     4.27MB    23.0     93     7   303.69ms
+# 6 cache_C     4.03ms   4.2ms     233.     2.04MB     9.69    96     4   412.75ms
+# # ℹ 4 more variables: result <list>, memory <list>, time <list>, gc <list>
+# The cache_prealloc_mod function instead of shifting each element to the temp.list[[i]] matrix is filling the
+# node.defn_all.list except for the column -j which is already initialized with 0.
+# The loop `for (i in 1:(max.parents))` could also be removed if the full `combs <- do.call(rbind, tmp.list)` matrix
+# is used (not implemented yet).
+
 
 # To visualize results:
 library(ggplot2)
