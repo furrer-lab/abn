@@ -70,7 +70,7 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
   node_order <- names(topo_sort(graph, mode="out"))
 
   # Step 0: check the evidence and the data
-  check_data(data, dists)
+  #check_data(data, dists)
   evidence <- check_evidence(data, dists, hypothesis, evidence)
   if (!is.null(hypothesis)){
     mb <- find_MB(graph, hypothesis)
@@ -193,27 +193,27 @@ check_evidence <- function(data, dists, hypothesis, evidence){
   return(evidence)
 }
 
-check_data <- function(data, dists){
-  data.bin <- data %>% dplyr::select(names(dists)[grep("binomial",dists)])
-
-  level.length <- sapply(data.bin, function(b){
-    length(levels(b))
-  })
-
-  if (length(which(level.length==1))>0){
-    stop(paste0("Binomial node ",names(level.length)[which(level.length==1)]," does not have the right number of levels (2). Consider adding one level (data$bin.node <- factor(data$bin.node,levels=c(0,1)) before running the code."))
-  }
-
-  data.multi <- data %>% dplyr::select(names(dists)[grep("multinomial",dists)])
-
-  level.length.multi <- sapply(data.multi, function(m){
-    length(levels(m))
-  })
-
-  if ((length(which(level.length.multi<3))>0)){
-    stop(paste0("Multinomial node ",names(level.length.multi)[which(level.length.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
-  }
-}
+# check_data <- function(data, dists){
+#   data.bin <- data %>% dplyr::select(names(dists)[grep("binomial",dists)])
+# 
+#   level.length <- sapply(data.bin, function(b){
+#     length(levels(b))
+#   })
+# 
+#   if (length(which(level.length==1))>0){
+#     stop(paste0("Binomial node ",names(level.length)[which(level.length==1)]," does not have the right number of levels (2). Consider adding one level (data$bin.node <- factor(data$bin.node,levels=c(0,1)) before running the code."))
+#   }
+# 
+#   data.multi <- data %>% dplyr::select(names(dists)[grep("multinomial",dists)])
+# 
+#   level.length.multi <- sapply(data.multi, function(m){
+#     length(levels(m))
+#   })
+# 
+#   if ((length(which(level.length.multi<3))>0)){
+#     stop(paste0("Multinomial node ",names(level.length.multi)[which(level.length.multi<3)]," does not have the expected number of levels. Consider adding one or more levels (data$multi.node <- factor(data$multi.node,levels=c(0,1,2)) before running the code."))
+#   }
+# }
 
 #' Find the Markov Blanket of a node
 #'
@@ -1198,16 +1198,26 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
                }
              }
 
+             low_b <- mu_prior - 6 * sigma_prior
+             upp_b <- mu_prior + 6 * sigma_prior
+             
              run_integration <- function(f) {
-               res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
-               if (inherits(res, "try-error")) {
-                 low_b <- mu_prior - 10 * sigma_prior
-                 upp_b <- mu_prior + 10 * sigma_prior
-                 res <- try(integrate(f, low_b, upp_b)$value, silent = TRUE)
-                 if (inherits(res, "try-error")) return(NA)
+               res <- try(integrate(f, low_b, upp_b)$value, silent = TRUE)
+               if (inherits(res, "try-error") || is.nan(res) || is.infinite(res)) {
+                 return(NA)
                }
                return(res)
              }
+             # run_integration <- function(f) {
+             #   res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
+             #   if (inherits(res, "try-error")) {
+             #     low_b <- mu_prior - 10 * sigma_prior
+             #     upp_b <- mu_prior + 10 * sigma_prior
+             #     res <- try(integrate(f, low_b, upp_b)$value, silent = TRUE)
+             #     if (inherits(res, "try-error")) return(NA)
+             #   }
+             #   return(res)
+             # }
 
              denominator <- run_integration(build_integrand(pow = 0))
              if (denominator <= 0 || is.na(denominator)) {
@@ -1224,13 +1234,13 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
            "poisson" = {
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
-             sum_val <- function(pow) {
-               sum(sapply(0:max_x, function(x) (x^pow) * L_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) *
-                            prior_poisson(x, lambda_prior)))
-             }
-             denominator <- sum_val(0)
+             x_vals <- 0:max_x
+             lik_vals <- L_gaussian(y = y_val, x = x_vals, coef = eq[[node]], var = y_var, intercept_tmp)
+             prior_vals <- prior_poisson(x_vals, lambda_prior)
+             joint_vals <- lik_vals * prior_vals
+             denominator <- sum(joint_vals)
              if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
-             numerator <- sum_val(1)
+             numerator <- sum(x_vals * joint_vals)
              results <- numerator / denominator
              return(results)
            },
@@ -1297,29 +1307,32 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     }
 
     dummy_matrix <- cbind(mat_bin, mat_multi)
-
-    matched_eq <- sapply(colnames(dummy_matrix), function(col) {
+    
+    matched_eq <- vapply(colnames(dummy_matrix), function(col) {
       key <- grep(paste0("(^|\\|)", col, "$"), names(eq), value = TRUE)
-      if (length(key) > 0) {
-        return(as.numeric(eq[key[1]]))
-      } else {
-        return(0) # Fallback to 0 if it's a dropped baseline (e.g., m11)
-      }
+      if (length(key) > 0) as.numeric(eq[key[1]]) else 0
+    }, numeric(1))
+
+    intercepts <- continuous_part + drop(dummy_matrix %*% matched_eq)
+    proba_cond_list <- lapply(intercepts, function(intercept_val) {
+      compute_update(intercept_val, dists[[node]])
     })
-
-    combinations_tmp <- dummy_matrix %*% matched_eq
-
-    proba_cond_values <- apply(combinations_tmp, 1, function(c) compute_update(continuous_part + c, dists[[node]]))
-
     prob_grid <- expand.grid(probabilities)
     comb_probs <- apply(prob_grid, 1, prod)
-
-    if (is.matrix(proba_cond_values)) {
-      final_res <- proba_cond_values %*% comb_probs
+    
+    first_res <- proba_cond_list[[1]]
+    if (length(first_res) > 1) {
+      proba_cond_matrix <- do.call(cbind, proba_cond_list)
+      
+      final_res <- proba_cond_matrix %*% comb_probs
       final_res <- as.vector(final_res)
-      if (dists[[node]] %in% c("binomial","multinomial")) names(final_res) <- levels(data[[node]])
+      
+      if (dists[[node]] %in% c("binomial","multinomial")) {
+        names(final_res) <- levels(data[[node]])
+      }
     } else {
-      final_res <- sum(proba_cond_values * comb_probs)
+      proba_cond_vector <- unlist(proba_cond_list)
+      final_res <- sum(proba_cond_vector * comb_probs)
     }
   } else {
     final_res <- compute_update(continuous_part, dists[[node]])
@@ -1481,10 +1494,12 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
              x_vals <- 0:max_x
-             log_posterior_vec <- sapply(x_vals, function(x) {
-               log(prior_poisson(x, lambda_prior)) + LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp)
-             })
+             log_prior_vec <- log(prior_poisson(x_vals, lambda_prior))
+             log_lik_vec   <- LogL_poisson(y = y_val, x = x_vals, coef = eq[[node]], intercept_tmp)
+             
+             log_posterior_vec <- log_prior_vec + log_lik_vec
              log_posterior_vec[is.na(log_posterior_vec)] <- -Inf
+             
              M <- max(log_posterior_vec)
              if (is.infinite(M)) return(lambda_prior)
              weights <- exp(log_posterior_vec - M)
@@ -1736,13 +1751,22 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
         "poisson" = {
           lambda_prior <- predictions[[node]]
           max_x <- max(1000, 4 * lambda_prior)
-          sum_val <- function(pow, y) {
-            sum(sapply(0:max_x, function(x) (x^pow) * L_binomial(y, x, coef = eq[[node]], intercept_tmp) *
-                         prior_poisson(x, lambda_prior) * p_pred[y + 1]))
-          }
-          denominator <- sum_val(0, 0) + sum_val(0, 1)
+          x_vals <- 0:max_x
+          prior_vals <- prior_poisson(x_vals, lambda_prior)
+          lik_0 <- L_binomial(y = 0, x = x_vals, coef = eq[[node]], intercept_tmp)
+          term_0 <- lik_0 * prior_vals * p_pred[1]
+          sum_0_pow0 <- sum(term_0)
+          sum_0_pow1 <- sum(x_vals * term_0)
+          
+          lik_1 <- L_binomial(y = 1, x = x_vals, coef = eq[[node]], intercept_tmp)
+          term_1 <- lik_1 * prior_vals * p_pred[2]
+          sum_1_pow0 <- sum(term_1)
+          sum_1_pow1 <- sum(x_vals * term_1)
+          
+          denominator <- sum_0_pow0 + sum_1_pow0
           if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
-          numerator <- sum_val(1, 0) + sum_val(1, 1)
+          
+          numerator <- sum_0_pow1 + sum_1_pow1
           results <- numerator / denominator
           return(results)
         },
@@ -2092,15 +2116,24 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
            "poisson" = {
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
-
-             sum_val <- function(pow, y) {
-               sum(sapply(0:max_x, function(x) (x^pow) * L_binomial(y, x, coef = node_coef_vec, intercept_tmp) *
-                            prior_poisson(x, lambda_prior) * p_pred[y]))
+             x_vals <- 0:max_x
+             prior_vals <- prior_poisson(x_vals, lambda_prior)
+             
+             denominator <- 0
+             numerator <- 0
+             
+             for (p in seq_along(lvl_names)) {
+               coef_p <- node_coef_vec[p]
+               
+               log_lik_p <- logL_multinomial_vectorized(y = p, x_vec = x_vals, coef = node_coef_vec, continuous_part = intercept_tmp)
+               lik_p <- exp(log_lik_p)
+               term_p <- lik_p * prior_vals * p_pred[p]
+               
+               denominator <- denominator + sum(term_p)
+               numerator <- numerator + sum(x_vals * term_p)
              }
-             denominator <- sum(sapply(seq_along(lvl_names), function(p){
-               sum_val(0, p)
-             }))
-             numerator <- sum(sapply(seq_along(lvl_names), function(p){ sum_val(1, p) }))
+             if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
+             
              results <- numerator / denominator
              return(results)
            },
@@ -2115,16 +2148,23 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
                levels_node <- names(p_prior)
              }
              unnormalized <- sapply(levels_node, function(l){
-               current_parent_coefs <- sapply(lvl_names, function(clvl) {
-                 pattern <- paste0("^", node, "\\.?", l, "\\.?", clvl, "$")
-                 matched_key <- grep(pattern, names(eq), value = TRUE)
-
-                 if(length(matched_key) > 0) as.numeric(eq[[matched_key]]) else 0
-               })
-
+               y_idx <- match(l, levels_node)
+               
                lik <- sum(sapply(seq_along(lvl_names),function(p){
-                 L_binomial(y = p, x = 1, coef = current_parent_coefs, intercept_tmp) * p_pred[p]
+                 clvl <- lvl_names[p]
+                 
+                 coef_non_ref <- sapply(2:length(levels_node), function(l_idx) {
+                   l_name <- levels_node[l_idx]
+                   pattern <- paste0("^", node, "\\.?", l_name, "\\.?", clvl, "$")
+                   matched_key <- grep(pattern, names(eq), value = TRUE)
+                   if (length(matched_key) > 0) as.numeric(eq[[matched_key]]) else 0
+                 })
+                 
+                 log_lik_p <- logL_multinomial(y = y_idx, x = 1, coef = coef_non_ref, continuous_part = intercept_tmp)
+                 
+                 exp(log_lik_p) * p_pred[p]
                }))
+               
                return(lik * p_vector[l])
              })
              if (sum(unnormalized) == 0) return(p_vector)
@@ -2450,13 +2490,13 @@ L_multinomial <- function(y, x, coef, continuous_part){
 }
 
 logL_multinomial <- function(y, x, coef, continuous_part){
-  num_cats <- length(coef)
+  num_cats <- length(coef) + 1
   eta <- numeric(num_cats)
 
   eta[1] <- 0
 
   for (p in 2:num_cats) {
-    eta[p] <- continuous_part[p] + (coef[p] * x)
+    eta[p] <- continuous_part[p-1] + (coef[p-1] * x)
   }
 
   max_eta <- max(eta)
@@ -2464,6 +2504,25 @@ logL_multinomial <- function(y, x, coef, continuous_part){
   log_denominator <- max_eta + log(sum(exp(eta - max_eta)))
 
   log_lik <- eta[y] - log_denominator
+  return(log_lik)
+}
+
+logL_multinomial_vectorized <- function(y, x_vec, coef, continuous_part) {
+  num_cats <- length(coef)
+  
+  eta <- matrix(0, nrow = num_cats, ncol = length(x_vec))
+  eta[1, ] <- 0 # Baseline category 0 log-odds
+  
+  for (p in 2:num_cats) {
+    eta[p, ] <- continuous_part[p] + (coef[p] * x_vec)
+  }
+  
+  # Stable softmax across categories for each x value (column-wise max)
+  max_eta <- apply(eta, 2, max)
+  log_denominator <- max_eta + log(colSums(exp(eta - matrix(max_eta, nrow = num_cats, ncol = length(x_vec), byrow = TRUE))))
+  
+  # Log-likelihood for the specific category y_cat across all x values
+  log_lik <- eta[y, ] - log_denominator
   return(log_lik)
 }
 
