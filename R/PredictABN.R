@@ -1171,15 +1171,21 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              } else {
                p_vector <- p_prior
              }
-             numerator <- function(x) LogL_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) + log(prior_binomial(x, p_vector[2]))
+             numerator <- function(x) {
+               LogL_gaussian(y = y_val, x, coef = eq[[node]], var = y_var, intercept_tmp) + log(pmax(prior_binomial(x, p_vector[2]),1e-300))
+             }
 
              log_num0 <- numerator(0)
              log_num1 <- numerator(1)
-             max_log <- max(log_num0, log_num1)
+             max_log <- max(log_num0, log_num1,na.rm = TRUE)
 
+             if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
+             
              exp_num0 <- exp(log_num0 - max_log)
              exp_num1 <- exp(log_num1 - max_log)
              denominator <- exp_num0 + exp_num1
+             if (denominator <= 0 || is.na(denominator)) return(p_vector)
+             
              prob_0 <- exp_num0 / denominator
              prob_1 <- 1 - prob_0
              results <- c(prob_0, prob_1)
@@ -1199,20 +1205,16 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              # Likelihood variance and precision
              # E[Y | X] = beta0 + beta * X
              # Variance of Y given X = sigma2_y
-             
              # Posterior variance of X given Y = y_val:
              # 1 / sigma2_post = 1 / sigma2_0 + (beta^2) / sigma2_y
+             # Posterior mean of X given Y = y_val:
+             # m1 = mu_prior + (sigma2_0 * beta / denom_var) * (y_val - (beta0 + beta * mu_prior))
              denom_var <- (beta^2 * sigma2_0) + sigma2_y
              
-             if (denom_var <= 0 || is.na(denom_var)) {
-               warning(paste0("Numerical instability for Gaussian-Gaussian update at node ", node, ". Reverting to prior."))
-               return(predictions[[node]])
-             }
+             if (denom_var <= 0 || is.na(denom_var)) return(predictions[[node]])
              
              posterior_variance <- (sigma2_y * sigma2_0) / denom_var
              
-             # Posterior mean of X given Y = y_val:
-             # m1 = mu_prior + (sigma2_0 * beta / denom_var) * (y_val - (beta0 + beta * mu_prior))
              m1 <- mu_prior + (sigma2_0 * beta / denom_var) * (y_val - (beta0 + beta * mu_prior))
              
              return(c(m1, posterior_variance))
@@ -1221,12 +1223,21 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
              x_vals <- 0:max_x
-             lik_vals <- L_gaussian(y = y_val, x = x_vals, coef = eq[[node]], var = y_var, intercept_tmp)
-             prior_vals <- prior_poisson(x_vals, lambda_prior)
-             joint_vals <- lik_vals * prior_vals
-             denominator <- sum(joint_vals)
+             
+             log_prior_vals <- log(pmax(prior_poisson(x_vals, lambda_prior), 1e-300))
+             log_lik_vals <- LogL_gaussian(y = y_val, x = x_vals, coef = eq[[node]], var = y_var, intercept_tmp)
+             
+             log_posterior <- log_prior_vals + log_lik_vals
+             log_posterior[is.na(log_posterior)] <- -Inf
+             
+             M <- max(log_posterior, na.rm = TRUE)
+             if (is.infinite(M) || is.na(M)) return(lambda_prior)
+             
+             weights <- exp(log_posterior - M)
+             denominator <- sum(weights)
              if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
-             numerator <- sum(x_vals * joint_vals)
+             
+             numerator <- sum(x_vals * weights)
              results <- numerator / denominator
              return(results)
            },
@@ -1243,17 +1254,25 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
                }
              }
 
-             unnormalized <- sapply(levels_node, function(l){
+             log_unnormalized <- sapply(levels_node, function(l){
                coef_name <- paste0(node, l)
                node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0
                x_val <- if (l==levels_node[1]) 0 else 1
-               lik <- L_gaussian(y = y_val, x = x_val, coef = node_coef, var = y_var, intercept_tmp)
+               log_lik <- logL_gaussian(y = y_val, x = x_val, coef = node_coef, var = y_var, intercept_tmp)
 
-               return(lik * p_vector[l])
+               log_prior <- log(pmax(p_vector[l], 1e-300))
+               return(log_lik + log_prior)
              })
-             if (sum(unnormalized) == 0) return(p_vector)
-             normalized_output <- unnormalized / sum(unnormalized)
-             return(normalized_output)
+             
+             max_log <- max(log_unnormalized, na.rm = TRUE)
+             if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
+             
+             unnormalized <- exp(log_unnormalized - max_log)
+             sum_unnorm <- sum(unnormalized)
+             if (sum_unnorm <= 0 || is.na(sum_unnorm)) return(p_vector)
+            
+             results <- unnormalized / sum_unnorm
+             return(results)
            }
     )
   }
@@ -1430,19 +1449,21 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              } else {
                p_vector <- p_prior
              }
-             log_num0 <- LogL_poisson(y = y_val, 0, coef = eq[[node]], intercept_tmp) + log(prior_binomial(0, p_vector[2]))
-             log_num1 <- LogL_poisson(y = y_val, 1, coef = eq[[node]], intercept_tmp) + log(prior_binomial(1, p_vector[2]))
-             
-             max_log <- max(log_num0, log_num1)
-             
-             if (is.infinite(max_log) || is.na(max_log)) {
-               return(p_vector) # Numerical fallback
+             numerator <- function(x) {
+               LogL_poisson(y = y_val, x, coef = eq[[node]], intercept_tmp) + log(pmax(prior_binomial(x, p_vector[2]),1e-300))
              }
+             
+             log_num0 <- numerator(0)
+             log_num1 <- numerator(1)
+             max_log <- max(log_num0, log_num1,na.rm=TRUE)
+             
+             if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
+             
              exp_num0 <- exp(log_num0 - max_log)
              exp_num1 <- exp(log_num1 - max_log)
              denominator <- exp_num0 + exp_num1
 
-             if (is.na(denominator) || denominator == 0) return(p_vector) # Numerical fallback
+             if (denominator <= 0 || is.na(denominator)) return(p_vector)
              prob_0 <- exp_num0 / denominator
              prob_1 <- 1 - prob_0
              
@@ -1471,10 +1492,8 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              }
 
              denominator <- run_integration(build_integrand(0))
-             if (denominator <= 0 || is.na(denominator)) {
-               warning(paste0("Numerical underflow for node ", node, ". Reverting to prior."))
-               return(predictions[[node]])
-             }
+             if (denominator <= 0 || is.na(denominator)) return(predictions[[node]])
+    
              f_mean <- build_integrand(1)
              m1 <- run_integration(f_mean) / denominator
              f_var <- build_integrand(2, shift = m1)
@@ -1482,26 +1501,28 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 
              results <- c(m1, posterior_variance)
 
-             if (is.na(posterior_variance) || posterior_variance <= 0) {
-               warning(paste0("Numerical issues with variance of node ", node, ". Reverting to prior."))
-               return(predictions[[node]])
-             }
+             if (is.na(posterior_variance) || posterior_variance <= 0) return(predictions[[node]])
+      
              return(results)
            },
            "poisson" = {
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
              x_vals <- 0:max_x
-             log_prior_vec <- log(prior_poisson(x_vals, lambda_prior))
-             log_lik_vec   <- LogL_poisson(y = y_val, x = x_vals, coef = eq[[node]], intercept_tmp)
              
-             log_posterior_vec <- log_prior_vec + log_lik_vec
-             log_posterior_vec[is.na(log_posterior_vec)] <- -Inf
+             log_prior_vals <- log(pmax(prior_poisson(x_vals, lambda_prior),1e-300))
+             log_lik_vals   <- LogL_poisson(y = y_val, x = x_vals, coef = eq[[node]], intercept_tmp)
              
-             M <- max(log_posterior_vec)
-             if (is.infinite(M)) return(lambda_prior)
-             weights <- exp(log_posterior_vec - M)
+             log_posterior <- log_prior_vals + log_lik_vals
+             log_posterior[is.na(log_posterior)] <- -Inf
+             
+             M <- max(log_posterior)
+             if (is.infinite(M) || is.na(M)) return(lambda_prior)
+             
+             weights <- exp(log_posterior - M)
              denominator <- sum(weights)
+             if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
+             
              numerator  <- sum(x_vals * weights)
              results <- numerator / denominator
              return(results)
@@ -1520,30 +1541,22 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
              log_unnormalized <- sapply(levels_node, function(l){
                coef_name <- paste0(node, l)
                node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0
-               
-               # Reference category gets x = 0, non-reference categories get x = 1
                x_val <- if (l == levels_node[1]) 0 else 1
-               
                log_lik <- LogL_poisson(y = y_val, x = x_val, coef = node_coef, intercept_tmp)
                
-               # Safely handle prior probabilities in log space
-               log_prior <- if (p_vector[l] > 0) log(p_vector[l]) else -Inf
-               
+               log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_lik + log_prior)
              })
+             
              max_log <- max(log_unnormalized)
-             if (is.infinite(max_log) || is.na(max_log)) {
-               return(p_vector)
-             }
+             if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
              
              unnormalized <- exp(log_unnormalized - max_log)
              sum_unnorm <- sum(unnormalized)
+             if (sum_unnorm <= 0 || is.na(sum_unnorm)) return(p_vector)
              
-             if (sum_unnorm == 0 || is.na(sum_unnorm)) {
-               return(p_vector)
-             }
-             
-             return(unnormalized / sum_unnorm)
+             results <- unnormalized / sum_unnorm
+             return(results)
            }
     )
   }
@@ -1721,29 +1734,26 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
            } else {
              p_vector <- p_prior
            }
-           log_num <- function(x, y) {
-             log(L_binomial(y, x, coef = eq[[node]], intercept_tmp)) + log(prior_binomial(x, p_vector[2]))
+           numerator <- function(x, y) {
+             logL_binomial(y, x, coef = eq[[node]], intercept_tmp) + log(pmax(prior_binomial(x, p_vector[2]),1e-300))
            }
-           term_00 <- log(p_pred[1]) + log_num(0, 0)
-           term_10 <- log(p_pred[1]) + log_num(1, 0)
-           term_01 <- log(p_pred[2]) + log_num(0, 1)
-           term_11 <- log(p_pred[2]) + log_num(1, 1)
+           term_00 <- log(pmax(p_pred[1], 1e-15)) + numerator(0, 0)
+           term_10 <- log(pmax(p_pred[1], 1e-15)) + numerator(1, 0)
+           term_01 <- log(pmax(p_pred[2], 1e-15)) + numerator(0, 1)
+           term_11 <- log(pmax(p_pred[2], 1e-15)) + numerator(1, 1)
+           
            denom_terms <- c(term_00, term_10, term_01, term_11)
-           max_denom <- max(denom_terms)
+           max_log <- max(denom_terms,na.rm = TRUE)
            
-           if (is.infinite(max_denom) || is.na(max_denom)) {
-             return(p_vector) # Fallback
-           }
+           if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
            
-           denominator <- sum(exp(denom_terms - max_denom))
-           if (denominator == 0 || is.na(denominator)) {
-             return(p_vector) # Fallback
-           }
+           denominator <- sum(exp(denom_terms - max_log))
+           if (denominator <= 0 || is.na(denominator)) return(p_vector)
+           
            num_0_terms <- c(term_00, term_01)
            max_num0 <- max(num_0_terms)
            sum_num0 <- sum(exp(num_0_terms - max_num0))
            
-           # Adjust for the log-sum-exp shift difference
            prob_0 <- (sum_num0 * exp(max_num0 - max_denom)) / denominator
            results <- c(prob_0, 1 - prob_0)
            names(results) <- levels(data[[node]])
@@ -1755,8 +1765,8 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 
           build_integrand <- function(pow, shift = 0) {
             function(x) {
-              total_lik_density <- L_binomial(y = 0, x, coef = eq[[node]], intercept_tmp) * p_pred[1] +
-                L_binomial(y = 1, x, coef = eq[[node]], intercept_tmp) * p_pred[2]
+              total_lik_density <- exp(logL_binomial(y = 0, x, coef = eq[[node]], intercept_tmp)) * p_pred[1] +
+                exp(logL_binomial(y = 1, x, coef = eq[[node]], intercept_tmp)) * p_pred[2]
               return(((x - shift)^pow) * total_lik_density * prior_gaussian(x, mu_prior, sigma_prior))
             }
           }
@@ -1771,41 +1781,49 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
             }
             return(res)
           }
-          denominator <- run_integration(build_integrand(pow = 0))
-
-          if (denominator <= 0 || is.na(denominator)) {
-            warning(paste0("Numerical underflow for Gaussian-Binomial update at node ", node, ". Reverting to prior."))
-            return(predictions[[node]])
-          }
-          m1 <- run_integration(build_integrand(pow = 1)) / denominator
-          posterior_variance <- run_integration(build_integrand(pow = 2, shift = m1)) / denominator
-
-          if (is.na(posterior_variance) || posterior_variance <= 0) {
-            warning(paste0("Numerical issues with variance calculation at node ", node, ". Reverting to prior."))
-            return(predictions[[node]])
-          }
+          
+          denominator <- run_integration(build_integrand(0))
+          if (denominator <= 0 || is.na(denominator)) return(predictions[[node]])
+          
+          f_mean <- build_integrand(pow = 1)
+          m1 <- run_integration(f_mean) / denominator
+          f_var <- build_integrand(pow = 2, shift = m1)
+          posterior_variance <- run_integration(f_var) / denominator
+         
           results <- c(m1, posterior_variance)
+          
+          if (is.na(posterior_variance) || posterior_variance <= 0) return(predictions[[node]])
+          
           return(results)
         },
         "poisson" = {
           lambda_prior <- predictions[[node]]
           max_x <- max(1000, 4 * lambda_prior)
           x_vals <- 0:max_x
-          prior_vals <- prior_poisson(x_vals, lambda_prior)
-          lik_0 <- L_binomial(y = 0, x = x_vals, coef = eq[[node]], intercept_tmp)
-          term_0 <- lik_0 * prior_vals * p_pred[1]
-          sum_0_pow0 <- sum(term_0)
-          sum_0_pow1 <- sum(x_vals * term_0)
           
-          lik_1 <- L_binomial(y = 1, x = x_vals, coef = eq[[node]], intercept_tmp)
-          term_1 <- lik_1 * prior_vals * p_pred[2]
-          sum_1_pow0 <- sum(term_1)
-          sum_1_pow1 <- sum(x_vals * term_1)
+          log_prior_vals <- log(pmax(prior_poisson(x_vals, lambda_prior),1e-300))
           
-          denominator <- sum_0_pow0 + sum_1_pow0
+          log_lik_0 <- logL_binomial(y = 0, x = x_vals, coef = eq[[node]], intercept_tmp)
+          log_lik_1 <- logL_binomial(y = 1, x = x_vals, coef = eq[[node]], intercept_tmp)
+          
+          log_p0 <- log(pmax(p_pred[1], 1e-15))
+          log_p1 <- log(pmax(p_pred[2], 1e-15))
+          
+          log_term_0 <- log_lik_0 + log_prior_vals + log_p0
+          log_term_1 <- log_lik_1 + log_prior_vals + log_p1
+          
+          log_matrix <- cbind(log_term_0, log_term_1)
+          M <- max(log_matrix, na.rm = TRUE)
+          if (is.infinite(M) || is.na(M)) return(lambda_prior)
+          
+          shifted_matrix <- exp(log_matrix - M)
+          sum_across_states <- rowSums(shifted_matrix, na.rm = TRUE)
+          
+          denominator <- sum(sum_across_states)
           if (denominator <= 0 || is.na(denominator)) return(lambda_prior)
           
-          numerator <- sum_0_pow1 + sum_1_pow1
+          numerator <- sum(x_vals * sum_across_states)
+        
           results <- numerator / denominator
           return(results)
         },
@@ -1824,39 +1842,31 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
             coef_name <- paste0(node, l)
             node_coef <- if(coef_name %in% names(eq)) as.numeric(eq[[coef_name]]) else 0
 
-            # Reference category (first level) gets x = 0, non-reference categories get x = 1
             x_val <- if (l == levels_node[1]) 0 else 1
 
-            # Marginalize over the binary child states (Y = 0 and Y = 1) in log-space
-            lik_0 <- L_binomial(y = 0, x = x_val, coef = node_coef, intercept_tmp)
-            lik_1 <- L_binomial(y = 1, x = x_val, coef = node_coef, intercept_tmp)
-
-            # Marginal likelihood weighted by child prior predictions
-            # marginal_lik = lik_0 * p_pred[1] + lik_1 * p_pred[2]
-            # In log space using log-sum-exp:
-            term0 <- log(max(lik_0, 1e-300)) + log(p_pred[1])
-            term1 <- log(max(lik_1, 1e-300)) + log(p_pred[2])
-            max_term <- max(term0, term1)
+            log_lik_0 <- LogL_binomial(y = 0, x = x_val, coef = node_coef, intercept_tmp)
+            log_lik_1 <- LogL_binomial(y = 1, x = x_val, coef = node_coef, intercept_tmp)
+            
+            term0 <- log_lik_0 + log(pmax(p_pred[1], 1e-15))
+            term1 <- log_lik_1 + log(pmax(p_pred[2], 1e-15))
+            max_term <- max(term0, term1,na.rm=TRUE)
+            
             log_marginal_lik <- max_term + log(exp(term0 - max_term) + exp(term1 - max_term))
 
-            log_prior <- if (p_vector[l] > 0) log(p_vector[l]) else -Inf
+            log_prior <- log(pmax(p_vector[l], 1e-300))
 
             return(log_marginal_lik + log_prior)
           })
 
           max_log <- max(log_unnormalized)
-          if (is.infinite(max_log) || is.na(max_log)) {
-            return(p_vector)
-          }
+          if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
 
           unnormalized <- exp(log_unnormalized - max_log)
           sum_unnorm <- sum(unnormalized)
-
-          if (sum_unnorm == 0 || is.na(sum_unnorm)) {
-            return(p_vector)
-          }
-
-          return(unnormalized / sum_unnorm)
+          if (sum_unnorm <= 0 || is.na(sum_unnorm)) return(p_vector)
+          
+          results <- unnormalized / sum_unnorm
+          return(results)
          }
       )
   }
@@ -2054,7 +2064,7 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
                p_vector <- p_prior
              }
 
-             log_numerator <- function(x, y){
+             numerator <- function(x, y){
                log_lik <- logL_multinomial(y, x, coef = node_coef_vec, continuous_part = intercept_tmp)
                p_val <- p_vector[2]
                prior_prob <- if (x == 1) p_val else (1 - p_val)
@@ -2065,23 +2075,20 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
              safe_p_pred <- pmax(p_pred, 1e-15)
 
              log_vals_x0 <- sapply(seq_along(lvl_names), function(p) {
-               log_numerator(0, p) + log(safe_p_pred[p])
+               numerator(0, p) + log(safe_p_pred[p])
              })
              log_vals_x1 <- sapply(seq_along(lvl_names), function(p) {
-               log_numerator(1, p) + log(safe_p_pred[p])
+               numerator(1, p) + log(safe_p_pred[p])
              })
              all_logs <- c(log_vals_x0, log_vals_x1)
              max_log <- max(all_logs)
 
              if (max_log == -Inf || is.na(max_log)) {
-               # Fallback if everything evaluates to absolute zero probability
                prob_0 <- 0.5
              } else {
-               # Subtract max_log to shift scales safely before exponentiating
                sum_exp_x0 <- sum(exp(log_vals_x0 - max_log), na.rm = TRUE)
                sum_exp_x1 <- sum(exp(log_vals_x1 - max_log), na.rm = TRUE)
 
-               # Calculate safe, normalized probability for x = 0
                prob_0 <- sum_exp_x0 / (sum_exp_x0 + sum_exp_x1)
              }
              results <- c(prob_0, 1 - prob_0)
@@ -2158,23 +2165,23 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
              }
 
              denominator <- run_integration(build_integrand(pow = 0))
-             if (denominator <= 0 || is.na(denominator)) {
-               warning(paste0("Numerical underflow for Gaussian-Multinomial update at node ", node, ". Reverting to prior."))
-               return(predictions[[node]])
-             }
-             m1 <- run_integration(build_integrand(pow = 1)) / denominator
-             posterior_variance <- run_integration(build_integrand(pow = 2, shift = m1)) / denominator
-             if (is.na(posterior_variance) || posterior_variance <= 0) {
-               warning(paste0("Numerical issues with variance calculation at node ", node, ". Reverting to prior."))
-               return(predictions[[node]])
-             }
+             if (denominator <= 0 || is.na(denominator)) return(predictions[[node]])
+             
+             f_mean <- build_integrand(pow = 1)
+             m1 <- run_integration(f_mean) / denominator
+             f_var <- build_integrand(pow = 2, shift = m1)
+             posterior_variance <- run_integration(f_var) / denominator
              results <- c(m1, posterior_variance)
+             
+             if (is.na(posterior_variance) || posterior_variance <= 0) return(predictions[[node]])
+
              return(results)
            },
            "poisson" = {
              lambda_prior <- predictions[[node]]
              max_x <- max(1000, 4 * lambda_prior)
              x_vals <- 0:max_x
+             
              log_prior_vals <- log(pmax(prior_poisson(x_vals, lambda_prior), 1e-300))
              
              all_log_terms_list <- vector("list", length(lvl_names))
@@ -2241,24 +2248,26 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
                  return(log_lik_p + log(pmax(p_pred[p], 1e-15)))
                })
                
-               max_log_p <- max(log_terms_p)
+               max_log_p <- max(log_terms_p, na.rm=TRUE)
                if (max_log_p == -Inf || is.na(max_log_p)) {
                  log_marginal_lik <- -Inf
                } else {
                  log_marginal_lik <- max_log_p + log(sum(exp(log_terms_p - max_log_p)))
                }
                
-               log_prior <- if (p_vector[l] > 0) log(p_vector[l]) else -Inf
+               log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_marginal_lik + log_prior)
              })
              
-             max_log_node <- max(log_unnormalized)
-             if (max_log_node == -Inf || is.na(max_log_node) || sum(exp(log_unnormalized - max_log_node)) == 0) {
-               return(p_vector)
-             }
+             max_log <- max(log_unnormalized, na.rm = TRUE)
+             if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
              
-             unnormalized <- exp(log_unnormalized - max_log_node)
-             return(unnormalized / sum(unnormalized))
+             unnormalized <- exp(log_unnormalized - max_log)
+             sum_unnorm <- sum(unnormalized)
+             if (sum_unnorm <= 0 || is.na(sum_unnorm)) return(p_vector)
+             
+             results <- unnormalized / sum_unnorm
+             return(results)
            }
     )
   }
@@ -2469,6 +2478,18 @@ predict_root <- function(data, dists, node) {
   )
 }
 
+#' Compute Prior Probability for a Poisson Distribution
+#'
+#' This function calculates the probability mass function of a Poisson distribution
+#'
+#' @param x The observed count (number of events, must be non-negative).
+#' @param lambda The expected number of events (rate parameter, must be positive).
+#' @return The probability of observing `x` events given rate `lambda`.
+#' @export
+prior_poisson <- function(x,lambda){
+  dpois(x,lambda)
+}
+
 #' Compute the log-likelihood of a Poisson variable
 #'
 #' This function computes the log-likelihood of a Poisson-distributed variable
@@ -2499,23 +2520,17 @@ prior_gaussian <- function(x, mu, sigma2){
   dnorm(x, mean=mu, sd=sqrt(sigma2))
 }
 
-#' Compute the likelihood of a Gaussian variable
+#' Compute the log-likelihood of a Gaussian variable
 #'
-#' This function computes the likelihood of a Gaussian-distributed variable
+#' This function computes the log-likelihood of a Gaussian-distributed variable
 #'
 #' @param y The observed value for the Gaussian-distributed variable.
 #' @param x A value for a parent of the Gaussian variable.
 #' @param coef The coefficient that links `y` to `x`.
 #' @param var The variance of the Gaussian variable.
 #' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
-#' @return The value of the likelihood.
+#' @return The value of the log-likelihood.
 #' @export
-L_gaussian <- function(y, x, coef, var, continuous_part){
-  mu <-  coef*x + continuous_part
-  sigma2 <- var
-  dnorm(y, mean = mu, sd=sqrt(sigma2))
-}
-
 LogL_gaussian <- function(y, x, coef, var, continuous_part) {
   mu <- continuous_part + coef * x
   # Setting log = TRUE calculates the log-exponent directly without hitting the underflow wall!
@@ -2534,50 +2549,35 @@ prior_binomial <- function(x, p){
   dbinom(x, size=1, prob=pmin(pmax(p,0),1))
 }
 
-#' Compute the likelihood of a binomial variable
+#' Compute the log-likelihood of a binomial variable
 #'
-#' This function computes the likelihood of a binomial-distributed variable
+#' This function computes the log-likelihood of a binomial-distributed variable
 #'
 #' @param y The observed binary outcome (numeric 0 or 1)
 #' @param x A value for a parent of the binomial variable.
 #' @param coef The coefficient that links `y` to `x`.
 #' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
-#' @return The value of the likelihood.
+#' @return The value of the log-likelihood.
 #' @export
-L_binomial <- function(y, x, coef, continuous_part){
-  mu <- plogis(continuous_part + coef * x)
-  if (y == 1) {
-    return(mu)
-  } else {
-    return(1 - mu)
-  }
+LogL_binomial <- function(y, x, coef, continuous_part) {
+  # Calculate log-odds / linear predictor
+  eta <- continuous_part + coef * x
+  
+  # Use dbinom with log = TRUE for underflow protection
+  # (assuming y is 0 or 1, and size is 1)
+  dbinom(y, size = 1, prob = plogis(eta), log = TRUE)
 }
 
-#' Compute the likelihood of a multinomial variable
+#' Compute the log-likelihood of a multinomial variable
 #'
-#' This function computes the likelihood of a multinomial-distributed variable
+#' This function computes the log-likelihood of a multinomial-distributed variable
 #'
 #' @param y The observed multivariate outcome
 #' @param x A value for a parent of the multinomial variable.
 #' @param coef The coefficient that links `y` to `x`.
 #' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
-#' @return The value of the likelihood.
+#' @return The value of the log-likelihood.
 #' @export
-L_multinomial <- function(y, x, coef, continuous_part){
-  numerator <- function(y){
-    exp(continuous_part[y] + coef[y] *x)
-  }
-
-  denominator <- 1 + sum(sapply(2:length(coef), function(p){
-    numerator(p)}))
-
-  if (y==1){
-    return(1/denominator)
-  } else {
-    return(numerator(y)/denominator)
-  }
-}
-
 logL_multinomial <- function(y, x, coef, continuous_part){
   num_cats <- length(coef) + 1
   eta <- numeric(num_cats)
@@ -2596,6 +2596,17 @@ logL_multinomial <- function(y, x, coef, continuous_part){
   return(log_lik)
 }
 
+#' Compute the log-likelihood of a multinomial variable (Vectorized)
+#'
+#' This function computes the log-likelihood of a multinomial-distributed variable
+#' across a vector of parent values
+#'
+#' @param y The observed multivariate outcome.
+#' @param x_vec A numeric vector of values for a parent of the multinomial variable.
+#' @param coef The coefficients that link categories of `y` to `x_vec`.
+#' @param continuous_part The rest of the equation (intercepts and links between the parents of the child and the child).
+#' @return A numeric vector of log-likelihood values corresponding to each element in `x_vec`.
+#' @export
 logL_multinomial_vectorized <- function(y, x_vec, coef, continuous_part) {
   num_cats <- length(coef)
   
@@ -2613,18 +2624,6 @@ logL_multinomial_vectorized <- function(y, x_vec, coef, continuous_part) {
   # Log-likelihood for the specific category y_cat across all x values
   log_lik <- eta[y, ] - log_denominator
   return(log_lik)
-}
-
-#' Compute Prior Probability for a Poisson Distribution
-#'
-#' This function calculates the probability mass function of a Poisson distribution
-#'
-#' @param x The observed count (number of events, must be non-negative).
-#' @param lambda The expected number of events (rate parameter, must be positive).
-#' @return The probability of observing `x` events given rate `lambda`.
-#' @export
-prior_poisson <- function(x,lambda){
-  dpois(x,lambda)
 }
 
 #' Plot ABN fitted network
