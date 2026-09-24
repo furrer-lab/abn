@@ -1258,7 +1258,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
                coef_name <- paste0(node, l)
                node_coef <- if(coef_name %in% names(eq)) eq[[coef_name]] else 0
                x_val <- if (l==levels_node[1]) 0 else 1
-               log_lik <- logL_gaussian(y = y_val, x = x_val, coef = node_coef, var = y_var, intercept_tmp)
+               log_lik <- LogL_gaussian(y = y_val, x = x_val, coef = node_coef, var = y_var, intercept_tmp)
 
                log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_lik + log_prior)
@@ -1485,7 +1485,10 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 
              run_integration <- function(f) {
                res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
-               if (inherits(res, "try-error")) {
+               
+               is_invalid <- inherits(res, "try-error") || !is.finite(res) || abs(res) < 1e-4
+               
+               if (is_invalid) {
                  res <- integrate(f, mu_prior - 5 * sqrt(sigma_prior), mu_prior + 5 * sqrt(sigma_prior), rel.tol=1e-6)$value
                }
                return(res)
@@ -1735,7 +1738,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
              p_vector <- p_prior
            }
            numerator <- function(x, y) {
-             logL_binomial(y, x, coef = eq[[node]], intercept_tmp) + log(pmax(prior_binomial(x, p_vector[2]),1e-300))
+             LogL_binomial(y, x, coef = eq[[node]], intercept_tmp) + log(pmax(prior_binomial(x, p_vector[2]),1e-300))
            }
            term_00 <- log(pmax(p_pred[1], 1e-15)) + numerator(0, 0)
            term_10 <- log(pmax(p_pred[1], 1e-15)) + numerator(1, 0)
@@ -1754,7 +1757,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
            max_num0 <- max(num_0_terms)
            sum_num0 <- sum(exp(num_0_terms - max_num0))
            
-           prob_0 <- (sum_num0 * exp(max_num0 - max_denom)) / denominator
+           prob_0 <- (sum_num0 * exp(max_num0 - max_log)) / denominator
            results <- c(prob_0, 1 - prob_0)
            names(results) <- levels(data[[node]])
            return(results)
@@ -1765,15 +1768,18 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 
           build_integrand <- function(pow, shift = 0) {
             function(x) {
-              total_lik_density <- exp(logL_binomial(y = 0, x, coef = eq[[node]], intercept_tmp)) * p_pred[1] +
-                exp(logL_binomial(y = 1, x, coef = eq[[node]], intercept_tmp)) * p_pred[2]
+              total_lik_density <- exp(LogL_binomial(y = 0, x, coef = eq[[node]], intercept_tmp)) * p_pred[1] +
+                exp(LogL_binomial(y = 1, x, coef = eq[[node]], intercept_tmp)) * p_pred[2]
               return(((x - shift)^pow) * total_lik_density * prior_gaussian(x, mu_prior, sigma_prior))
             }
           }
 
           run_integration <- function(f) {
             res <- try(integrate(f, -Inf, Inf)$value, silent = TRUE)
-            if (inherits(res, "try-error")) {
+            
+            is_invalid <- inherits(res, "try-error") || !is.finite(res) || abs(res) < 1e-4
+            
+            if (is_invalid) {
               low_b <- mu_prior - 5 * sqrt(sigma_prior)
               upp_b <- mu_prior + 5 * sqrt(sigma_prior)
               res <- try(integrate(f, low_b, upp_b,rel.tol = 1e-6)$value, silent = TRUE)
@@ -1803,8 +1809,8 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
           
           log_prior_vals <- log(pmax(prior_poisson(x_vals, lambda_prior),1e-300))
           
-          log_lik_0 <- logL_binomial(y = 0, x = x_vals, coef = eq[[node]], intercept_tmp)
-          log_lik_1 <- logL_binomial(y = 1, x = x_vals, coef = eq[[node]], intercept_tmp)
+          log_lik_0 <- LogL_binomial(y = 0, x = x_vals, coef = eq[[node]], intercept_tmp)
+          log_lik_1 <- LogL_binomial(y = 1, x = x_vals, coef = eq[[node]], intercept_tmp)
           
           log_p0 <- log(pmax(p_pred[1], 1e-15))
           log_p1 <- log(pmax(p_pred[2], 1e-15))
