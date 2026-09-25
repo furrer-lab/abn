@@ -470,31 +470,23 @@ newBuildScoreCache.mle <-
         }
 
         tmp.list <- vector('list', max.parents)
-        cache_nrow <- 1
         for (i in 1:(max.parents)) {
           tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
-          cache_nrow <- cache_nrow + nrow(tmp.list[[i]])
         }
-        cache_nrow <- nvars * (cache_nrow)
-        n_filled <- 0
-        node.defn_all.list <- matrix(data = as.integer(0), nrow = cache_nrow, ncol = nvars)
-        children.list <- vector('list', cache_nrow)
+        combs <- do.call(rbind, tmp.list)
+        storage.mode(combs) <- "integer"
+
+        cache_nrow <- nrow(combs) + 1L
+        node.defn <- matrix(data = 0L,
+                            nrow = nvars * cache_nrow,
+                            ncol = nvars,
+                            dimnames = list(NULL, colnames(data.df)))
+
         for (j in 1:nvars) {
-          n_filled <- n_filled + 1
-          node.defn_all.list[n_filled, ] <- matrix(data = as.integer(0), nrow = 1L, ncol = nvars)
-          children.list[[n_filled]] <- j
-          for (i in 1:(max.parents)) {
-            tmp <- t(apply(X = tmp.list[[i]], MARGIN = 1, FUN = function(x) append(x = x, values = 0, after = j - 1)))
-            node.defn_all.list[(n_filled+1):(n_filled+nrow(tmp)),] <- tmp
-            children.list[(n_filled+1):(n_filled+nrow(tmp))] <- t(rep(j, length(tmp[, 1])))
-            n_filled <- n_filled + nrow(tmp)
-          }
+          n_filled <- (j - 1L) * cache_nrow
+          node.defn[(n_filled + 2L):(n_filled + cache_nrow), -j] <- combs
         }
-        node.defn <- node.defn_all.list
-        children <- unlist(children.list)
-        colnames(node.defn) <- colnames(data.df)
-        mode(node.defn) <- "integer"
-        children <- as.integer(children)
+        children <- rep(1:nvars, each = cache_nrow)
 
         ## DAG RETAIN/BANNED
         for (i in 1:nvars) {
