@@ -341,6 +341,31 @@ forLoopContent_precomputedXY <-
   }
 } # End of forLoopContent()
 
+
+bits_to_key <- function(x) {
+  as.character(sum(x * 2^seq.int(from = length(x) - 1, to = 0)))
+}
+
+
+compute_X <- function(row, adj.vars, multinomial, data.df.multi.num) {
+  if (is.null(adj.vars)) {
+    if (multinomial) {
+      X <- data.df.multi.num[, as.logical(row), drop = FALSE]
+    } else {
+      X <- cbind(1, data.df.multi.num[, as.logical(row), drop = FALSE])
+    }
+  } else {
+    if (multinomial) {
+      X <- data.df.multi.num[, as.logical(row), drop = FALSE]
+    } else {
+      X <- cbind(1, data.df.multi.num[, as.logical(row), drop = FALSE])
+    }
+  }
+  X
+}
+
+
+
 #' \code{buildScoreCache.mle} and \code{buildScoreCache.bayes} are internal functions called by \code{buildScoreCache}.
 #'
 #' @describeIn buildScoreCache Fit a given DAG to data with method="mle".
