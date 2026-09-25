@@ -153,8 +153,8 @@
 #' \dontrun{
 #' # Fit a model
 #' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
-#'                 b2 = "binomial", p2 = "poisson", g2 = "gaussian",
-#'                 b3 = "binomial", b4 = "binomial", b5 = "binomial",
+#'                 b2 = "binomial", p2 = "poisson", b3 = "binomial",
+#'                 g2 = "gaussian", b4 = "binomial", b5 = "binomial",
 #'                 g3 = "gaussian")
 #'
 #' # Build score cache
