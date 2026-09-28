@@ -1489,7 +1489,13 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
                is_invalid <- inherits(res, "try-error") || !is.finite(res) || abs(res) < 1e-4
                
                if (is_invalid) {
-                 res <- integrate(f, mu_prior - 5 * sqrt(sigma_prior), mu_prior + 5 * sqrt(sigma_prior), rel.tol=1e-6)$value
+                 res <- try(integrate(f, mu_prior - 5 * sqrt(sigma_prior), mu_prior + 5 * sqrt(sigma_prior), rel.tol=1e-6)$value,silent=TRUE)
+                 
+                 if(!inherits(res,"try-error") && is.finite(res)){
+                   res <- res
+                 } else {
+                   res <- 0
+                 }
                }
                return(res)
              }
