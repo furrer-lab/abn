@@ -178,14 +178,12 @@ check_evidence <- function(data, dists, hypothesis, evidence){
       }
 
       # rewrite the binomial evidences
-      if (length(which(dists[names(evidence)] %in% c("binomial","multinomial")))>0){
-        # at least one evidence is a bi/multinomial node
-        for (i in (1:length(which(dists[names(evidence)]%in% c("binomial","multinomial"))))){
-          node <- names(evidence)[which(dists[names(evidence)] %in% c("binomial","multinomial"))][i]
-          if (is.character(evidence[[node]])){
-            # transform it to factor
-            evidence[[node]] <- factor(evidence[[node]],levels=levels(data[[node]]))
-          }
+      bin_multi_nodes <- names(evidence)[dists[names(evidence)] %in% c("binomial", "multinomial")]
+      
+      if (length(bin_multi_nodes) > 0) {
+        for (node in bin_multi_nodes) {
+          # Coerce to factor using the dataset's existing levels (handles both numeric and character inputs)
+          evidence[[node]] <- factor(evidence[[node]], levels = levels(data[[node]]))
         }
       }
     }
