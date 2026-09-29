@@ -161,7 +161,7 @@
 #' mycache <- buildScoreCache(data.df = ex1.dag.data,
 #'                             data.dists = mydists,
 #'                             method = "mle",
-#'                             max.parents = 2)
+#'                             max.parents = 1)
 #'
 #' # Find most probable DAG
 #' mp_dag <- mostProbable(score.cache = mycache)
@@ -201,7 +201,7 @@
 #'                                     data.dists = mydists,
 #'                                     method = "mle",
 #'                                     group.var = "group",
-#'                                     max.parents = 2)
+#'                                     max.parents = 1)
 #'
 #' # Fit grouped model
 #' myfit_grouped <- fitAbn(object = mp_dag,
