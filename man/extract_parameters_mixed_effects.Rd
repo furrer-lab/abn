@@ -13,7 +13,8 @@ extract_parameters_mixed_effects(
   node_id,
   parent_nodes,
   start_counter,
-  link_function
+  link_function,
+  var_id_map = NULL
 )
 }
 \arguments{

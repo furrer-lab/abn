@@ -2,11 +2,11 @@
 % Please edit documentation in R/export.R
 \name{extract_states_from_data}
 \alias{extract_states_from_data}
-\title{Extract states for categorical variables from data}
+\title{Extract states for categorical variables from data or stored states}
 \usage{
 extract_states_from_data(object, node_id)
 }
 \description{
-Extract states for categorical variables from data
+Extract states for categorical variables from data or stored states
 }
 \keyword{internal}
