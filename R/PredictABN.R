@@ -160,21 +160,27 @@ check_evidence <- function(data, dists, hypothesis, evidence){
     } else {
       evidence.to.remove <- c()
       for (i in (1:length(evidence))){
-        dist.evidence <- dists[[names(evidence)[i]]]
-        if (dist.evidence == "binomial" || dist.evidence == "multinomial"){
-          if (! evidence[[i]] %in% levels(data[[names(evidence[i])]])){
-            warning(paste0("Evidence ",names(evidence[i])," does not have an expected value. It should be either ",paste(levels(data[[names(evidence[i])]]),collapse=", "),". It will be discarded."))
-            evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
-          }
-        } else if (dist.evidence == "poisson" || dist.evidence == "gaussian"){
-          if (is.character(evidence[[i]])){
-            warning(paste0("Evidence ",names(evidence[i])," is a string but should be numeric. It will be discarded."))
-            evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
+        if (!names(evidence)[i] %in% names(dists)){
+          evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
+        } else {
+          dist.evidence <- dists[[names(evidence)[i]]]
+          if (dist.evidence == "binomial" || dist.evidence == "multinomial"){
+            if (! evidence[[i]] %in% levels(data[[names(evidence[i])]])){
+              warning(paste0("Evidence ",names(evidence[i])," does not have an expected value. It should be either ",paste(levels(data[[names(evidence[i])]]),collapse=", "),". It will be discarded."))
+              evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
+            }
+          } else if (dist.evidence == "poisson" || dist.evidence == "gaussian"){
+            if (is.character(evidence[[i]])){
+              warning(paste0("Evidence ",names(evidence[i])," is a string but should be numeric. It will be discarded."))
+              evidence.to.remove <- c(evidence.to.remove,names(evidence[i]))
+            }
           }
         }
       }
       if (length(evidence.to.remove)>0){
         evidence <- evidence[setdiff(names(evidence),evidence.to.remove)]
+        evidence_formatted <- paste0(names(evidence), " = \"", evidence, "\"", collapse = ", ")
+        warning(paste0("Evidence contains wrong information. Please, review the provided evidence, the code will run using ",evidence_formatted))
       }
 
       # rewrite the binomial evidences
@@ -401,36 +407,26 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
            return(c(res_mean, res_var))
          },
          "binomial" = {
-           node_levels <- levels(data[[node]])
-
            if (is.null(ncol(raw_matrix)) || ncol(raw_matrix) == 1) {
-             res <- numeric(length(node_levels))
-             names(res) <- node_levels
-
-             chosen_index <- as.integer(raw_matrix[1, 1])
-             res[chosen_index] <- 1
+             res <- 1
+             names(res) <- as.character(raw_matrix[1, 1])
              return(res)
            }
 
            p_level2 <- mean(raw_matrix[, 2])
            res <- c(1 - p_level2, p_level2)
-           names(res) <- node_levels
+           names(res) <- colnames(raw_matrix)
            return(res)
          },
          "multinomial" = {
-           node_levels <- levels(data[[node]])
-
            if (is.null(ncol(raw_matrix)) || ncol(raw_matrix) == 1) {
-             res <- numeric(length(node_levels))
-             names(res) <- node_levels
-
-             chosen_index <- as.integer(raw_matrix[1, 1])
-             res[chosen_index] <- 1
+             res <- 1
+             names(res) <- as.character(raw_matrix[1, 1])
              return(res)
            }
            res <- colMeans(raw_matrix)
            res <- res / sum(res)
-           names(res) <- node_levels
+           names(res) <- colnames(raw_matrix)
            return(res)
          },
          "poisson" = {
@@ -1261,6 +1257,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
                log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_lik + log_prior)
              })
+             names(log_unnormalized) <- levels_node
              
              max_log <- max(log_unnormalized, na.rm = TRUE)
              if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
@@ -1554,6 +1551,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
                log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_lik + log_prior)
              })
+             names(log_unnormalized) <- levels_node
              
              max_log <- max(log_unnormalized)
              if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
@@ -1867,6 +1865,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 
             return(log_marginal_lik + log_prior)
           })
+          names(log_unnormalized) <- levels_node
 
           max_log <- max(log_unnormalized)
           if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
@@ -2268,6 +2267,7 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
                log_prior <- log(pmax(p_vector[l], 1e-300))
                return(log_marginal_lik + log_prior)
              })
+             names(log_unnormalized) <- levels_node
              
              max_log <- max(log_unnormalized, na.rm = TRUE)
              if (is.infinite(max_log) || is.na(max_log)) return(p_vector)
