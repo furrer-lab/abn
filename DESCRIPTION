@@ -61,6 +61,7 @@ Suggests:
     ggplot2,
     gridExtra,
     INLA,
+    jsonvalidate,
     knitr,
     Matrix,
     MatrixModels (>= 0.5.3),

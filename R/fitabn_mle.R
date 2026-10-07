@@ -702,7 +702,9 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
     res[["bic"]] <- Reduce("+", res[["bicnode"]])
     res[["mdlnode"]] <- fit$bic + (1 + sum(dag.multi[i,] - num.na)) * log(nvars)
     res[["mdl"]] <- Reduce("+", res[["mdlnode"]])
-    res[["df"]] <- (length(data.df[,1])-(sum(dag.multi[i,])+1))
+    # residual df = n - number of design columns; with multinomial parents the
+    # design is one-hot encoded without an intercept column.
+    res[["df"]] <- (length(data.df[,1]) - ncol(X))
     res[["sse"]] <- fit$sse  # residual sum of squares (sum_1^n(y-f(x_i)))^2 -> ||y-X*beta_hat||^2
     res[["mse"]] <- res[["sse"]]/res[["df"]] # the residual sum of squares divided by the residuals number of degrees of freedom.
 
@@ -800,26 +802,31 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
       }
     } else if(child.dist=="multinomial"){
       separator = ""
+      # nnet::multinom returns coef(tmp) as (K-1) x p; as.vector() is column-major,
+      # i.e. the child category varies fastest. Names must follow the same order.
+      cat_fastest <- function(parents, levels) {
+        as.vector(t(outer(parents, levels, paste, sep = separator)))
+      }
       if("multinomial" %in% parent.dists){
-        colnames(res[["coef"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
-        colnames(res[["var"]]) <- c(as.vector(outer(parents.names.multi, fit$names.coef, paste, sep=separator)))
+        colnames(res[["coef"]]) <- c(cat_fastest(parents.names.multi, fit$names.coef))
+        colnames(res[["var"]]) <- c(cat_fastest(parents.names.multi, fit$names.coef))
       }else{
         if (USED_NNET){
-          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
-          colnames(res[["var"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),cat_fastest(parents.names, fit$names.coef))
+          colnames(res[["var"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),cat_fastest(parents.names, fit$names.coef))
         } else if (USED_MBLOGIT){
-          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
-          colnames(res[["var"]]) <-c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
+          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),cat_fastest(parents.names, rownames(fit$coefmat)))
+          colnames(res[["var"]]) <-c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),cat_fastest(parents.names, rownames(fit$coefmat)))
         } else {
           colnames(res[["coef"]]) <- tryCatch({
-            c(paste(child.name,"|intercept.",names(stats::coefficients(fit)),sep = ""),as.vector(outer(parents.names, names(stats::coefficients(fit)), paste, sep=separator)))
+            c(paste(child.name,"|intercept.",names(stats::coefficients(fit)),sep = ""),cat_fastest(parents.names, names(stats::coefficients(fit))))
           }, error=function(e){
-            c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+            c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),cat_fastest(parents.names, fit$names.coef))
           })
           colnames(res[["var"]]) <- tryCatch({
-            c(paste(child.name,"|intercept.",names(stats::coefficients(fit)),sep = ""),as.vector(outer(parents.names, names(stats::coefficients(fit)), paste, sep=separator)))
+            c(paste(child.name,"|intercept.",names(stats::coefficients(fit)),sep = ""),cat_fastest(parents.names, names(stats::coefficients(fit))))
           }, error=function(e){
-            c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+            c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),cat_fastest(parents.names, fit$names.coef))
           })
         }
       }

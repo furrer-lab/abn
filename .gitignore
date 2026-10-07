@@ -14,3 +14,4 @@ config.status
 *.code-workspace
 autom4te.cache
 *~
+.Rlibs-container/

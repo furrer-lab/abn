@@ -17,7 +17,7 @@ test_that("Test fitAbn.bayes()", {
   expect_equal(unclass(myres.c.test)[["modes"]], myres.c[[8]])
   expect_equal(unclass(myres.c.test)[["error.code"]], myres.c[[9]])
   expect_equal(unclass(myres.c.test)[["hessian.accuracy"]], myres.c[[10]])
-  expect_equal(unclass(myres.c.test)[["error.code.desc"]], myres.c[[11]])
+  expect_equal(unname(unclass(myres.c.test)[["error.code.desc"]]), unname(myres.c[[11]])) # names restored in fit (U9); reference predates them
   expect_equal(unclass(myres.c.test)[["mlik"]], myres.c[[12]])
   expect_equal(unname(unclass(myres.c.test)[["used.INLA"]]), myres.c[[13]]) # historical reasons. Can be updated in the future.
 })

@@ -1,898 +1,623 @@
-#' Import abnFit object from structured JSON format
+# Import of bayesian-network JSON documents into abnFit objects.
+# See json_plan.md and inst/schemas/bayesian-network.schema.json.
+
+#' Import an abnFit object from a bayesian-network JSON document
 #'
-#' @description
-#' Reconstructs a fitted Additive Bayesian Network (ABN) model from a structured JSON
-#' format (typically exported by \code{\link{export_abnFit}}). This function enables
-#' round-trip model I/O, allowing models to be exported, stored, shared, and later
-#' reimported for further analysis or modification.
+#' Reconstructs an \code{abnFit} object from a JSON document as produced by
+#' \code{\link{export_abnFit}}. Documents from other issuers are imported from
+#' the generic core; abn-specific fields are restored from
+#' \code{metadata.extensions.abn} when present.
 #'
-#' The function validates the JSON structure and reconstructs the abnFit object,
-#' including all network structure (variables, arcs) and model parameters
-#' (coefficients, standard errors, variances, random effects).
-#'
-#' @param file Character string specifying a file path containing the JSON
-#'    representation of the model. Alternatively, a JSON string can be provided
-#'    directly via the \code{json} parameter. If both are provided, \code{json}
-#'    is used and \code{file} is ignored.
-#' @param json Optional character string containing the JSON representation
-#'    of the model. Takes precedence over \code{file} if both are provided.
-#' @param validate Logical, whether to validate the imported object against
-#'    abnFit class requirements. Default is \code{TRUE}. Set to \code{FALSE}
-#'    only if you are certain the JSON is valid.
-#' @param ... Additional import options (currently unused, reserved for future extensions).
-#'
-#' @return An object of class \code{abnFit} representing the imported model,
-#'    with all components reconstructed from the JSON: \code{coef}, \code{Stderror},
-#'    \code{abnDag}, \code{method}, etc.
-#'
-#' @details
-#' ## Round-Trip Capability
-#'
-#' This function is designed to work with \code{\link{export_abnFit}}:
-#' \code{abnFit object} → \code{export_abnFit()} → JSON file/string →
-#' \code{import_abnFit()} → \code{abnFit object}
-#'
-#' The reconstructed object can be used for plotting, predictions, or further analysis.
-#' Metadata fields (\code{scenario_id}, \code{label}) are preserved through the round trip.
-#'
-#' ## JSON Structure Requirements
-#'
-#' The input JSON must contain at least these required fields:
-#' \itemize{
-#'   \item \code{variables}: Array of variable objects defining all nodes in the network
-#'   \item \code{parameters}: Array of parameter objects defining all fitted coefficients
-#'   \item \code{arcs}: Array of arc objects defining edges in the DAG (can be empty)
-#' }
-#'
-#' Optional fields may also be present:
-#' \itemize{
-#'   \item \code{scenario_id}: Model run identifier (preserved in output)
-#'   \item \code{label}: Descriptive label (preserved in output)
-#'   \item \code{method}: Fitting method ("mle" or "bayes", default "mle")
-#'   \item \code{linkFunctions}: Link function definitions (rarely used)
-#'   \item \code{constraints}: Subsetting constraints (abnScripts integration)
-#'   \item \code{subset_metadata}: Metadata about subsetting operation
-#'   \item \code{original_model}: Original model before subsetting
-#'   \item \code{original_data_path}: Path to CSV data file
-#' }
-#'
-#' ## Validation Rules
-#'
-#' When \code{validate = TRUE}, the following checks are performed:
-#' \itemize{
-#'   \item \strong{Required fields}: \code{variables}, \code{parameters}, \code{arcs} must be present
-#'   \item \strong{Unique IDs}: Each \code{variable_id} must be unique
-#'   \item \strong{References}: Parameter \code{source.variable_id} must match existing variables
-#'   \item \strong{Arcs}: Arc \code{source_variable_id} and \code{target_variable_id} must exist
-#'   \item \strong{States}: For multinomial variables, \code{state_id} references in parameters must match
-#'   \item \strong{Link functions}: Must be compatible with distribution type
-#' }
-#'
-#' Validation errors provide informative messages to guide correction of the JSON.
-#'
-#' @section Supported JSON Fields:
-#'
-#' See \code{\link{export_abnFit}} for complete documentation of the JSON structure,
-#' including all fields, their types, and valid values.
-#'
-#' @examples
-#' \dontrun{
-#' # Example 1: Import from file
-#' library(abn)
-#' 
-#' # Assuming you have a JSON file exported from export_abnFit()
-#' imported_model <- import_abnFit(file = "my_model.json")
-#' 
-#' # Now use the imported model
-#' summary(imported_model)
-#' }
-#'
-#' \dontrun{
-#' # Example 2: Import from JSON string
-#' library(abn)
-#' library(jsonlite)
-#'
-#' # You might have JSON as a string (from API, database, etc.)
-#' json_string <- '{
-#'   "scenario_id": "model_v1",
-#'   "label": "My Model",
-#'   "method": "mle",
-#'   "variables": [...],
-#'   "parameters": [...],
-#'   "arcs": [...],
-#'   "linkFunctions": null,
-#'   "constraints": null,
-#'   "subset_metadata": null,
-#'   "original_model": null,
-#'   "original_data_path": null
-#' }'
-#'
-#' # Import from string
-#' model <- import_abnFit(json = json_string)
-#' }
-#'
-#' \dontrun{
-#' # Example 3: Round-trip (export and re-import)
-#' library(abn)
-#'
-#' # Fit a model
-#' data(ex1.dag.data)
-#' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
-#'                 b2 = "binomial", p2 = "poisson", g2 = "gaussian",
-#'                 b3 = "binomial", g3 = "gaussian")
-#' mycache <- buildScoreCache(data.df = ex1.dag.data,
-#'                             data.dists = mydists,
-#'                             method = "mle",
-#'                             max.parents = 2)
-#' mp_dag <- mostProbable(score.cache = mycache)
-#' myfit <- fitAbn(object = mp_dag, method = "mle")
-#'
-#' # Export to JSON
-#' json_export <- export_abnFit(myfit, scenario_id = "model_v1")
-#'
-#' # Re-import from the JSON string
-#' myfit_reimported <- import_abnFit(json = json_export)
-#'
-#' # Verify they are equivalent
-#' identical(myfit$coef, myfit_reimported$coef)  # Should be TRUE (within rounding)
-#' }
-#'
-#' \dontrun{
-#' # Example 4: Error handling
-#' library(abn)
-#'
-#' # Invalid JSON will produce informative error messages
-#' tryCatch({
-#'   # This JSON is missing the required "arcs" field
-#'   bad_json <- '{
-#'     "scenario_id": "bad_model",
-#'     "variables": [...],
-#'     "parameters": [...]
-#'   }'
-#'   import_abnFit(json = bad_json)
-#' }, error = function(e) {
-#'   cat("Error:", conditionMessage(e), "\n")
-#'   # Output: "Invalid JSON structure: must contain 'variables', 'parameters', and 'arcs' components"
-#' })
-#' }
-#'
-#' @seealso
-#' \itemize{
-#'   \item \code{\link{export_abnFit}} for exporting abnFit to JSON (inverse operation)
-#'   \item \code{\link{fitAbn}} for fitting ABN models
-#'   \item \code{\link{jsonlite::fromJSON}} for JSON parsing (used internally)
-#' }
-#'
+#' @param file Optional path to a JSON file.
+#' @param json Optional JSON string. If both are given, \code{json} wins.
+#' @param data Optional observations: a data frame or the path to a
+#'   \code{bn-data} data document. The observations are transformed exactly as
+#'   \code{\link{fitAbn}} does and attached to \code{abnDag$data.df}; for grouped
+#'   fits the grouping column provides \code{group.ids}.
+#' @param validate If \code{TRUE}, the document is checked structurally
+#'   (schema version, unique ids, resolvable references, acyclic arcs).
+#' @return An object of class \code{abnFit}.
+#' @seealso \code{\link{export_abnFit}}, \code{\link{fitAbn}},
+#'   \code{\link{import_abnData}}
 #' @importFrom jsonlite fromJSON
 #' @export
-import_abnFit <- function(file = NULL, json = NULL, validate = TRUE,
-                          conflict = c("error", "prefer_core", "prefer_metadata"), ...) {
-  conflict <- match.arg(conflict)
-  # Input validation
+import_abnFit <- function(file = NULL, json = NULL, data = NULL, validate = TRUE) {
   if (is.null(file) && is.null(json)) {
-    stop("Either 'file' or 'json' must be provided")
+    stop("Either 'file' or 'json' must be provided.", call. = FALSE)
   }
-
   if (!is.null(file) && !is.null(json)) {
-    warning("Both 'file' and 'json' provided; using 'json' parameter")
+    stop("Provide only one of 'file' or 'json'.", call. = FALSE)
   }
-
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    stop("Package 'jsonlite' is required for JSON import.")
-  }
-
-  # Load JSON
   if (!is.null(json)) {
-    json_list <- jsonlite::fromJSON(json, simplifyVector = FALSE)
+    doc <- jsonlite::fromJSON(json, simplifyVector = FALSE)
   } else {
-    if (!file.exists(file)) {
-      stop(sprintf("File '%s' does not exist", file))
-    }
-    # Use warn = FALSE to suppress "incomplete final line" warnings from readLines
-    json_content <- paste(readLines(file, warn = FALSE), collapse = "\n")
-    json_list <- jsonlite::fromJSON(json_content, simplifyVector = FALSE)
+    if (!file.exists(file)) stop(sprintf("File '%s' does not exist.", file), call. = FALSE)
+    doc <- jsonlite::fromJSON(paste(readLines(file, warn = FALSE), collapse = "\n"),
+                              simplifyVector = FALSE)
   }
+  if (isTRUE(validate)) abn_json_check_document(doc)
 
-  # Validate the generic document structure.
-  validate_json_structure(json_list)
-  if (isTRUE(validate)) {
-    abn_json_validate_document_sources(json_list, conflict = conflict)
-  }
+  ctx <- abn_json_import_context(doc)
+  is_abn <- identical(doc[["metadata"]][["issuer"]], "abn::export_abnFit")
+  natives <- abn_json_native_names(doc, ctx, is_abn)
 
-  # Determine method (default to mle if not specified)
-  method <- if (identical(json_list$inference$type, "bayesian")) {
-    "bayes"
-  } else {
-    "mle"
-  }
+  fit <- switch(ctx$type,
+                maximum_likelihood = if (length(doc[["groups"]]) > 0) {
+                  abn_json_reconstruct_mle_grouped(doc, ctx, natives)
+                } else {
+                  abn_json_reconstruct_mle(doc, ctx, natives)
+                },
+                bayesian = abn_json_reconstruct_bayes(doc, ctx, natives),
+                stop("Unsupported inference type: ", ctx$type, call. = FALSE))
 
-  # Reconstruct abnFit object based on method
-  if (method == "mle") {
-    abn_fit <- reconstruct_abnfit_mle(json_list)
-  } else if (method == "bayes") {
-    abn_fit <- reconstruct_abnfit_bayes(json_list)
-  } else {
-    stop(sprintf("Unsupported method '%s'. Supported methods are 'mle' and 'bayes'.", method))
-  }
-
-  # Optional validation
-  if (validate) {
-    validate_abnfit_object(abn_fit)
-  }
-
-  return(abn_fit)
+  fit <- abn_json_attach_data(fit, ctx, data)
+  attr(fit, "abn_json") <- abn_json_import_attr(doc, natives)
+  class(fit) <- c("abnFit")
+  fit
 }
 
-#' Validate JSON structure for abnFit import
-#' @keywords internal
-validate_json_structure <- function(json_list) {
-  required_keys <- c("variables", "parameters", "arcs")
-  if (!is.list(json_list) || !all(required_keys %in% names(json_list))) {
-    stop("Invalid JSON structure: must contain 'variables', 'parameters', and 'arcs' components")
+# ---------------------------------------------------------------------------
+# Context
+# ---------------------------------------------------------------------------
+
+abn_json_import_context <- function(doc) {
+  vars <- doc[["variables"]]
+  names <- vapply(vars, function(v) v[["name"]], character(1))
+  dists_flat <- stats::setNames(vapply(vars, function(v) {
+    switch(v[["distribution"]], gaussian = "gaussian", bernoulli = "binomial",
+           poisson = "poisson", categorical = "multinomial",
+           stop("Unknown distribution: ", v[["distribution"]], call. = FALSE))
+  }, character(1)), names)
+
+  levels <- stats::setNames(lapply(vars, function(v) {
+    s <- v[["states"]]
+    if (is.null(s)) return(NULL)
+    base <- which(vapply(s, function(x) isTRUE(x[["baseline"]]), logical(1)))
+    labels <- vapply(s, function(x) as.character(x[["label"]]), character(1))
+    labels[c(base, seq_along(labels)[-base])]
+  }), names)
+
+  centre <- stats::setNames(lapply(vars, function(v) {
+    tr <- v[["transform"]]
+    if (is.null(tr)) return(NULL)
+    c(center = as.numeric(tr[["center"]]), scale = as.numeric(tr[["scale"]]))
+  }), names)
+  centre <- Filter(Negate(is.null), centre)
+  if (length(centre) == 0) centre <- NULL
+
+  dag <- matrix(0, length(names), length(names), dimnames = list(names, names))
+  for (a in doc[["arcs"]]) {
+    dag[abn_json_var_name(doc, a[["target"]]), abn_json_var_name(doc, a[["source"]])] <- 1
   }
-  if (!is.list(json_list$variables) || !is.list(json_list$parameters) ||
-      !is.list(json_list$arcs)) {
-    stop("Invalid JSON structure: network components must be arrays")
-  }
-  variable_ids <- vapply(json_list$variables, function(x) as.character(x$`_id`), character(1))
-  parameter_ids <- vapply(json_list$parameters, function(x) as.character(x$`_id`), character(1))
-  if (anyNA(variable_ids) || anyDuplicated(variable_ids)) {
-    stop("Invalid JSON structure: variable _id values must be unique")
-  }
-  if (anyNA(parameter_ids) || anyDuplicated(parameter_ids)) {
-    stop("Invalid JSON structure: parameter _id values must be unique")
-  }
-  if (any(vapply(json_list$arcs, function(x) {
-    !as.character(x$source) %in% variable_ids ||
-      !as.character(x$target) %in% variable_ids
-  }, logical(1)))) {
-    stop("Invalid JSON structure: arc reference does not resolve to a variable _id")
-  }
-  metadata <- json_list$metadata %||% list()
-  extensions <- metadata$extensions %||% list()
-  check_extension_refs <- function(collection, ids, label) {
-    refs <- unname(collection %||% list())
-    if (length(refs) == 0) return(invisible(NULL))
-    unknown <- setdiff(names(collection), ids)
-    if (length(unknown) > 0) {
-      warning(sprintf("Ignoring unknown %s extension ID(s): %s",
-                      label, paste(unknown, collapse = ", ")),
-              call. = FALSE)
-    }
-    invisible(NULL)
-  }
-  for (extension in extensions) {
-    check_extension_refs(extension$variables, variable_ids, "variable")
-    check_extension_refs(extension$parameters, parameter_ids, "parameter")
-  }
-  if (!is.null(json_list$linkFunctions)) {
-    if (!is.list(json_list$linkFunctions)) {
-      stop("Invalid JSON structure: 'linkFunctions' must be an array")
-    }
-  }
-  has_lf_id <- any(vapply(json_list$parameters, function(p) {
-    !is.null(p$link_function_id)
-  }, logical(1)))
-  if (has_lf_id && is.null(json_list$linkFunctions)) {
-    stop("Invalid JSON structure: 'linkFunctions' is required when 'link_function_id' is used in parameters")
-  }
-  invisible(TRUE)
+
+  list(names = names, dists = as.list(dists_flat), dists_flat = dists_flat,
+       levels = levels, centre = centre, dag = dag,
+       type = doc[["inference"]][["type"]])
 }
 
-#' Reconstruct abnFit object for MLE method from JSON
-#'
-#' @details
-#' Coefficient column names are reconstructed purely from the JSON's
-#' *structural* fields (`source.variable_id`, `source.state_id`,
-#' `conditions[].parent_variable_id`, `conditions[].parent_state_id`).
-#' The `name` field on each parameter object is treated as an opaque
-#' human-readable label and is intentionally **never** consulted.
-#'
-#' If any parameter has a `condition_type` of `"variance"`,
-#' `"random_variance"`, or `"random_covariance"`, the model is treated
-#' as a grouped (mixed-effects) MLE fit, and `mu`/`betas`/`sigma`/
-#' `sigma_alpha`/`group.var` are reconstructed in addition to (or in
-#' place of) the standard `coef`/`Stderror` matrices.
-#' @keywords internal
-reconstruct_abnfit_mle <- function(json_list) {
-  variables <- json_list$variables
+abn_json_var_name <- function(doc, id) {
+  hit <- Filter(function(v) identical(as.character(v[["_id"]]), as.character(id)),
+                doc[["variables"]])
+  if (length(hit) != 1) stop("Unknown variable _id ", id, ".", call. = FALSE)
+  hit[[1]][["name"]]
+}
 
-  id_to_name <- stats::setNames(
-    vapply(variables, function(x) as.character(x$name), character(1)),
-    vapply(variables, function(x) as.character(x$`_id`), character(1))
+abn_json_state_label <- function(doc, var_id, state_id) {
+  v <- Filter(function(x) identical(as.character(x[["_id"]]), as.character(var_id)),
+              doc[["variables"]])[[1]]
+  hit <- Filter(function(s) identical(as.character(s[["_id"]]), as.character(state_id)),
+                v[["states"]] %||% list())
+  if (length(hit) != 1) {
+    stop("Unknown state ", state_id, " in variable ", v[["name"]], ".", call. = FALSE)
+  }
+  as.character(hit[[1]][["label"]])
+}
+
+# Parameters grouped by target node, in document order.
+abn_json_params_by_node <- function(doc, ctx) {
+  out <- stats::setNames(vector("list", length(ctx$names)), ctx$names)
+  for (p in doc[["parameters"]]) {
+    node <- abn_json_var_name(doc, p[["target"]])
+    out[[node]][[length(out[[node]]) + 1L]] <- p
+  }
+  out
+}
+
+# ---------------------------------------------------------------------------
+# Native names: extension when abn-authored, derived otherwise
+# ---------------------------------------------------------------------------
+
+abn_json_native_names <- function(doc, ctx, is_abn) {
+  ext <- NULL
+  if (is_abn) {
+    names_map <- doc[["metadata"]][["extensions"]][["abn"]][["parameter_names"]]
+    if (!is.null(names_map)) {
+      ext <- stats::setNames(lapply(names_map, function(x) {
+        list(field = x[["field"]], name = as.character(x[["name"]]))
+      }), vapply(names_map, function(x) as.character(x[["parameter"]]), character(1)))
+    }
+  }
+  out <- list()
+  for (p in doc[["parameters"]]) {
+    id <- as.character(p[["_id"]])
+    out[[id]] <- if (!is.null(ext[[id]])) ext[[id]] else abn_json_derive_name(doc, p)
+  }
+  out
+}
+
+abn_json_derive_name <- function(doc, p) {
+  node <- abn_json_var_name(doc, p[["target"]])
+  kind <- p[["kind"]]
+  bayes <- identical(doc[["inference"]][["type"]], "bayesian")
+  grouped <- length(doc[["groups"]]) > 0
+  field <- if (kind %in% c("intercept", "coefficient")) {
+    if (bayes) "modes" else if (grouped) if (identical(kind, "intercept")) "mu" else "betas"
+    else "coef"
+  } else if (kind == "residual_variance") {
+    if (bayes) "modes" else if (grouped) "sigma" else "mse"
+  } else if (kind == "random_variance") {
+    if (bayes) "modes" else "sigma_alpha"
+  } else {
+    "sigma_alpha"
+  }
+  name <- if (bayes) {
+    term <- switch(kind, intercept = "(Intercept)",
+                   residual_variance = "precision",
+                   random_variance = "group.precision",
+                   coefficient = abn_json_var_name(doc, p[["parent"]]),
+                   stop("Cannot derive name for kind ", kind, ".", call. = FALSE))
+    paste0(node, "|", term)
+  } else if (kind %in% c("residual_variance", "random_variance")) {
+    node
+  } else if (kind == "random_covariance") {
+    paste(vapply(p[["states"]], function(s) abn_json_state_label(doc, p[["target"]], s),
+                 character(1)), collapse = ",")
+  } else if (identical(kind, "intercept")) {
+    if (grouped) {
+      if (is.null(p[["target_state"]])) "(Intercept)" else
+        abn_json_state_label(doc, p[["target"]], p[["target_state"]])
+    } else if (!is.null(p[["target_state"]])) {
+      paste0(node, "|intercept.", abn_json_state_label(doc, p[["target"]],
+                                                       p[["target_state"]]))
+    } else {
+      paste0(node, "|intercept")
+    }
+  } else {
+    parent <- abn_json_var_name(doc, p[["parent"]])
+    grouped <- length(doc[["groups"]]) > 0
+    if (!is.null(p[["parent_state"]])) {
+      paste0(parent, abn_json_state_label(doc, p[["parent"]], p[["parent_state"]]))
+    } else if (!is.null(p[["target_state"]]) && !grouped) {
+      # ungrouped multinomial children: abn column names concatenate parent
+      # and child state; grouped ones keep the plain term name per row
+      paste0(parent, abn_json_state_label(doc, p[["target"]], p[["target_state"]]))
+    } else {
+      parent
+    }
+  }
+  list(field = field, name = name)
+}
+
+# ---------------------------------------------------------------------------
+# Diagnostics shared by all fit types
+# ---------------------------------------------------------------------------
+
+abn_json_diagnostics <- function(doc, ctx) {
+  diag <- doc[["inference"]][["diagnostics"]] %||% list()
+  nodes <- diag[["nodes"]] %||% list()
+  by_var <- stats::setNames(nodes, vapply(nodes, function(n) {
+    abn_json_var_name(doc, n[["variable"]])
+  }, character(1)))
+  get_num <- function(field, node) {
+    v <- by_var[[node]][[field]]
+    if (is.null(v)) NA else as.numeric(v)
+  }
+  # lapply + unlist keeps the native type: all-missing fields stay logical NA
+  # (matching e.g. grouped fits where df is a logical NA vector)
+  out <- list(
+    mliknode = stats::setNames(unlist(lapply(ctx$names, function(n) {
+      get_num("log_marginal_likelihood", n)
+    })), ctx$names),
+    mlik = as.numeric(diag[["log_marginal_likelihood"]])
   )
-  variable_names <- unname(id_to_name)
-  model_types <- vapply(variables, function(x) {
-    switch(as.character(x$type), continuous = "gaussian", binary = "binomial",
-           count = "poisson", categorical = "multinomial", as.character(x$type))
-  }, character(1))
-  names(model_types) <- variable_names
-  n <- length(variable_names)
+  if (identical(doc[["inference"]][["type"]], "maximum_likelihood")) {
+    # fit field -> diagnostics key; aicnode/bicnode/mdlnode drop the "node" suffix
+    key_of <- c(aicnode = "aic", bicnode = "bic", mdlnode = "mdl",
+                df = "df", sse = "sse", mse = "mse")
+    for (field in names(key_of)) {
+      out[[field]] <- stats::setNames(unlist(lapply(ctx$names, function(n) {
+        get_num(key_of[[field]], n)
+      })), ctx$names)
+    }
+    out$aic <- as.numeric(diag[["aic"]])
+    out$bic <- as.numeric(diag[["bic"]])
+    out$mdl <- out$mdlnode  # derived: identical to mdlnode
+  }
+  out
+}
 
-  lf_lookup <- list()
-  if (!is.null(json_list$linkFunctions) && is.list(json_list$linkFunctions)) {
-    for (lf in json_list$linkFunctions) {
-      lf_lookup[[as.character(lf$id)]] <- as.character(lf$name)
+# ---------------------------------------------------------------------------
+# Ungrouped MLE
+# ---------------------------------------------------------------------------
+
+abn_json_param_value <- function(p) {
+  if (is.null(p[["value"]])) NA_real_ else as.numeric(p[["value"]])
+}
+
+abn_json_native <- function(natives, p) natives[[as.character(p[["_id"]])]][["name"]]
+
+abn_json_reconstruct_mle <- function(doc, ctx, natives) {
+  fit <- list(method = "mle")
+  diag <- abn_json_diagnostics(doc, ctx)
+  fit[names(diag)] <- diag
+  params <- abn_json_params_by_node(doc, ctx)
+
+  fixed_params <- function(node) Filter(function(p) {
+    p[["kind"]] %in% c("intercept", "coefficient")
+  }, params[[node]])
+
+  fit[["coef"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    ps <- fixed_params(node)
+    matrix(vapply(ps, abn_json_param_value, numeric(1)), nrow = 1,
+           dimnames = list(NULL, vapply(ps, abn_json_native, character(1),
+                                        natives = natives)))
+  }), ctx$names)
+  fit[["Stderror"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    ps <- fixed_params(node)
+    vals <- vapply(ps, function(p) {
+      se <- p[["uncertainty"]][["standard_error"]]
+      if (is.null(se)) NA_real_ else as.numeric(se)
+    }, numeric(1))
+    matrix(vals, nrow = 1, dimnames = list(NULL, vapply(ps, abn_json_native,
+                                                         character(1), natives = natives)))
+  }), ctx$names)
+
+  # gaussian residual variance from parameters, not from mse diagnostics
+  for (node in ctx$names) {
+    if (identical(ctx$dists_flat[[node]], "gaussian")) {
+      rv <- Filter(function(p) identical(p[["kind"]], "residual_variance"), params[[node]])
+      if (length(rv) == 1) fit$mse[[node]] <- as.numeric(rv[[1]][["value"]])
     }
   }
 
-  data_dists <- stats::setNames(model_types, variable_names)
+  abn_json_fit_common(fit, ctx)
+}
 
-  # Build per-multinomial-node lookup: state_id -> value_name. Used to
-  # reconstruct the original abn coefficient column-name suffixes.
-  state_id_to_value <- list()
-  for (i in seq_along(variables)) {
-    if (model_types[i] == "multinomial") {
-      states <- variables[[i]]$states
-      if (!is.null(states) && length(states) > 0) {
-        ids <- vapply(states, function(s) as.character(s$`_id`), character(1))
-        vals <- vapply(states, function(s) as.character(s$label), character(1))
-        state_id_to_value[[variable_names[i]]] <- stats::setNames(vals, ids)
-      }
+# ---------------------------------------------------------------------------
+# Grouped MLE
+# ---------------------------------------------------------------------------
+
+abn_json_reconstruct_mle_grouped <- function(doc, ctx, natives) {
+  fit <- list(method = "mle")
+  diag <- abn_json_diagnostics(doc, ctx)
+  fit[names(diag)] <- diag
+  params <- abn_json_params_by_node(doc, ctx)
+  kind_params <- function(node, kind) Filter(function(p) identical(p[["kind"]], kind),
+                                             params[[node]])
+
+  # original mu: unnamed scalars for lme4/glmmTMB nodes, named (coefmat rows)
+  # for multinomial nodes
+  fit[["mu"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    ps <- kind_params(node, "intercept")
+    vals <- vapply(ps, abn_json_param_value, numeric(1))
+    if (identical(ctx$dists_flat[[node]], "multinomial")) {
+      stats::setNames(vals, vapply(ps, abn_json_native, character(1), natives = natives))
+    } else {
+      unname(vals)
     }
-  }
+  }), ctx$names)
 
-  resolve_state_value <- function(node_name, state_id) {
-    if (is.null(state_id) || is.na(state_id)) return(NULL)
-    sid <- as.character(state_id)
-    lk <- state_id_to_value[[node_name]]
-    if (is.null(lk)) return(sid)             # fall back to literal id
-    v <- lk[sid]
-    if (is.na(v)) return(sid)
-    unname(v)
-  }
-
-  data_list <- lapply(seq_along(variables), function(i) {
-    dist <- model_types[i]
-    if (dist == "gaussian") {
-      numeric(0)
-    } else if (dist == "binomial") {
-      factor(levels = c("0", "1"))
-    } else if (dist == "poisson") {
-      integer(0)
-    } else if (dist == "multinomial") {
-      states <- variables[[i]]$states
-      if (is.null(states) || length(states) == 0) {
-        state_names <- c("1", "2")
+  fit[["betas"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    ps <- kind_params(node, "coefficient")
+    if (length(ps) == 0) {
+      # original: numeric(0) with empty names attribute for slopeless lme4
+      # nodes (fixef[-1] on a length-1 vector), NA for multinomial nodes with
+      # a single design column
+      return(if (identical(ctx$dists_flat[[node]], "multinomial")) {
+        NA
       } else {
-        state_names <- vapply(states, function(x) as.character(x$label), character(1))
+        stats::setNames(numeric(0), character(0))
+      })
+    }
+    if (identical(ctx$dists_flat[[node]], "multinomial")) {
+      states <- ctx$levels[[node]][-1]
+      terms <- unique(vapply(ps, abn_json_native, character(1), natives = natives))
+      m <- matrix(NA_real_, length(states), length(terms),
+                  dimnames = list(states, terms))
+      for (p in ps) {
+        i <- match(abn_json_state_label(doc, p[["target"]], p[["target_state"]]), states)
+        m[i, abn_json_native(natives, p)] <- abn_json_param_value(p)
       }
-      factor(levels = state_names)
+      m
+    } else {
+      stats::setNames(vapply(ps, abn_json_param_value, numeric(1)),
+                      vapply(ps, abn_json_native, character(1), natives = natives))
+    }
+  }), ctx$names)
+
+  # original shapes: multinomial nodes store sigma = NA (logical) and a
+  # covariance matrix; glmer nodes store sigma = numeric(0); gaussian nodes
+  # store the residual sd
+  fit[["sigma"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    rv <- kind_params(node, "residual_variance")
+    if (length(rv) == 0) {
+      if (identical(ctx$dists_flat[[node]], "multinomial")) NA else numeric(0)
+    } else {
+      unname(sqrt(as.numeric(rv[[1]][["value"]])))
+    }
+  }), ctx$names)
+
+  fit[["sigma_alpha"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    rv <- kind_params(node, "random_variance")
+    cv <- kind_params(node, "random_covariance")
+    if (length(rv) == 0) return(NA)
+    if (length(rv) > 1) {
+      # multinomial child: full covariance matrix, values not squared; the
+      # original dimnames come from the native names of the rv parameters
+      states <- ctx$levels[[node]][-1]
+      dn <- vapply(rv, abn_json_native, character(1), natives = natives)
+      m <- matrix(NA_real_, length(states), length(states), dimnames = list(dn, dn))
+      for (p in rv) {
+        i <- match(abn_json_state_label(doc, p[["target"]], p[["target_state"]]), states)
+        m[i, i] <- as.numeric(p[["value"]])
+      }
+      for (p in cv) {
+        ss <- vapply(p[["states"]], function(s) {
+          abn_json_state_label(doc, p[["target"]], s)
+        }, character(1))
+        ii <- match(ss[1], states); jj <- match(ss[2], states)
+        m[ii, jj] <- as.numeric(p[["value"]]); m[jj, ii] <- as.numeric(p[["value"]])
+      }
+      m
+    } else {
+      unname(sqrt(as.numeric(rv[[1]][["value"]])))
+    }
+  }), ctx$names)
+
+  group <- doc[["groups"]][[1]]
+  fit[["group.var"]] <- group[["name"]]
+  member_names <- vapply(group[["variables"]], function(id) abn_json_var_name(doc, id),
+                         character(1))
+  fit[["grouped.vars"]] <- match(member_names, ctx$names)
+
+  abn_json_fit_common(fit, ctx)
+}
+
+# ---------------------------------------------------------------------------
+# Bayes
+# ---------------------------------------------------------------------------
+
+abn_json_reconstruct_bayes <- function(doc, ctx, natives) {
+  fit <- list(method = "bayes")
+  diag <- abn_json_diagnostics(doc, ctx)
+  fit[["mliknode"]] <- diag[["mliknode"]]
+  fit[["mlik"]] <- diag[["mlik"]]
+
+  params <- abn_json_params_by_node(doc, ctx)
+  fit[["modes"]] <- stats::setNames(lapply(ctx$names, function(node) {
+    ps <- params[[node]]
+    stats::setNames(vapply(ps, abn_json_param_value, numeric(1)),
+                    vapply(ps, abn_json_native, character(1), natives = natives))
+  }), ctx$names)
+
+  fit[["coef"]] <- modes2coefs(fit[["modes"]])
+  fit[["mse"]] <- getMSEfromModes(fit[["modes"]], ctx$dists)
+
+  priors <- doc[["inference"]][["priors"]]
+  if (!is.null(priors)) {
+    fixed <- Filter(function(x) identical(x[["applies_to"]], "fixed_effects"), priors)[[1]]
+    prec <- Filter(function(x) identical(x[["applies_to"]], "precisions"), priors)[[1]]
+    fit[["priors"]] <- list(mean = as.numeric(fixed[["mean"]]),
+                            prec = as.numeric(fixed[["precision"]]),
+                            loggam.shape = as.numeric(prec[["shape"]]),
+                            loggam.inv.scale = as.numeric(prec[["rate"]]))
+  }
+
+  marginals <- doc[["inference"]][["posterior"]][["marginals"]]
+  if (!is.null(marginals)) {
+    by_id <- stats::setNames(marginals, vapply(marginals, function(m) {
+      as.character(m[["parameter"]])
+    }, character(1)))
+    mout <- stats::setNames(vector("list", length(ctx$names)), ctx$names)
+    qout <- stats::setNames(vector("list", length(ctx$names)), ctx$names)
+    any_q <- FALSE
+    for (node in ctx$names) {
+      inner_m <- list(); inner_q <- list()
+      for (p in params[[node]]) {
+        nm <- abn_json_native(natives, p)
+        m <- by_id[[as.character(p[["_id"]])]]
+        if (!is.null(m)) {
+          inner_m[[nm]] <- matrix(c(as.numeric(m[["x"]]), as.numeric(m[["density"]])),
+                                  ncol = 2, dimnames = list(NULL, c("x", "f(x)")))
+        }
+        pq <- p[["uncertainty"]][["posterior_quantiles"]]
+        if (!is.null(pq)) {
+          any_q <- TRUE
+          inner_q[[nm]] <- matrix(
+            c(vapply(pq, function(q) as.numeric(q[["probability"]]), numeric(1)),
+              vapply(pq, function(q) as.numeric(q[["value"]]), numeric(1))),
+            ncol = 2, dimnames = list(NULL, c("P(X<=x)", "x")))
+        }
+      }
+      mout[[node]] <- inner_m
+      qout[[node]] <- inner_q
+    }
+    fit[["marginals"]] <- mout
+    if (any_q) fit[["marginal.quantiles"]] <- qout
+  }
+
+  if (length(doc[["groups"]]) > 0) {
+    group <- doc[["groups"]][[1]]
+    fit[["group.var"]] <- group[["name"]]
+    member_names <- vapply(group[["variables"]], function(id) abn_json_var_name(doc, id),
+                           character(1))
+    fit[["grouped.vars"]] <- match(member_names, ctx$names)
+  }
+
+  nodes_ext <- doc[["metadata"]][["extensions"]][["abn"]][["nodes"]]
+  if (!is.null(nodes_ext)) {
+    by_var <- stats::setNames(nodes_ext, vapply(nodes_ext, function(n) {
+      abn_json_var_name(doc, n[["variable"]])
+    }, character(1)))
+    get_flag <- function(field, node) {
+      v <- by_var[[node]][[field]]
+      if (is.null(v)) NA else v
+    }
+    # unlist keeps the native type: all-missing vectors stay logical NA
+    fit[["used.INLA"]] <- stats::setNames(unlist(lapply(ctx$names, function(n) {
+      as.logical(get_flag("used_inla", n))
+    })), ctx$names)
+    collect <- function(field, coerce) {
+      raw <- lapply(ctx$names, function(n) get_flag(field, n))
+      if (all(vapply(raw, function(x) length(x) == 1L && isTRUE(is.na(x)), logical(1)))) {
+        unlist(raw)
+      } else {
+        coerce(unlist(raw))
+      }
+    }
+    fit[["error.code"]] <- stats::setNames(collect("error_code", as.numeric), ctx$names)
+    fit[["error.code.desc"]] <- stats::setNames(collect("error_code_desc", as.character),
+                                                ctx$names)
+    fit[["hessian.accuracy"]] <- stats::setNames(collect("hessian_accuracy", as.numeric),
+                                                 ctx$names)
+  }
+
+  abn_json_fit_common(fit, ctx)
+}
+
+# ---------------------------------------------------------------------------
+# Common pieces: abnDag, levels, centre
+# ---------------------------------------------------------------------------
+
+abn_json_fit_common <- function(fit, ctx) {
+  fit[["abnDag"]] <- structure(list(dag = ctx$dag, data.df = abn_json_empty_data(ctx),
+                                     data.dists = ctx$dists),
+                               class = "abnDag")
+  categorical <- ctx$names[ctx$dists_flat[ctx$names] %in% c("binomial", "multinomial")]
+  if (length(categorical) > 0) fit[["levels"]] <- ctx$levels[categorical]
+  if (!is.null(ctx$centre)) fit[["centre"]] <- ctx$centre
+  fit
+}
+
+abn_json_empty_data <- function(ctx) {
+  columns <- stats::setNames(lapply(ctx$names, function(node) {
+    if (ctx$dists_flat[[node]] %in% c("binomial", "multinomial")) {
+      factor(character(0), levels = ctx$levels[[node]])
     } else {
       numeric(0)
     }
-  })
-  data_df <- as.data.frame(stats::setNames(data_list, variable_names))
+  }), ctx$names)
+  as.data.frame(columns, stringsAsFactors = FALSE, check.names = FALSE)
+}
 
-  dag_matrix <- matrix(0, nrow = n, ncol = n,
-                       dimnames = list(variable_names, variable_names))
+# ---------------------------------------------------------------------------
+# Data attachment
+# ---------------------------------------------------------------------------
 
-  if (!is.null(json_list$arcs) && length(json_list$arcs) > 0) {
-    for (arc in json_list$arcs) {
-      src_raw <- as.character(arc$source)
-      tgt_raw <- as.character(arc$target)
-      src <- id_to_name[src_raw]
-      if (length(src) == 0 || is.na(src)) src <- src_raw
-      tgt <- id_to_name[tgt_raw]
-      if (length(tgt) == 0 || is.na(tgt)) tgt <- tgt_raw
-      if (src %in% variable_names && tgt %in% variable_names) {
-        dag_matrix[src, tgt] <- 1
+abn_json_attach_data <- function(fit, ctx, data) {
+  if (is.null(data)) return(fit)
+  if (is.character(data) && length(data) == 1L && file.exists(data)) {
+    data <- import_abnData(file = data)$data.df
+  }
+  if (!is.data.frame(data)) {
+    stop("'data' must be a data frame or a path to a data document.", call. = FALSE)
+  }
+
+  missing_cols <- setdiff(ctx$names, colnames(data))
+  if (length(missing_cols) > 0) {
+    stop("data is missing the columns: ", paste(missing_cols, collapse = ", "),
+         call. = FALSE)
+  }
+  for (node in ctx$names) {
+    if (ctx$dists_flat[[node]] %in% c("binomial", "multinomial")) {
+      if (!setequal(levels(factor(data[[node]])), ctx$levels[[node]])) {
+        stop("Levels of '", node, "' in data do not match the document states.",
+             call. = FALSE)
       }
     }
   }
 
-  abnDag <- list(
-    dag = dag_matrix,
-    data.df = data_df,
-    data.dists = data_dists
-  )
-  class(abnDag) <- "abnDag"
-  generic_states <- lapply(variables, function(variable) {
-    if (is.null(variable$states)) return(NULL)
-    lapply(variable$states, function(state) {
-      list(`_id` = as.character(state$`_id`), label = as.character(state$label))
-    })
-  })
-  names(generic_states) <- variable_names
+  bayes <- identical(ctx$type, "bayesian")
+  grouped <- !is.null(fit[["group.var"]])
+  if (grouped) {
+    if (!(fit[["group.var"]] %in% colnames(data))) {
+      stop("data is missing the grouping column '", fit[["group.var"]], "'.",
+           call. = FALSE)
+    }
+    fit[["group.ids"]] <- as.integer(data[[fit[["group.var"]]]])
+  }
+  data <- data[, ctx$names, drop = FALSE]
+  # the data document stores row names as strings; compact default row names
+  # are integers in native fits
+  if (identical(row.names(data), as.character(seq_len(nrow(data))))) {
+    row.names(data) <- NULL
+  }
 
-  multinomial.states <- list()
-  for (i in seq_along(variables)) {
-    if (model_types[i] == "multinomial") {
-      states <- variables[[i]]$states
-      if (!is.null(states) && length(states) > 0) {
-        var_name <- variable_names[i]
-        multinomial.states[[var_name]] <- lapply(states, function(s) {
-          list(
-            state_id = as.character(s$`_id`),
-            value_name = as.character(s$label),
-            is_baseline = identical(as.character(s$`_id`), "1")
-          )
-        })
+  # mirror the transformations of fitAbn.mle / fitAbn.bayes exactly
+  if (!bayes) {
+    for (node in names(fit[["centre"]])) {
+      tr <- fit[["centre"]][[node]]
+      data[[node]] <- (data[[node]] - tr[["center"]]) / tr[["scale"]]
+    }
+    for (node in ctx$names[ctx$dists_flat[ctx$names] == "binomial"]) {
+      if (!inherits(data[[node]], "numeric")) {
+        data[[node]] <- as.numeric(factor(data[[node]])) - 1
       }
     }
+    for (node in ctx$names[ctx$dists_flat[ctx$names] == "multinomial"]) {
+      data[[node]] <- factor(data[[node]])
+    }
+  } else {
+    for (node in ctx$names[ctx$dists_flat[ctx$names] == "binomial"]) {
+      data[[node]] <- as.numeric(factor(data[[node]])) - 1
+    }
+    for (node in names(fit[["centre"]])) {
+      tr <- fit[["centre"]][[node]]
+      data[[node]] <- (data[[node]] - tr[["center"]]) / tr[["scale"]]
+    }
+    for (node in colnames(data)) data[[node]] <- as.double(data[[node]])
   }
 
-  # Accumulators for standard (non-grouped) coefficient matrices.
-  vals_acc <- stats::setNames(vector("list", n), variable_names)
-  ses_acc <- stats::setNames(vector("list", n), variable_names)
-  names_acc <- stats::setNames(vector("list", n), variable_names)
-  for (vn in variable_names) {
-    vals_acc[[vn]] <- numeric()
-    ses_acc[[vn]] <- numeric()
-    names_acc[[vn]] <- character()
-  }
+  fit[["abnDag"]][["data.df"]] <- data
+  fit
+}
 
-  # Accumulators for grouped (mixed-effects) MLE objects.
-  is_grouped <- FALSE
-  mu_acc          <- stats::setNames(vector("list", n), variable_names)
-  mu_names_acc    <- stats::setNames(vector("list", n), variable_names)
-  betas_acc       <- stats::setNames(vector("list", n), variable_names)
-  betas_names_acc <- stats::setNames(vector("list", n), variable_names)
-  # Multinomial child: betas is a matrix with rownames=child levels,
-  # colnames=parent names. Track row/col keys per cell.
-  betas_rows_acc  <- stats::setNames(vector("list", n), variable_names)
-  betas_cols_acc  <- stats::setNames(vector("list", n), variable_names)
-  sigma_acc       <- stats::setNames(vector("list", n), variable_names)
-  # sigma_alpha: scalar for non-multinomial child, matrix for multinomial.
-  sigma_alpha_scalar <- stats::setNames(vector("list", n), variable_names)
-  sigma_alpha_cells  <- stats::setNames(vector("list", n), variable_names)
+# ---------------------------------------------------------------------------
+# Metadata attribute for stable re-export
+# ---------------------------------------------------------------------------
 
-  if (!is.null(json_list$parameters)) {
-    for (param in json_list$parameters) {
-      raw_target_id <- as.character(param$target)
-      target_name <- id_to_name[raw_target_id]
-      if (length(target_name) == 0 || is.na(target_name)) target_name <- raw_target_id
-      if (!(target_name %in% variable_names)) next
-
-      child_dist <- model_types[target_name]
-      child_state_id <- if (!is.null(param$target_state)) as.character(param$target_state) else NULL
-      child_state_value <- if (!is.null(child_state_id)) resolve_state_value(target_name, child_state_id) else NULL
-
-      coeffs_input <- list(param)
-
-      for (coeff in coeffs_input) {
-        type <- switch(as.character(coeff$kind), coefficient = "linear_term",
-                       as.character(coeff$kind))
-        value <- if (is.null(coeff$value) || identical(as.character(coeff$value), "NA")) {
-          NA_real_
+abn_json_import_attr <- function(doc, natives) {
+  meta <- doc[["metadata"]]
+  vars <- doc[["variables"]]
+  vnames <- vapply(vars, function(v) v[["name"]], character(1))
+  list(
+    label = meta[["label"]],
+    scenario_id = meta[["scenario_id"]],
+    data_reference = meta[["data_reference"]],
+    ids = list(
+      variables = stats::setNames(vapply(vars, function(v) as.integer(v[["_id"]]),
+                                         integer(1)), vnames),
+      states = stats::setNames(lapply(vars, function(v) {
+        s <- v[["states"]]
+        if (is.null(s)) {
+          NULL
         } else {
-          suppressWarnings(as.numeric(coeff$value))
+          stats::setNames(vapply(s, function(x) as.integer(x[["_id"]]), integer(1)),
+                          vapply(s, function(x) as.character(x[["label"]]), character(1)))
         }
-        se_val <- if (is.null(coeff$uncertainty$standard_error)) NA_real_ else
-          suppressWarnings(as.numeric(coeff$uncertainty$standard_error))
-
-        # --------------- Grouped-only condition types ----------------
-        if (type == "variance") {
-          is_grouped <- TRUE
-          sigma_acc[[target_name]] <- c(sigma_acc[[target_name]], value)
-          next
-        }
-        if (type == "random_variance") {
-          is_grouped <- TRUE
-          if (child_dist == "multinomial") {
-            # Diagonal of sigma_alpha matrix; key by state_id.
-            key <- if (is.null(child_state_id)) "1" else child_state_id
-            sigma_alpha_cells[[target_name]] <- c(
-              sigma_alpha_cells[[target_name]],
-              stats::setNames(value, paste0(key, "_", key))
-            )
-          } else {
-            sigma_alpha_scalar[[target_name]] <- c(sigma_alpha_scalar[[target_name]], value)
-          }
-          next
-        }
-          if (type == "random_covariance") {
-            is_grouped <- TRUE
-            key <- if (!is.null(coeff$states)) {
-              paste(as.character(unlist(coeff$states)), collapse = "_")
-            } else if (is.null(child_state_id)) NA_character_ else child_state_id
-          sigma_alpha_cells[[target_name]] <- c(
-            sigma_alpha_cells[[target_name]],
-            stats::setNames(value, key)
-          )
-          next
-        }
-
-        # ---------------- Reconstruct abn coef column name ----------------
-        # Pure structural reconstruction; NEVER read param$name.
-        c_name <- NA_character_
-
-        if (type == "intercept") {
-          if (child_dist == "multinomial" && !is.null(child_state_value)) {
-            c_name <- paste0(target_name, "|intercept.", child_state_value)
-          } else {
-            c_name <- paste0(target_name, "|intercept")
-          }
-        } else if (type == "linear_term") {
-          parent_var <- NA_character_
-          parent_state_value <- NULL
-          if (!is.null(param$parents) && length(param$parents) > 0) {
-            p_raw <- as.character(param$parents[[1]])
-            pn <- id_to_name[p_raw]
-            if (length(pn) > 0 && !is.na(pn)) {
-              parent_var <- unname(pn)
-            } else {
-              parent_var <- p_raw
-            }
-            if (!is.null(param$parent_states)) {
-              parent_state_value <- resolve_state_value(parent_var, param$parent_states[[1]])
-            }
-          }
-          if (child_dist == "multinomial") {
-            # abn convention: <parent><state> with empty separator, no leading "child|".
-            if (!is.null(parent_state_value)) {
-              c_name <- paste0(parent_var, parent_state_value)
-            } else if (!is.null(child_state_value)) {
-              c_name <- paste0(parent_var, child_state_value)
-            } else {
-              c_name <- parent_var
-            }
-          } else {
-            if (!is.null(parent_state_value)) {
-              c_name <- paste0(parent_var, parent_state_value)
-            } else {
-              c_name <- parent_var
-            }
-          }
-        } else {
-          # Unknown condition_type: preserve as "<target>|<type>" for safety.
-          c_name <- paste0(target_name, "|", type)
-        }
-
-        # Accumulate into standard coef/Stderror matrices.
-        vals_acc[[target_name]]  <- c(vals_acc[[target_name]],  value)
-        ses_acc[[target_name]]   <- c(ses_acc[[target_name]],   se_val)
-        names_acc[[target_name]] <- c(names_acc[[target_name]], c_name)
-
-        # Also accumulate into grouped accumulators in case this turns out to
-        # be a grouped fit (decided post-hoc by presence of variance terms).
-        if (type == "intercept") {
-          if (child_dist == "multinomial") {
-            key <- if (!is.null(child_state_value)) {
-              paste0(target_name, ".", child_state_value)
-            } else {
-              target_name
-            }
-            mu_acc[[target_name]]       <- c(mu_acc[[target_name]], value)
-            mu_names_acc[[target_name]] <- c(mu_names_acc[[target_name]], key)
-          } else {
-            mu_acc[[target_name]]       <- c(mu_acc[[target_name]], value)
-            mu_names_acc[[target_name]] <- c(mu_names_acc[[target_name]], "(Intercept)")
-          }
-        } else if (type == "linear_term") {
-          parent_var <- NA_character_
-          parent_state_value <- NULL
-          if (!is.null(param$parents) && length(param$parents) > 0) {
-            p_raw <- as.character(param$parents[[1]])
-            pn <- id_to_name[p_raw]
-            parent_var <- if (length(pn) > 0 && !is.na(pn)) unname(pn) else p_raw
-            if (!is.null(param$parent_states)) {
-              parent_state_value <- resolve_state_value(parent_var, param$parent_states[[1]])
-            }
-          }
-          if (child_dist == "multinomial") {
-            row_key <- if (!is.null(child_state_value)) {
-              child_state_value
-            } else {
-              target_name
-            }
-            col_key <- if (!is.null(parent_state_value)) {
-              paste0(parent_var, parent_state_value)
-            } else {
-              parent_var
-            }
-            betas_acc[[target_name]]      <- c(betas_acc[[target_name]], value)
-            betas_rows_acc[[target_name]] <- c(betas_rows_acc[[target_name]], row_key)
-            betas_cols_acc[[target_name]] <- c(betas_cols_acc[[target_name]], col_key)
-          } else {
-            beta_name <- if (!is.null(parent_state_value)) {
-              paste0(parent_var, parent_state_value)
-            } else {
-              parent_var
-            }
-            betas_acc[[target_name]]       <- c(betas_acc[[target_name]], value)
-            betas_names_acc[[target_name]] <- c(betas_names_acc[[target_name]], beta_name)
-          }
-        }
-      }
-    }
-  }
-
-  coef_list     <- stats::setNames(vector("list", n), variable_names)
-  stderror_list <- stats::setNames(vector("list", n), variable_names)
-  for (var_id in variable_names) {
-    if (length(vals_acc[[var_id]]) > 0) {
-      coef_list[[var_id]] <- matrix(vals_acc[[var_id]], nrow = 1,
-                                    dimnames = list(NULL, names_acc[[var_id]]))
-      stderror_list[[var_id]] <- matrix(ses_acc[[var_id]], nrow = 1,
-                                        dimnames = list(NULL, names_acc[[var_id]]))
-    } else {
-      coef_list[[var_id]] <- matrix(numeric(0), nrow = 0, ncol = 0)
-      stderror_list[[var_id]] <- matrix(numeric(0), nrow = 0, ncol = 0)
-    }
-  }
-
-  abn_fit <- list(
-    abnDag = abnDag,
-    coef = coef_list,
-    Stderror = stderror_list,
-    method = if (identical(json_list$inference$type, "bayesian")) "bayes" else "mle",
-    group.var = NULL,
-    call = match.call()
-  )
-  if (length(multinomial.states) > 0) {
-    abn_fit$multinomial.states <- multinomial.states
-  }
-  metadata_configs <- (json_list$metadata %||% list())$configs %||% list()
-  if (!is.null(metadata_configs$scenario_id)) {
-    abn_fit$scenario_id <- metadata_configs$scenario_id
-  }
-  if (!is.null(metadata_configs$label)) {
-    abn_fit$label <- metadata_configs$label
-  }
-  attr(abn_fit, "generic_states") <- generic_states
-  abn_extension <- NULL
-  metadata <- json_list$metadata %||% list()
-  if (identical(metadata$issuer, "abn::export_abnFit")) {
-    abn_extension <- metadata$extensions$abn %||% NULL
-  }
-  if (!is.null(abn_extension)) {
-    configs <- abn_extension$configs %||% list()
-    abn_fit$group.var <- configs$group_var %||% NULL
-    if (!is.null(configs$group_ids)) {
-      abn_fit$group.ids <- import_abn_vector(configs$group_ids, "integer")
-    }
-    if (!is.null(configs$grouped_vars)) {
-      abn_fit$grouped.vars <- import_abn_vector(configs$grouped_vars, "integer")
-    }
-    if (!is.null(configs$multinomial_states)) {
-      abn_fit$multinomial.states <- configs$multinomial_states
-    }
-    native_inference <- abn_extension$inference %||% list()
-    native_fields <- abn_extension$native_fields %||% list()
-    for (field in names(native_fields)) {
-      if (is.null(abn_fit[[field]])) {
-        abn_fit[[field]] <- import_json_safe(native_fields[[field]])
-      }
-    }
-    presence <- abn_extension$native_presence %||% list()
-    for (field in names(presence)) {
-      if (!isTRUE(presence[[field]]) && field %in% names(abn_fit)) {
-        abn_fit[[field]] <- NULL
-      }
-    }
-    abn_fit$mlik <- import_json_safe(native_inference$mlik)
-    abn_fit$mliknode <- import_json_safe(native_inference$mliknode)
-    abn_fit$modes <- import_json_safe(native_inference$modes %||% NULL)
-    abn_fit$mse <- import_json_safe(native_inference$mse)
-    abn_fit$used.INLA <- import_abn_vector(
-      native_inference$used_INLA %||% native_inference$used_inla,
-      "logical"
+      }), vnames),
+      groups = if (length(doc[["groups"]]) > 0) {
+        stats::setNames(vapply(doc[["groups"]], function(g) as.integer(g[["_id"]]),
+                               integer(1)),
+                        vapply(doc[["groups"]], function(g) g[["name"]], character(1)))
+      } else {
+        NULL
+      },
+      parameters = lapply(doc[["parameters"]], function(p) {
+        list(id = as.integer(p[["_id"]]),
+             sig = paste(abn_json_var_name(doc, p[["target"]]), p[["kind"]],
+                         natives[[as.character(p[["_id"]])]][["name"]], sep = "|"))
+      })
     )
-    abn_fit$error.code <- import_abn_vector(native_inference$error_code, "numeric")
-    abn_fit$error.code.desc <- import_abn_vector(native_inference$error_code_desc, "character")
-    abn_fit$hessian.accuracy <- import_abn_vector(native_inference$hessian_accuracy, "numeric")
-    abn_fit$mliknode <- import_json_safe(native_inference$mliknode)
-    abn_fit$pvalue <- import_abn_vector(native_inference$pvalue, "numeric")
-    for (field in c("mlik", "aic", "bic", "mdl", "df", "sse", "mse")) {
-      if (!is.null(native_inference[[field]])) {
-        abn_fit[[field]] <- import_json_safe(native_inference[[field]])
-      }
-    }
-    for (field in c("aicnode", "bicnode", "mdlnode")) {
-      if (!is.null(native_inference[[field]])) {
-        abn_fit[[field]] <- import_json_safe(native_inference[[field]])
-      }
-    }
-  }
-  generic_diagnostics <- (json_list$inference %||% list())$diagnostics %||% list()
-  for (field in c("mliknode", "mlik", "aicnode", "aic", "bicnode", "bic",
-                  "mdlnode", "mdl", "df", "sse", "mse", "pvalue")) {
-    if (is.null(abn_fit[[field]]) && !is.null(generic_diagnostics[[field]])) {
-      abn_fit[[field]] <- import_json_safe(generic_diagnostics[[field]])
-    }
-  }
-  posterior <- json_list$inference$posterior %||% list()
-  abn_inference <- abn_extension$inference %||% list()
-  marginals <- posterior$marginals %||% abn_inference$marginals
-  quantiles <- posterior$quantiles %||% abn_inference$marginal_quantiles
-  if (!is.null(marginals)) abn_fit$marginals <- import_json_safe(marginals)
-  if (!is.null(quantiles)) abn_fit$marginal.quantiles <- import_json_safe(quantiles)
-  generic_parameters <- lapply(json_list$parameters, function(parameter) {
-    parameter$`_id` <- NULL
-    parameter
-  })
-  attr(abn_fit, "generic_parameters") <- generic_parameters
-
-  if (is_grouped) {
-    mu_list          <- stats::setNames(vector("list", n), variable_names)
-    betas_list       <- stats::setNames(vector("list", n), variable_names)
-    sigma_list       <- stats::setNames(vector("list", n), variable_names)
-    sigma_alpha_list <- stats::setNames(vector("list", n), variable_names)
-
-    for (vn in variable_names) {
-      child_dist <- model_types[vn]
-
-      # mu
-      if (length(mu_acc[[vn]]) > 0) {
-        mu_list[[vn]] <- stats::setNames(mu_acc[[vn]], mu_names_acc[[vn]])
-      } else {
-        mu_list[[vn]] <- NA
-      }
-
-      # betas
-      if (child_dist == "multinomial" && length(betas_acc[[vn]]) > 0) {
-        rows <- unique(betas_rows_acc[[vn]])
-        cols <- unique(betas_cols_acc[[vn]])
-        m <- matrix(NA_real_, nrow = length(rows), ncol = length(cols),
-                    dimnames = list(rows, cols))
-        for (k in seq_along(betas_acc[[vn]])) {
-          m[betas_rows_acc[[vn]][k], betas_cols_acc[[vn]][k]] <- betas_acc[[vn]][k]
-        }
-        betas_list[[vn]] <- m
-      } else if (length(betas_acc[[vn]]) > 0) {
-        betas_list[[vn]] <- stats::setNames(betas_acc[[vn]], betas_names_acc[[vn]])
-      } else {
-        betas_list[[vn]] <- NA
-      }
-
-      # sigma
-      if (length(sigma_acc[[vn]]) > 0) {
-        sigma_list[[vn]] <- sigma_acc[[vn]][1]
-      } else {
-        sigma_list[[vn]] <- NA
-      }
-
-      # sigma_alpha
-      if (child_dist == "multinomial") {
-        cells <- sigma_alpha_cells[[vn]]
-        if (!is.null(cells) && length(cells) > 0) {
-          # Determine matrix dimension from state_id_to_value lookup.
-          lk <- state_id_to_value[[vn]]
-          if (!is.null(lk)) {
-            ids <- unique(unlist(strsplit(names(cells), "_", fixed = TRUE)))
-            ids <- ids[!is.na(ids) & nzchar(ids)]
-            vals <- unname(lk[ids])
-            missing_vals <- is.na(vals)
-            vals[missing_vals] <- ids[missing_vals]
-            dnames <- paste0(vn, ".", vals, "~1")
-            k <- length(ids)
-            m <- matrix(NA_real_, nrow = k, ncol = k, dimnames = list(dnames, dnames))
-            id_to_pos <- stats::setNames(seq_along(ids), ids)
-            for (key in names(cells)) {
-              parts <- strsplit(key, "_", fixed = TRUE)[[1]]
-              if (length(parts) == 2L) {
-                i <- id_to_pos[parts[1]]
-                j <- id_to_pos[parts[2]]
-                if (!is.na(i) && !is.na(j)) {
-                  m[i, j] <- cells[[key]]
-                  m[j, i] <- cells[[key]]
-                }
-              }
-            }
-            sigma_alpha_list[[vn]] <- m
-          } else {
-            sigma_alpha_list[[vn]] <- NA
-          }
-        } else {
-          sigma_alpha_list[[vn]] <- NA
-        }
-      } else {
-        if (length(sigma_alpha_scalar[[vn]]) > 0) {
-          sigma_alpha_list[[vn]] <- sigma_alpha_scalar[[vn]][1]
-        } else {
-          sigma_alpha_list[[vn]] <- NA
-        }
-      }
-    }
-
-    abn_fit$mu          <- mu_list
-    abn_fit$betas       <- betas_list
-    abn_fit$sigma       <- sigma_list
-    abn_fit$sigma_alpha <- sigma_alpha_list
-    if (is.null(abn_fit$group.var)) {
-      abn_fit$group.var <- TRUE
-    }
-  }
-
-  class(abn_fit) <- "abnFit"
-  return(abn_fit)
-}
-
-#' Reconstruct abnFit object for Bayesian method from JSON
-#' @keywords internal
-reconstruct_abnfit_bayes <- function(json_list) {
-  abn_fit <- reconstruct_abnfit_mle(json_list)
-  abn_fit$method <- "bayes"
-  return(abn_fit)
-}
-
-#' Validate abnFit object meets class requirements
-#' @keywords internal
-validate_abnfit_object <- function(object) {
-  if (!inherits(object, "abnFit")) {
-    stop("Imported object is not of class 'abnFit'")
-  }
-  if (!inherits(object$abnDag, "abnDag")) {
-    stop("abnDag component is not of class 'abnDag'")
-  }
-  invisible(TRUE)
-}
-
-#' Default null operator
-#' @keywords internal
-`%||%` <- function(a, b) {
-  if (!is.null(a)) a else b
-}
-
-import_json_safe <- function(x) {
-  if (is.null(x)) return(NULL)
-  if (is.list(x) && identical(x$`__abn_type`, "named_vector")) {
-    raw_values <- x$values %||% list()
-    value_type <- x$type %||% "double"
-    values <- switch(value_type,
-                     double = numeric(length(raw_values)),
-                     numeric = numeric(length(raw_values)),
-                     integer = integer(length(raw_values)),
-                     logical = logical(length(raw_values)),
-                     character = character(length(raw_values)),
-                     vector(length(raw_values)))
-    for (index in seq_along(raw_values)) {
-      value <- raw_values[[index]]
-      if (is.null(value)) {
-        values[[index]] <- switch(value_type,
-                                  double = NA_real_, numeric = NA_real_,
-                                  integer = NA_integer_, logical = NA,
-                                  character = NA_character_, NA)
-      } else {
-        values[[index]] <- value
-      }
-    }
-    if (!is.null(x$names)) names(values) <- unlist(x$names, use.names = FALSE)
-    return(values)
-  }
-  if (is.list(x) && length(x) > 0 &&
-      all(vapply(x, function(value) !is.list(value) && length(value) == 1,
-                 logical(1)))) {
-    values <- unlist(x, use.names = FALSE)
-    if (all(vapply(values, is.logical, logical(1)))) return(as.logical(values))
-    if (all(vapply(values, is.numeric, logical(1)))) return(as.numeric(values))
-    if (all(vapply(values, is.character, logical(1)))) return(as.character(values))
-  }
-  if (is.list(x) && all(c("values", "row_names", "column_names") %in% names(x))) {
-    rows <- x$values
-    if (length(rows) == 0) {
-      return(matrix(numeric(), nrow = 0,
-                    dimnames = list(x$row_names, x$column_names)))
-    }
-    values <- do.call(rbind, lapply(rows, function(row) {
-      raw <- unlist(row, use.names = FALSE)
-      if (all(vapply(raw, function(value) is.numeric(value) || is.na(value), logical(1)))) {
-        return(as.numeric(raw))
-      }
-      raw
-    }))
-    dimnames(values) <- list(x$row_names, x$column_names)
-    return(values)
-  }
-  if (is.list(x)) {
-    result <- lapply(x, import_json_safe)
-    names(result) <- names(x)
-    return(result)
-  }
-  x
-}
-
-import_abn_vector <- function(x, type) {
-  if (is.null(x)) return(NULL)
-  value <- import_json_safe(x)
-  value <- unlist(value, use.names = TRUE)
-  result <- switch(type,
-                   integer = as.integer(value),
-                   numeric = as.numeric(value),
-                   logical = as.logical(value),
-                   character = as.character(value),
-                   value)
-  names(result) <- names(value)
-  result
+  )
 }

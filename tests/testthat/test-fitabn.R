@@ -42,7 +42,9 @@ test_that("fitAbn() wrapper of 'mle' and 'bayes' works", {
   expect_no_error({
     m.0.mle.1 <- fitAbn(dag=d, data.df=df, data.dists=dist, method="mle")
   })
-  expect_equal(m.0.mle, unclass(m.0.mle.1))
+  # the wrapper adds metadata fields (centre, levels) that fitAbn.mle() does not
+  # produce; compare only the fields the internal function returns
+  expect_equal(m.0.mle, unclass(m.0.mle.1)[names(m.0.mle)])
   expect_s3_class(m.0.mle.1, class = "abnFit")
 
 
@@ -465,3 +467,22 @@ test_that("fitabn() works with all distributions, grouping and class abnCache", 
   })
 })
 
+
+test_that("ungrouped caches do not fake a group.var (#272)", {
+  skip_on_cran()
+  d <- ex1.dag.data[, c("b1", "p1", "g1")]
+  mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian")
+  cache <- buildScoreCache(data.df = d, data.dists = mydists, method = "mle",
+                           max.parents = 1)
+  # elements are present with the right names, group.var is NULL
+  expect_true("group.var" %in% names(cache))
+  expect_null(cache[["group.var"]])
+  expect_false("group.vars" %in% names(cache))
+  expect_true("grouped.vars" %in% names(cache))
+
+  mp <- mostProbable(score.cache = cache, verbose = FALSE)
+  fit <- suppressWarnings(fitAbn(object = mp, method = "mle"))
+  expect_null(fit$group.var)
+  expect_null(fit$group.ids)
+  expect_null(fit$grouped.vars)
+})

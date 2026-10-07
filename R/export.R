@@ -1,2185 +1,568 @@
-#' Export abnFit object to structured JSON format
+# Internal null-coalescing operator shared by the JSON import/export code.
+# (Base R provides `%||%` from 4.4.0; the package still supports R >= 4.0.)
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+#' Export a fitted abn model to JSON (bayesian-network)
 #'
-#' @description
-#' Exports a fitted Additive Bayesian Network (ABN) model to a structured JSON
-#' format suitable for storage, sharing, and interoperability with other analysis
-#' tools. The export includes network structure (variables and arcs) and model
-#' parameters (coefficients, variances, and their associated metadata).
+#' Writes an \code{abnFit} object as a \code{bayesian-network} JSON document.
+#' The generic core (variables, groups, arcs, parameters, inference) fully
+#' describes the model; abn-internal details are stored in
+#' \code{metadata.extensions.abn}. The data are not included; use
+#' \code{\link{export_abnData}} for a separate data document.
 #'
-#' @param object An object of class \code{abnFit}, typically created by \code{\link{fitAbn}}.
-#' @param format Character string specifying the export format. Currently, only
-#'   \code{"json"} is supported.
-#' @param include_network Logical, whether to include network structure (variables
-#'   and arcs). Default is \code{TRUE}.
-#' @param file Optional character string specifying a file path to save the JSON
-#'   output. If \code{NULL} (default), the JSON string is returned.
-#' @param pretty Logical, whether to format the JSON output with indentation for
-#'   readability. Default is \code{TRUE}. Set to \code{FALSE} for more compact output.
-#' @param scenario_id Optional character string or numeric identifier for the model
-#'   run or scenario. Useful for tracking multiple model versions or experiments.
-#'   Default is \code{NULL}.
-#' @param label Optional character string providing a descriptive name or label
-#'   for the scenario. Default is \code{NULL}.
-#' @param ... Additional export options (currently unused, reserved for future extensions).
-#'
-#' @return
-#' If \code{file} is \code{NULL}, returns a character string containing the JSON
-#' representation of the model. If \code{file} is provided, writes the JSON to
-#' the specified file and invisibly returns the file path.
-#'
-#' @details
-#' This function provides a standardized way to export fitted ABN models to JSON,
-#' facilitating model sharing, archiving, and integration with external tools or
-#' databases. The JSON structure is designed to be both human-readable and
-#' machine-parseable, following a flat architecture to avoid deep nesting.
-#'
-#' ## Supported Model Types
-#'
-#' The function handles different model fitting methods:
-#' \itemize{
-#'   \item \strong{MLE without grouping}: Standard maximum likelihood estimation
-#'     for all supported distributions (Gaussian, Binomial, Poisson, Multinomial).
-#'     Exports fixed-effect parameters with standard errors.
-#'   \item \strong{MLE with grouping}: Generalized Linear Mixed Models (GLMM)
-#'     with group-level random effects. Exports both fixed effects (mu, betas)
-#'     and random effects (sigma, sigma_alpha).
-#'   \item \strong{Bayesian}: Placeholder for future implementation of Bayesian
-#'     model exports including posterior distributions.
-#' }
-#'
-#' ## JSON Structure Overview
-#'
-#' The exported JSON follows a three-component structure:
-#' \itemize{
-#'   \item \strong{variables}: An array where each element represents a node/variable
-#'     in the network with metadata including identifier, attribute name, distribution
-#'     type, and states (for categorical variables).
-#'   \item \strong{parameters}: An array where each element represents a model
-#'     parameter (intercepts, coefficients, variances) with associated values,
-#'     standard errors, link functions, and parent variable conditions.
-#'   \item \strong{arcs}: An array where each element represents a directed edge
-#'     in the network, specifying source and target variable identifiers.
-#' }
-#'
-#' Additionally, optional top-level fields \code{scenario_id} and \code{label}
-#' can be used to identify and describe the model.
-#'
-#' @section JSON Schema:
-#'
-#' ### Top-Level Fields
-#'
-#' \describe{
-#'   \item{\code{scenario_id}}{Optional string or numeric identifier for the model
-#'     run. Can be \code{null}.}
-#'   \item{\code{label}}{Optional descriptive name for the model. Can be \code{null}.}
-#'   \item{\code{variables}}{Array of variable objects (see Variables section).}
-#'   \item{\code{parameters}}{Array of parameter objects (see Parameters section).}
-#'   \item{\code{arcs}}{Array of arc objects (see Arcs section).}
-#' }
-#'
-#' ### Variables Array
-#'
-#' Each variable object contains:
-#' \describe{
-#'   \item{\code{variable_id}}{Unique identifier for the variable (string). This ID
-#'     is used throughout the JSON to reference this variable in parameters' \code{source}
-#'     fields and in arcs' \code{source_variable_id}/\code{target_variable_id} fields.}
-#'   \item{\code{attribute_name}}{Original attribute name from the data (string).}
-#'   \item{\code{model_type}}{Distribution type: \code{"gaussian"}, \code{"binomial"},
-#'     \code{"poisson"}, or \code{"multinomial"}.}
-#'   \item{\code{states}}{Array of state objects for multinomial variables only.
-#'     Each state has \code{state_id} (used to reference specific categories in
-#'     parameters), \code{value_name} (the category label), and \code{is_baseline}
-#'     (whether this is the reference category). \code{NULL} for continuous variables.}
-#' }
-#'
-#' ### Parameters Array
-#'
-#' Each parameter object contains:
-#' \describe{
-#'   \item{\code{parameter_id}}{Unique identifier for the parameter (string).}
-#'   \item{\code{name}}{Parameter name (e.g., \code{"intercept"}, \code{"prob_2"},
-#'     coefficient name, \code{"sigma"}, \code{"sigma_alpha"}).}
-#'   \item{\code{link_function_name}}{Link function: \code{"identity"} (Gaussian),
-#'     \code{"logit"} (Binomial, Multinomial), or \code{"log"} (Poisson).}
-#'   \item{\code{source}}{Object identifying which variable and state this parameter
-#'     belongs to. Contains \code{variable_id} (required, references a variable from
-#'     the variables array) and optional \code{state_id} (references a specific state
-#'     for category-specific parameters in multinomial models).}
-#'   \item{\code{coefficients}}{Array of coefficient objects (typically length 1),
-#'     each with \code{value}, \code{stderr} (or \code{NULL} for mixed models),
-#'     \code{condition_type}, and \code{conditions} array.}
-#' }
-#'
-#' #### Coefficient Condition Types
-#'
-#' \itemize{
-#'   \item \code{"intercept"}: Baseline parameter with no parent dependencies
-#'   \item \code{"linear_term"}: Effect of a parent variable
-#'   \item \code{"CPT_combination"}: Conditional probability table entry (future use)
-#'   \item \code{"variance"}: Residual variance (Gaussian/Poisson only)
-#'   \item \code{"random_variance"}: Random effect variance (mixed models)
-#'   \item \code{"random_covariance"}: Random effect covariance (multinomial mixed models)
-#' }
-#'
-#' ### Arcs Array
-#'
-#' Each arc object contains:
-#' \describe{
-#'   \item{\code{source_variable_id}}{Identifier of the parent/source node.}
-#'   \item{\code{target_variable_id}}{Identifier of the child/target node.}
-#' }
-#'
-#' @section Design Rationale:
-#'
-#' The JSON structure uses a flat architecture with three parallel arrays rather
-#' than deeply nested objects. This design offers several advantages:
-#' \itemize{
-#'   \item \strong{Database compatibility}: Easy to store in relational or document
-#'     databases with minimal transformation.
-#'   \item \strong{Extensibility}: New parameter types or metadata can be added
-#'     without restructuring existing fields.
-#'   \item \strong{Parsability}: Simpler to query and transform programmatically.
-#'   \item \strong{Flexibility}: Supports both CPT-style and GLM(M)-style models
-#'     through the polymorphic \code{source} and \code{conditions} structure.
-#' }
-#'
-#' Parameters are linked to variables through the \code{source.variable_id} field,
-#' with optional \code{source.state_id} for category-specific parameters in
-#' multinomial models. Parent dependencies are encoded in the \code{conditions}
-#' array within each coefficient.
-#'
-#' @section JSON Complete Field Reference:
-#'
-#' The exported JSON contains the following top-level fields:
-#'
-#' \describe{
-#'   \item{\code{scenario_id}}{Optional string/numeric. Model run identifier.
-#'     Can be \code{NULL}. Set via \code{scenario_id} parameter.
-#'     Example: \code{"model_v1"}, \code{"experiment_2024_03_30"}}
-#'
-#'   \item{\code{label}}{Optional string. Descriptive name for the model.
-#'     Can be \code{NULL}. Set via \code{label} parameter.
-#'     Example: \code{"Gaussian Network with 3 nodes"}}
-#'
-#'   \item{\code{method}}{String. Fitting method: \code{"mle"} (default) or
-#'     \code{"bayes"}. Auto-populated from \code{abnFit$method}.
-#'     Used by \code{\link{import_abnFit}} to dispatch to correct reconstruction.}
-#'
-#'   \item{\code{variables}}{Required array. All nodes/variables in the network.
-#'     Each element contains: \code{variable_id} (string), \code{attribute_name}
-#'     (string), \code{model_type} (string), \code{states} (array or NULL).}
-#'
-#'   \item{\code{parameters}}{Required array. All fitted parameters (intercepts,
-#'     slopes, variances, random effects). Each element contains:
-#'     \code{parameter_id}, \code{name}, \code{link_function_name}, \code{source},
-#'     \code{coefficients} array.}
-#'
-#'   \item{\code{arcs}}{Required array (can be empty). Directed edges in DAG.
-#'     Each element contains \code{source_variable_id} and \code{target_variable_id}.}
-#'
-#'   \item{\code{linkFunctions}}{Optional array. Link function definitions.
-#'     Only included when explicitly referenced by link_function_id in parameters.
-#'     Rarely used - typically \code{link_function_name} is sufficient.}
-#'
-#'   \item{\code{constraints}}{Optional array. Subsetting constraints (abnScripts).
-#'     Each constraint has: \code{variable} (name), \code{operator}
-#'     (==, !=, <, >, <=, >=, \%in\%), \code{value} (scalar or array).
-#'     Only present when exporting subset models.}
-#'
-#'   \item{\code{subset_metadata}}{Optional object. Metadata about subsetting.
-#'     Contains: \code{original_n}, \code{subset_n}, \code{constraints_applied},
-#'     \code{constraints_description}, \code{warnings} array.
-#'     Only present when exporting subset models.}
-#'
-#'   \item{\code{original_model}}{Optional object. Original model before subsetting.
-#'     Contains: \code{parameters} array, \code{constraints} array.
-#'     Only present when exporting subset models. Enables comparison of coefficients.}
-#'
-#'   \item{\code{original_data_path}}{Optional string. Path to CSV data file used
-#'     for refitting (abnScripts integration). Only present when exporting subset models.}
-#' }
-#'
-#' @section JSON Examples:
-#'
-#' \subsection{Example 1: Simple Gaussian Model}{
-#' A single continuous variable with no dependencies. Shows all top-level fields,
-#' with optional fields set to \code{null}.
-#'
-#' \preformatted{
-#' # Simple Gaussian (single node, no parents)
-#' # All 10 top-level fields shown, optional fields = null
-#' {
-#'   "scenario_id": "gaussian_simple_v1",  # Optional: model identifier
-#'   "label": "Simple Gaussian Model",      # Optional: descriptive label
-#'   "method": "mle",                       # Optional: fitting method
-#'   "variables": [
-#'     {
-#'       "variable_id": "0",                # Unique ID for this variable
-#'       "attribute_name": "x1",            # Original column name
-#'       "model_type": "gaussian",          # Distribution type
-#'       "states": null                     # null for continuous variables
-#'     }
-#'   ],
-#'   "parameters": [
-#'     {
-#'       "parameter_id": "p0",
-#'       "name": "intercept",
-#'       "link_function_name": "identity",
-#'       "source": {
-#'         "variable_id": "0",
-#'         "state_id": null
-#'       },
-#'       "coefficients": [
-#'         {
-#'           "value": 0.5234,
-#'           "stderr": 0.0234,
-#'           "condition_type": "intercept",
-#'           "conditions": []
-#'         }
-#'       ]
-#'     },
-#'     {
-#'       "parameter_id": "p1",
-#'       "name": "sigma",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [
-#'         {
-#'           "value": 1.2345,
-#'           "stderr": null,
-#'           "condition_type": "variance",
-#'           "conditions": []
-#'         }
-#'       ]
-#'     }
-#'   ],
-#'   "arcs": [],                            # No dependencies for single node
-#'   "linkFunctions": null,                 # Optional: rarely used
-#'   "constraints": null,                   # Optional: no subset constraints
-#'   "subset_metadata": null,               # Optional: no subsetting
-#'   "original_model": null,                # Optional: not from subsetting
-#'   "original_data_path": null             # Optional: no subset path
-#' }
-#' }
-#' }
-#'
-#' \subsection{Example 2: Linear Dependencies}{
-#' Gaussian variable predicting a binary outcome. Shows arc structure and
-#' conditional (linear_term) coefficient.
-#'
-#' \preformatted{
-#' # Gaussian X1 predicts Binary Y1 (with dependency)
-#' {
-#'   "scenario_id": "linear_deps_v1",
-#'   "label": "Gaussian → Binomial",
-#'   "method": "mle",
-#'   "variables": [
-#'     {
-#'       "variable_id": "0",
-#'       "attribute_name": "x1",
-#'       "model_type": "gaussian",
-#'       "states": null
-#'     },
-#'     {
-#'       "variable_id": "1",
-#'       "attribute_name": "y1",
-#'       "model_type": "binomial",
-#'       "states": null
-#'     }
-#'   ],
-#'   "parameters": [
-#'     {
-#'       "parameter_id": "p0",
-#'       "name": "intercept",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.5234,
-#'         "stderr": 0.0234,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p1",
-#'       "name": "sigma",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 1.2345,
-#'         "stderr": null,
-#'         "condition_type": "variance",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p2",
-#'       "name": "intercept",
-#'       "link_function_name": "logit",        # logit for binomial
-#'       "source": {"variable_id": "1", "state_id": null},
-#'       "coefficients": [{
-#'         "value": -0.4567,
-#'         "stderr": 0.1234,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p3",
-#'       "name": "x1",
-#'       "link_function_name": "logit",
-#'       "source": {"variable_id": "1", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.8901,
-#'         "stderr": 0.0567,
-#'         "condition_type": "linear_term",   # Effect of parent x1
-#'         "conditions": [
-#'           {"parent_variable_id": "0", "parent_state_id": null}
-#'         ]
-#'       }]
-#'     }
-#'   ],
-#'   "arcs": [
-#'     {
-#'       "source_variable_id": "0",         # x1 is parent
-#'       "target_variable_id": "1"          # y1 is child
-#'     }
-#'   ],
-#'   "linkFunctions": null,
-#'   "constraints": null,
-#'   "subset_metadata": null,
-#'   "original_model": null,
-#'   "original_data_path": null
-#' }
-#' }
-#' }
-#'
-#' \subsection{Example 3: Multinomial with States}{
-#' Categorical variable with multiple categories. Demonstrates state array and
-#' baseline category handling.
-#'
-#' \preformatted{
-#' # Multinomial outcome with 3 categories (control baseline)
-#' {
-#'   "scenario_id": "multinomial_v1",
-#'   "label": "Multinomial Outcome",
-#'   "method": "mle",
-#'   "variables": [
-#'     {
-#'       "variable_id": "0",
-#'       "attribute_name": "treatment",
-#'       "model_type": "multinomial",
-#'       "states": [                        # States array for multinomial
-#'         {
-#'           "state_id": "1",
-#'           "value_name": "control",
-#'           "is_baseline": true            # Reference category
-#'         },
-#'         {
-#'           "state_id": "2",
-#'           "value_name": "treatment_a",
-#'           "is_baseline": false
-#'         },
-#'         {
-#'           "state_id": "3",
-#'           "value_name": "treatment_b",
-#'           "is_baseline": false
-#'         }
-#'       ]
-#'     }
-#'   ],
-#'   "parameters": [
-#'     {
-#'       "parameter_id": "p0",
-#'       "name": "intercept",
-#'       "link_function_name": "logit",
-#'       "source": {
-#'         "variable_id": "0",
-#'         "state_id": "2"                  # Parameters for treatment_a
-#'       },
-#'       "coefficients": [{
-#'         "value": 0.1234,
-#'         "stderr": 0.0456,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p1",
-#'       "name": "intercept",
-#'       "link_function_name": "logit",
-#'       "source": {
-#'         "variable_id": "0",
-#'         "state_id": "3"                  # Parameters for treatment_b
-#'       },
-#'       "coefficients": [{
-#'         "value": -0.2345,
-#'         "stderr": 0.0567,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     }
-#'   ],
-#'   "arcs": [],
-#'   "linkFunctions": null,
-#'   "constraints": null,
-#'   "subset_metadata": null,
-#'   "original_model": null,
-#'   "original_data_path": null
-#' }
-#' Note: No parameters for baseline state (control, state_id 1)
-#' }
-#' }
-#'
-#' \subsection{Example 4: Mixed-Effects Model}{
-#' Model with random intercepts. Shows random_variance parameter.
-#'
-#' \preformatted{
-#' # Mixed-effects model with random intercepts
-#' {
-#'   "scenario_id": "mixed_v1",
-#'   "label": "Mixed Effects Model",
-#'   "method": "mle",
-#'   "variables": [
-#'     {
-#'       "variable_id": "0",
-#'       "attribute_name": "outcome",
-#'       "model_type": "gaussian",
-#'       "states": null
-#'     }
-#'   ],
-#'   "parameters": [
-#'     {
-#'       "parameter_id": "p0",
-#'       "name": "intercept",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.5234,
-#'         "stderr": 0.0234,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p1",
-#'       "name": "sigma",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 1.2345,
-#'         "stderr": null,
-#'         "condition_type": "variance",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p2",
-#'       "name": "sigma_alpha",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.3456,
-#'         "stderr": null,
-#'         "condition_type": "random_variance",  # Random intercept variance
-#'         "conditions": []
-#'       }]
-#'     }
-#'   ],
-#'   "arcs": [],
-#'   "linkFunctions": null,
-#'   "constraints": null,
-#'   "subset_metadata": null,
-#'   "original_model": null,
-#'   "original_data_path": null
-#' }
-#' Note: sigma_alpha is between-group variation in intercepts
-#' }
-#' }
-#'
-#' \subsection{Example 5: With Subset Constraints (abnScripts)}{
-#' Refitted model showing all optional fields for subsetting. Demonstrates
-#' constraints, subset_metadata, and original_model fields.
-#'
-#' \preformatted{
-#' # Subset model with constraints metadata (abnScripts integration)
-#' {
-#'   "scenario_id": "subset_v1",
-#'   "label": "Refitted on Subset (g1 <= 1)",
-#'   "method": "mle",
-#'   "variables": [
-#'     {
-#'       "variable_id": "0",
-#'       "attribute_name": "g1",
-#'       "model_type": "gaussian",
-#'       "states": null
-#'     },
-#'     {
-#'       "variable_id": "1",
-#'       "attribute_name": "g2",
-#'       "model_type": "gaussian",
-#'       "states": null
-#'     }
-#'   ],
-#'   "parameters": [
-#'     {
-#'       "parameter_id": "p0",
-#'       "name": "intercept",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.4567,
-#'         "stderr": 0.0345,
-#'         "condition_type": "intercept",
-#'         "conditions": []
-#'       }]
-#'     },
-#'     {
-#'       "parameter_id": "p1",
-#'       "name": "sigma",
-#'       "link_function_name": "identity",
-#'       "source": {"variable_id": "0", "state_id": null},
-#'       "coefficients": [{
-#'         "value": 0.9876,
-#'         "stderr": null,
-#'         "condition_type": "variance",
-#'         "conditions": []
-#'       }]
-#'     }
-#'   ],
-#'   "arcs": [],
-#'   "linkFunctions": null,
-#'   "constraints": [                       # Subsetting constraints
-#'     {
-#'       "variable": "g1",
-#'       "operator": "<=",
-#'       "value": 1
-#'     }
-#'   ],
-#'   "subset_metadata": {                   # Metadata about subsetting
-#'     "original_n": 250,
-#'     "subset_n": 180,
-#'     "constraints_applied": 1,
-#'     "constraints_description": "g1 <= 1",
-#'     "warnings": []
-#'   },
-#'   "original_model": {                    # Original before subsetting
-#'     "parameters": [
-#'       {
-#'         "parameter_id": "orig_p0",
-#'         "name": "intercept",
-#'         "link_function_name": "identity",
-#'         "source": {"variable_id": "0", "state_id": null},
-#'         "coefficients": [{
-#'           "value": 0.5234,
-#'           "stderr": 0.0234,
-#'           "condition_type": "intercept",
-#'           "conditions": []
-#'         }]
-#'       }
-#'     ],
-#'     "constraints": null
-#'   },
-#'   "original_data_path": "/path/to/original_data.csv"
-#' }
-#' Note: Compare subset vs original parameters to see how coefficients changed
-#' }
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Load example data and fit a model
-#' library(abn)
-#' data(ex1.dag.data)
-#'
-#' # Define distributions
-#' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian",
-#'                 b2 = "binomial", p2 = "poisson", g2 = "gaussian",
-#'                 b3 = "binomial", g3 = "gaussian")
-#'
-#' # Build score cache
-#' mycache <- buildScoreCache(data.df = ex1.dag.data,
-#'                             data.dists = mydists,
-#'                             method = "mle",
-#'                             max.parents = 2)
-#'
-#' # Find most probable DAG
-#' mp_dag <- mostProbable(score.cache = mycache)
-#'
-#' # Fit the model
-#' myfit <- fitAbn(object = mp_dag, method = "mle")
-#'
-#' # Export to JSON string with metadata
-#' json_export <- export_abnFit(myfit,
-#'                              scenario_id = "example_model_v1",
-#'                              label = "Example ABN Model")
-#'
-#' # View the structure
-#' library(jsonlite)
-#' parsed <- fromJSON(json_export)
-#' str(parsed, max.level = 2)
-#'
-#' # Export to file
-#' export_abnFit(myfit,
-#'               file = "my_abn_model.json",
-#'               scenario_id = "example_model_v1",
-#'               label = "Example ABN Model",
-#'               pretty = TRUE)
-#'
-#' # Export with compact formatting
-#' compact_json <- export_abnFit(myfit, pretty = FALSE)
-#' }
-#'
-#' @seealso
-#' \itemize{
-#'   \item \code{\link{import_abnFit}} for round-trip JSON import (reconstructs abnFit from JSON)
-#'   \item \code{\link{fitAbn}} for fitting ABN models
-#'   \item \code{\link{buildScoreCache}} for structure learning
-#'   \item \code{\link{mostProbable}} for finding the most probable network structure
-#' }
-#'
+#' @param object An object of class \code{abnFit}.
+#' @param file Optional path. If given, the JSON is written there and the path is
+#'   returned invisibly.
+#' @param pretty Logical, pretty-print the JSON.
+#' @param label Optional descriptive label (\code{metadata.label}).
+#' @param scenario_id Optional scenario identifier (\code{metadata.scenario_id}).
+#' @param data_reference Optional list \code{(uri, schema_version, sha256)}
+#'   pointing to the data document.
+#' @return A JSON string, or invisibly \code{file}.
+#' @seealso \code{\link{import_abnFit}}, \code{\link{export_abnData}}
 #' @export
-export_abnFit <- function(object, format = "json", include_network = TRUE,
-                          file = NULL, pretty = TRUE, scenario_id = NULL,
-                          label = NULL, ...) {
-  if (!inherits(object, "abnFit")) {
-    stop("Input object must be of class 'abnFit'")
+export_abnFit <- function(object, file = NULL, pretty = TRUE, label = NULL,
+                          scenario_id = NULL, data_reference = NULL) {
+  if (!inherits(object, "abnFit")) stop("'object' must be of class 'abnFit'.", call. = FALSE)
+  if (!object$method %in% c("mle", "bayes")) {
+    stop("Unsupported fit method: ", object$method, call. = FALSE)
   }
+  stored <- attr(object, "abn_json") %||% list()
+  meta <- list(label = label %||% stored$label,
+               scenario_id = scenario_id %||% stored$scenario_id,
+               data_reference = data_reference %||% stored$data_reference)
 
-  if (is.null(scenario_id)) {
-    scenario_id <- object$scenario_id
-  }
-  if (is.null(label)) {
-    label <- object$label
-  }
+  doc <- abn_json_build_document(object, meta)
+  abn_json_check_document(doc)
 
-  # Dispatch based on method
-  if (object$method == "mle") {
-    export_list <- export_abnFit_mle(object, format, include_network,
-                                     scenario_id, label, ...)
-  } else if (object$method == "bayes") {
-    export_list <- export_abnFit_bayes(object, format, include_network,
-                                       scenario_id, label, ...)
-  } else {
-    stop("Unsupported method in abnFit object. Supported methods are 'mle' and 'bayes'.")
-  }
-
-  export_list <- normalize_abn_network_document(
-    export_list,
-    object = object,
-    include_network = include_network,
-    scenario_id = scenario_id,
-    label = label
-  )
-  abn_json_validate_document_sources(export_list, conflict = "error")
-
-  # Convert to desired format
-  if (format == "json") {
-    return(export_to_json(export_list, format, file, pretty))
-  } else {
-    stop("Currently, only 'json' format is supported.")
-  }
-}
-
-#' Helper function to convert export list to JSON
-#' @param export_list The list to convert to JSON. Must contain variables, parameters, and arcs components, see details.
-#' @inheritParams export_abnFit
-#' @details The export_list must be a named list with the following components:
-#' \itemize{
-#' \item scenario_id: Optional identifier for the model run/scenario.
-#' \item label: Optional name/label for the scenario.
-#' \item variables: An array where each element represents a variable/node with its metadata, distribution type, and states (for categorical variables).
-#' \item parameters: An array where each element represents a parameter with its link function, source variable, and coefficients.
-#' \item arcs: An array with arc details, each containing source_variable_id and target_variable_id.
-#' }
-#' @keywords internal
-export_to_json <- function(export_list, format, file = NULL, pretty = TRUE) {
-  if (!requireNamespace("jsonlite", quietly = TRUE)) {
-    stop("Package 'jsonlite' is required for JSON export. Please install it.")
-  }
-
-  # Validate export list structure - scenario_id and label are optional
-  required_keys <- c("metadata", "parameters", "inference")
-  if (!is.list(export_list) || !all(required_keys %in% names(export_list))) {
-    stop("export_list must contain metadata, parameters, and inference")
-  }
-
-  # Convert to JSON
-  json_str <- jsonlite::toJSON(export_list, auto_unbox = TRUE, pretty = pretty,
-                               null = "null", digits = NA)
-
-  # Write to file or return string
+  json <- jsonlite::toJSON(doc, auto_unbox = TRUE, pretty = pretty, null = "null",
+                           digits = NA)
   if (!is.null(file)) {
-    writeLines(json_str, con = file)
+    writeLines(json, con = file)
     return(invisible(file))
-  } else {
-    return(json_str)
   }
+  json
 }
 
-normalize_abn_network_document <- function(export_list, object,
-                                           include_network = TRUE,
-                                           scenario_id = NULL, label = NULL) {
-  node_names <- names(object$abnDag$data.dists)
-  if (is.null(node_names)) node_names <- names(object$coef)
-  distributions <- object$abnDag$data.dists
+# ---------------------------------------------------------------------------
+# Document assembly
+# ---------------------------------------------------------------------------
 
-  variable_ids <- stats::setNames(seq_along(node_names), node_names)
-  variables <- lapply(node_names, function(node) {
-    legacy <- export_list$variables[[which(vapply(export_list$variables,
-                                                   function(x) identical(as.character(x$attribute_name), node),
-                                                   logical(1)))[1]]]
-    type <- switch(as.character(distributions[[node]]),
-                   gaussian = "continuous", binomial = "binary",
-                   poisson = "count", multinomial = "categorical",
-                   as.character(distributions[[node]]))
-    states <- legacy$states
-    retained_states <- attr(object, "generic_states")[[node]] %||% NULL
-    if (!is.null(retained_states)) states <- retained_states
-    if (!is.null(states)) {
-      states <- lapply(seq_along(states), function(index) {
-        state <- states[[index]]
-        list(`_id` = as.integer(index),
-             label = as.character(state$value_name %||% state$label))
+abn_json_build_document <- function(fit, meta) {
+  ctx <- abn_json_context(fit)
+  params <- abn_json_build_parameters(fit, ctx)
+  list(
+    metadata = abn_json_build_metadata(fit, ctx, meta, params),
+    variables = abn_json_build_variables(fit, ctx),
+    groups = abn_json_build_groups(fit, ctx),
+    arcs = abn_json_build_arcs(fit, ctx),
+    parameters = lapply(params, function(p) p$json),
+    inference = abn_json_build_inference(fit, ctx, params)
+  )
+}
+
+# Shared lookups: node order, ids, distributions, levels, state ids.
+abn_json_context <- function(fit) {
+  dag <- fit$abnDag$dag
+  nodes <- colnames(dag)
+  dists <- unlist(fit$abnDag$data.dists)[nodes]
+  levels <- fit$levels %||% list()
+  for (node in nodes[dists %in% c("binomial", "multinomial")]) {
+    if (is.null(levels[[node]])) {
+      stop("Fit has no recorded levels for node '", node,
+           "'. Refit with the current version of abn.", call. = FALSE)
+    }
+  }
+  stored <- attr(fit, "abn_json")$ids
+  var_id <- stats::setNames(seq_along(nodes), nodes)
+  if (!is.null(stored$variables)) {
+    hit <- stored$variables[nodes]
+    if (!anyNA(hit)) var_id <- hit
+  }
+  group_id <- NULL
+  if (!is.null(fit$group.var)) {
+    group_id <- if (!is.null(stored$groups)) stored$groups[[fit$group.var]] else NULL
+    if (is.null(group_id)) group_id <- 1L
+  }
+  list(
+    nodes = nodes,
+    dists = dists,
+    var_id = var_id,
+    levels = levels,
+    parents = stats::setNames(lapply(nodes, function(n) nodes[dag[n, ] == 1]), nodes),
+    group_id = group_id,
+    ids = stored
+  )
+}
+
+abn_json_state_id <- function(ctx, node, label) {
+  stored <- ctx$ids$states[[node]][[as.character(label)]]
+  if (!is.null(stored)) return(stored)
+  id <- match(as.character(label), ctx$levels[[node]])
+  if (is.na(id)) stop("Unknown level '", label, "' of node '", node, "'.", call. = FALSE)
+  id
+}
+
+abn_json_build_metadata <- function(fit, ctx, meta, params) {
+  out <- list(
+    schema_version = "bayesian-network",
+    issuer = "abn::export_abnFit",
+    issuer_version = as.character(utils::packageVersion("abn")),
+    created = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+  )
+  if (!is.null(meta$label)) out$label <- meta$label
+  if (!is.null(meta$scenario_id)) out$scenario_id <- meta$scenario_id
+  if (!is.null(meta$data_reference)) out$data_reference <- meta$data_reference
+  out$extensions <- list(abn = abn_json_build_extension(fit, ctx, params))
+  out
+}
+
+abn_json_dist_map <- function(dist) {
+  switch(dist,
+         gaussian = list(type = "continuous", distribution = "gaussian", link = "identity"),
+         binomial = list(type = "binary", distribution = "bernoulli", link = "logit"),
+         poisson = list(type = "count", distribution = "poisson", link = "log"),
+         multinomial = list(type = "categorical", distribution = "categorical",
+                            link = "baseline_logit"),
+         stop("Unsupported distribution: ", dist, call. = FALSE))
+}
+
+abn_json_build_variables <- function(fit, ctx) {
+  lapply(ctx$nodes, function(node) {
+    v <- c(list(`_id` = ctx$var_id[[node]], name = node),
+           abn_json_dist_map(ctx$dists[[node]]))
+    lv <- ctx$levels[[node]]
+    if (!is.null(lv)) {
+      v$states <- lapply(seq_along(lv), function(i) {
+        list(`_id` = abn_json_state_id(ctx, node, lv[i]), label = lv[i],
+             baseline = (i == 1L))
       })
     }
-    result <- list(`_id` = unname(variable_ids[[node]]), name = node, type = type)
-    if (!is.null(states)) result$states <- states
-    result
+    tr <- fit$centre[[node]]
+    if (!is.null(tr)) {
+      v$transform <- list(center = unname(tr[["center"]]), scale = unname(tr[["scale"]]))
+    }
+    v
   })
-
-  generic_parameters <- list()
-  abn_parameters <- list()
-  parameter_counter <- 1L
-  retained_parameters <- attr(object, "generic_parameters")
-  for (parameter in export_list$parameters %||% list()) {
-    source <- parameter$source %||% list()
-    target <- node_names[match(as.character(source$variable_id),
-                               vapply(export_list$variables,
-                                      function(x) as.character(x$variable_id), character(1)))]
-    if (is.na(target) || is.null(target)) target <- as.character(source$variable_id)
-    state_id <- source$state_id %||% NULL
-    for (coefficient in parameter$coefficients %||% list()) {
-      kind <- switch(as.character(coefficient$condition_type),
-                     linear_term = "coefficient",
-                     intercept = "intercept",
-                     variance = "variance",
-                     random_variance = "random_variance",
-                     random_covariance = "random_covariance",
-                     as.character(coefficient$condition_type))
-      conditions <- coefficient$conditions %||% list()
-      parents <- vapply(conditions, function(condition) {
-        parent_index <- match(as.character(condition$parent_variable_id),
-                              vapply(export_list$variables,
-                                     function(x) as.character(x$variable_id), character(1)))
-        if (is.na(parent_index)) as.character(condition$parent_variable_id) else node_names[parent_index]
-      }, character(1))
-      parent_state_ids <- vapply(conditions, function(condition) {
-        state_id <- condition$parent_state_id %||% NA_character_
-        as.character(state_id)
-      }, character(1))
-      entry <- list(
-        `_id` = parameter_counter,
-        target = unname(variable_ids[[target]]),
-        kind = kind,
-        link = as.character(parameter$link_function_name %||% "identity"),
-        value = as.numeric(coefficient$value)
-      )
-      if (length(parents) > 0) {
-        entry$parents <- as.list(unname(variable_ids[parents]))
-        if (any(!is.na(parent_state_ids))) {
-          entry$parent_states <- as.list(as.integer(parent_state_ids))
-        }
-      }
-      if (!is.null(state_id)) {
-        if (grepl("_", state_id, fixed = TRUE)) {
-          entry$states <- as.list(as.integer(strsplit(state_id, "_", fixed = TRUE)[[1]]))
-        } else {
-          entry$target_state <- as.integer(state_id)
-        }
-      }
-      if (!is.null(coefficient$stderr)) {
-        entry$uncertainty <- list(standard_error = as.numeric(coefficient$stderr))
-      }
-      generic_parameters[[length(generic_parameters) + 1]] <- entry
-      abn_parameters[[as.character(parameter_counter)]] <- list(
-        native_name = parameter$name %||% NULL,
-        state_id = state_id,
-        conditions = export_json_safe(conditions)
-      )
-      parameter_counter <- parameter_counter + 1L
-    }
-  }
-
-  arcs <- lapply(export_list$arcs %||% list(), function(arc) {
-    source_index <- match(as.character(arc$source_variable_id),
-                           vapply(export_list$variables,
-                                  function(x) as.character(x$variable_id), character(1)))
-    target_index <- match(as.character(arc$target_variable_id),
-                           vapply(export_list$variables,
-                                  function(x) as.character(x$variable_id), character(1)))
-    list(source = unname(variable_ids[[node_names[source_index]]]),
-         target = unname(variable_ids[[node_names[target_index]]]))
-  })
-
-  method <- object$method
-  inference <- list(
-    type = if (identical(method, "bayes")) "bayesian" else "maximum_likelihood",
-    estimates = list(), uncertainty = list(), diagnostics = list()
-  )
-  extensions <- list(abn = list(configs = list(), variables = list(),
-                                parameters = abn_parameters, inference = list(),
-                                native_fields = list(), native_presence = list()))
-  native_excluded <- c("abnDag", "coef", "Stderror", "method", "call")
-  for (field in setdiff(names(object), native_excluded)) {
-    extensions$abn$native_fields[[field]] <- export_json_safe(object[[field]])
-    extensions$abn$native_presence[[field]] <- TRUE
-  }
-  for (field in c("coef", "Stderror", "multinomial.states", "scenario_id", "label")) {
-    extensions$abn$native_presence[[field]] <- field %in% names(object)
-  }
-  if (!is.null(object$group.var)) extensions$abn$configs$group_var <- object$group.var
-  if (!is.null(object$group.ids)) extensions$abn$configs$group_ids <- export_json_safe(object$group.ids)
-  if (!is.null(object$grouped.vars)) extensions$abn$configs$grouped_vars <- export_json_safe(object$grouped.vars)
-  if (!is.null(object$multinomial.states)) {
-    extensions$abn$configs$multinomial_states <- export_json_safe(object$multinomial.states)
-  }
-  mle_fields <- c("mliknode", "mlik", "aicnode", "aic", "bicnode", "bic",
-                  "mdlnode", "mdl", "df", "sse", "mse", "pvalue")
-  for (field in mle_fields) {
-    if (!is.null(object[[field]])) {
-      extensions$abn$inference[[field]] <- export_json_safe(object[[field]])
-      inference$diagnostics[[field]] <- export_json_safe(object[[field]])
-    }
-  }
-
-  if (identical(method, "bayes")) {
-    original_model <- object$original_model %||% list()
-    bayes_fields <- list(
-      mlik = object$mlik %||% original_model$mlik,
-      mliknode = object$mliknode %||% original_model$mliknode,
-      modes = object$modes %||% original_model$modes,
-      mse = object$mse %||% original_model$mse,
-      used_INLA = object$used.INLA %||% original_model$used_INLA,
-      error_code = object$error.code %||% original_model$error_code,
-      error_code_desc = object$error.code.desc %||% original_model$error_code_desc,
-      hessian_accuracy = object$hessian.accuracy %||% original_model$hessian_accuracy
-    )
-    extensions$abn$inference <- utils::modifyList(
-      extensions$abn$inference,
-      export_json_safe(bayes_fields)
-    )
-    if (!is.null(object$marginals %||% original_model$marginals)) {
-      inference$posterior$marginals <- export_json_safe(object$marginals %||% original_model$marginals)
-    }
-    if (!is.null(object$marginal.quantiles %||% original_model$marginal_quantiles)) {
-      inference$posterior$quantiles <- export_json_safe(object$marginal.quantiles %||% original_model$marginal_quantiles)
-    }
-  }
-
-  configs <- list()
-  if (!is.null(label)) configs$label <- label
-  result <- list(
-    metadata = list(schema_version = "bayesian-network-v1",
-                    issuer = "abn::export_abnFit", configs = configs,
-                    extensions = extensions),
-    parameters = generic_parameters,
-    inference = inference
-  )
-  if (!is.null(retained_parameters) && length(retained_parameters) == length(generic_parameters)) {
-    for (index in seq_along(generic_parameters)) {
-      retained <- retained_parameters[[index]]
-      for (field in c("parents", "parent_states", "target_state", "states", "kind", "link")) {
-        if (!is.null(retained[[field]])) generic_parameters[[index]][[field]] <- retained[[field]]
-      }
-    }
-    result$parameters <- generic_parameters
-  }
-  if (isTRUE(include_network)) {
-    result$variables <- variables
-    result$arcs <- arcs
-    result <- result[c("metadata", "variables", "arcs", "parameters", "inference")]
-  }
-  validate_generic_network_document(result)
-  result
 }
 
-validate_generic_network_document <- function(document) {
-  if (!is.list(document) || is.null(document$metadata) ||
-      is.null(document$parameters) || is.null(document$inference)) {
-    stop("Generic network document is missing required components.", call. = FALSE)
-  }
-
-  check_ids <- function(rows, collection) {
-    if (is.null(rows)) return(invisible(character()))
-    ids <- vapply(rows, function(row) as.character(row$`_id`), character(1))
-    if (anyNA(ids) || anyDuplicated(ids)) {
-      stop("Duplicate or missing _id values in ", collection, ".", call. = FALSE)
-    }
-    invisible(ids)
-  }
-
-  variable_ids <- check_ids(document$variables, "variables")
-  check_ids(document$parameters, "parameters")
-  has_network <- length(variable_ids) > 0L
-  if (has_network && !is.null(document$arcs)) {
-    for (arc in document$arcs) {
-      if (!as.character(arc$source) %in% variable_ids ||
-          !as.character(arc$target) %in% variable_ids) {
-        stop("Arc reference does not resolve to a variable _id.", call. = FALSE)
-      }
-    }
-  }
-  for (parameter in document$parameters) {
-    if (has_network && !as.character(parameter$target) %in% variable_ids) {
-      stop("Parameter target does not resolve to a variable _id.", call. = FALSE)
-    }
-    if (has_network && !is.null(parameter$parents) &&
-        !all(unlist(parameter$parents) %in% variable_ids)) {
-      stop("Parameter parent reference does not resolve to a variable _id.",
-           call. = FALSE)
-    }
-  }
-  invisible(document)
+abn_json_build_groups <- function(fit, ctx) {
+  if (is.null(fit$group.var)) return(list())
+  members <- names(fit$abnDag$data.dists)[fit$grouped.vars]
+  list(list(`_id` = ctx$group_id, name = fit$group.var,
+            variables = as.list(unname(ctx$var_id[members]))))
 }
 
-#' Convert R objects to JSON-native structures
-#'
-#' @param x Object to sanitize before passing to jsonlite.
-#' @param seen Environments already traversed; prevents recursive object graphs.
-#' @return A JSON-serializable R object made of lists, atomic vectors, and NULL.
-#' @keywords internal
-export_json_safe <- function(x, seen = list()) {
-  if (is.null(x)) return(NULL)
-
-  if (is.matrix(x) || is.array(x)) {
-    dimnames_x <- dimnames(x)
-    values <- lapply(seq_len(dim(x)[1]), function(i) {
-      if (length(dim(x)) == 2L) {
-        as.list(unclass(x[i, , drop = TRUE]))
-      } else {
-        as.list(x[i])
-      }
-    })
-    return(list(values = values,
-                row_names = dimnames_x[[1]] %||% NULL,
-                column_names = dimnames_x[[2]] %||% NULL))
-  }
-
-  if (inherits(x, "abnFit")) {
-    if (is.atomic(x)) return(unclass(x))
-
-    return(list(
-      method = x[["method"]] %||% NULL,
-      mlik = x[["mlik"]] %||% NULL,
-      node_names = names(x[["abnDag"]][["data.dists"]]) %||%
-        names(x[["coef"]]) %||% NULL
-    ))
-  }
-
-  if (is.environment(x)) {
-    env_id <- format(x)
-    if (env_id %in% seen) return(NULL)
-    return(export_json_safe(as.list(x, all.names = TRUE), c(seen, env_id)))
-  }
-
-  if (is.factor(x)) return(as.character(x))
-  if (inherits(x, "Date") || inherits(x, "POSIXt")) return(as.character(x))
-
-  if (is.atomic(x) && !is.null(names(x))) {
-    return(list(
-      `__abn_type` = "named_vector",
-      type = typeof(x),
-      values = lapply(unname(unclass(x)), function(value) {
-        if (length(value) == 0L || is.na(value)) NULL else value
-      }),
-      names = names(x)
-    ))
-  }
-
-  if (is.data.frame(x)) {
-    out <- lapply(x, export_json_safe, seen = seen)
-    attr(out, "row.names") <- NULL
-    out$row_names <- rownames(x)
-    return(out)
-  }
-
-  if (is.list(x)) {
-    out <- lapply(x, export_json_safe, seen = seen)
-    names(out) <- names(x)
-    return(out)
-  }
-
-  if (is.atomic(x)) return(unclass(x))
-
-  as.character(x)
-}
-
-#' Export abnFit object fitted with MLE (non-mixed effects)
-#' @inheritParams export_abnFit
-#' @details This function handles abnFit objects fitted using Maximum Likelihood Estimation (MLE)
-#' without mixed-effects. It extracts variables metadata, arc details, and node parameterisations.
-#' @return A named list with components: scenario_id, label, variables, parameters, arcs.
-#' @keywords internal
-export_abnFit_mle <- function(object, format, include_network, scenario_id = NULL,
-                               label = NULL, ...) {
-  # Create variable ID mapping (numeric IDs in order of appearance)
-  node_names <- if (!is.null(object$coef) && length(object$coef) > 0) {
-    names(object$coef)
-  } else if (!is.null(object$mu) && length(object$mu) > 0) {
-    names(object$mu)
-  } else {
-    names(object$abnDag$data.dists)
-  }
-  var_id_map <- stats::setNames(
-    as.character(seq_along(node_names)),
-    node_names
-  )
-
-  # Extract arc details with variable ID mapping
-  arcs_details <- export_abnFit_mle_arcs(object, var_id_map = var_id_map)
-
-  # Extract variable and parameter details based on grouping
-  if (!is.null(object$group.var)) {
-    # With grouping (mixed-effects)
-    result <- export_abnFit_mle_grouped_nodes(object, format, include_network,
-                                              var_id_map = var_id_map, ...)
-    variables_list <- result$variables
-    parameters_list <- result$parameters
-  } else {
-    # Without grouping
-    result <- export_abnFit_mle_nodes(object, format, include_network,
-                                      var_id_map = var_id_map, ...)
-    variables_list <- result$variables
-    parameters_list <- result$parameters
-  }
-
-  # Create export list with scenario_id and label at the top
-  export_structure <- list()
-
-  # Add scenario_id and label first (will be null if not provided)
-  export_structure$scenario_id <- scenario_id
-  export_structure$label <- label
-  export_structure$method <- object$method
-  export_structure$group_var <- object$group.var %||% NULL
-
-  # Add the main components
-  export_structure$variables <- variables_list
-  export_structure$parameters <- parameters_list
-  export_structure$arcs <- arcs_details
-
-  return(export_structure)
-}
-
-#' Export node information from abnFit objects fitted with MLE (non-mixed effects)
-#'
-#' @param object An object of class abnFit fitted with method = "mle"
-#' @param ... Additional arguments (currently unused)
-#'
-#' @details This function extracts node parameterisation information from abnFit objects
-#' that were fitted using the Maximum Likelihood Estimation (MLE) approach without
-#' mixed-effects (i.e., no group.var specified). The function processes the coefficients
-#' and standard errors stored in the abnFit object.
-#'
-#' The \code{coef} component contains the estimated regression coefficients for each node,
-#' stored as a matrix where column names indicate the parameter names (e.g., "g2",
-#' "m11", "b1|intercept"). These represent the linear model coefficients from the
-#' generalized linear model fitted to each node given its parents in the DAG.
-#'
-#' The \code{Stderror} component contains the corresponding standard errors for each
-#' coefficient, providing a measure of uncertainty in the parameter estimates. The
-#' structure mirrors that of the \code{coef} component.
-#'
-#' For different distribution types:
-#' \itemize{
-#' \item Gaussian nodes: Include intercept and slope coefficients
-#' \item Binomial/Poisson nodes: Include intercept and slope coefficients on logit/log scale
-#' \item Multinomial nodes: Include category-specific intercepts (reference level omitted)
-#' and coefficients, following standard multinomial logistic regression conventions
-#' }
-#'
-#' @returns A named list with two components: variables and parameters.
-#' Variables is an array where each element represents a variable with its metadata.
-#' Parameters is an array where each element represents a parameter with its coefficients.
-#'
-#' @keywords internal
-export_abnFit_mle_nodes <- function(object, var_id_map = NULL, ...) {
-  # Input validation
-  if (!inherits(object, "abnFit")) {
-    stop("Object must be of class 'abnFit'", call. = FALSE)
-  }
-
-  if (object$method != "mle") {
-    stop("This function only handles abnFit objects fitted with method = 'mle'", call. = FALSE)
-  }
-
-  if (is.null(object$coef) || is.null(object$Stderror)) {
-    stop("abnFit object must contain 'coef' and 'Stderror' components", call. = FALSE)
-  }
-
-  # Initialize output
-  variables_list <- list()
-  parameters_list <- list()
-  parameter_counter <- 1
-
-  node_names <- names(object$coef)
-  node_dists <- object$abnDag$data.dists
-
-  # Get parent information from DAG
-  dag_matrix <- as.matrix(object$abnDag$dag)
-
-  # If var_id_map not provided, create it
-  if (is.null(var_id_map)) {
-    var_id_map <- stats::setNames(
-      as.character(seq_along(node_names)),
-      node_names
-    )
-  }
-
-  # Process each node
-  for (node_id in node_names) {
-    # Extract coefficients and standard errors for this node
-    coef_mat <- object$coef[[node_id]]
-    se_mat <- object$Stderror[[node_id]]
-
-    # Convert matrices to named vectors
-    coef_vec <- as.numeric(coef_mat)
-    names(coef_vec) <- colnames(coef_mat)
-    se_vec <- as.numeric(se_mat)
-    names(se_vec) <- colnames(se_mat)
-
-    # Get distribution type for this node
-    distribution <- node_dists[[node_id]]
-
-    # Determine link function based on distribution
-    link_function <- get_link_function(distribution)
-
-    # Get parent nodes for this child (child is node_id, parents are columns with 1s)
-    node_idx <- which(colnames(dag_matrix) == node_id)
-    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
-
-    # Create variable entry with numeric ID
-    variable_entry <- list(
-      variable_id = var_id_map[node_id],
-      attribute_name = node_id,
-      model_type = distribution
-    )
-
-    # Add states for categorical variables (multinomial)
-    if (distribution == "multinomial") {
-      variable_entry$states <- extract_states_from_data(object, node_id)
-    } else {
-      variable_entry$states <- NULL
-    }
-
-    variables_list[[length(variables_list) + 1]] <- variable_entry
-
-    # Build state lookups (child + multinomial parents) so the helper can
-    # encode multinomial state references purely via state_id rather than
-    # via opaque parameter names.
-    child_state_lookup <- if (distribution == "multinomial") build_state_lookup(object, node_id) else NULL
-    parent_state_lookups <- list()
-    for (p in parent_nodes) {
-      if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
-        parent_state_lookups[[p]] <- build_state_lookup(object, p)
-      }
-    }
-
-    # Extract parameters based on distribution type
-    param_result <- extract_parameters_by_distribution(
-      coef_vec, se_vec, distribution, node_id,
-      parent_nodes, parameter_counter, link_function, var_id_map,
-      child_state_lookup = child_state_lookup,
-      parent_state_lookups = parent_state_lookups,
-      node_dists = node_dists
-    )
-
-    # Add parameters to list
-    parameters_list <- c(parameters_list, param_result$parameters)
-    parameter_counter <- param_result$next_counter
-  }
-
-  return(list(
-    variables = variables_list,
-    parameters = parameters_list
-  ))
-}
-
-#' Helper function to determine link function from distribution
-#' @keywords internal
-get_link_function <- function(distribution) {
-  link_functions <- list(
-    "gaussian" = "identity",
-    "binomial" = "logit",
-    "poisson" = "log",
-    "multinomial" = "logit"
-  )
-
-  return(if (is.null(link_functions[[distribution]])) "identity" else link_functions[[distribution]])
-}
-
-#' Extract states for categorical variables from data or stored states
-#' @keywords internal
-extract_states_from_data <- function(object, node_id) {
-  if (!is.null(object$multinomial.states) &&
-      !is.null(object$multinomial.states[[node_id]])) {
-    return(object$multinomial.states[[node_id]])
-  }
-
-  data_col <- object$abnDag$data.df[[node_id]]
-
-  if (is.factor(data_col) || is.character(data_col)) {
-    unique_vals <- sort(unique(as.character(data_col)))
-    states <- lapply(seq_along(unique_vals), function(i) {
-      list(
-        state_id = as.character(i),
-        value_name = unique_vals[i],
-        is_baseline = (i == 1)
-      )
-    })
-    return(states)
-  }
-
-  return(NULL)
-}
-
-#' Parse parent variable name from a coefficient name
-#'
-#' Coefficient names follow the pattern "child|parent" or "child|parent.category".
-#' This function extracts the parent portion, stripping any category suffix.
-#'
-#' @param coef_name Coefficient name string
-#' @keywords internal
-parse_parent_from_coef_name <- function(coef_name) {
-  info <- parse_parent_and_state_from_coef_name(coef_name)
-  if (is.null(info)) return(NULL)
-  return(info$parent)
-}
-
-#' Parse parent variable name AND optional category/state value from a coef name
-#'
-#' Used by the exporter to populate `parent_state_id` for multinomial parents.
-#' Coefficient names follow the pattern `"child|parent"` or `"child|parent.value"`.
-#' The trailing `.value` (digits or alphanumerics) is interpreted as the parent
-#' factor level value; if absent, `state_value` is NULL.
-#'
-#' @param coef_name Coefficient name string.
-#' @return NULL when no `|` is present; otherwise a list with
-#'   `parent` (character) and `state_value` (character or NULL).
-#' @keywords internal
-parse_parent_and_state_from_coef_name <- function(coef_name) {
-  parts <- strsplit(coef_name, "\\|", fixed = FALSE)[[1]]
-  if (length(parts) < 2) return(NULL)
-  parent_part <- parts[2]
-  # Match the LAST `.<value>` suffix; the value may be numeric or
-  # alphanumeric (factor level names). To avoid stripping parent names
-  # that legitimately contain dots, only strip the LAST segment.
-  m <- regexpr("\\.[^.]+$", parent_part)
-  if (m[1] > 0) {
-    state_value <- sub("^\\.", "", regmatches(parent_part, m))
-    parent <- sub("\\.[^.]+$", "", parent_part)
-  } else {
-    state_value <- NULL
-    parent <- parent_part
-  }
-  if (parent == "") return(NULL)
-  list(parent = parent, state_value = state_value)
-}
-
-#' Build a state-name -> state-id lookup for a node from an abnFit object.
-#'
-#' For multinomial nodes, returns a named character vector mapping each
-#' factor level value (`value_name`) to its 1-based `state_id` string.
-#' Returns NULL for non-multinomial nodes.
-#' @keywords internal
-build_state_lookup <- function(object, node_id) {
-  states <- extract_states_from_data(object, node_id)
-  if (is.null(states) || length(states) == 0) return(NULL)
-  ids <- vapply(states, function(s) as.character(s$state_id), character(1))
-  vals <- vapply(states, function(s) as.character(s$value_name), character(1))
-  stats::setNames(ids, vals)
-}
-
-#' Helper function to extract parameters based on distribution type
-#'
-#' Emits parameters whose `name` field is a structural label only
-#' (`"intercept"`, `"beta"`); parent / child relations and multinomial
-#' state assignments are encoded purely in the structural fields
-#' `source.variable_id`, `source.state_id`, and
-#' `conditions[].parent_variable_id` / `conditions[].parent_state_id`.
-#'
-#' @param parent_state_lookups A named list (one entry per parent that is
-#'   multinomial) mapping factor level value -> state_id. May be NULL.
-#' @keywords internal
-extract_parameters_by_distribution <- function(coef_vec, se_vec, distribution, node_id,
-                                               parent_nodes, start_counter, link_function,
-                                               var_id_map = NULL,
-                                               child_state_lookup = NULL,
-                                               parent_state_lookups = NULL,
-                                               node_dists = NULL) {
-  param_names <- names(coef_vec)
-  parameters <- list()
-  counter <- start_counter
-
-  # Local helper: build a `conditions` entry for a parent reference, looking up
-  # the parent state_id from the literal level value if the parent is multinomial.
-  make_parent_condition <- function(parent_var, state_value) {
-    parent_state_id <- NULL
-    if (!is.null(state_value) && !is.null(node_dists[[parent_var]]) &&
-        node_dists[[parent_var]] == "multinomial" &&
-        !is.null(parent_state_lookups) &&
-        !is.null(parent_state_lookups[[parent_var]])) {
-      lk <- parent_state_lookups[[parent_var]]
-      sid <- lk[state_value]
-      if (!is.na(sid)) parent_state_id <- unname(sid)
-    }
-    list(
-      parent_variable_id = var_id_map[parent_var],
-      parent_state_id = parent_state_id
-    )
-  }
-
-  if (distribution %in% c("gaussian", "binomial", "poisson")) {
-    # Find intercept parameter
-    intercept_pattern <- paste0("^", node_id, "\\|intercept$")
-    intercept_idx <- grep(intercept_pattern, param_names, ignore.case = TRUE)
-
-    if (length(intercept_idx) > 0) {
-      intercept_name <- param_names[intercept_idx[1]]
-
-      param_entry <- list(
-        parameter_id = as.character(counter),
-        name = "intercept",
-        link_function_name = link_function,
-        source = list(
-          variable_id = var_id_map[node_id]
-        ),
-        coefficients = list(
-          list(
-            value = unname(coef_vec[intercept_name]),
-            stderr = unname(se_vec[intercept_name]),
-            condition_type = "intercept",
-            conditions = list()
-          )
-        )
-      )
-
-      parameters[[length(parameters) + 1]] <- param_entry
-      counter <- counter + 1
-
-      param_names <- param_names[-intercept_idx[1]]
-      coef_remaining <- coef_vec[param_names]
-      se_remaining <- se_vec[param_names]
-    } else {
-      coef_remaining <- coef_vec
-      se_remaining <- se_vec
-    }
-
-    # Process parent coefficients as linear terms
-    if (length(coef_remaining) > 0) {
-      for (i in seq_along(coef_remaining)) {
-        param_name <- names(coef_remaining)[i]
-        info <- parse_parent_and_state_from_coef_name(param_name)
-        # Disambiguate: prefer an exact-name parent match (no state) over a
-        # spurious state strip that happens to look like a level value.
-        parent_var <- NULL
-        state_value <- NULL
-        if (!is.null(info)) {
-          # Prefer the no-strip interpretation if it matches a real parent.
-          full_parent_part <- sub(paste0("^", node_id, "\\|"), "", param_name)
-          if (full_parent_part %in% parent_nodes) {
-            parent_var <- full_parent_part
-          } else if (info$parent %in% parent_nodes) {
-            parent_var <- info$parent
-            state_value <- info$state_value
-          } else {
-            parent_var <- info$parent
-            state_value <- info$state_value
-          }
-        } else if (param_name %in% parent_nodes) {
-          parent_var <- param_name
-        } else {
-          for (p in parent_nodes[order(-nchar(parent_nodes))]) {
-            if (startsWith(param_name, p)) {
-              parent_var <- p
-              tail_part <- substr(param_name, nchar(p) + 1, nchar(param_name))
-              tail_part <- sub("^\\.", "", tail_part)
-              if (nchar(tail_part) > 0 && !is.null(node_dists[[p]]) &&
-                  node_dists[[p]] == "multinomial") {
-                state_value <- tail_part
-              }
-              break
-            }
-          }
-        }
-
-        cond <- if (!is.null(parent_var)) {
-          list(make_parent_condition(parent_var, state_value))
-        } else {
-          list()
-        }
-
-        param_entry <- list(
-          parameter_id = as.character(counter),
-          name = "beta",
-          link_function_name = link_function,
-          source = list(
-            variable_id = var_id_map[node_id]
-          ),
-          coefficients = list(
-            list(
-              value = unname(coef_remaining[i]),
-              stderr = unname(se_remaining[i]),
-              condition_type = "linear_term",
-              conditions = cond
-            )
-          )
-        )
-
-        parameters[[length(parameters) + 1]] <- param_entry
-        counter <- counter + 1
-      }
-    }
-
-  } else if (distribution == "multinomial") {
-    # Bare intercept (no state suffix): treat as state_id = baseline (omitted by
-    # default in abn). Here we emit only what is present in coef_vec.
-    bare_intercept_pattern <- paste0("^", node_id, "\\|intercept$")
-    bare_intercept_idx <- grep(bare_intercept_pattern, param_names)
-
-    if (length(bare_intercept_idx) > 0) {
-      for (idx in bare_intercept_idx) {
-        param_entry <- list(
-          parameter_id = as.character(counter),
-          name = "intercept",
-          link_function_name = link_function,
-          source = list(
-            variable_id = var_id_map[node_id]
-          ),
-          coefficients = list(
-            list(
-              value = unname(coef_vec[idx]),
-              stderr = unname(se_vec[idx]),
-              condition_type = "intercept",
-              conditions = list()
-            )
-          )
-        )
-        parameters[[length(parameters) + 1]] <- param_entry
-        counter <- counter + 1
-      }
-    }
-
-    # Suffixed intercepts: child|intercept.<state_value>
-    suffixed_intercept_pattern <- paste0("^", node_id, "\\|intercept\\.")
-    suffixed_intercept_idx <- grep(suffixed_intercept_pattern, param_names)
-    for (idx in suffixed_intercept_idx) {
-      pname <- param_names[idx]
-      state_value <- sub(paste0("^", node_id, "\\|intercept\\."), "", pname)
-      child_state_id <- NULL
-      if (!is.null(child_state_lookup)) {
-        sid <- child_state_lookup[state_value]
-        if (!is.na(sid)) child_state_id <- unname(sid)
-      }
-      src <- list(variable_id = var_id_map[node_id])
-      if (!is.null(child_state_id)) src$state_id <- child_state_id
-      param_entry <- list(
-        parameter_id = as.character(counter),
-        name = "intercept",
-        link_function_name = link_function,
-        source = src,
-        coefficients = list(
-          list(
-            value = unname(coef_vec[idx]),
-            stderr = unname(se_vec[idx]),
-            condition_type = "intercept",
-            conditions = list()
-          )
-        )
-      )
-      parameters[[length(parameters) + 1]] <- param_entry
-      counter <- counter + 1
-    }
-
-    all_intercept_idx <- c(bare_intercept_idx, suffixed_intercept_idx)
-
-    # Linear terms (parent slopes). For multinomial children the abn coef
-    # column name has no `|` and looks like `<parent><state>`; we attempt to
-    # match against parent_nodes first.
-    for (i in seq_along(param_names)) {
-      if (i %in% all_intercept_idx) next
-      pname <- param_names[i]
-
-      parent_var <- NULL
-      parent_state_value <- NULL
-      child_state_value <- NULL
-
-      if (grepl("\\|", pname)) {
-        info <- parse_parent_and_state_from_coef_name(pname)
-        if (!is.null(info)) {
-          full_parent_part <- sub(paste0("^", node_id, "\\|"), "", pname)
-          if (full_parent_part %in% parent_nodes) {
-            parent_var <- full_parent_part
-          } else {
-            parent_var <- info$parent
-            parent_state_value <- info$state_value
-          }
-        }
-      } else {
-        # Multinomial-child convention: try longest-match against parent names.
-        for (p in parent_nodes[order(-nchar(parent_nodes))]) {
-          if (startsWith(pname, p)) {
-            parent_var <- p
-            tail_part <- substr(pname, nchar(p) + 1, nchar(pname))
-            tail_part <- sub("^\\.", "", tail_part)
-            if (nchar(tail_part) > 0) {
-              if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
-                parent_state_value <- tail_part
-              } else {
-                child_state_value <- tail_part
-              }
-            }
-            break
-          }
-        }
-      }
-      if (is.null(parent_var)) next
-
-      child_state_id <- NULL
-      parent_state_id <- NULL
-      if (!is.null(child_state_value) && !is.null(child_state_lookup)) {
-        sid <- child_state_lookup[child_state_value]
-        if (!is.na(sid)) child_state_id <- unname(sid)
-      }
-      if (!is.null(parent_state_value) && !is.null(parent_state_lookups) &&
-          !is.null(parent_state_lookups[[parent_var]])) {
-        lk <- parent_state_lookups[[parent_var]]
-        sid <- lk[parent_state_value]
-        if (!is.na(sid)) parent_state_id <- unname(sid)
-      }
-
-      src <- list(variable_id = var_id_map[node_id])
-      if (!is.null(child_state_id)) src$state_id <- child_state_id
-
-      param_entry <- list(
-        parameter_id = as.character(counter),
-        name = "beta",
-        link_function_name = link_function,
-        source = src,
-        coefficients = list(
-          list(
-            value = unname(coef_vec[i]),
-            stderr = unname(se_vec[i]),
-            condition_type = "linear_term",
-            conditions = list(
-              list(
-                parent_variable_id = var_id_map[parent_var],
-                parent_state_id = parent_state_id
-              )
-            )
-          )
-        )
-      )
-      parameters[[length(parameters) + 1]] <- param_entry
-      counter <- counter + 1
-    }
-  }
-
-  return(list(
-    parameters = parameters,
-    next_counter = counter
-  ))
-}
-
-#' Export node information from abnFit objects fitted with MLE (mixed effects)
-#'
-#' @param object An object of class abnFit fitted with method = "mle" and group.var specified.
-#' @param ... Additional arguments (currently unused)
-#'
-#' @details This function extracts node parameterisation information from abnFit objects
-#' that were fitted using the Maximum Likelihood Estimation (MLE) approach WITH
-#' mixed-effects (i.e., group.var was specified).
-#'
-#' For mixed-effects models, the structure includes:
-#' \itemize{
-#' \item Fixed effects: Population-level intercepts and coefficients
-#' \item Random effects: Group-level variance components (sigma, sigma_alpha)
-#' }
-#'
-#' The export format follows the same variables/parameters structure, but parameters
-#' will include both fixed-effect coefficients and random-effect variance components.
-#'
-#' @returns A named list with two components: variables and parameters.
-#' Variables is an array where each element represents a variable with its metadata.
-#' Parameters is an array where each element represents a parameter, including both
-#' fixed-effect coefficients and random-effect variance components.
-#'
-#' @keywords internal
-export_abnFit_mle_grouped_nodes <- function(object, var_id_map = NULL, ...) {
-  # Input validation
-  if (!inherits(object, "abnFit")) {
-    stop("Object must be of class 'abnFit'", call. = FALSE)
-  }
-
-  if (object$method != "mle") {
-    stop("This function only handles abnFit objects fitted with method = 'mle'", call. = FALSE)
-  }
-
-  if (is.null(object$group.var)) {
-    stop("This function only handles grouped (mixed-effects) models", call. = FALSE)
-  }
-
-  if (is.null(object$mu) || is.null(object$betas) ||
-      is.null(object$sigma) || is.null(object$sigma_alpha)) {
-    stop("abnFit object must contain 'mu', 'betas', 'sigma', and 'sigma_alpha' components", call. = FALSE)
-  }
-
-  # Initialize output
-  variables_list <- list()
-  parameters_list <- list()
-  parameter_counter <- 1
-
-  node_names <- names(object$mu)
-  node_dists <- object$abnDag$data.dists
-
-  # Get parent information from DAG
-  dag_matrix <- as.matrix(object$abnDag$dag)
-
-  # If var_id_map not provided, create it
-  if (is.null(var_id_map)) {
-    var_id_map <- stats::setNames(
-      as.character(seq_along(node_names)),
-      node_names
-    )
-  }
-
-  # Process each node
-  for (node_id in node_names) {
-    # Extract parameters for this node
-    mu_val <- object$mu[[node_id]]
-    betas_val <- object$betas[[node_id]]
-    sigma_val <- object$sigma[[node_id]]
-    sigma_alpha_val <- object$sigma_alpha[[node_id]]
-
-    # Get distribution type for this node
-    distribution <- node_dists[[node_id]]
-
-    # Determine link function based on distribution
-    link_function <- get_link_function(distribution)
-
-    # Get parent nodes for this child
-    node_idx <- which(colnames(dag_matrix) == node_id)
-    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
-
-    # Create variable entry with numeric ID
-    variable_entry <- list(
-      variable_id = var_id_map[node_id],
-      attribute_name = node_id,
-      model_type = distribution
-    )
-
-    # Add states for categorical variables (multinomial)
-    if (distribution == "multinomial") {
-      variable_entry$states <- extract_states_from_data(object, node_id)
-    } else {
-      variable_entry$states <- NULL
-    }
-
-    variables_list[[length(variables_list) + 1]] <- variable_entry
-
-    child_state_lookup <- if (distribution == "multinomial") build_state_lookup(object, node_id) else NULL
-    parent_state_lookups <- list()
-    for (p in parent_nodes) {
-      if (!is.null(node_dists[[p]]) && node_dists[[p]] == "multinomial") {
-        parent_state_lookups[[p]] <- build_state_lookup(object, p)
-      }
-    }
-
-    # Extract parameters for mixed-effects models
-    param_result <- extract_parameters_mixed_effects(
-      mu_val, betas_val, sigma_val, sigma_alpha_val,
-      distribution, node_id, parent_nodes, parameter_counter, link_function,
-      var_id_map,
-      child_state_lookup = child_state_lookup,
-      parent_state_lookups = parent_state_lookups
-    )
-
-    # Add parameters to list
-    parameters_list <- c(parameters_list, param_result$parameters)
-    parameter_counter <- param_result$next_counter
-  }
-
-  return(list(
-    variables = variables_list,
-    parameters = parameters_list
-  ))
-}
-
-#' Helper function to extract parameters for mixed-effects models
-#'
-#' @param mu Fixed-effect intercept(s) from mu component
-#' @param betas Fixed-effect coefficients from betas component
-#' @param sigma Residual variance from sigma component
-#' @param sigma_alpha Random-effect variance/covariance from sigma_alpha component
-#' @param distribution Node distribution type
-#' @param node_id Node identifier
-#' @param parent_nodes Parent node identifiers
-#' @param start_counter Starting parameter counter
-#' @param link_function Link function name
-#'
-#' @details Extracts parameters from mixed-effects models following the new JSON structure.
-#'
-#' For each node, creates parameters for:
-#' - Fixed-effect intercept (from mu)
-#' - Fixed-effect coefficients for parents (from betas)
-#' - Residual variance (from sigma, for Gaussian/Poisson)
-#' - Random-effect variance/covariance (from sigma_alpha)
-#'
-#' @keywords internal
-extract_parameters_mixed_effects <- function(mu, betas, sigma, sigma_alpha,
-                                             distribution, node_id, parent_nodes,
-                                             start_counter, link_function, var_id_map = NULL,
-                                             child_state_lookup = NULL,
-                                             parent_state_lookups = NULL) {
-  parameters <- list()
-  counter <- start_counter
-
-  # Local helper for parent state encoding (shared across branches).
-  lookup_parent_state_id <- function(parent_var, state_value) {
-    if (is.null(state_value)) return(NULL)
-    lk <- parent_state_lookups[[parent_var]]
-    if (is.null(lk)) return(NULL)
-    sid <- lk[state_value]
-    if (is.na(sid)) return(NULL)
-    unname(sid)
-  }
-  lookup_child_state_id <- function(state_value) {
-    if (is.null(state_value) || is.null(child_state_lookup)) return(NULL)
-    sid <- child_state_lookup[state_value]
-    if (is.na(sid)) return(NULL)
-    unname(sid)
-  }
-
-  # Handle different distribution types
-  if (distribution %in% c("gaussian", "binomial", "poisson")) {
-    # 1. Fixed-effect intercept (mu)
-    if (!is.null(mu) && !is.na(mu) && length(mu) > 0) {
-      param_entry <- list(
-        parameter_id = as.character(counter),
-        name = "intercept",
-        link_function_name = link_function,
-        source = list(variable_id = var_id_map[node_id]),
-        coefficients = list(
-          list(
-            value = as.numeric(mu)[1],
-            stderr = NULL,
-            condition_type = "intercept",
-            conditions = list()
-          )
-        )
-      )
-      parameters[[length(parameters) + 1]] <- param_entry
-      counter <- counter + 1
-    }
-
-    # 2. Fixed-effect coefficients (betas)
-    if (!is.null(betas) && !is.logical(betas) && length(betas) > 0 && !all(is.na(betas))) {
-      beta_names <- names(betas)
-      for (i in seq_along(betas)) {
-        beta_name <- beta_names[i]
-        beta_value <- betas[i]
-
-        # Match with parent nodes (longest first to avoid prefix collisions)
-        parent_var <- NULL
-        parent_state_value <- NULL
-        for (p in parent_nodes[order(-nchar(parent_nodes))]) {
-          if (identical(beta_name, p)) {
-            parent_var <- p
-            break
-          }
-          if (startsWith(beta_name, p)) {
-            tail_part <- substr(beta_name, nchar(p) + 1, nchar(beta_name))
-            tail_part <- sub("^\\.", "", tail_part)
-            parent_var <- p
-            parent_state_value <- if (nchar(tail_part) > 0) tail_part else NULL
-            break
-          }
-        }
-
-        if (!is.null(parent_var)) {
-          param_entry <- list(
-            parameter_id = as.character(counter),
-            name = "beta",
-            link_function_name = link_function,
-            source = list(variable_id = var_id_map[node_id]),
-            coefficients = list(
-              list(
-                value = as.numeric(beta_value),
-                stderr = NULL,
-                condition_type = "linear_term",
-                conditions = list(
-                  list(
-                    parent_variable_id = var_id_map[parent_var],
-                    parent_state_id = lookup_parent_state_id(parent_var, parent_state_value)
-                  )
-                )
-              )
-            )
-          )
-          parameters[[length(parameters) + 1]] <- param_entry
-          counter <- counter + 1
-        }
-      }
-    }
-
-    # 3. Residual variance (sigma) - only for Gaussian and Poisson
-    if (distribution %in% c("gaussian", "poisson")) {
-      if (!is.null(sigma) && !is.logical(sigma) && length(sigma) > 0 && !all(is.na(sigma))) {
-        param_entry <- list(
-          parameter_id = as.character(counter),
-          name = "sigma",
-          link_function_name = "identity",
-          source = list(variable_id = var_id_map[node_id]),
-          coefficients = list(
-            list(
-              value = as.numeric(sigma)[1],
-              stderr = NULL,
-              condition_type = "variance",
-              conditions = list()
-            )
-          )
-        )
-        parameters[[length(parameters) + 1]] <- param_entry
-        counter <- counter + 1
-      }
-    }
-
-    # 4. Random-effect variance (sigma_alpha)
-    if (!is.null(sigma_alpha) && !all(is.na(sigma_alpha))) {
-      param_entry <- list(
-        parameter_id = as.character(counter),
-        name = "sigma_alpha",
-        link_function_name = "identity",
-        source = list(variable_id = var_id_map[node_id]),
-        coefficients = list(
-          list(
-            value = if (is.matrix(sigma_alpha)) as.numeric(sigma_alpha[1,1]) else as.numeric(sigma_alpha)[1],
-            stderr = NULL,
-            condition_type = "random_variance",
-            conditions = list()
-          )
-        )
-      )
-      parameters[[length(parameters) + 1]] <- param_entry
-      counter <- counter + 1
-    }
-
-  } else if (distribution == "multinomial") {
-    normalize_multinomial_state_value <- function(value) {
-      value <- sub(paste0("^", node_id, "\\."), "", value)
-      value <- sub(paste0("^", node_id), "", value)
-      sub("~.*$", "", value)
-    }
-
-    # For multinomial, mu contains category-specific intercepts
-    if (!is.null(mu) && length(mu) > 0) {
-      mu_names <- names(mu)
-      categories <- vapply(mu_names, normalize_multinomial_state_value, character(1))
-
-      for (i in seq_along(mu)) {
-        cat <- categories[i]
-        src <- list(variable_id = var_id_map[node_id])
-        sid <- lookup_child_state_id(cat)
-        # Fallback: keep the literal level value if no lookup hit.
-        if (!is.null(sid)) src$state_id <- sid else src$state_id <- cat
-        param_entry <- list(
-          parameter_id = as.character(counter),
-          name = "intercept",
-          link_function_name = link_function,
-          source = src,
-          coefficients = list(
-            list(
-              value = as.numeric(mu[i]),
-              stderr = NULL,
-              condition_type = "intercept",
-              conditions = list()
-            )
-          )
-        )
-        parameters[[length(parameters) + 1]] <- param_entry
-        counter <- counter + 1
-      }
-    }
-
-    # Fixed-effect coefficients (betas) - matrix format
-    if (!is.null(betas) && is.matrix(betas) && !all(is.na(betas))) {
-      categories <- rownames(betas)
-      parent_names <- colnames(betas)
-
-      for (i in seq_len(nrow(betas))) {
-        cat <- normalize_multinomial_state_value(categories[i])
-        for (j in seq_len(ncol(betas))) {
-          parent_name <- parent_names[j]
-
-          parent_var <- NULL
-          parent_state_value <- NULL
-          for (p in parent_nodes[order(-nchar(parent_nodes))]) {
-            if (identical(parent_name, p)) {
-              parent_var <- p
-              break
-            }
-            if (startsWith(parent_name, p)) {
-              tail_part <- substr(parent_name, nchar(p) + 1, nchar(parent_name))
-              tail_part <- sub("^\\.", "", tail_part)
-              parent_var <- p
-              parent_state_value <- if (nchar(tail_part) > 0) tail_part else NULL
-              break
-            }
-          }
-
-           if (!is.null(parent_var)) {
-             child_sid <- lookup_child_state_id(cat)
-             src <- list(variable_id = var_id_map[node_id])
-             src$state_id <- if (!is.null(child_sid)) child_sid else cat
-             param_entry <- list(
-               parameter_id = as.character(counter),
-               name = "beta",
-               link_function_name = link_function,
-               source = src,
-               coefficients = list(
-                 list(
-                   value = as.numeric(betas[i, j]),
-                   stderr = NULL,
-                   condition_type = "linear_term",
-                   conditions = list(
-                     list(
-                       parent_variable_id = var_id_map[parent_var],
-                       parent_state_id = lookup_parent_state_id(parent_var, parent_state_value)
-                     )
-                   )
-                 )
-               )
-             )
-            parameters[[length(parameters) + 1]] <- param_entry
-            counter <- counter + 1
-          }
-        }
-      }
-    }
-
-    # Random-effect variance-covariance matrix
-    if (!is.null(sigma_alpha) && is.matrix(sigma_alpha)) {
-      categories <- rownames(sigma_alpha)
-
-      for (i in seq_len(nrow(sigma_alpha))) {
-        for (j in i:ncol(sigma_alpha)) {
-          cat_i <- normalize_multinomial_state_value(categories[i])
-          cat_j <- normalize_multinomial_state_value(categories[j])
-
-          # Look up state IDs (numeric) when possible.
-          sid_i <- lookup_child_state_id(cat_i)
-          sid_j <- lookup_child_state_id(cat_j)
-          if (is.null(sid_i)) sid_i <- cat_i
-          if (is.null(sid_j)) sid_j <- cat_j
-
-          src <- list(variable_id = var_id_map[node_id])
-          src$state_id <- if (i == j) sid_i else paste0(sid_i, "_", sid_j)
-
-          param_entry <- list(
-            parameter_id = as.character(counter),
-            name = if (i == j) "random_variance" else "random_covariance",
-            link_function_name = "identity",
-            source = src,
-            coefficients = list(
-              list(
-                value = as.numeric(sigma_alpha[i, j]),
-                stderr = NULL,
-                condition_type = if (i == j) "random_variance" else "random_covariance",
-                conditions = list()
-              )
-            )
-          )
-          parameters[[length(parameters) + 1]] <- param_entry
-          counter <- counter + 1
-        }
-      }
-    }
-  }
-
-  return(list(parameters = parameters, next_counter = counter))
-}
-
-#' Export arc information from abnFit objects fitted with MLE
-#' @inheritParams export_abnFit
-#' @details This function extracts arc information from abnFit objects fitted using MLE.
-#' It retrieves the source and target nodes for each arc in the directed acyclic graph (DAG).
-#' Currently, frequency, significance, and constraint information are not included in the export.
-#' @return An array containing arc details: source_variable_id and target_variable_id for each arc.
-#' @keywords internal
-export_abnFit_mle_arcs <- function(object, var_id_map = NULL, ...) {
-  dag_matrix <- object$abnDag$dag
-
-  if (nrow(dag_matrix) == 0 || ncol(dag_matrix) == 0) {
-    return(list())
-  }
-
-  # Create var_id_map if not provided
-  if (is.null(var_id_map)) {
-    node_names <- colnames(dag_matrix)
-    var_id_map <- stats::setNames(
-      as.character(seq_along(node_names)),
-      node_names
-    )
-  }
-
+abn_json_build_arcs <- function(fit, ctx) {
   arcs <- list()
-  for (i in seq_len(nrow(dag_matrix))) {
-    for (j in seq_len(ncol(dag_matrix))) {
-      if (dag_matrix[i, j] == 1) {
-        arcs[[length(arcs) + 1]] <- list(
-          source_variable_id = var_id_map[rownames(dag_matrix)[i]],
-          target_variable_id = var_id_map[colnames(dag_matrix)[j]]
-        )
-      }
+  for (child in ctx$nodes) {
+    for (parent in ctx$parents[[child]]) {
+      arcs[[length(arcs) + 1L]] <- list(source = ctx$var_id[[parent]],
+                                        target = ctx$var_id[[child]])
     }
   }
-
-  # Sort arcs by (source_variable_id, target_variable_id)
-  arcs <- arcs[order(
-    sapply(arcs, function(a) as.numeric(a$source_variable_id)),
-    sapply(arcs, function(a) as.numeric(a$target_variable_id))
-  )]
-
-  return(arcs)
+  arcs
 }
 
-#' Export abnFit object fitted with Bayesian methods
-#'
-#' @inheritParams export_abnFit
-#'
-#' @details This function handles abnFit objects fitted using Bayesian methods.
-#' It will extract the posterior distributions and other Bayesian-specific information.
-#'
-#' The structure will follow the same variables/parameters/arcs format, but parameters
-#' will include posterior summaries (mean, median, credible intervals) instead of
-#' point estimates and standard errors.
-#'
-#' TODO: Implement the full extraction logic for Bayesian models, including:
-#' - Posterior mean/median for parameters
-#' - Credible intervals
-#' - Convergence diagnostics (Rhat, ESS)
-#' - Prior specifications
-#'
-#' @return A named list with components: scenario_id, label, variables, parameters, arcs.
-#' @keywords internal
-export_abnFit_bayes <- function(object, format, include_network,
-                                scenario_id = NULL, label = NULL, ...) {
-  # Input validation
-  if (!inherits(object, "abnFit")) {
-    stop("Object must be of class 'abnFit'", call. = FALSE)
-  }
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+# Internally each parameter is list(json = <JSON object without _id>, node,
+# field, name) where field/name identify the native abn element (extension and
+# Bayes marginals lookup). Ids are assigned at the end.
 
-  if (object$method != "bayes") {
-    stop("This function only handles abnFit objects fitted with method = 'bayes'", call. = FALSE)
+abn_json_param <- function(ctx, node, kind, value, field, name, se = NULL,
+                           parent = NULL, parent_state = NULL, target_state = NULL,
+                           states = NULL, scale = NULL, group = FALSE) {
+  value <- unname(as.numeric(value))
+  j <- list(target = ctx$var_id[[node]])
+  if (!is.null(target_state)) j$target_state <- abn_json_state_id(ctx, node, target_state)
+  j$kind <- kind
+  if (!is.null(parent)) {
+    j$parent <- ctx$var_id[[parent]]
+    if (!is.null(parent_state)) j$parent_state <- abn_json_state_id(ctx, parent, parent_state)
   }
-
-  node_names <- names(object$abnDag$data.dists)
-  if (is.null(node_names) || length(node_names) == 0) {
-    node_names <- names(object$coef)
+  if (isTRUE(group)) j$group <- ctx$group_id
+  if (!is.null(states)) {
+    j$states <- lapply(states, function(s) abn_json_state_id(ctx, node, s))
   }
-  if (is.null(node_names) || length(node_names) == 0) {
-    stop("Bayesian abnFit object does not contain node names to export", call. = FALSE)
+  if (!is.null(scale)) j$scale <- scale
+  j["value"] <- list(if (length(value) == 0 || is.na(value)) NULL else value)
+  se <- if (is.null(se) || length(se) == 0 || is.na(se)) NULL else unname(as.numeric(se))
+  j$uncertainty <- list(standard_error = se)
+  list(json = j, node = node, field = field, name = name)
+}
+
+# rank mirrors the native order: bayes modes list group.precision before the
+# residual precision; grouped MLE order is per-field and rank-independent
+abn_json_kind_rank <- c(intercept = 1, coefficient = 2, random_variance = 3,
+                        residual_variance = 4, random_covariance = 5)
+
+abn_json_build_parameters <- function(fit, ctx) {
+  builder <- switch(abn_json_fit_type(fit),
+                    mle = abn_json_params_mle,
+                    mle_grouped = abn_json_params_mle_grouped,
+                    bayes = abn_json_params_bayes)
+  params <- list()
+  for (node in ctx$nodes) {
+    node_params <- builder(fit, ctx, node)
+    rank <- vapply(node_params, function(p) abn_json_kind_rank[[p$json$kind]], numeric(1))
+    params <- c(params, node_params[order(rank)])
   }
-
-  var_id_map <- stats::setNames(as.character(seq_along(node_names)), node_names)
-  dag_matrix <- as.matrix(object$abnDag$dag)
-  node_dists <- object$abnDag$data.dists
-
-  variables_list <- lapply(node_names, function(node_id) {
-    distribution <- node_dists[[node_id]]
-    variable_entry <- list(
-      variable_id = var_id_map[node_id],
-      attribute_name = node_id,
-      model_type = distribution
-    )
-    if (identical(distribution, "multinomial")) {
-      variable_entry$states <- extract_states_from_data(object, node_id)
-    } else {
-      variable_entry$states <- NULL
+  for (i in seq_along(params)) {
+    params[[i]]$json <- c(list(`_id` = i), params[[i]]$json)
+  }
+  # reuse stored ids when the parameter sequence is unchanged (stable re-export)
+  stored <- ctx$ids$parameters
+  if (!is.null(stored) && length(stored) == length(params)) {
+    sigs <- vapply(params, function(p) paste(p$node, p$json$kind, p$name, sep = "|"),
+                   character(1))
+    if (identical(sigs, vapply(stored, function(s) s$sig, character(1)))) {
+      ids <- vapply(stored, function(s) s$id, integer(1))
+      for (i in seq_along(params)) params[[i]]$json$`_id` <- ids[i]
     }
-    variable_entry
-  })
+  }
+  params
+}
 
-  parameters_list <- list()
-  parameter_counter <- 1
-  for (node_id in node_names) {
-    coef_mat <- object$coef[[node_id]]
-    if (is.null(coef_mat) || length(coef_mat) == 0) next
+# Design terms of a parent as used in fixed-effect coefficients:
+# list of list(parent, state, names = <accepted native names>).
+abn_json_parent_terms <- function(ctx, parent, all_levels) {
+  dist <- ctx$dists[[parent]]
+  lv <- ctx$levels[[parent]]
+  if (dist == "multinomial") {
+    use <- if (all_levels) lv else lv[-1]
+    return(lapply(use, function(l) list(parent = parent, state = l,
+                                        names = paste0(parent, l))))
+  }
+  if (dist == "binomial") {
+    return(list(list(parent = parent, state = lv[2],
+                     names = c(parent, paste0(parent, lv[2])))))
+  }
+  list(list(parent = parent, state = NULL, names = parent))
+}
 
-    coef_vec <- as.numeric(coef_mat)
-    names(coef_vec) <- colnames(coef_mat)
-    if (is.null(names(coef_vec))) names(coef_vec) <- names(object$coef[[node_id]])
-    se_vec <- rep(NA_real_, length(coef_vec))
-    names(se_vec) <- names(coef_vec)
+abn_json_match_term <- function(terms, name, node) {
+  hit <- Filter(function(t) name %in% t$names, terms)
+  if (length(hit) != 1) {
+    stop("Cannot map coefficient '", name, "' of node '", node,
+         "' to a parent term.", call. = FALSE)
+  }
+  hit[[1]]
+}
 
-    distribution <- node_dists[[node_id]]
-    link_function <- get_link_function(distribution)
-    node_idx <- which(colnames(dag_matrix) == node_id)
-    parent_nodes <- names(dag_matrix[node_idx, ])[dag_matrix[node_idx, ] == 1]
-    child_state_lookup <- if (identical(distribution, "multinomial")) {
-      build_state_lookup(object, node_id)
-    } else {
-      NULL
+# Ungrouped MLE: coef / Stderror (+ mse as gaussian residual variance).
+abn_json_params_mle <- function(fit, ctx, node) {
+  coef <- fit$coef[[node]]
+  se <- fit$Stderror[[node]]
+  cols <- colnames(coef)
+  parents <- ctx$parents[[node]]
+  multi_parent <- any(ctx$dists[parents] == "multinomial")
+  # design columns in abn order
+  design <- list()
+  if (!multi_parent) design <- list(list(parent = NULL, state = NULL, intercept = TRUE))
+  for (p in parents) {
+    for (t in abn_json_parent_terms(ctx, p, all_levels = TRUE)) {
+      design[[length(design) + 1L]] <- list(parent = p, state = t$state,
+                                            name = if (ctx$dists[[p]] == "multinomial")
+                                              t$names else p)
     }
-    parent_state_lookups <- list()
-    for (p in parent_nodes) {
-      if (!is.null(node_dists[[p]]) && identical(node_dists[[p]], "multinomial")) {
-        parent_state_lookups[[p]] <- build_state_lookup(object, p)
+  }
+  expected <- list()
+  if (ctx$dists[[node]] == "multinomial") {
+    child_states <- ctx$levels[[node]][-1]
+    for (d in design) {
+      for (s in child_states) {
+        nm <- if (isTRUE(d$intercept)) paste0(node, "|intercept.", s) else paste0(d$name, s)
+        expected[[length(expected) + 1L]] <- c(d, list(target_state = s, native = nm))
       }
     }
+  } else {
+    for (d in design) {
+      nm <- if (isTRUE(d$intercept)) paste0(node, "|intercept") else d$name
+      expected[[length(expected) + 1L]] <- c(d, list(target_state = NULL, native = nm))
+    }
+  }
+  natives <- vapply(expected, function(e) e$native, character(1))
+  if (!identical(sort(natives), sort(cols))) {
+    stop("Unexpected coefficient names for node '", node, "': ",
+         paste(cols, collapse = ", "), "; expected: ", paste(natives, collapse = ", "),
+         call. = FALSE)
+  }
+  # emit parameters in the order of the original coef columns, which follows
+  # the design matrix (e.g. one-hot parents in raw factor order)
+  expected <- expected[match(cols, natives)]
+  params <- lapply(expected, function(e) {
+    kind <- if (isTRUE(e$intercept)) "intercept" else "coefficient"
+    abn_json_param(ctx, node, kind, coef[1, e$native], field = "coef", name = e$native,
+                   se = se[1, e$native], parent = e$parent, parent_state = e$state,
+                   target_state = e$target_state)
+  })
+  if (ctx$dists[[node]] == "gaussian") {
+    params[[length(params) + 1L]] <- abn_json_param(
+      ctx, node, "residual_variance", fit$mse[[node]], field = "mse", name = node,
+      scale = "variance")
+  }
+  params
+}
 
-    param_result <- extract_parameters_by_distribution(
-      coef_vec, se_vec, distribution, node_id,
-      parent_nodes, parameter_counter, link_function, var_id_map,
-      child_state_lookup = child_state_lookup,
-      parent_state_lookups = parent_state_lookups,
-      node_dists = node_dists
+# Grouped MLE: mu / betas / sigma / sigma_alpha (lme4, glmmTMB, mblogit).
+abn_json_params_mle_grouped <- function(fit, ctx, node) {
+  mu <- fit$mu[[node]]
+  betas <- fit$betas[[node]]
+  sigma <- fit$sigma[[node]]
+  sa <- fit$sigma_alpha[[node]]
+  terms <- unlist(lapply(ctx$parents[[node]], abn_json_parent_terms, ctx = ctx,
+                         all_levels = FALSE), recursive = FALSE)
+  params <- list()
+  add <- function(p) params[[length(params) + 1L]] <<- p
+  present <- function(x) !is.null(x) && length(x) > 0 && !all(is.na(x))
+
+  if (ctx$dists[[node]] == "multinomial") {
+    states <- ctx$levels[[node]][-1]
+    mu_names <- names(mu) %||% paste0(node, ".", states)
+    for (i in seq_along(states)) {
+      add(abn_json_param(ctx, node, "intercept", mu[[i]], field = "mu", name = mu_names[i],
+                         target_state = states[i]))
+    }
+    if (present(betas)) {
+      betas <- as.matrix(betas)
+      for (i in seq_along(states)) {
+        for (cn in colnames(betas)) {
+          t <- abn_json_match_term(terms, cn, node)
+          add(abn_json_param(ctx, node, "coefficient", betas[i, cn], field = "betas",
+                             name = cn,
+                             parent = t$parent, parent_state = t$state,
+                             target_state = states[i]))
+        }
+      }
+    }
+    if (present(sa)) {
+      sa <- as.matrix(sa)
+      for (i in seq_along(states)) {
+        for (k in seq_along(states)) {
+          if (k < i) next
+          nm <- paste(rownames(sa)[i] %||% i, colnames(sa)[k] %||% k, sep = ",")
+          if (i == k) {
+            add(abn_json_param(ctx, node, "random_variance", sa[i, i], field = "sigma_alpha",
+                               name = rownames(sa)[i], scale = "variance", group = TRUE,
+                               target_state = states[i]))
+          } else {
+            add(abn_json_param(ctx, node, "random_covariance", sa[i, k],
+                               field = "sigma_alpha", name = nm, scale = "variance",
+                               group = TRUE, states = states[c(i, k)]))
+          }
+        }
+      }
+    }
+    return(params)
+  }
+
+  add(abn_json_param(ctx, node, "intercept", mu, field = "mu", name = "(Intercept)"))
+  if (present(betas)) {
+    for (bn in names(betas)) {
+      t <- abn_json_match_term(terms, bn, node)
+      add(abn_json_param(ctx, node, "coefficient", betas[[bn]], field = "betas", name = bn,
+                         parent = t$parent, parent_state = t$state))
+    }
+  }
+  if (present(sigma) && ctx$dists[[node]] == "gaussian") {
+    add(abn_json_param(ctx, node, "residual_variance", sigma[[1]]^2, field = "sigma",
+                       name = node, scale = "variance"))
+  }
+  if (present(sa)) {
+    add(abn_json_param(ctx, node, "random_variance", sa[[1]]^2, field = "sigma_alpha",
+                       name = node, scale = "variance", group = TRUE))
+  }
+  params
+}
+
+# Bayes: posterior modes (+ quantiles from marginal.quantiles).
+abn_json_params_bayes <- function(fit, ctx, node) {
+  modes <- fit$modes[[node]]
+  lapply(names(modes), function(native) {
+    term <- sub(paste0("^", node, "\\|"), "", native, fixed = FALSE)
+    args <- list(ctx = ctx, node = node, value = modes[[native]], field = "modes",
+                 name = native)
+    if (term == "(Intercept)") {
+      args$kind <- "intercept"
+    } else if (term == "precision") {
+      args$kind <- "residual_variance"; args$scale <- "precision"
+    } else if (term == "group.precision") {
+      args$kind <- "random_variance"; args$scale <- "precision"; args$group <- TRUE
+    } else if (term %in% ctx$parents[[node]]) {
+      t <- abn_json_parent_terms(ctx, term, all_levels = FALSE)[[1]]
+      args$kind <- "coefficient"; args$parent <- term; args$parent_state <- t$state
+    } else {
+      stop("Cannot map posterior mode '", native, "'.", call. = FALSE)
+    }
+    p <- do.call(abn_json_param, args)
+    q <- fit$marginal.quantiles[[node]][[native]]
+    if (!is.null(q)) {
+      p$json$uncertainty$posterior_quantiles <- lapply(seq_len(nrow(q)), function(i) {
+        list(probability = unname(q[i, "P(X<=x)"]), value = unname(q[i, "x"]))
+      })
+    }
+    p
+  })
+}
+
+# ---------------------------------------------------------------------------
+# Inference
+# ---------------------------------------------------------------------------
+
+abn_json_num <- function(x) {
+  x <- unname(as.numeric(x))
+  if (length(x) == 0 || is.na(x)) NULL else x
+}
+
+abn_json_build_inference <- function(fit, ctx, params) {
+  bayes <- identical(fit$method, "bayes")
+  out <- list(type = if (bayes) "bayesian" else "maximum_likelihood")
+  if (bayes && !is.null(fit$priors)) {
+    out$priors <- list(
+      list(applies_to = "fixed_effects", family = "normal",
+           mean = fit$priors$mean, precision = fit$priors$prec),
+      list(applies_to = "precisions", family = "gamma",
+           shape = fit$priors$loggam.shape, rate = fit$priors$loggam.inv.scale)
     )
-
-    parameters_list <- c(parameters_list, param_result$parameters)
-    parameter_counter <- param_result$next_counter
   }
-
-  arcs_details <- export_abnFit_mle_arcs(object, var_id_map = var_id_map)
-
-  export_structure <- list()
-  export_structure$scenario_id <- scenario_id
-  export_structure$label <- label
-  export_structure$method <- object$method
-  export_structure$group_var <- object$group.var %||% NULL
-  export_structure$variables <- variables_list
-  export_structure$parameters <- parameters_list
-  export_structure$arcs <- arcs_details
-  original_model <- object$original_model %||% list()
-  export_structure$original_model <- list(
-    mlik = object$mlik %||% original_model$mlik,
-    mliknode = object$mliknode %||% original_model$mliknode,
-    modes = export_json_safe(object$modes %||% original_model$modes),
-    mse = export_json_safe(object$mse %||% original_model$mse),
-    used_INLA = object$used.INLA %||% original_model$used_INLA,
-    error_code = object$error.code %||% original_model$error_code,
-    error_code_desc = object$error.code.desc %||% original_model$error_code_desc,
-    hessian_accuracy = object$hessian.accuracy %||% original_model$hessian_accuracy
-  )
-  marginals <- object$marginals %||% original_model$marginals
-  marginal_quantiles <- object$marginal.quantiles %||% original_model$marginal_quantiles
-  if (!is.null(marginals)) {
-    export_structure$original_model$marginals <- export_json_safe(marginals)
+  diag <- list(log_marginal_likelihood = abn_json_num(fit$mlik))
+  if (!bayes) {
+    diag$aic <- abn_json_num(fit$aic)
+    diag$bic <- abn_json_num(fit$bic)
   }
-  if (!is.null(marginal_quantiles)) {
-    export_structure$original_model$marginal_quantiles <- export_json_safe(marginal_quantiles)
-  }
+  grouped <- !is.null(fit$group.var)
+  diag$nodes <- lapply(ctx$nodes, function(node) {
+    d <- list(variable = ctx$var_id[[node]],
+              log_marginal_likelihood = abn_json_num(fit$mliknode[[node]]))
+    if (!bayes) {
+      d$aic <- abn_json_num(fit$aicnode[[node]])
+      d$bic <- abn_json_num(fit$bicnode[[node]])
+      d$mdl <- abn_json_num(fit$mdlnode[[node]])
+      d$df <- abn_json_num(fit$df[[node]])
+      d$sse <- abn_json_num(fit$sse[[node]])
+      # ungrouped gaussian mse is the residual_variance parameter
+      if (grouped || ctx$dists[[node]] != "gaussian") d$mse <- abn_json_num(fit$mse[[node]])
+    }
+    Filter(Negate(is.null), d)
+  })
+  out$diagnostics <- Filter(Negate(is.null), diag)
 
-  return(export_structure)
+  if (bayes && !is.null(fit$marginals)) {
+    marginals <- list()
+    for (p in params) {
+      m <- fit$marginals[[p$node]][[p$name]]
+      if (is.null(m)) next
+      marginals[[length(marginals) + 1L]] <- list(
+        parameter = p$json$`_id`,
+        x = as.list(unname(m[, "x"])),
+        density = as.list(unname(m[, "f(x)"])))
+    }
+    out$posterior <- list(marginals = marginals)
+  }
+  out
+}
+
+# ---------------------------------------------------------------------------
+# abn extension (abn-internal information only)
+# ---------------------------------------------------------------------------
+
+abn_json_build_extension <- function(fit, ctx, params) {
+  ext <- list(parameter_names = lapply(params, function(p) {
+    list(parameter = p$json$`_id`, field = p$field, name = p$name)
+  }))
+  if (identical(fit$method, "bayes")) {
+    ext$nodes <- lapply(ctx$nodes, function(node) {
+      # some of these vectors lose their names (ifelse); order = DAG order
+      val <- function(x) {
+        x <- if (!is.null(names(x))) x[[node]] else x[[match(node, ctx$nodes)]]
+        if (is.null(x) || length(x) == 0 || is.na(x)) NULL else unname(x)
+      }
+      Filter(Negate(is.null), list(
+        variable = ctx$var_id[[node]],
+        used_inla = val(fit$used.INLA),
+        error_code = val(fit$error.code),
+        error_code_desc = val(fit$error.code.desc),
+        hessian_accuracy = val(fit$hessian.accuracy)))
+    })
+  }
+  ext
+}
+
+# ---------------------------------------------------------------------------
+# Structural check of a (parsed or built) network document. Used by export
+# before writing and by import before reconstruction.
+# ---------------------------------------------------------------------------
+
+abn_json_check_document <- function(doc) {
+  fail <- function(...) stop(..., call. = FALSE)
+  if (!identical(doc[["metadata"]][["schema_version"]], "bayesian-network")) {
+    fail("Unsupported schema_version '", doc[["metadata"]][["schema_version"]] %||% "",
+         "'; expected 'bayesian-network'.")
+  }
+  for (block in c("variables", "groups", "arcs", "parameters", "inference")) {
+    if (is.null(doc[[block]])) fail("Missing block '", block, "'.")
+  }
+  ids <- function(rows, what) {
+    x <- vapply(rows, function(r) as.character(r[["_id"]] %||% NA), character(1))
+    if (anyNA(x) || anyDuplicated(x)) fail("Missing or duplicated _id in ", what, ".")
+    x
+  }
+  var_ids <- ids(doc[["variables"]], "variables")
+  ids(doc[["parameters"]], "parameters")
+  group_ids <- ids(doc[["groups"]], "groups")
+  vars <- stats::setNames(doc[["variables"]], var_ids)
+  state_ids <- lapply(vars, function(v) {
+    s <- v[["states"]]
+    if (is.null(s)) return(character(0))
+    if (sum(vapply(s, function(x) isTRUE(x[["baseline"]]), logical(1))) != 1) {
+      fail("Variable '", v[["name"]], "' needs exactly one baseline state.")
+    }
+    ids(s, paste0("states of ", v[["name"]]))
+  })
+  ref <- function(id, what) {
+    id <- as.character(id)
+    if (!id %in% var_ids) fail("Unknown variable _id ", id, " referenced by ", what, ".")
+    id
+  }
+  arc_keys <- character(0)
+  for (a in doc[["arcs"]]) {
+    arc_keys <- c(arc_keys, paste(ref(a[["source"]], "arc"), ref(a[["target"]], "arc")))
+  }
+  for (p in doc[["parameters"]]) {
+    target <- ref(p[["target"]], "parameter")
+    if (!is.null(p[["target_state"]]) &&
+        !as.character(p[["target_state"]]) %in% state_ids[[target]]) {
+      fail("Unknown target_state ", p[["target_state"]], " in parameter ", p[["_id"]], ".")
+    }
+    if (!is.null(p[["parent"]])) {
+      parent <- ref(p[["parent"]], "parameter")
+      if (!paste(parent, target) %in% arc_keys) {
+        fail("Parameter ", p[["_id"]], " has parent ", parent,
+             " but there is no arc ", parent, " -> ", target, ".")
+      }
+      if (!is.null(p[["parent_state"]]) &&
+          !as.character(p[["parent_state"]]) %in% state_ids[[parent]]) {
+        fail("Unknown parent_state ", p[["parent_state"]], " in parameter ", p[["_id"]], ".")
+      }
+    }
+    if (!is.null(p[["group"]]) && !as.character(p[["group"]]) %in% group_ids) {
+      fail("Unknown group ", p[["group"]], " in parameter ", p[["_id"]], ".")
+    }
+  }
+  # acyclicity (Kahn)
+  edges <- do.call(rbind, lapply(doc[["arcs"]], function(a) {
+    c(as.character(a[["source"]]), as.character(a[["target"]]))
+  }))
+  if (!is.null(edges)) {
+    remaining <- var_ids
+    repeat {
+      roots <- remaining[!remaining %in% edges[edges[, 1] %in% remaining, 2]]
+      if (length(roots) == 0) break
+      remaining <- setdiff(remaining, roots)
+    }
+    if (length(remaining) > 0) fail("The arcs contain a cycle.")
+  }
+  invisible(TRUE)
 }
