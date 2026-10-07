@@ -241,7 +241,7 @@ The numerical routines used here are identical to those in \code{\link{fitAbn}} 
 \examples{
 ## Simple example
 # Generate data
-N <- 1e6
+N <- 100
 mydists <- list(a="gaussian",
                 b="gaussian",
                 c="gaussian")
