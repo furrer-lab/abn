@@ -6,7 +6,6 @@ on:
   push:
     branches:
       - "main"
-      - "fix_os_installs"
 
 env:
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -28,9 +27,8 @@ jobs:
 
     steps:
 
-      - name: Update and upgrade
-        run: |
-          sudo apt-get update && sudo apt-get upgrade
+      - name: Update package lists
+        run: sudo apt-get update -y
 
       - name: install R
         uses: r-lib/actions/setup-r@v2
