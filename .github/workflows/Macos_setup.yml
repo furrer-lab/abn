@@ -38,15 +38,20 @@ jobs:
         run: |
           brew install gsl
 
-      - name: install JAGS
+      - name: install JAGS 4 (brew 'jags' is 5.x, unsupported by rjags 4-17)
         run: |
-          brew install jags
+          curl --fail -L -o /tmp/JAGS-4.3.2.pkg \
+            "https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Mac%20OS%20X/JAGS-4.3.2.pkg/download"
+          sudo installer -pkg /tmp/JAGS-4.3.2.pkg -target /
+          ls -l /usr/local/lib/libjags*.dylib
 
-      # - name: install rjags
-      #   run: |
-      #       install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-      #       library("rjags")
-      #   shell: Rscript {0}
+      - name: install rjags
+        run: |
+            install.packages("rjags", type = "source",
+                             configure.args = "--with-jags-prefix=/usr/local",
+                             repos = c(CRAN = "https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
 
       - name: install INLA dependencies
         run: |
