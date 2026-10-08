@@ -44,7 +44,6 @@
 #' # edit(file=paste0( path.package('abn'),'/bootstrapping_example/README.md'))
 #' @keywords internal
 #' @importFrom Rcpp evalCpp
-#' @exportPattern "^[[:alpha:]]+"
 #' @returns nothing.
 #' @useDynLib abn, .registration=TRUE
 "_PACKAGE"

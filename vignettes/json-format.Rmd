@@ -35,23 +35,27 @@ document does not contain observations by default.
 # Metadata and extensions
 
 Both formats use a top-level `metadata` object. Generic fields describe the
-document itself; issuer-specific settings and annotations are kept in extensions.
+document itself; issuer-specific annotations live in `metadata.extensions`.
 
 ```json
 {
   "metadata": {
-    "schema_version": "bayesian-network-v1",
+    "schema_version": "bayesian-network",
     "issuer": "abn::export_abnFit",
     "issuer_version": "3.1.13",
-    "configs": {},
+    "created": "2026-10-07T12:00:00Z",
+    "label": "optional descriptive name",
+    "scenario_id": "optional run identifier",
+    "data_reference": {"uri": "model_data.json", "schema_version": "bn-data"},
     "extensions": {
       "abn": {
-        "configs": {},
-        "extra": {
-          "variables": {
-            "2": {"native_name": "status"}
-          }
-        }
+        "parameter_names": [
+          {"parameter": 4, "field": "coef", "name": "status|height"}
+        ],
+        "nodes": [
+          {"variable": 2, "used_inla": true, "error_code": 0,
+           "error_code_desc": "success"}
+        ]
       }
     }
   }
@@ -59,35 +63,30 @@ document itself; issuer-specific settings and annotations are kept in extensions
 ```
 
 `issuer` identifies the tool and operation that produced the document. Generic
-consumers should not need to understand it. `configs` contains settings that
-affect interpretation or reproducibility. `extensions` contains issuer-specific
-information attached to genuine objects in the document.
+consumers should not need to understand it. `extensions` contains
+issuer-specific information, keyed by issuer name; consumers must ignore
+extension namespaces they do not know.
 
-Extension namespaces should identify their issuer. Within an extension, object
-annotations are keyed by the corresponding object ID. For example,
-`extensions.abn.variables["2"]` annotates the variable with `_id` `2`.
-The `extra` object may contain `variables`, `arcs`, `parameters`, or `inference`
-collections keyed by the corresponding document-local `_id`. These are overlays:
-they contain only issuer-specific properties and must not repeat generic values.
+Everything with a generic meaning belongs in the core blocks, never in an
+extension: the extension holds only information that is meaningless outside
+`abn`, such as the native R names of coefficients or engine diagnostics. Each
+value is stored exactly once.
 
 `_id` values are document-local join keys. They must be unique within each
-object collection, but have no meaning outside the document and need not be
-preserved across exports. References must use `_id` values, never display names.
-An extension referring to an ID
-that is absent from the genuine object is not fatal: importers should ignore it
-and issue a warning. Unknown extension namespaces and properties should likewise
-be ignored by consumers that do not understand them.
+object collection, but have no meaning outside the document. References must
+use `_id` values, never display names. Unknown extension namespaces and
+properties should be ignored by consumers that do not understand them.
 
 # Data JSON
 
-The data format is identified by `metadata.schema_version = "bn-data-v1"`.
+The data format is identified by `metadata.schema_version = "bn-data"`.
 The payload is column-oriented and contains values only; interpretation belongs
 in metadata.
 
 ```json
 {
   "metadata": {
-    "schema_version": "bn-data-v1",
+    "schema_version": "bn-data",
     "issuer": "abn::export_abnData",
     "orientation": "columnar",
     "column_order": ["height", "status"],
@@ -159,102 +158,79 @@ formats have one authoritative documentation home.
 # Network JSON
 
 The network format is identified by `metadata.schema_version =
-"bayesian-network-v1"`. Its interoperable core consists of four concepts:
+"bayesian-network"`. Its interoperable core consists of five blocks:
 
-* `variables` declares nodes and their types or states.
+* `variables` declares nodes: generic `type`, `distribution` and `link`, plus
+  `states` (with one `baseline` state) for binary and categorical variables.
+* `groups` declares the grouping variables of mixed-effects models (possibly
+  empty), referencing the variables fitted with a random intercept.
 * `arcs` declares directed edges using source and target `_id` values.
-* `parameters` declares fitted quantities and their targets, parents, links, and
-  values.
-* `inference` contains generic fitting method, estimates, uncertainty, posterior
-  results, and diagnostics that are meaningful independently of the producing
-  software.
+* `parameters` declares fitted quantities: one entry per additive term, with
+  `kind` (`intercept`, `coefficient`, `residual_variance`, `random_variance`,
+  `random_covariance`), its `target` (and `target_state` for categorical
+  targets), its single `parent` (and `parent_state` for coded parents), its
+  `group`, `value` (possibly `null` for non-estimable terms) and `uncertainty`.
+* `inference` contains the fitting `type` (`maximum_likelihood` or `bayesian`),
+  the `priors` of Bayesian fits, generic `diagnostics` (network level and per
+  node), and posterior `marginals` when available.
+
+The linear predictor of a node is the sum of its applicable `intercept` and
+`coefficient` parameters plus the group random effect; a `coefficient` with
+`parent_state` contributes `value * 1[x_parent == parent_state]`, otherwise
+`value * x_parent` (after the parent's optional `transform`). No coding
+convention is needed: a node whose parents are fully one-hot encoded simply
+has no intercept parameter.
 
 ```json
 {
-  "metadata": {
-    "schema_version": "bayesian-network-v1",
-    "issuer": "abn::export_abnFit",
-    "issuer_version": "3.1.13",
-    "configs": {},
-    "extensions": {}
-  },
+  "metadata": {"schema_version": "bayesian-network", "issuer": "some-tool"},
   "variables": [
-    {"_id": 1, "name": "height", "type": "continuous"},
-    {
-      "_id": 2, "name": "status", "type": "binary",
-      "states": [{"_id": 1, "label": "no"},
-                  {"_id": 2, "label": "yes"}]
-    }
+    {"_id": 1, "name": "height", "type": "continuous",
+     "distribution": "gaussian", "link": "identity"},
+    {"_id": 2, "name": "status", "type": "binary",
+     "distribution": "bernoulli", "link": "logit",
+     "states": [{"_id": 1, "label": "no", "baseline": true},
+                {"_id": 2, "label": "yes", "baseline": false}]}
   ],
+  "groups": [],
   "arcs": [{"source": 1, "target": 2}],
   "parameters": [
-    {
-      "_id": 1,
-      "target": 2,
-      "kind": "intercept",
-      "link": "logit",
-      "value": -0.42
-    },
-    {
-      "_id": 2,
-      "target": 2,
-      "parents": [1],
-      "kind": "coefficient",
-      "link": "logit",
-      "value": 0.87
-    }
+    {"_id": 1, "target": 1, "kind": "intercept", "value": 1.2,
+     "uncertainty": {"standard_error": 0.1}},
+    {"_id": 2, "target": 1, "kind": "residual_variance",
+     "scale": "variance", "value": 0.25},
+    {"_id": 3, "target": 2, "kind": "intercept", "value": -0.42,
+     "uncertainty": {"standard_error": 0.2}},
+    {"_id": 4, "target": 2, "kind": "coefficient", "parent": 1,
+     "value": 0.87, "uncertainty": {"standard_error": 0.3}}
   ],
   "inference": {
-    "type": "bayesian",
-    "estimates": {},
-    "uncertainty": {},
-    "diagnostics": {}
+    "type": "maximum_likelihood",
+    "diagnostics": {
+      "log_marginal_likelihood": -123.4,
+      "nodes": [{"variable": 1, "log_marginal_likelihood": -55.0, "df": 98}]
+    }
   }
 }
 ```
 
-The core deliberately uses generic terms such as `type`, `kind`, `target`,
-`parents`, and `value`. A tool may add standard uncertainty fields or richer
-posterior representations without exposing its internal object layout.
+Variance-type parameters carry a `scale`: `"variance"` for maximum-likelihood
+fits and `"precision"` for Bayesian ones, matching what the fitting engine
+natively estimates; consumers convert as needed.
 
 The generic core contains only information needed by an independent
 Bayesian-network tool to understand, display, or use the mathematical model.
-For example, an `abn` exporter records engine-specific diagnostics under
-`metadata.extensions.abn`, while generic inference information remains in
-`inference`:
+Engine-specific information that has no generic meaning lives under
+`metadata.extensions.abn`: the native `abn` coefficient names and the
+per-node INLA diagnostics.
 
-```json
-{
-  "metadata": {
-    "extensions": {
-      "abn": {
-        "configs": {"compute_fixed": true},
-        "diagnostics": {
-          "used_inla": {"status": true},
-          "error_code": {"status": 0},
-          "error_code_desc": {"status": "success"},
-          "hessian_accuracy": {"status": 0}
-        },
-        "extra": {
-          "parameters": {
-            "3": {"native_name": "status|height"}
-          }
-        }
-      }
-    }
-  }
-}
-```
+## Always-complete documents
 
-## Network structure and `include_network`
-
-`export_abnFit(..., include_network = TRUE)` includes the DAG representation:
-the `variables` and `arcs` collections. This is the default because a fitted
-network is normally not interpretable without its graph. With
-`include_network = FALSE`, the exporter omits the network structure while still
-exporting fitted quantities and their object references. Such a document is
-useful when the graph is managed separately, but a consumer must obtain the
-referenced variables and arcs from another source.
+A network document always contains all six blocks (`metadata`, `variables`,
+`groups`, `arcs`, `parameters`, `inference`); `groups` may be empty. A document
+without the structure would not describe a model, so there is no option to
+omit it. Observations never belong to a network document; they are exchanged
+through the data format and can be linked via `metadata.data_reference`.
 
 ## Using network JSON with `abn`
 
@@ -269,7 +245,7 @@ cache <- buildScoreCache(ex1.dag.data, data.dists = mydists,
                           method = "mle", max.parents = 2)
 fit <- fitAbn(mostProbable(cache), method = "mle")
 
-network_json <- export_abnFit(fit, include_network = TRUE)
+network_json <- export_abnFit(fit)
 fit_again <- import_abnFit(json = network_json)
 ```
 
@@ -291,18 +267,18 @@ Consumers should validate the following core rules:
 
 Unknown top-level optional fields, metadata fields, extension namespaces, and
 extension properties should be ignored unless strict validation is requested.
-The `extra` overlay must not repeat a generic value under `metadata.extensions`;
-duplicate values are malformed even when they happen to be equal.
-Missing extension `_id` references are specifically non-fatal and should produce warnings.
+Extensions must not repeat a generic value; every value belongs to exactly one
+location in the document.
 
 # Design summary
 
 The formats separate portable Bayesian-network concepts from implementation
-details. `metadata.issuer` provides provenance, `metadata.configs.label` may
-provide an optional document label, and `metadata.extensions` provides
-namespaced ABN annotations and engine diagnostics. Document-local `_id` values
-are JSON bookkeeping only; they make overlays safe to join and may be
-regenerated by every export.
+details. `metadata.issuer` provides provenance, `metadata.label` and
+`metadata.scenario_id` may provide an optional label and run identifier, and
+`metadata.extensions` provides namespaced ABN annotations and engine
+diagnostics. Document-local `_id` values are JSON bookkeeping; they make
+references and overlays safe to join. `abn` keeps them stable across a
+round-trip so that re-export is idempotent.
 
 See `export_abnData()`, `import_abnData()`, `export_abnFit()`, and
 `import_abnFit()` for the `abn` adapters.

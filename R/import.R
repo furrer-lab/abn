@@ -10,13 +10,28 @@
 #'
 #' @param file Optional path to a JSON file.
 #' @param json Optional JSON string. If both are given, \code{json} wins.
-#' @param data Optional observations: a data frame or the path to a
-#'   \code{bn-data} data document. The observations are transformed exactly as
+#' @param data Optional observations: a data frame, the path to a \code{bn-data}
+#'   data document, or the result of \code{\link{import_abnData}}. The
+#'   observations are transformed exactly as
 #'   \code{\link{fitAbn}} does and attached to \code{abnDag$data.df}; for grouped
 #'   fits the grouping column provides \code{group.ids}.
 #' @param validate If \code{TRUE}, the document is checked structurally
 #'   (schema version, unique ids, resolvable references, acyclic arcs).
 #' @return An object of class \code{abnFit}.
+#' @details
+#' The document format is specified by
+#' \code{inst/schemas/bayesian-network.schema.json} and described in the
+#' vignettes \code{vignette("fitabn-json-specification", package = "abn")} and
+#' \code{vignette("json-format", package = "abn")}.
+#' @examples
+#' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")
+#' mydag <- matrix(0, 4, 4, dimnames = list(names(mydists), names(mydists)))
+#' mydag["b3", c("b1", "g1")] <- 1
+#' fit <- fitAbn(dag = mydag, data.df = ex1.dag.data[, names(mydists)],
+#'               data.dists = mydists, method = "mle")
+#' back <- import_abnFit(json = export_abnFit(fit),
+#'                       data = ex1.dag.data[, names(mydists)])
+#' stopifnot(isTRUE(all.equal(back$coef, fit$coef)))
 #' @seealso \code{\link{export_abnFit}}, \code{\link{fitAbn}},
 #'   \code{\link{import_abnData}}
 #' @importFrom jsonlite fromJSON
@@ -516,11 +531,33 @@ abn_json_empty_data <- function(ctx) {
 
 abn_json_attach_data <- function(fit, ctx, data) {
   if (is.null(data)) return(fit)
+  data_dists <- NULL
   if (is.character(data) && length(data) == 1L && file.exists(data)) {
-    data <- import_abnData(file = data)$data.df
+    imported <- import_abnData(file = data)
+    data <- imported[["data.df"]]
+    data_dists <- imported[["data.dists"]]
+  } else if (is.list(data) && !is.data.frame(data) && !is.null(data[["data.df"]])) {
+    # result of import_abnData()
+    data_dists <- data[["data.dists"]]
+    data <- data[["data.df"]]
   }
   if (!is.data.frame(data)) {
-    stop("'data' must be a data frame or a path to a data document.", call. = FALSE)
+    stop("'data' must be a data frame, a path to a data document, or the ",
+         "result of import_abnData().", call. = FALSE)
+  }
+
+  # data documents carry their own distribution metadata; it must agree with
+  # the network document
+  if (!is.null(data_dists)) {
+    data_dists <- unlist(data_dists)
+    for (node in ctx$names) {
+      dd <- data_dists[[node]]
+      if (!is.null(dd) && !identical(as.character(dd), ctx$dists_flat[[node]])) {
+        stop("Distribution of '", node, "' in the data document (", dd,
+             ") does not match the network document (", ctx$dists_flat[[node]],
+             ").", call. = FALSE)
+      }
+    }
   }
 
   missing_cols <- setdiff(ctx$names, colnames(data))

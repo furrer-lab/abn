@@ -172,7 +172,7 @@ ctrlbayes <- abn::build.control(method = "bayes",
 \seealso{
 \code{\link{fit.control}}.
 
-Other buildScoreCache: 
-\code{\link{buildScoreCache}()}
+Other buildScoreCache:
+\code{\link[=buildScoreCache]{buildScoreCache()}}
 }
 \concept{buildScoreCache}

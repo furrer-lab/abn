@@ -130,6 +130,17 @@ load_data_json_fixture <- function(spec) {
   fixture_env <- new.env(parent = emptyenv())
   suppressWarnings(data(list = spec$dataset, package = "abn", envir = fixture_env))
   if (!exists(spec$dataset, envir = fixture_env, inherits = FALSE)) {
+    # data() behaves differently under devtools::load_all() and R CMD check;
+    # the attached package environment works in both (lazy loading triggers)
+    pkg_env <- tryCatch(as.environment("package:abn"), error = function(e) NULL)
+    if (!is.null(pkg_env) &&
+        exists(spec$dataset, envir = pkg_env, inherits = FALSE)) {
+      assign(spec$dataset,
+             get(spec$dataset, envir = pkg_env, inherits = FALSE),
+             envir = fixture_env)
+    }
+  }
+  if (!exists(spec$dataset, envir = fixture_env, inherits = FALSE)) {
     data_file <- data_json_fixture_file(spec$dataset)
     if (file.exists(data_file)) load(data_file, envir = fixture_env)
   }

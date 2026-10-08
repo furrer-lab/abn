@@ -19,6 +19,18 @@
 #' @param data_reference Optional list \code{(uri, schema_version, sha256)}
 #'   pointing to the data document.
 #' @return A JSON string, or invisibly \code{file}.
+#' @details
+#' The document format is specified by \code{inst/schemas/bayesian-network.schema.json}
+#' and described in the vignettes \code{vignette("fitabn-json-specification", package = "abn")}
+#' and \code{vignette("json-format", package = "abn")}.
+#' @examples
+#' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")
+#' mydag <- matrix(0, 4, 4, dimnames = list(names(mydists), names(mydists)))
+#' mydag["b3", c("b1", "g1")] <- 1
+#' fit <- fitAbn(dag = mydag, data.df = ex1.dag.data[, names(mydists)],
+#'               data.dists = mydists, method = "mle")
+#' json <- export_abnFit(fit, label = "tiny example")
+#' stopifnot(isTRUE(all.equal(import_abnFit(json = json)$coef, fit$coef)))
 #' @seealso \code{\link{import_abnFit}}, \code{\link{export_abnData}}
 #' @export
 export_abnFit <- function(object, file = NULL, pretty = TRUE, label = NULL,

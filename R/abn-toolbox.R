@@ -205,8 +205,17 @@ compareDag <- function(ref, test, node.names = NULL, checkDAG = TRUE) {
     return(out)
 }
 
-#' @inherit compareDag
-#' @usage compareEG(ref, test)
+#' Compare two DAGs or essential graphs (EGs)
+#'
+#' @description
+#' Wrapper around \code{\link{compareDag}} with \code{checkDAG = FALSE}, so that
+#' essential graphs, whose undirected edges are coded symmetrically, can be
+#' compared as well.
+#'
+#' @inheritParams compareDag
+#' @return See \code{\link{compareDag}}.
+#' @seealso \code{\link{compareDag}}, \code{\link{essentialGraph}}
+#' @export
 compareEG <- function(ref, test){
   compareDag(ref, test, checkDAG=FALSE)
 }

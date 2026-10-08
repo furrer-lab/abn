@@ -1,8 +1,8 @@
 ---
-title: "The bn-data-v1 JSON Format"
+title: "The bn-data JSON Format"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{The bn-data-v1 JSON Format}
+  %\VignetteIndexEntry{The bn-data JSON Format}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -18,161 +18,116 @@ library(jsonlite)
 
 # Purpose
 
-This vignette specifies `bn-data-v1`, the columnar JSON format for exchanging
+This vignette specifies `bn-data`, the columnar JSON format for exchanging
 raw data between Bayesian-network tools. The format is independent of `abn`;
 `abn` provides one import/export adapter.
 
-The generic core contains both observations and the information needed to
-interpret them. Tool-specific details belong under namespaced metadata
-extensions. For the fitted-network format, see `json-format.Rmd`; for the
-mapping to native `abnFit` objects, see `fitabn-json-specification.Rmd`.
+Values are stored separately from their interpretation: `data` holds one
+array of scalar values per column, `metadata` describes how to read them.
+For the fitted-network format, see `vignette("json-format", package = "abn")`;
+for the mapping to native `abnFit` objects, see
+`vignette("fitabn-json-specification", package = "abn")`.
+
+The normative schema is `inst/schemas/bn-data.schema.json`.
 
 # Minimal structure
 
 ```json
 {
   "metadata": {
-    "schema_version": "bn-data-v1",
+    "schema_version": "bn-data",
     "issuer": "abn::export_abnData",
-    "label": "example dataset",
-    "extensions": {}
-  },
-  "variables": [
-    {
-      "name": "height",
-      "type": "continuous",
-      "role": "node",
-      "distribution": "gaussian"
-    },
-    {
-      "name": "status",
-      "type": "categorical",
-      "role": "node",
-      "distribution": "binomial",
-      "states": [{"label": "no"}, {"label": "yes"}]
-    },
-    {
-      "name": "subject",
-      "type": "identifier",
-      "role": "group"
-    }
-  ],
-  "data": {
     "orientation": "columnar",
-    "columns": {
-      "height": [1.72, 1.81, 1.65],
-      "status": ["yes", "no", "yes"],
-      "subject": [1, 1, 2]
-    }
+    "column_order": ["height", "status", "subject"],
+    "missing_values": {
+      "missing": null,
+      "not_a_number": "NaN",
+      "positive_infinity": "Infinity",
+      "negative_infinity": "-Infinity"
+    },
+    "columns": [
+      {"name": "height", "role": "node", "semantic_type": "continuous",
+       "model_distribution": "gaussian", "value_encoding": "number",
+       "nullable": false},
+      {"name": "status", "role": "node", "semantic_type": "binary",
+       "model_distribution": "binomial", "value_encoding": "labels",
+       "nullable": false, "categories": ["no", "yes"], "ordered": false},
+      {"name": "subject", "role": "group", "semantic_type": "categorical",
+       "value_encoding": "labels", "nullable": false}
+    ],
+    "data_dists": {"height": "gaussian", "status": "binomial"},
+    "group_var": "subject",
+    "adapters": {"r": {"row_names": ["1", "2", "3"], "columns": {}}}
   },
-  "missing_values": {
-    "null": null,
-    "nan": "NaN",
-    "positive_infinity": "Infinity",
-    "negative_infinity": "-Infinity"
+  "data": {
+    "height": [1.72, 1.81, 1.65],
+    "status": ["yes", "no", "yes"],
+    "subject": ["a", "a", "b"]
   }
 }
 ```
 
-The canonical data representation is columnar. Every column must have the same
-number of observations. Column names in `data.columns` must correspond to the
-declared variable names.
+The canonical data representation is columnar. Every column must have the
+same number of observations; `metadata.column_order` fixes the order.
 
 # Generic core
 
 ## Metadata
 
 `metadata.schema_version` identifies the format. `metadata.issuer` identifies
-the producing tool and operation. `metadata.label` is an optional human-readable
-document label. It is not a data column and does not affect interpretation.
+the producing tool and operation. `metadata.orientation` is `"columnar"`.
+`metadata.data_dists` maps model node names to their distributions and
+`metadata.group_var` names the grouping column, if any.
 
 Unknown metadata fields and extension namespaces may be ignored by consumers.
 
-## Variables
+## Column descriptors
 
-Each entry in `variables` describes one data column:
+Each entry of `metadata.columns` describes one data column:
 
 | Field | Meaning |
 |---|---|
-| `name` | Column name and key in `data.columns` |
-| `type` | Generic value type, such as `continuous`, `categorical`, `count`, or `identifier` |
-| `role` | Use in a workflow, such as `node`, `group`, `weight`, or `ignored` |
-| `distribution` | Statistical distribution when the column is a model node |
-| `states` | Ordered categorical state declarations |
+| `name` | Column name and key in `data` |
+| `role` | `node` or `group` |
+| `semantic_type` | `continuous`, `count`, `binary`, `categorical`, or `unknown` |
+| `model_distribution` | `gaussian`, `binomial`, `poisson`, or `multinomial` for node columns; omitted for group columns |
+| `value_encoding` | `labels`, `integer`, `number`, `boolean`, or `string` |
+| `nullable` | Whether the column contains missing values |
+| `categories` | Declared levels for label-encoded columns |
+| `ordered` | Whether the levels of a label-encoded column are ordered |
 
-Distribution and state information belongs to the core because another tool
-needs it to interpret the observations and construct a Bayesian-network model.
+Distribution and category information belongs to the core because another
+tool needs it to interpret the observations and construct a Bayesian-network
+model.
 
 ## Data
 
-The `data` object has:
+`data` holds one array per column, keyed by column name. JSON has no native
+representation for `NaN` or infinite values, so the `missing_values` block
+declares the tokens used: JSON `null` for missing, and the strings `"NaN"`,
+`"Infinity"`, `"-Infinity"` for the special numerics. Consumers must not
+silently reinterpret a declared token as an ordinary categorical label.
 
-```json
-{
-  "orientation": "columnar",
-  "columns": {
-    "node_a": [1, 2, 3],
-    "node_b": ["low", "high", "low"]
-  }
-}
-```
+## Summary
 
-Values are stored separately from their interpretation. Missing values and
-special numeric values are represented according to `missing_values` and the
-declared column type.
+`export_abnData()` optionally appends a `metadata.summary` block with
+recomputed, purely descriptive statistics (`row_count`, per-column counts,
+missing counts, and numeric or level summaries). The summary is derived data:
+`validate_data_json_summary()` detects stale summaries and
+`repair_data_json_summary()` recomputes them.
 
-## Missing values
+# R-specific adapter data
 
-JSON has no native representation for `NaN` or infinite values. A document may
-declare explicit tokens for them:
-
-```json
-"missing_values": {
-  "null": null,
-  "nan": "NaN",
-  "positive_infinity": "Infinity",
-  "negative_infinity": "-Infinity"
-}
-```
-
-Consumers must not silently reinterpret a declared token as an ordinary
-categorical label. Missingness and special numeric values should be restored
-according to the column's declared type and encoding.
-
-# Issuer-specific extensions
-
-Extensions must not duplicate generic column properties. They may add
-information that is useful to one producer or consumer:
-
-```json
-{
-  "metadata": {
-    "extensions": {
-      "abn": {
-        "extra": {
-          "variables": {
-            "subject": {
-              "r_class": "factor",
-              "original_column_position": 3
-            }
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-The generic `variables` entry remains the source of truth for `name`, `type`,
-`role`, `distribution`, and `states`. An extension that repeats one of those
-values is malformed: equal duplicates should warn and conflicting values should
-error in strict mode.
+`metadata.adapters.r` records R classes, storage types, factor levels and row
+names so that `import_abnData()` can reconstruct an R-native data frame
+exactly. Other Bayesian-network tools may ignore this block; the generic
+column descriptors remain the source of truth for interpretation.
 
 # Exporting `abn` data
 
-`export_abnData()` converts an R data frame and a named distribution list into
-the portable `bn-data-v1` document. The names of `data.dists` identify model
-node columns and their values identify the node distributions.
+`export_abnData()` converts an R data frame and a named distribution list
+into the portable `bn-data` document. The names of `data.dists` identify the
+model node columns; a `group.var` column is declared with role `group`.
 
 ```{r export-data}
 data(g2b2c_data)
@@ -191,12 +146,7 @@ data_json <- export_abnData(
 cat(data_json)
 ```
 
-The result can be written directly to a file when supported by the adapter's
-file argument, or written explicitly:
-
-```{r write-data, eval = FALSE}
-writeLines(data_json, "network-data.json")
-```
+A `file` argument writes the document and returns the path invisibly.
 
 # Importing into `abn`
 
@@ -208,23 +158,25 @@ str(restored$data.df)
 restored$data.dists
 ```
 
-The returned `data.df` and `data.dists` can be supplied to `buildScoreCache()`
-or other `abn` workflows. R-specific reconstruction details, such as factor
-classes or row names, may be carried in the ABN extension but are not required
-by other Bayesian-network tools.
+The returned `data.df` and `data.dists` can be supplied to
+`buildScoreCache()` or `fitAbn()`. A data document can also be attached
+directly to a network document with `import_abnFit(json = ..., data = ...)`;
+the distributions and factor levels of the two documents are cross-checked
+and mismatches are rejected.
 
 # Validation
 
 Consumers should validate:
 
-1. `metadata.schema_version` is supported and equals `bn-data-v1`.
-2. `metadata.issuer` is present when provenance is required.
-3. Variable names are unique and match the column names.
-4. All data columns have equal lengths.
-5. Declared states are unique and values obey their encoding.
-6. Distributions are compatible with variable types and roles.
-7. Missing-value tokens are unambiguous for the declared column type.
-8. Extensions do not duplicate generic column values.
+1. `metadata.schema_version` is supported and equals `bn-data`.
+2. `metadata.column_order` names are unique and match both
+   `metadata.columns` and the keys of `data`.
+3. All data columns have equal lengths.
+4. Declared categories are unique and values obey their encoding.
+5. `data_dists` and `group_var` are consistent with the column roles.
+6. Missing-value tokens are unambiguous for the declared column type.
+7. A present `metadata.summary` agrees with the data (or is treated as
+   stale).
 
-Unknown extension properties may be ignored by consumers that do not understand
-them. Missing extension references are non-fatal but should produce warnings.
+Unknown metadata fields and extension namespaces may be ignored by
+consumers that do not understand them.

@@ -130,3 +130,25 @@ test_that("import rejects data that does not match the variables", {
   bad_levels$b1 <- factor(ifelse(bad_levels$b1 == levels(bad_levels$b1)[1], "u", "v"))
   expect_error(import_abnFit(json = json, data = bad_levels), "b1")
 })
+
+test_that("import accepts the result of import_abnData()", {
+  spec <- jfx_spec("ex1_mle")
+  doc <- export_abnData(spec$data, spec$dists)
+  via_list <- import_abnFit(json = jfx_json("ex1_mle"),
+                            data = import_abnData(json = doc))
+  via_frame <- import_abnFit(json = jfx_json("ex1_mle"), data = spec$data)
+  expect_equal(via_list$abnDag$data.df, via_frame$abnDag$data.df)
+})
+
+test_that("import rejects data documents with mismatching distributions", {
+  spec <- jfx_spec("ex1_mle")
+  obj <- jsonlite::fromJSON(export_abnData(spec$data, spec$dists,
+                                           include_summary = FALSE),
+                             simplifyVector = FALSE)
+  obj$metadata$data_dists$g1 <- "poisson"
+  data_file <- tempfile(fileext = ".json")
+  on.exit(unlink(data_file))
+  writeLines(jsonlite::toJSON(obj, auto_unbox = TRUE, null = "null", digits = NA),
+             data_file)
+  expect_error(import_abnFit(json = jfx_json("ex1_mle"), data = data_file), "g1")
+})

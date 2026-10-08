@@ -271,7 +271,6 @@ buildScoreCache.bayes <-
 #' \item{hessian.accuracy}{The accuracy of the Hessian matrix returned by \code{inla()}.}
 #' \item{used.INLA}{A logical value indicating whether \code{inla()} was used to fit the model.}
 #' }
-#' @export
 #' @keywords internal
 forLoopContentBayes <- function(row.no = NULL, # i
                                 children = NULL,

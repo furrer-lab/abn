@@ -43,3 +43,9 @@ Makefile
 ^inst/figures/abn_logo.png$
 ^inst/figures/abn_logo_white.png$
 ^Meta$
+^\.Rlibs-container$
+^json_plan\.md$
+^shell\.nix$
+^AGENTS\.md$
+^_STATUS\.md$
+^branch_changelog\.md$

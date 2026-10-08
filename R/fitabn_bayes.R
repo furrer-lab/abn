@@ -799,6 +799,7 @@ get.ind.quantiles <- function(outmat,inmat){
 #' @param dists list of distributions.
 #'
 #' @return named numeric vector. Names correspond to node name. Value to standard deviations.
+#' @keywords internal
 getMSEfromModes <- function(modes, dists){
   modes_gaus <- unlist(unname(modes[unname(which(dists == "gaussian"))]), use.names = TRUE)
   if (!is.null(modes_gaus)){
@@ -819,6 +820,7 @@ getMSEfromModes <- function(modes, dists){
 #' @param modes list of modes.
 #'
 #' @return list of matrix arrays.
+#' @keywords internal
 modes2coefs <- function(modes){
   newmodes <- modes
   for (child in names(newmodes)){
