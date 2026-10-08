@@ -12,14 +12,16 @@
 * JSON export and import of raw data: `export_abnData()` and
   `import_abnData()` exchange observations in the columnar `bn-data` format,
   with column descriptors, missing-value tokens, optional summary statistics
-  and an R adapter for lossless round-trips
-  (`vignette("bn-data-json-specification")`).
+  (checkable and refreshable via `validate_data_json_summary()` and
+  `repair_data_json_summary()`) and an R adapter for lossless round-trips.
 * Machine-readable format specification: JSON Schemas in
   `inst/schemas/bayesian-network.schema.json` and
-  `inst/schemas/bn-data.schema.json`; property mapping in
-  `vignette("fitabn-json-specification")`.
+  `inst/schemas/bn-data.schema.json`, documented in
+  `vignette("json-format")` with the fitAbn property mapping in
+  `vignette("fitabn-json-specification")` and the data format in
+  `vignette("bn-data-json-specification")`.
 
-## Bug fixes in `fitAbn()`
+## Bug fixes in model fitting
 
 * Centred fits now record the applied `(center, scale)` per gaussian node
   (`fit$centre`); previously the transformation was invisible in the fit.
@@ -33,8 +35,8 @@
 * `fit$error.code.desc` keeps its node names (dropped by `ifelse()`).
 * Residual degrees of freedom (`df`, and hence `mse`) are computed from the
   actual design matrix; nodes with a multinomial parent had an off-by-one `df`.
-* Coefficient names of grouped multinomial children with several parents now
-  follow the order of the estimated values (issue #272 class of bugs).
+* Coefficient names of multinomial children with several parents now follow
+  the order of the estimated values.
 * `modes2coefs()` correctly removes all precision entries from `coef` for
   grouped gaussian nodes.
 * `buildScoreCache(method = "bayes")` no longer stores `grouped.vars` under
@@ -48,6 +50,7 @@
   visible through the blanket pattern (e.g. `check.valid.*`, `modes2coefs`,
   `forLoopContentBayes`) are now internal. If you relied on one of them,
   please open an issue.
+* `jsonvalidate` added to Suggests (used by the JSON schema tests).
 
 
 
