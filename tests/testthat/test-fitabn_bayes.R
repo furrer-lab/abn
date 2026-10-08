@@ -21,3 +21,27 @@ test_that("Test fitAbn.bayes()", {
   expect_equal(unclass(myres.c.test)[["mlik"]], myres.c[[12]])
   expect_equal(unname(unclass(myres.c.test)[["used.INLA"]]), myres.c[[13]]) # historical reasons. Can be updated in the future.
 })
+
+# --- invariants the bayesian-network JSON format relies on ------------------
+
+test_that("bayes modes carry gaussian precisions", {
+  jfx_skip_if_no_bayes()
+  fit <- jfx_fit("ex1_bayes")
+  expect_true("g1|precision" %in% names(fit$modes$g1))
+  expect_gt(fit$modes$g1[["g1|precision"]], 0)
+})
+
+test_that("coef of grouped gaussian bayes nodes contains no precision", {
+  jfx_skip_if_no_bayes()
+  fit <- jfx_fit("adg_bayes_grouped")
+  expect_false(any(grepl("precision", colnames(fit$coef$adg))))
+  expect_equal(ncol(fit$coef$adg), 2L)
+  expect_true(all(c("adg|precision", "adg|group.precision") %in% names(fit$modes$adg)))
+})
+
+test_that("bayes error.code.desc is named by node", {
+  jfx_skip_if_no_bayes()
+  fit <- jfx_fit("ex1_bayes")
+  expect_equal(names(fit$error.code.desc), names(fit$error.code))
+  expect_equal(names(fit$error.code.desc), colnames(fit$abnDag$dag))
+})

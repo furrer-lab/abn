@@ -61,8 +61,8 @@ test_that("core reproduces glm linear predictors with multinomial parents", {
 })
 
 test_that("core reproduces baseline-category logits of a multinomial child", {
-  spec <- jfx_spec("g2b2c_mle")
-  core <- jsem_core("g2b2c_mle")
+  spec <- jfx_spec("g2b2c_soft_mle")
+  core <- jsem_core("g2b2c_soft_mle")
   ref <- nnet::multinom(C ~ B1 + B2, data = spec$data, trace = FALSE)
   probs <- stats::predict(ref, type = "probs")
   for (state in c("b", "c")) {

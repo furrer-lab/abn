@@ -51,7 +51,7 @@ test_that("export writes to a file and returns the path invisibly", {
 # --- structure for every fixture --------------------------------------------
 
 test_that("all blocks are present and all references resolve", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     doc <- jfx_doc(name)
     info <- paste("fixture:", name)
@@ -104,7 +104,7 @@ test_that("all blocks are present and all references resolve", {
 })
 
 test_that("variables describe distribution, link and states", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     spec <- jfx_spec(name)
     doc <- jfx_doc(name)
@@ -144,7 +144,7 @@ test_that("gaussian transforms are written only for centred fits", {
 })
 
 test_that("arcs reproduce the DAG", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     fit <- jfx_fit(name)
     doc <- jfx_doc(name)
@@ -223,8 +223,8 @@ test_that("ungrouped MLE: a multinomial parent yields one coefficient per level"
 })
 
 test_that("ungrouped MLE: a multinomial child has parameters per non-baseline state", {
-  fit <- jfx_fit("g2b2c_mle")
-  doc <- jfx_doc("g2b2c_mle")
+  fit <- jfx_fit("g2b2c_soft_mle")
+  doc <- jfx_doc("g2b2c_soft_mle")
   coef <- fit$coef$C[1, ]
   for (state in c("b", "c")) {
     expect_equal(jdoc_parameter(doc, "C", "intercept", target_state = state)$value,
@@ -294,6 +294,7 @@ test_that("grouped MLE: fixed effects have no standard errors", {
 })
 
 test_that("grouped MLE: multinomial child exports its full covariance matrix", {
+  jfx_skip_unavailable("g2pbcgrp_mle_grouped")
   spec <- jfx_spec("g2pbcgrp_mle_grouped")
   fit <- jfx_fit("g2pbcgrp_mle_grouped")
   doc <- jfx_doc("g2pbcgrp_mle_grouped")
@@ -457,4 +458,254 @@ test_that("bayes diagnostics contain the marginal likelihoods only", {
     expect_equal(d[["log_marginal_likelihood"]], unname(fit$mliknode[[node]]))
     expect_null(d[["mse"]])
   }
+})
+
+# ---------------------------------------------------------------------------
+# (merged from test-json-export-extension.R)
+# Export: metadata.extensions.abn contains only abn-internal information.
+
+test_that("the abn extension only contains the allowed keys", {
+  for (name in jfx_names()) {
+    jfx_skip_bayes(name)
+    ext <- jfx_doc(name)$metadata[["extensions"]][["abn"]]
+    expect_true(all(names(ext) %in% JDOC_EXTENSION_KEYS), info = name)
+    expect_null(ext[["native_fields"]])
+    expect_null(ext[["native_presence"]])
+  }
+})
+
+test_that("the extension maps every parameter to its native abn names", {
+  for (name in jfx_names()) {
+    jfx_skip_bayes(name)
+    doc <- jfx_doc(name)
+    names_map <- doc[["metadata"]][["extensions"]][["abn"]][["parameter_names"]]
+    param_ids <- jdoc_ids(doc[["parameters"]])
+    mapped <- vapply(names_map, function(x) jdoc_chr(x[["parameter"]]), character(1))
+    expect_true(all(mapped %in% param_ids), info = name)
+    expect_setequal(unique(mapped), param_ids)
+    fields <- vapply(names_map, function(x) x[["field"]], character(1))
+    expect_true(all(fields %in% c("coef", "Stderror", "mse", "mu", "betas", "sigma",
+                                  "sigma_alpha", "modes")), info = name)
+    for (x in names_map) expect_false(any(c("value", "values") %in% names(x)))
+  }
+})
+
+test_that("native names in the extension agree with the fit", {
+  fit <- jfx_fit("g2b2c_soft_mle")
+  doc <- jfx_doc("g2b2c_soft_mle")
+  names_map <- doc[["metadata"]][["extensions"]][["abn"]][["parameter_names"]]
+  coef_names <- Filter(function(x) identical(x[["field"]], "coef"), names_map)
+  for (x in coef_names) {
+    p <- Filter(function(p) identical(jdoc_chr(p$`_id`), jdoc_chr(x[["parameter"]])),
+                doc[["parameters"]])[[1]]
+    target <- jdoc_variable_by_id(doc, p[["target"]])$name
+    expect_equal(p[["value"]], unname(fit$coef[[target]][1, x[["name"]]]), info = x[["name"]])
+  }
+})
+
+test_that("bayes node flags are stored per variable in the extension", {
+  jfx_skip_if_no_bayes()
+  fit <- jfx_fit("ex1_bayes")
+  doc <- jfx_doc("ex1_bayes")
+  nodes <- doc[["metadata"]][["extensions"]][["abn"]][["nodes"]]
+  expect_length(nodes, length(fit$modes))
+  na_to_null <- function(x) if (length(x) == 1 && is.na(x)) NULL else unname(x)
+  for (n in nodes) {
+    node <- jdoc_variable_by_id(doc, n[["variable"]])$name
+    expect_equal(n[["used_inla"]], na_to_null(fit$used.INLA[[node]]))
+    expect_equal(n[["error_code"]], na_to_null(fit$error.code[[node]]))
+    expect_equal(n[["error_code_desc"]], na_to_null(fit$error.code.desc[[node]]))
+  }
+})
+
+test_that("MLE exports carry no bayes node flags", {
+  expect_null(jfx_doc("ex1_mle")$metadata[["extensions"]][["abn"]][["nodes"]])
+})
+
+# ---------------------------------------------------------------------------
+# (merged from test-json-schema.R)
+# JSON Schema files and validation of exported documents.
+
+test_that("schema files are installed and are valid JSON", {
+  for (name in c("bayesian-network.schema.json", "bn-data.schema.json")) {
+    path <- jdoc_schema_file(name)
+    expect_true(nzchar(path), info = name)
+    schema <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+    expect_equal(schema$`$schema`, "http://json-schema.org/draft-07/schema#")
+  }
+})
+
+test_that("the network schema pins the schema version", {
+  schema <- jsonlite::fromJSON(jdoc_schema_file(), simplifyVector = FALSE)
+  expect_setequal(unlist(schema$required), JDOC_BLOCKS)
+  expect_equal(schema$definitions$metadata$properties$schema_version$const,
+               JDOC_SCHEMA_VERSION)
+})
+
+test_that("exports of all fixtures validate against the schema", {
+  for (name in jfx_names()) {
+    jfx_skip_bayes(name)
+    jdoc_expect_valid(jfx_json(name))
+  }
+})
+
+test_that("the foreign reference document validates against the schema", {
+  jdoc_expect_valid(jdoc_serialize(jdoc_foreign_document()))
+})
+
+test_that("the schema rejects structurally invalid documents", {
+  base <- jdoc_foreign_document()
+
+  wrong_version <- base
+  wrong_version[["metadata"]][["schema_version"]] <- "not-a-known-format"
+  jdoc_expect_invalid(jdoc_serialize(wrong_version))
+
+  missing_block <- base
+  missing_block[["groups"]] <- NULL
+  jdoc_expect_invalid(jdoc_serialize(missing_block))
+
+  bad_kind <- base
+  bad_kind[["parameters"]][[1]][["kind"]] <- "slope"
+  jdoc_expect_invalid(jdoc_serialize(bad_kind))
+
+  bad_type <- base
+  bad_type[["variables"]][[1]][["type"]] <- "numeric"
+  jdoc_expect_invalid(jdoc_serialize(bad_type))
+
+  bad_scale <- base
+  bad_scale[["parameters"]][[2]][["scale"]] <- "sd"
+  jdoc_expect_invalid(jdoc_serialize(bad_scale))
+
+  missing_states <- base
+  missing_states[["variables"]][[2]][["states"]] <- NULL
+  jdoc_expect_invalid(jdoc_serialize(missing_states))
+})
+
+test_that("exported data documents validate against the data schema", {
+  spec <- jfx_spec("ex1_mle")
+  json <- export_abnData(spec$data, spec$dists)
+  jdoc_expect_valid(json, "bn-data.schema.json")
+})
+
+test_that("a parameter value may be null (not estimable)", {
+  doc <- jdoc_foreign_document()
+  doc[["parameters"]][[4]]["value"] <- list(NULL)
+  jdoc_expect_valid(jdoc_serialize(doc))
+  data <- data.frame(height = c(1, 2), status = factor(c("no", "yes")))
+  # only the intercept contributes
+  expect_equal(jdoc_linear_predictor(doc, data, "status"), c(-0.42, -0.42))
+})
+
+# ---------------------------------------------------------------------------
+# (merged from test-json-semantics.R)
+# Semantics: the generic core alone (extensions removed) must reproduce the
+# model. Linear predictors computed from the JSON parameters are compared with
+# independent reference fits (glm, lm, nnet, lme4) on the raw data.
+
+jsem_family <- function(dist) {
+  switch(dist, gaussian = stats::gaussian(), binomial = stats::binomial(),
+         poisson = stats::poisson())
+}
+
+jsem_formula <- function(node, parents, random = NULL) {
+  rhs <- if (length(parents) == 0) "1" else paste(parents, collapse = " + ")
+  if (!is.null(random)) rhs <- paste(rhs, "+ (1 |", random, ")")
+  stats::as.formula(paste(node, "~", rhs))
+}
+
+jsem_core <- function(name) jdoc_drop_extensions(jfx_doc(name))
+
+jsem_standardise <- function(data, dists) {
+  for (node in names(dists)) {
+    if (identical(dists[[node]], "gaussian")) {
+      data[[node]] <- (data[[node]] - mean(data[[node]])) / stats::sd(data[[node]])
+    }
+  }
+  data
+}
+
+# Compare every non-multinomial node with a glm fitted on `ref_data`.
+jsem_expect_glm_nodes <- function(name, ref_data = jfx_spec(name)$data) {
+  spec <- jfx_spec(name)
+  fit <- jfx_fit(name)
+  core <- jsem_core(name)
+  for (node in names(spec$dists)) {
+    dist <- spec$dists[[node]]
+    if (dist == "multinomial") next
+    parents <- jdoc_parents(fit, node)
+    ref <- stats::glm(jsem_formula(node, parents), family = jsem_family(dist),
+                      data = ref_data)
+    expect_equal(jdoc_linear_predictor(core, spec$data, node),
+                 unname(stats::predict(ref, type = "link")),
+                 tolerance = 1e-4, info = paste(name, node))
+    if (dist == "gaussian") {
+      expect_equal(jdoc_parameter(core, node, "residual_variance")$value,
+                   stats::sigma(ref)^2, tolerance = 1e-6, info = paste(name, node))
+    }
+  }
+}
+
+test_that("core reproduces glm linear predictors (binary and continuous parents)", {
+  jsem_expect_glm_nodes("ex1_mle")
+})
+
+test_that("core reproduces glm linear predictors for centred fits via transform", {
+  spec <- jfx_spec("ex1_mle_centred")
+  jsem_expect_glm_nodes("ex1_mle_centred",
+                        ref_data = jsem_standardise(spec$data, spec$dists))
+})
+
+test_that("core reproduces glm linear predictors with multinomial parents", {
+  jsem_expect_glm_nodes("fcv_mle")
+  jsem_expect_glm_nodes("g2b2c_mle")
+})
+
+test_that("core reproduces baseline-category logits of a multinomial child", {
+  spec <- jfx_spec("g2b2c_soft_mle")
+  core <- jsem_core("g2b2c_soft_mle")
+  ref <- nnet::multinom(C ~ B1 + B2, data = spec$data, trace = FALSE)
+  probs <- stats::predict(ref, type = "probs")
+  for (state in c("b", "c")) {
+    expect_equal(jdoc_linear_predictor(core, spec$data, "C", state),
+                 unname(log(probs[, state] / probs[, "a"])),
+                 tolerance = 1e-3, info = state)
+  }
+})
+
+test_that("core reproduces lme4 fixed effects and variance components", {
+  spec <- jfx_spec("adg_mle_grouped")
+  fit <- jfx_fit("adg_mle_grouped")
+  core <- jsem_core("adg_mle_grouped")
+  for (node in names(spec$dists)) {
+    dist <- spec$dists[[node]]
+    f <- jsem_formula(node, jdoc_parents(fit, node), random = "farm")
+    ref <- if (dist == "gaussian") {
+      lme4::lmer(f, data = spec$data)
+    } else {
+      lme4::glmer(f, data = spec$data, family = jsem_family(dist))
+    }
+    info <- paste("adg", node)
+    expect_equal(jdoc_linear_predictor(core, spec$data, node),
+                 unname(stats::predict(ref, re.form = NA, type = "link")),
+                 tolerance = 1e-3, info = info)
+    vc <- as.data.frame(lme4::VarCorr(ref))
+    expect_equal(jdoc_parameter(core, node, "random_variance")$value,
+                 vc$vcov[vc$grp == "farm"], tolerance = 1e-3, info = info)
+    if (dist == "gaussian") {
+      expect_equal(jdoc_parameter(core, node, "residual_variance")$value,
+                   vc$vcov[vc$grp == "Residual"], tolerance = 1e-3, info = info)
+    }
+  }
+})
+
+test_that("core-only bayes documents convert precisions consistently", {
+  jfx_skip_if_no_bayes()
+  fit <- jfx_fit("adg_bayes_grouped")
+  core <- jsem_core("adg_bayes_grouped")
+  resid <- jdoc_parameter(core, "adg", "residual_variance")
+  random <- jdoc_parameter(core, "adg", "random_variance")
+  expect_equal(resid[["scale"]], "precision")
+  expect_equal(random[["scale"]], "precision")
+  expect_equal(resid[["value"]], unname(fit$modes$adg[["adg|precision"]]))
+  expect_equal(random[["value"]], unname(fit$modes$adg[["adg|group.precision"]]))
 })

@@ -486,3 +486,74 @@ test_that("ungrouped caches do not fake a group.var (#272)", {
   expect_null(fit$group.ids)
   expect_null(fit$grouped.vars)
 })
+
+# --- invariants the bayesian-network JSON format relies on ------------------
+
+test_that("centred MLE fits record centre and scale of gaussian nodes", {
+  spec <- jfx_spec("ex1_mle_centred")
+  fit <- jfx_fit("ex1_mle_centred")
+  expect_setequal(names(fit$centre), c("g1", "g2"))
+  for (node in c("g1", "g2")) {
+    expect_equal(fit$centre[[node]][["center"]], mean(spec$data[[node]]))
+    expect_equal(fit$centre[[node]][["scale"]], stats::sd(spec$data[[node]]))
+  }
+})
+
+test_that("uncentred fits record no centring", {
+  expect_null(jfx_fit("ex1_mle")$centre)
+})
+
+test_that("bayes fits honour centre = FALSE", {
+  jfx_skip_if_no_bayes()
+  spec <- jfx_spec("ex1_bayes")
+  uncentred <- jfx_fit("ex1_bayes")
+  centred <- jfx_fit("ex1_bayes_centred")
+  expect_equal(uncentred$modes$g1[["g1|(Intercept)"]], mean(spec$data$g1),
+               tolerance = 1e-2)
+  expect_equal(centred$modes$g1[["g1|(Intercept)"]], 0, tolerance = 1e-2)
+  expect_null(uncentred$centre)
+  expect_setequal(names(centred$centre), "g1")
+})
+
+test_that("grouped bayes fits store group.var, group.ids and grouped.vars", {
+  jfx_skip_if_no_bayes()
+  bayes <- jfx_fit("ex3_bayes_grouped")
+  mle <- jfx_fit("ex3_mle_grouped")
+  expect_equal(bayes$group.var, "group")
+  expect_equal(bayes$group.ids, mle$group.ids)
+  expect_equal(bayes$grouped.vars, mle$grouped.vars)
+})
+
+test_that("bayes fits store the priors used", {
+  jfx_skip_if_no_bayes()
+  expect_equal(jfx_fit("ex1_bayes")$priors,
+               list(mean = 0, prec = 0.001, loggam.shape = 1, loggam.inv.scale = 5e-05))
+  expect_equal(jfx_fit("ex1_bayes_priors")$priors,
+               list(mean = 0.5, prec = 0.01, loggam.shape = 2, loggam.inv.scale = 1e-3))
+})
+
+test_that("mle fits store no priors", {
+  expect_null(jfx_fit("ex1_mle")$priors)
+})
+
+test_that("fits record the factor levels of binomial and multinomial nodes", {
+  # fcv_mle: Sex has non-alphabetical factor levels (m, mc, f, fc)
+  for (name in c("ex1_mle", "fcv_mle", "g2b2c_soft_mle", "ex1_bayes")) {
+    jfx_skip_bayes(name)
+    spec <- jfx_spec(name)
+    fit <- jfx_fit(name)
+    categorical <- names(spec$dists)[unlist(spec$dists) %in% c("binomial", "multinomial")]
+    expect_setequal(names(fit$levels), categorical)
+    for (node in categorical) {
+      x <- spec$data[[node]]
+      # ungrouped MLE multinomial nodes: nnet re-derives levels alphabetically
+      expected <- if (spec$method == "mle" && !spec$grouped &&
+                        spec$dists[[node]] == "multinomial") {
+        levels(factor(as.character(x)))
+      } else {
+        levels(factor(x))
+      }
+      expect_equal(fit$levels[[node]], expected, info = paste(name, node))
+    }
+  }
+})

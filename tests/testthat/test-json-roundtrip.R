@@ -24,7 +24,7 @@ jrt_strip_created <- function(json) {
 }
 
 test_that("every fixture round-trips all stored fields", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     original <- jfx_fit(name)
     imported <- import_abnFit(json = jfx_json(name))
@@ -33,7 +33,7 @@ test_that("every fixture round-trips all stored fields", {
 })
 
 test_that("every fixture round-trips completely when the data is supplied", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     original <- jfx_fit(name)
     imported <- import_abnFit(json = jfx_json(name), data = jfx_spec(name)$data)
@@ -44,7 +44,7 @@ test_that("every fixture round-trips completely when the data is supplied", {
 })
 
 test_that("export -> import -> export is idempotent", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     first <- jfx_json(name)
     second <- export_abnFit(import_abnFit(json = first))
@@ -57,7 +57,7 @@ test_that("the core alone reproduces all model values", {
                     "mse", "mliknode", "mlik", "aicnode", "aic", "bicnode", "bic",
                     "mdlnode", "df", "sse", "marginals", "marginal.quantiles", "priors",
                     "centre", "group.var", "grouped.vars", "method")
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     original <- jfx_fit(name)
     core <- jdoc_drop_extensions(jfx_doc(name))

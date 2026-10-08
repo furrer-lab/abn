@@ -67,7 +67,7 @@ test_that("known field decisions are encoded", {
 
 test_that("the specification covers every field of every fixture fit", {
   spec <- abn_json_property_spec()
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     fit <- jfx_fit(name)
     type <- jspec_fit_type(name)

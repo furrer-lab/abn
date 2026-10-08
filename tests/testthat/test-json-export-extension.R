@@ -1,7 +1,7 @@
 # Export: metadata.extensions.abn contains only abn-internal information.
 
 test_that("the abn extension only contains the allowed keys", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     ext <- jfx_doc(name)$metadata[["extensions"]][["abn"]]
     expect_true(all(names(ext) %in% JDOC_EXTENSION_KEYS), info = name)
@@ -11,7 +11,7 @@ test_that("the abn extension only contains the allowed keys", {
 })
 
 test_that("the extension maps every parameter to its native abn names", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     doc <- jfx_doc(name)
     names_map <- doc[["metadata"]][["extensions"]][["abn"]][["parameter_names"]]

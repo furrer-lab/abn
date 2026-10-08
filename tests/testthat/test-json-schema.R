@@ -17,7 +17,7 @@ test_that("the network schema pins the schema version", {
 })
 
 test_that("exports of all fixtures validate against the schema", {
-  for (name in names(jfx_registry())) {
+  for (name in jfx_names()) {
     jfx_skip_bayes(name)
     jdoc_expect_valid(jfx_json(name))
   }
