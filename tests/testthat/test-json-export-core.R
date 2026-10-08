@@ -1,6 +1,6 @@
 # Export: the generic core of the document, compared with the fit's values.
 
-# Levels in the order abn uses them (see U8): ungrouped MLE multinomial nodes are
+# Levels in the order abn uses them: ungrouped MLE multinomial nodes are
 # re-derived alphabetically by nnet, everything else keeps the factor order.
 jcore_levels <- function(spec, node) {
   x <- spec$data[[node]]

@@ -1,6 +1,6 @@
-# Phase 0: model semantics the JSON format relies on, and required fixes in the
-# fitting code (U1-U6, see json_plan.md). These tests check abn's own fit objects
-# against independent reference implementations and do not touch JSON.
+# Model semantics the JSON format relies on, and the required fixes in the
+# fitting code. These tests check abn's own fit objects against independent
+# reference implementations and do not touch JSON.
 
 # --- Established semantics ---------------------------------------------------
 
@@ -73,9 +73,9 @@ test_that("bayes modes carry gaussian precisions", {
   expect_gt(fit$modes$g1[["g1|precision"]], 0)
 })
 
-# --- U1: centring is recorded -----------------------------------------------
+# --- centring is recorded ---
 
-test_that("U1: centred MLE fits record centre and scale of gaussian nodes", {
+test_that("centred MLE fits record centre and scale of gaussian nodes", {
   spec <- jfx_spec("ex1_mle_centred")
   fit <- jfx_fit("ex1_mle_centred")
   expect_setequal(names(fit$centre), c("g1", "g2"))
@@ -85,13 +85,13 @@ test_that("U1: centred MLE fits record centre and scale of gaussian nodes", {
   }
 })
 
-test_that("U1: uncentred fits record no centring", {
+test_that("uncentred fits record no centring", {
   expect_null(jfx_fit("ex1_mle")$centre)
 })
 
-# --- U2: centre is honoured by Bayes fits ------------------------------------
+# --- centre is honoured by Bayes fits ---
 
-test_that("U2: bayes fits honour centre = FALSE", {
+test_that("bayes fits honour centre = FALSE", {
   jfx_skip_if_no_bayes()
   spec <- jfx_spec("ex1_bayes")
   uncentred <- jfx_fit("ex1_bayes")
@@ -103,9 +103,9 @@ test_that("U2: bayes fits honour centre = FALSE", {
   expect_setequal(names(centred$centre), "g1")
 })
 
-# --- U3: Bayes fits store the grouping --------------------------------------
+# --- Bayes fits store the grouping ---
 
-test_that("U3: grouped bayes fits store group.var, group.ids and grouped.vars", {
+test_that("grouped bayes fits store group.var, group.ids and grouped.vars", {
   jfx_skip_if_no_bayes()
   bayes <- jfx_fit("ex3_bayes_grouped")
   mle <- jfx_fit("ex3_mle_grouped")
@@ -114,9 +114,9 @@ test_that("U3: grouped bayes fits store group.var, group.ids and grouped.vars", 
   expect_equal(bayes$grouped.vars, mle$grouped.vars)
 })
 
-# --- U4: Bayes fits store the priors ------------------------------------------
+# --- Bayes fits store the priors ---
 
-test_that("U4: bayes fits store the priors used", {
+test_that("bayes fits store the priors used", {
   jfx_skip_if_no_bayes()
   expect_equal(jfx_fit("ex1_bayes")$priors,
                list(mean = 0, prec = 0.001, loggam.shape = 1, loggam.inv.scale = 5e-05))
@@ -124,13 +124,13 @@ test_that("U4: bayes fits store the priors used", {
                list(mean = 0.5, prec = 0.01, loggam.shape = 2, loggam.inv.scale = 1e-3))
 })
 
-test_that("U4: mle fits store no priors", {
+test_that("mle fits store no priors", {
   expect_null(jfx_fit("ex1_mle")$priors)
 })
 
-# --- U5: modes2coefs drops all precisions -----------------------------------
+# --- modes2coefs drops all precisions ---
 
-test_that("U5: coef of grouped gaussian bayes nodes contains no precision", {
+test_that("coef of grouped gaussian bayes nodes contains no precision", {
   jfx_skip_if_no_bayes()
   fit <- jfx_fit("adg_bayes_grouped")
   expect_false(any(grepl("precision", colnames(fit$coef$adg))))
@@ -138,9 +138,9 @@ test_that("U5: coef of grouped gaussian bayes nodes contains no precision", {
   expect_true(all(c("adg|precision", "adg|group.precision") %in% names(fit$modes$adg)))
 })
 
-# --- U7: residual variance with multinomial parents -------------------------
+# --- residual variance with multinomial parents ---
 
-test_that("U7: gaussian mse uses the correct df with a multinomial parent", {
+test_that("gaussian mse uses the correct df with a multinomial parent", {
   spec <- jfx_spec("g2b2c_mle")
   fit <- jfx_fit("g2b2c_mle")
   ref <- stats::lm(G2 ~ G1 + C, data = spec$data)
@@ -148,9 +148,9 @@ test_that("U7: gaussian mse uses the correct df with a multinomial parent", {
   expect_equal(unname(fit$mse[["G2"]]), stats::sigma(ref)^2, tolerance = 1e-6)
 })
 
-# --- U6: multinomial coefficient names match their values -------------------
+# --- multinomial coefficient names match their values ---
 
-test_that("U6: multinomial child coefficient names follow the value order", {
+test_that("multinomial child coefficient names follow the value order", {
   spec <- jfx_spec("g2b2c_mle")
   fit <- jfx_fit("g2b2c_mle")
   expect_equal(levels(spec$data$C), c("a", "b", "c"))
@@ -168,9 +168,9 @@ test_that("U6: multinomial child coefficient names follow the value order", {
   }
 })
 
-# --- U8: original factor levels are recorded --------------------------------
+# --- original factor levels are recorded ---
 
-test_that("U8: fits record the factor levels of binomial and multinomial nodes", {
+test_that("fits record the factor levels of binomial and multinomial nodes", {
   # fcv_mle: Sex has non-alphabetical factor levels (m, mc, f, fc)
   for (name in c("ex1_mle", "fcv_mle", "g2pbcgrp_mle_grouped", "ex1_bayes")) {
     jfx_skip_bayes(name)
@@ -192,9 +192,9 @@ test_that("U8: fits record the factor levels of binomial and multinomial nodes",
   }
 })
 
-# --- U9: error.code.desc keeps node names -----------------------------------
+# --- error.code.desc keeps node names ---
 
-test_that("U9: bayes error.code.desc is named by node", {
+test_that("bayes error.code.desc is named by node", {
   jfx_skip_if_no_bayes()
   fit <- jfx_fit("ex1_bayes")
   expect_equal(names(fit$error.code.desc), names(fit$error.code))
@@ -216,4 +216,28 @@ test_that("#272: ungrouped bayes fit from cache has no grouping fields", {
   expect_null(fit$group.var)
   expect_null(fit$group.ids)
   expect_null(fit$grouped.vars)
+})
+
+# --- separation fallback naming without multinomial parent ---
+
+test_that("separation fallback names coefficients and exports/imports", {
+  set.seed(1)
+  n <- 200
+  x <- factor(rbinom(n, 1, 0.5))
+  y <- factor(ifelse(as.numeric(x) == 2, sample(c("a", "b"), n, TRUE), "c"))
+  dat <- data.frame(x = x, y = y)
+  dag <- matrix(0, 2, 2, dimnames = list(c("x", "y"), c("x", "y")))
+  dag["y", "x"] <- 1
+  expect_warning(
+    fit <- suppressMessages(fitAbn(dag = dag, data.df = dat,
+                                   data.dists = list(x = "binomial", y = "multinomial"),
+                                   method = "mle")),
+    "Separation"
+  )
+  expect_equal(colnames(fit$coef$y), paste0("y|intercept.", c("b", "c")))
+  expect_equal(ncol(fit$coef$y), 2L)
+
+  back <- import_abnFit(json = export_abnFit(fit))
+  expect_equal(unname(back$coef$y), unname(fit$coef$y))
+  expect_equal(colnames(back$coef$y), colnames(fit$coef$y))
 })

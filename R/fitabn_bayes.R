@@ -174,7 +174,7 @@ fitAbn.bayes <- function(dag=NULL,
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==1,"warning: mode results may be unreliable (optimiser terminated unusually)",res.list[["error.code.desc"]])
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==2,"error - logscore is NA - model could not be fitted",res.list[["error.code.desc"]])
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==4,"warning: fin.diff hessian estimation terminated unusually ",res.list[["error.code.desc"]])
-  ## as.character()/ifelse() drop names; restore them so lookups by node work (U9)
+  ## as.character()/ifelse() drop names; restore them so lookups by node work
   res.list[["error.code.desc"]] <- stats::setNames(res.list[["error.code.desc"]],
                                                    names(res.list[["error.code"]]))
 

@@ -296,6 +296,17 @@ abn_json_params_mle <- function(fit, ctx, node) {
     }
   }
   natives <- vapply(expected, function(e) e$native, character(1))
+  if (ctx$dists[[node]] == "multinomial" && !identical(sort(natives), sort(cols))) {
+    # separation fallback (see #268): intercept-only fit despite existing parents
+    alt <- lapply(ctx$levels[[node]][-1], function(s) {
+      list(intercept = TRUE, parent = NULL, state = NULL, target_state = s,
+           native = paste0(node, "|intercept.", s))
+    })
+    if (identical(sort(vapply(alt, function(e) e$native, character(1))), sort(cols))) {
+      expected <- alt
+      natives <- vapply(expected, function(e) e$native, character(1))
+    }
+  }
   if (!identical(sort(natives), sort(cols))) {
     stop("Unexpected coefficient names for node '", node, "': ",
          paste(cols, collapse = ", "), "; expected: ", paste(natives, collapse = ", "),
