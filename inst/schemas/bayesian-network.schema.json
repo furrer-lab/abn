@@ -1,0 +1,257 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/furrer-lab/abn/schemas/bayesian-network.schema.json",
+  "title": "Additive Bayesian network model (bayesian-network)",
+  "description": "Generic, tool-independent description of a fitted additive Bayesian network. The core (all blocks except metadata.extensions) fully defines the model. Issuer-specific information lives in metadata.extensions.<issuer>.",
+  "type": "object",
+  "required": ["metadata", "variables", "groups", "arcs", "parameters", "inference"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": { "$ref": "#/definitions/metadata" },
+    "variables": { "type": "array", "items": { "$ref": "#/definitions/variable" } },
+    "groups": { "type": "array", "items": { "$ref": "#/definitions/group" } },
+    "arcs": { "type": "array", "items": { "$ref": "#/definitions/arc" } },
+    "parameters": { "type": "array", "items": { "$ref": "#/definitions/parameter" } },
+    "inference": { "$ref": "#/definitions/inference" }
+  },
+  "definitions": {
+    "id": { "type": "integer", "minimum": 1 },
+    "optional_id": { "anyOf": [{ "$ref": "#/definitions/id" }, { "type": "null" }] },
+    "number_or_null": { "type": ["number", "null"] },
+
+    "metadata": {
+      "type": "object",
+      "required": ["schema_version", "issuer"],
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": { "const": "bayesian-network" },
+        "issuer": { "type": "string", "minLength": 1 },
+        "issuer_version": { "type": "string" },
+        "created": { "type": "string" },
+        "label": { "type": "string" },
+        "scenario_id": { "type": ["string", "number"] },
+        "data_reference": {
+          "type": "object",
+          "properties": {
+            "uri": { "type": "string" },
+            "schema_version": { "type": "string" },
+            "sha256": { "type": "string" }
+          }
+        },
+        "extensions": {
+          "description": "Issuer-specific information, keyed by issuer name. Importers ignore unknown keys.",
+          "type": "object"
+        }
+      }
+    },
+
+    "state": {
+      "type": "object",
+      "required": ["_id", "label", "baseline"],
+      "additionalProperties": false,
+      "properties": {
+        "_id": { "$ref": "#/definitions/id" },
+        "label": { "type": "string" },
+        "baseline": { "type": "boolean" }
+      }
+    },
+
+    "variable": {
+      "type": "object",
+      "required": ["_id", "name", "type", "distribution", "link"],
+      "additionalProperties": false,
+      "properties": {
+        "_id": { "$ref": "#/definitions/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "enum": ["continuous", "binary", "count", "categorical"] },
+        "distribution": { "enum": ["gaussian", "bernoulli", "poisson", "categorical"] },
+        "link": { "enum": ["identity", "logit", "log", "baseline_logit"] },
+        "states": { "type": "array", "items": { "$ref": "#/definitions/state" } },
+        "transform": {
+          "description": "The model uses (x - center) / scale instead of x.",
+          "type": "object",
+          "required": ["center", "scale"],
+          "additionalProperties": false,
+          "properties": {
+            "center": { "type": "number" },
+            "scale": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "binary" } } },
+          "then": { "required": ["states"], "properties": { "states": { "minItems": 2, "maxItems": 2 } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "categorical" } } },
+          "then": { "required": ["states"], "properties": { "states": { "minItems": 2 } } }
+        }
+      ]
+    },
+
+    "group": {
+      "type": "object",
+      "required": ["_id", "name", "variables"],
+      "additionalProperties": false,
+      "properties": {
+        "_id": { "$ref": "#/definitions/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "variables": { "type": "array", "items": { "$ref": "#/definitions/id" } }
+      }
+    },
+
+    "arc": {
+      "type": "object",
+      "required": ["source", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "$ref": "#/definitions/id" },
+        "target": { "$ref": "#/definitions/id" }
+      }
+    },
+
+    "quantile": {
+      "type": "object",
+      "required": ["probability", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "probability": { "type": "number", "minimum": 0, "maximum": 1 },
+        "value": { "type": "number" }
+      }
+    },
+
+    "parameter": {
+      "type": "object",
+      "required": ["_id", "target", "kind", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "_id": { "$ref": "#/definitions/id" },
+        "target": { "$ref": "#/definitions/id" },
+        "target_state": { "$ref": "#/definitions/optional_id" },
+        "kind": {
+          "enum": ["intercept", "coefficient", "residual_variance", "random_variance",
+                   "random_covariance"]
+        },
+        "parent": { "$ref": "#/definitions/optional_id" },
+        "parent_state": { "$ref": "#/definitions/optional_id" },
+        "group": { "$ref": "#/definitions/optional_id" },
+        "states": {
+          "anyOf": [
+            { "type": "array", "items": { "$ref": "#/definitions/id" }, "minItems": 2, "maxItems": 2 },
+            { "type": "null" }
+          ]
+        },
+        "scale": { "enum": ["variance", "precision"] },
+        "value": {
+          "description": "Point estimate (MLE estimate or posterior mode). null means the parameter could not be estimated (e.g. aliased by collinearity) and contributes nothing to the linear predictor.",
+          "type": ["number", "null"]
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "standard_error": { "$ref": "#/definitions/number_or_null" },
+            "posterior_quantiles": { "type": "array", "items": { "$ref": "#/definitions/quantile" } }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "coefficient" } } },
+          "then": { "required": ["parent"], "properties": { "parent": { "$ref": "#/definitions/id" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["residual_variance", "random_variance", "random_covariance"] } } },
+          "then": { "required": ["scale"] },
+          "else": { "not": { "required": ["scale"] } }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["random_variance", "random_covariance"] } } },
+          "then": { "required": ["group"], "properties": { "group": { "$ref": "#/definitions/id" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "random_covariance" } } },
+          "then": { "required": ["states"], "properties": { "states": { "type": "array" } } }
+        }
+      ]
+    },
+
+    "node_diagnostics": {
+      "type": "object",
+      "required": ["variable"],
+      "additionalProperties": false,
+      "properties": {
+        "variable": { "$ref": "#/definitions/id" },
+        "log_marginal_likelihood": { "type": "number" },
+        "aic": { "type": "number" },
+        "bic": { "type": "number" },
+        "mdl": { "type": "number" },
+        "df": { "type": "number" },
+        "sse": { "type": "number" },
+        "mse": { "type": "number" }
+      }
+    },
+
+    "prior": {
+      "type": "object",
+      "required": ["applies_to", "family"],
+      "properties": {
+        "applies_to": { "enum": ["fixed_effects", "precisions"] },
+        "family": { "enum": ["normal", "gamma"] },
+        "mean": { "type": "number" },
+        "precision": { "type": "number", "exclusiveMinimum": 0 },
+        "shape": { "type": "number", "exclusiveMinimum": 0 },
+        "rate": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "family": { "const": "normal" } } },
+          "then": { "required": ["mean", "precision"] }
+        },
+        {
+          "if": { "properties": { "family": { "const": "gamma" } } },
+          "then": { "required": ["shape", "rate"] }
+        }
+      ]
+    },
+
+    "marginal": {
+      "type": "object",
+      "required": ["parameter", "x", "density"],
+      "additionalProperties": false,
+      "properties": {
+        "parameter": { "$ref": "#/definitions/id" },
+        "x": { "type": "array", "items": { "type": "number" } },
+        "density": { "type": "array", "items": { "type": "number" } }
+      }
+    },
+
+    "inference": {
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["maximum_likelihood", "bayesian"] },
+        "priors": { "type": "array", "items": { "$ref": "#/definitions/prior" } },
+        "diagnostics": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "log_marginal_likelihood": { "type": "number" },
+            "aic": { "type": "number" },
+            "bic": { "type": "number" },
+            "nodes": { "type": "array", "items": { "$ref": "#/definitions/node_diagnostics" } }
+          }
+        },
+        "posterior": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "marginals": { "type": "array", "items": { "$ref": "#/definitions/marginal" } }
+          }
+        }
+      }
+    }
+  }
+}

@@ -196,7 +196,7 @@ ctrlbayes <- abn::fit.control(method = "bayes",
 \seealso{
 \code{\link{build.control}}.
 
-Other fitAbn: 
-\code{\link{fitAbn}()}
+Other fitAbn:
+\code{\link[=fitAbn]{fitAbn()}}
 }
 \concept{fitAbn}

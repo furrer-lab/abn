@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/furrer-lab/abn/schemas/bn-data.schema.json",
+  "title": "Bayesian network data document (bn-data)",
+  "description": "Column-oriented observations for a Bayesian network. metadata describes how to interpret the values; data holds one array of scalar values per column.",
+  "type": "object",
+  "required": ["metadata", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["schema_version", "orientation", "column_order", "columns"],
+      "properties": {
+        "schema_version": { "const": "bn-data" },
+        "issuer": { "type": "string" },
+        "orientation": { "const": "columnar" },
+        "column_order": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "missing_values": { "type": "object" },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "role": { "enum": ["node", "group"] },
+              "semantic_type": { "enum": ["continuous", "count", "binary", "categorical", "unknown"] },
+              "model_distribution": { "enum": ["gaussian", "poisson", "binomial", "multinomial", null] },
+              "value_encoding": { "enum": ["labels", "integer", "number", "boolean", "string"] },
+              "nullable": { "type": "boolean" },
+              "categories": { "type": "array", "items": { "type": "string" } },
+              "ordered": { "type": "boolean" }
+            }
+          }
+        },
+        "data_dists": {
+          "type": "object",
+          "additionalProperties": { "enum": ["gaussian", "poisson", "binomial", "multinomial"] }
+        },
+        "group_var": { "type": ["string", "null"] },
+        "adapters": { "type": "object" },
+        "summary": { "type": "object" }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": ["number", "string", "boolean", "null"] }
+      }
+    }
+  }
+}

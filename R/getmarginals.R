@@ -755,7 +755,6 @@ return(res.list);
 #'
 #' @return integer
 #' @importFrom stats spline
-#' @export
 #' @keywords internal
 find.next.left.x <- function(mat.xy,g.max,g.factor,x.delta,max.fact.delta){
 

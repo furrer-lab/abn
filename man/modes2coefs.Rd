@@ -15,3 +15,4 @@ list of matrix arrays.
 \description{
 Convert modes to fitAbn.mle$coefs structure
 }
+\keyword{internal}

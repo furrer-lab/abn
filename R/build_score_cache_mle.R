@@ -714,7 +714,9 @@ buildScoreCache.mle <-
     out[["max.parents"]] <- max.parents
     out[["dag.retained"]] <- dag.retained
     out[["dag.banned"]] <- dag.banned
-    out[["group.var"]] <- group.var
+    ## keep the element present even when NULL so $ cannot partial-match
+    ## the wrong name (#272)
+    out["group.var"] <- list(group.var)
     out[["group.ids"]] <- group.ids
     out[["grouped.vars"]] <- grouped.vars
     out[["aic"]] <- as.numeric( res[,2] )

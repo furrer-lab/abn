@@ -1,0 +1,143 @@
+---
+title: "The fitAbn JSON Property Specification"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{The fitAbn JSON Property Specification}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+# Purpose and scope
+
+The vignette **Interoperable JSON Formats for Bayesian Networks**
+(`vignette("json-format", package = "abn")`) defines the generic
+`bayesian-network` and `bn-data` JSON formats. This vignette defines the
+adapter between the generic network format and the R-specific `abnFit`
+object.
+
+The specification has two purposes:
+
+1. document where each relevant native `abnFit` property is represented;
+2. drive property-specific import and export routines.
+
+The generic JSON core is the interoperability contract: it alone must fully
+describe the model. `metadata.extensions.abn` holds only information without
+generic meaning. The executable property specification in
+`R/json_property_spec.R` is the single source of truth for the mapping; the
+table below is generated from it.
+
+# What is an `abnFit` object?
+
+`fitAbn()` returns an object of class `abnFit`. Its contents depend on the
+fitting method and on whether a grouping variable was used. The object
+contains a fitted Bayesian network together with the fitted conditional
+models for its nodes.
+
+The common network component is `abnDag`, which contains:
+
+* `abnDag$dag`, the directed adjacency matrix (rows are children);
+* `abnDag$data.dists`, the distribution assigned to each node;
+* `abnDag$data.df`, the transformed data used by the R fitting workflow.
+
+Model JSON represents the first two through the generic `variables`,
+`arcs`, and `parameters` blocks. `data.df` is not part of a model-only
+network document; raw data has its own `bn-data` format, described in
+`vignette("bn-data-json-specification", package = "abn")`.
+
+Beyond the network, fits carry the fitted quantities and diagnostics. Since
+version 3.2 this also includes information the fitting functions previously
+dropped, all of it part of the generic core:
+
+* `centre`: per gaussian node the `(center, scale)` actually applied
+  (`variables[].transform` in JSON);
+* `levels`: the factor levels used for binomial and multinomial nodes, in
+  the order the fit uses them (`variables[].states`);
+* `priors`: the prior hyper-parameters of Bayesian fits (`inference.priors`);
+* `group.var`, `grouped.vars` for grouped Bayesian fits (`groups`).
+
+## JSON bookkeeping is not an `abnFit` property
+
+The document uses `_id` values for internal references, and `label`,
+`scenario_id` and `data_reference` are document metadata. On import these are
+kept in `attr(fit, "abn_json")`, never as fields of the fit, and re-export
+reuses them so that export -> import -> export is byte-identical.
+
+# Single source of truth
+
+Every native property has one authoritative value location. Nothing is
+written twice; values that `abn` can recompute are *derived* on import
+instead of stored (Bayes `coef` and `mse` from `modes`; `mdl` from
+`mdlnode`). Per-observation information (`group.ids`) is *data* and is
+restored from the data document via `import_abnFit(data = ...)`.
+
+The ABN extension contains exactly two things:
+
+* `parameter_names`: for each parameter, the native element (`field`) and
+  name it came from, e.g. `{"parameter": 7, "field": "coef", "name": "b3|b1"}`;
+* `nodes`: per-node engine diagnostics for Bayesian fits
+  (`used_inla`, `error_code`, `error_code_desc`, `hessian_accuracy`).
+
+# Export and import
+
+Export builds the document from the fit (see `R/export.R`): variables and
+states from the DAG, distributions and recorded levels; groups; arcs; then
+one parameter per additive term, emitted in the order of the native
+containers so that re-export is stable. Parameter values are exact: MLE
+standard deviations are squared, Bayes precisions stay precisions
+(`scale` records which is which).
+
+Import (`R/import.R`) validates the document structurally, rebuilds the fit
+from the generic core alone, then overlays the extension: native names come
+from `parameter_names` when present and are derived from the structure
+otherwise. Documents from other issuers import without any extension.
+Dangling references, duplicate `_id`s, missing baselines, and cyclic arcs
+are rejected with informative errors.
+
+# The property table
+
+```{r property-table, echo = FALSE, results = "asis"}
+spec <- abn:::abn_json_property_spec()
+tab <- cbind(
+  data.frame(`abnFit property` = paste0("`", spec$field, "`"),
+             check.names = FALSE),
+  `fit type` = spec$fit_type,
+  `JSON location` = ifelse(is.na(spec$location),
+                            paste0("*not stored* (", spec$reason, ")"),
+                            paste0("`", spec$location, "`"))
+)
+knitr::kable(tab, format = "pipe", escape = FALSE)
+```
+
+`location` paths use `[]` for per-element placement, e.g.
+`parameters[].value` or
+`inference.diagnostics.nodes[].log_marginal_likelihood`.
+
+# The parameter model
+
+For a node `Y`, the linear predictor is the sum of its applicable
+`intercept` and `coefficient` parameters plus the group random effect:
+
+* a `coefficient` with `parent_state` contributes
+  `value * 1[x_parent == parent_state]`;
+* a `coefficient` without `parent_state` contributes `value * x_parent`
+  (after the parent's `transform`, if any);
+* for categorical targets, `target_state` selects which non-baseline state
+  the parameter belongs to; the baseline state has no parameters;
+* `residual_variance`, `random_variance` and `random_covariance` carry a
+  `scale` (`"variance"` for MLE, `"precision"` for Bayes).
+
+Because the model is additive there is exactly one `parent` per coefficient.
+A node whose multinomial parents are fully one-hot encoded simply has no
+intercept parameter. `value` may be `null` for terms `abn` could not estimate
+(aliased by collinearity); such terms contribute nothing.
+
+# Reference
+
+See `vignette("json-format", package = "abn")` for the complete generic
+network and raw-data formats and `inst/schemas/bayesian-network.schema.json`
+for the normative schema. This vignette specifies only the `abn` adapter
+mapping and does not replace the generic JSON format.
