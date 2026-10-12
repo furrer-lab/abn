@@ -838,8 +838,18 @@ regressionLoop <- function(i = NULL, # number of child-node (mostly corresponds 
         colnames(res[["var"]])  <- col_names
       }else{
         if (USED_NNET){
-          colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
-          colnames(res[["var"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+          total_coef_count <- length(res[["coef"]])
+          num_intercepts   <- length(fit$names.coef)
+          
+          if (total_coef_count > num_intercepts){
+            colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+            colnames(res[["var"]]) <- c(paste(child.name,"|intercept.",fit$names.coef,sep = ""),as.vector(outer(parents.names, fit$names.coef, paste, sep=separator)))
+          } else {
+            # Intercept-only fallback (e.g. after complete separation)
+            col_names <- paste(child.name, "|intercept.", fit$names.coef, sep = "")
+            colnames(res[["coef"]]) <- col_names
+            colnames(res[["var"]])  <- col_names
+          }
         } else if (USED_MBLOGIT){
           colnames(res[["coef"]]) <- c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
           colnames(res[["var"]]) <-c(paste(child.name,"|intercept.",rownames(fit$coefmat),sep = ""),as.vector(outer(parents.names, rownames(fit$coefmat), paste, sep=separator)))
