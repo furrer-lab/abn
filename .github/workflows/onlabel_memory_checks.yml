@@ -73,7 +73,7 @@ jobs:
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
         container:
-          - 'valgrind-gcc-devel'
+          - 'fedora-valgrind-gcc-devel'
           - 'debian-gcc-release'
     container:
       image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
@@ -82,7 +82,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Installing valgrind
-        if: ${{ !startsWith(matrix.container, 'valgrind') }}
+        if: ${{ !startsWith(matrix.container, 'fedora-valgrind') }}
         run: |
           apt-get update && apt-get install valgrind -y
         shell: bash
@@ -108,13 +108,14 @@ jobs:
         shell: Rscript {0}
       - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |
-          R -d "valgrind --tool=memcheck \
-          --leak-check=full \
-          --errors-for-leak-kinds=definite \
-          --track-origins=yes \
-          --error-exitcode=1" \
-          --vanilla \
-          -e "devtools::test_active_file('${{ matrix.testfile }}')"
+           R -d "valgrind --tool=memcheck \
+           --leak-check=full \
+           --suppressions=.github/valgrind-r.supp \
+           --errors-for-leak-kinds=definite \
+           --track-origins=yes \
+           --error-exitcode=1" \
+           --vanilla \
+           -e "devtools::test_active_file('${{ matrix.testfile }}')"
         shell: bash
 
   report_memory_checks:
