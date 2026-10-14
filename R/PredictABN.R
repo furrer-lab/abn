@@ -2860,32 +2860,3 @@ createDirectory <- function(path = NULL, directory.name = NULL){
   }
   return(path)
 }
-
-#' Create an animated gif
-#'
-#' This function creates an animated gif file based on png files
-#'
-#' @param path A valid path to a repository that contains the png to combine in a gif.
-#' @return None
-#' @importFrom magick image_join
-#' @importFrom magick image_read
-#' @importFrom magick image_animate
-#' @importFrom magick image_write
-#' @importFrom purrr map
-#' @export
-createAnimation <- function(path = NULL){
-  png_files <- list.files(path,
-                          pattern = "\\.png$",
-                          recursive = FALSE,
-                          all.files = FALSE,
-                          full.names = TRUE)
-  png_files <- png_files[order(as.numeric(gsub("\\D", "", png_files)))]
-
-  file.name <- "AnimatedGraph"
-
-  png_files %>%
-    map(image_read) %>% # reads each path file
-    image_join() %>% # joins image
-    image_animate(fps = 1) %>% # animates
-    image_write(paste0(path,"/",file.name,".gif"))
-}
