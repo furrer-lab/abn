@@ -2,14 +2,11 @@
 #'
 #' Main function to predict the distribution of a node in a fitted ABN graph
 #'
+#' @param object An object of class \code{abnFit} produced by \code{\link{fitAbn}}.
 #' @param data A data frame containing the data (samples in rows, variables in columns).
-#' @param dists A list containing the distributions of the nodes of the graph.
-#' @param dag An adjacency matrix (can be the output of the function mostProbable()).
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
 #' @param hypothesis Node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
-#' @param plot TRUE/FALSE to indicate if the predicted distribution has to be plotted.
-#' @return A list containing the predicted distribution of the hypothesis and predicted distributions of the upstream nodes.
+#' @return An object of class \code{abnPrediction} that contains the predicted distribution of the hypothesis, predicted distributions of the upstream nodes, the hypothesis and the evidence.
 #' @import igraph
 #' @examples
 #' # load a data set
@@ -33,23 +30,25 @@
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
 #' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
 #'
 #' hypothesis <- "g2"
 #'
 #' evidence <- list("p1" = 3)
 #'
-#' predictions <- predictABN(data, mydists, dag, myfit, hypothesis, evidence)
+#' predictions <- predict(object = myfit, data, hypothesis, evidence)
+#' predictions
 #' str(predictions)
-#' predictions$prediction_hypothesis # the predicted distribution of g2
 #' @export
 #'
-predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL, plot = FALSE){
-
+predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
+  fit <- object$modes
+  #data <- object$abnDag$data.df
+  dag <- object$abnDag$dag
+  dists <- object$abnDag$data.dists  
+  
   # some checks
   if (ncol(data) != length(dists)){
     warning("The number of nodes/variables do not correspond. We removed some of the variables in dists to match the variables in data.")
@@ -83,7 +82,15 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
     predictions <- list(prediction)
     names(predictions) <- hypothesis
     prediction_updated <- predict_node_from_children(data, dists, graph, fit, node = hypothesis, evidence, predictions = predictions)
-    return(list(prediction_hypothesis = prediction_updated, predictions = NULL))
+    
+    results <- list(
+      prediction_hypothesis = prediction_updated, 
+      predictions = NULL, 
+      hypothesis = hypothesis, 
+      evidence = evidence
+    )
+    class(results) <- "abnPrediction"
+    return(results)
   } else {
     # Step 1: from top to bottom
     predictions <- list()
@@ -106,18 +113,34 @@ predictABN <- function(data, dists, dag, fit, hypothesis = NULL, evidence = NULL
       predictions[[i]] <- prediction
     }
 
-    # Step 3: Plot the posterior distribution
-    if (plot==TRUE){
-      g <- plotPosteriorDistrib(predictions,hypothesis,dists)
-      print(g)
-    }
     if (!is.null(hypothesis)){
-      results <- list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions)
+      results <- list(prediction_hypothesis = predictions[[hypothesis]], predictions = predictions, hypothesis = hypothesis, evidence = evidence)
     } else {
-      results <- list(prediction_hypothesis = NULL, predictions = predictions)
+      results <- list(prediction_hypothesis = NULL, predictions = predictions, hypothesis = NULL, evidence = evidence)
     }
+    class(results) <- "abnPrediction"
     return(results)
   }
+}
+
+#' @rdname predict.abnFit
+#' @export
+predictAbn <- predict.abnFit
+
+print.abnPrediction <- function(x, ...) {
+  if (!is.null(x$evidence) && length(x$evidence) > 0) {
+    cat("Conditioning evidence:\n")
+    print(x$evidence)
+    cat("\n")
+  }
+  if (!is.null(x$hypothesis)) {
+    cat("Target Hypothesis Node:", x$hypothesis, "\n")
+    cat("Prediction of the hypothesis:\n")
+    print(x$prediction_hypothesis)
+  } else {
+    cat("Computed predictions for all nodes. Choose a node to see its predictions (e.g., predictions$node_name).\n")
+  }
+  invisible(x)
 }
 
 #' Check the evidence
