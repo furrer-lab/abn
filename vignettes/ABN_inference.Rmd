@@ -366,11 +366,11 @@ cat(sprintf("Updated E(g2 | p1=3, b2='y', g1=2, b5 = 'y')  = %.2f\n", prediction
 cat(sprintf("Updated var(g2 | p1=3, b2='y', g1=2, b5 = 'y') = %.2f\n", prediction_updated[2]))
 ```
 
-This manual step-by-step update matches the exact output returned when calling the complete `predictABN()` workflow across the network:
+This manual step-by-step update matches the exact output returned when calling the complete `predictAbn()` workflow across the network:
 
 ```{r}
-predictions <- predictABN(data = mydat, dists = mydists, dag = mp.dag$dag, 
-                  fit = myfit$modes, hypothesis = "g2", evidence = evidence)
+predictions <- predict(object = myfit, data = mydat, 
+                  hypothesis = "g2", evidence = evidence)
 ```
 
 ```{r, echo=FALSE}
@@ -388,8 +388,8 @@ node_order
 The algorithm goes through the network from root node $b1$ down to $b5$ (forward propagation, marginalizing unobserved parents) and propagates likelihood information back to $g2$ (backward propagation):
 
 ```{r}
-predictions <- predictABN(data = mydat, dists = mydists, dag = mp.dag$dag, 
-                          fit = myfit$modes, hypothesis = "g2", 
+predictions <- predict(object = myfit, data = mydat,
+                          hypothesis = "g2", 
                           evidence = list("b2"="y",b5="y"))
 ```
 
