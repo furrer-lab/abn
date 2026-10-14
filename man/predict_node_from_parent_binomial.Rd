@@ -6,8 +6,8 @@
 \usage{
 predict_node_from_parent_binomial(
   data,
-  mydists,
-  myfit,
+  dists,
+  fit,
   node,
   evidence,
   parents,
@@ -17,9 +17,9 @@ predict_node_from_parent_binomial(
 \arguments{
 \item{data}{A data frame containing the data (samples in rows, variables in columns).}
 
-\item{mydists}{A list containing the distributions of the nodes of the graph.}
+\item{dists}{A list containing the distributions of the nodes of the graph.}
 
-\item{myfit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
 
 \item{node}{Temporary node to predict.}
 
@@ -37,25 +37,25 @@ Main function to predict the distribution of a binomial node given its parents o
 }
 \examples{
 # load a data set
-data <- ex1.dag.data 
+data <- ex1.dag.data
 
 # define the distributions of the node
-mydists <- list(b1="binomial", 
-p1="poisson", 
-g1="gaussian", 
-b2="binomial", 
-p2="poisson", 
-b3="binomial", 
-g2="gaussian", 
-b4="binomial", 
-b5="binomial", 
-g3="gaussian") 
+mydists <- list(b1="binomial",
+p1="poisson",
+g1="gaussian",
+b2="binomial",
+p2="poisson",
+b3="binomial",
+g2="gaussian",
+b4="binomial",
+b5="binomial",
+g3="gaussian")
 
 # infer the graph using ABN
 max.par <- 4 # set the same max parents for all nodes
-mycache <- buildScoreCache(data.df = data, 
+mycache <- buildScoreCache(data.df = data,
                           data.dists = mydists,
-                          method = "bayes",max.parents = max.par) 
+                          method = "bayes",max.parents = max.par)
 mp.dag <- mostProbable(score.cache = mycache)
 dag <- mp.dag$dag
 graph <- igraph::graph_from_adjacency_matrix(t(dag))

@@ -127,7 +127,11 @@ predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
 #' @export
 predictAbn <- predict.abnFit
 
-print.abnPrediction <- function(x, ...) {
+#' Print method for abnPrediction objects
+#' 
+#' @param x An object of class `abnPrediction`.
+#' @export
+print.abnPrediction <- function(x) {
   if (!is.null(x$evidence) && length(x$evidence) > 0) {
     cat("Conditioning evidence:\n")
     print(x$evidence)

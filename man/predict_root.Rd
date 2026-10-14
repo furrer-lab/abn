@@ -4,12 +4,12 @@
 \alias{predict_root}
 \title{Predict a root node}
 \usage{
-predict_root(data, mydists, node)
+predict_root(data, dists, node)
 }
 \arguments{
 \item{data}{A data frame containing the data (samples in rows, variables in columns).}
 
-\item{mydists}{A list containing the distributions of the nodes of the graph.}
+\item{dists}{A list containing the distributions of the nodes of the graph.}
 
 \item{node}{Root node to predict.}
 }
@@ -21,19 +21,19 @@ Predict a root node in the graph
 }
 \examples{
 # load a data set
-data <- ex1.dag.data 
+data <- ex1.dag.data
 
 # define the distributions of the node
-mydists <- list(b1="binomial", 
-p1="poisson", 
-g1="gaussian", 
-b2="binomial", 
-p2="poisson", 
-b3="binomial", 
-g2="gaussian", 
-b4="binomial", 
-b5="binomial", 
-g3="gaussian") 
+mydists <- list(b1="binomial",
+p1="poisson",
+g1="gaussian",
+b2="binomial",
+p2="poisson",
+b3="binomial",
+g2="gaussian",
+b4="binomial",
+b5="binomial",
+g3="gaussian")
 
 prediction <- predict_root(data, mydists, node = "g3")
 }

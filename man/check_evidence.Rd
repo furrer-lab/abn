@@ -4,12 +4,12 @@
 \alias{check_evidence}
 \title{Check the evidence}
 \usage{
-check_evidence(data, mydists, hypothesis, evidence)
+check_evidence(data, dists, hypothesis, evidence)
 }
 \arguments{
 \item{data}{A data frame containing the data (samples in rows, variables in columns).}
 
-\item{mydists}{A list containing the distributions of the nodes of the graph.}
+\item{dists}{A list containing the distributions of the nodes of the graph.}
 
 \item{hypothesis}{Node to predict.}
 
@@ -23,19 +23,19 @@ This function checks the format of the evidence
 }
 \examples{
 # load a data set
-data <- ex1.dag.data 
+data <- ex1.dag.data
 
 # define the distributions of the node
-mydists <- list(b1="binomial", 
-p1="poisson", 
-g1="gaussian", 
-b2="binomial", 
-p2="poisson", 
-b3="binomial", 
-g2="gaussian", 
-b4="binomial", 
-b5="binomial", 
-g3="gaussian") 
+mydists <- list(b1="binomial",
+p1="poisson",
+g1="gaussian",
+b2="binomial",
+p2="poisson",
+b3="binomial",
+g2="gaussian",
+b4="binomial",
+b5="binomial",
+g3="gaussian")
 
 hypothesis <- "g2"
 evidence <- list("b2" = "y", b5 = "n")
