@@ -77,7 +77,7 @@ predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
     mb <- NULL
   }
   if (all(mb %in% names(evidence)) && !is.null(hypothesis)){
-    #message("The Markov blanket of the node to infer is enterily known.")
+    message("The Markov blanket of the node to infer is enterily known.")
     prediction <- predict_node_from_parent(data, dists, graph, fit, node = hypothesis, evidence)
     predictions <- list(prediction)
     names(predictions) <- hypothesis
@@ -1148,7 +1148,14 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
   if (node %in% names(evidence)) {
-    return(predictions[[node]])
+    val <- evidence[[node]]
+    if (is.factor(val) || is.character(val)) {
+      node_levels <- levels(data[[node]]) # or look up from dists/data
+      vec <- setNames(rep(0, length(node_levels)), node_levels)
+      vec[as.character(val)] <- 1
+      return(vec)
+    }
+    return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
@@ -1431,7 +1438,14 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
   }
 
   if (node %in% names(evidence)) {
-    return(predictions[[node]])
+    val <- evidence[[node]]
+    if (is.factor(val) || is.character(val)) {
+      node_levels <- levels(data[[node]]) # or look up from dists/data
+      vec <- setNames(rep(0, length(node_levels)), node_levels)
+      vec[as.character(val)] <- 1
+      return(vec)
+    }
+    return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
@@ -1722,7 +1736,14 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
   if (node %in% names(evidence)) {
-    return(predictions[[node]])
+    val <- evidence[[node]]
+    if (is.factor(val) || is.character(val)) {
+      node_levels <- levels(data[[node]]) # or look up from dists/data
+      vec <- setNames(rep(0, length(node_levels)), node_levels)
+      vec[as.character(val)] <- 1
+      return(vec)
+    }
+    return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
@@ -2003,7 +2024,14 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
   if (node %in% names(evidence)) {
-    return(predictions[[node]])
+    val <- evidence[[node]]
+    if (is.factor(val) || is.character(val)) {
+      node_levels <- levels(data[[node]]) # or look up from dists/data
+      vec <- setNames(rep(0, length(node_levels)), node_levels)
+      vec[as.character(val)] <- 1
+      return(vec)
+    }
+    return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
     nodes <- setdiff(c(child,parents),names(predictions))
