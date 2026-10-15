@@ -8,6 +8,8 @@
 }
 \arguments{
 \item{x}{An object of class \code{abnPrediction}.}
+
+\item{...}{Further arguments passed to or from other methods.}
 }
 \description{
 Print method for abnPrediction objects
