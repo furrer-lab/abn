@@ -179,22 +179,22 @@ To calculate these quantities, substitute the observed or estimated values of th
 
 At the end of Step 1, we have an initial estimate of the distribution of $X$ given its parents, $\mathbb{P}(X\mid \mathscr{A})$. In this second step, we refine this estimate by incorporating information from its children $\mathscr{B}$ and their co-parents $\mathscr{C}$, yielding the updated conditional distribution $\mathbb{P}(X|\mathscr{A},\mathscr{B},\mathscr{C})$.
 
-First, consider the case where $X$ has a single child $B\in\mathscr{B}$. Depending on the parametric family of $X$:
+First, consider the case where $X$ has a single child $B = b\in\mathscr{B}$. Depending on the parametric family of $X$:
 
 - Binomial or Multinomial: Bayes' theorem gives the updated categorical distribution: 
-$$ \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\mathbb{P}(B \mid \mathscr{A},\mathscr{C})}= \frac{\mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\sum_X \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
+$$ \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\mathbb{P}(B = b \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\mathbb{P}(B = b \mid \mathscr{A},\mathscr{C})}= \frac{\mathbb{P}(B = b \mid X, \mathscr{C}) \mathbb{P}(X\mid \mathscr{A})}{\sum_X \mathbb{P}(B =b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
 
 - Poisson: the updated conditional expectation $\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C})$ is given by: 
-$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \sum_{X=0}^{\infty} X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\sum_{X=0}^{\infty} X \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) }{\sum_{X=0}^{\infty} \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
+$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \sum_{X=0}^{\infty} X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) = \frac{\sum_{X=0}^{\infty} X \mathbb{P}(B =b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) }{\sum_{X=0}^{\infty} \mathbb{P}(B =b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A})}.$$ 
 - Gaussian:
 
     - expectation: 
-$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \int X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) dX = \frac{\int X \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
+$$\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C}) = \int X \mathbb{P}(X \mid \mathscr{A}, B, \mathscr{C}) dX = \frac{\int X \mathbb{P}(B =b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B =b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
 
     - variance:
 $$var(X \mid \mathscr{A}, B, \mathscr{C}) = \mathbb{E}(X^2 \mid \mathscr{A}, B, \mathscr{C}) - \left(\mathbb{E}(X \mid \mathscr{A}, B, \mathscr{C})^2\right),$$
 where: 
-$$\mathbb{E}(X^2 \mid \mathscr{A}, B, \mathscr{C}) =  \frac{\int X^2 \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
+$$\mathbb{E}(X^2 \mid \mathscr{A}, B, \mathscr{C}) =  \frac{\int X^2 \mathbb{P}(B = b\mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}{\int \mathbb{P}(B = b \mid X, \mathscr{C}) \mathbb{P}(X \mid \mathscr{A}) dX}.$$ 
 
 
 In these expressions, the conditional distribution $\mathbb{P}(X\mid \mathscr{A})$ computed in Step 1 is used as the prior:
@@ -207,7 +207,7 @@ In these expressions, the conditional distribution $\mathbb{P}(X\mid \mathscr{A}
 
 - Multinomial: $X \sim Cat(p_{X,1},...,p_{X,K})$, where $p_{X,1},...,p_{X,K}$ are estimated in Step 1.
 
-The conditional probability $\mathbb{P}(B \mid X, \mathscr{C})$ is derived from the regression model of child $B$:
+The conditional probability $\mathbb{P}(B =b \mid X, \mathscr{C})$ acts as the likelihood of $X$ given the observed value $b$ through the regression model of child $B$:
 
 - Binomial child: $B \sim B(p_B)$, with $p_B = \frac{1}{1+\exp \left( - (\beta_{B0} + \beta_{B1} X + \beta_{B2} C)\right)},$ 
 
