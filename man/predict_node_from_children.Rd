@@ -52,7 +52,7 @@ b5="binomial",
 g3="gaussian")
 
 # infer the graph using ABN
-max.par <- 4 # set the same max parents for all nodes
+max.par <- 3 # set the same max parents for all nodes
 mycache <- buildScoreCache(data.df = data,
                           data.dists = mydists,
                           method = "bayes",max.parents = max.par)
