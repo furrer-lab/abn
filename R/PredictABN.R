@@ -130,6 +130,7 @@ predict.abnFit <- predictAbn
 #' Print method for abnPrediction objects
 #' 
 #' @param x An object of class `abnPrediction`.
+#' @param ... Further arguments passed to or from other methods.
 #' @export
 print.abnPrediction <- function(x,...) {
   if (!is.null(x$evidence) && length(x$evidence) > 0) {
