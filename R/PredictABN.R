@@ -25,7 +25,7 @@
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -123,7 +123,10 @@ predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
   }
 }
 
-#' @rdname predict.abnFit
+#' Print method for abnPrediction objects
+#'
+#' @param x An object of class \code{abnPrediction}.
+#' @param ... Further arguments passed to or from other methods.
 #' @export
 predictAbn <- predict.abnFit
 
@@ -131,7 +134,7 @@ predictAbn <- predict.abnFit
 #' 
 #' @param x An object of class `abnPrediction`.
 #' @export
-print.abnPrediction <- function(x) {
+print.abnPrediction <- function(x,...) {
   if (!is.null(x$evidence) && length(x$evidence) > 0) {
     cat("Conditioning evidence:\n")
     print(x$evidence)
@@ -298,7 +301,7 @@ find_MB <- function(graph, hypothesis){
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -313,6 +316,7 @@ find_MB <- function(graph, hypothesis){
 #' node <- "g2"
 #'
 #' evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
+#' evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 #'
 #' predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
 #' predictions  # the predicted distribution of g2
@@ -367,7 +371,7 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -382,6 +386,7 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #' node <- "g2"
 #'
 #' evidence <- list("g1" = 3, "b5" = "y")
+#' evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 #'
 #' predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
 #'
@@ -477,42 +482,7 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
-#'
-#' # infer the parameters of the network
-#' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
-#'
-#' node <- "p2"
-#' parents <- find_parents(graph,node)
-#'
-#' evidence <- list("b1" = "y", "p1" = 3)
-#'
-#' predictions <- predict_node_from_parent_poisson(data, mydists, myfit, node, evidence, parents)
-#' predictions  # the predicted distribution of p1
+#' @importFrom stats setNames
 #' @export
 #'
 predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
@@ -619,42 +589,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
-#'
-#' # infer the parameters of the network
-#' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
-#'
-#' node <- "g2"
-#' parents <- find_parents(graph,node)
-#'
-#' evidence <- list("p1" = 1, "g1" = 2, "b2" = "y")
-#'
-#' predictions <- predict_node_from_parent_gaussian(data, mydists, myfit, node, evidence, parents)
-#' predictions  # the predicted distribution of g2
+#' @importFrom stats setNames var
 #' @export
 #'
 predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
@@ -684,7 +619,7 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         node_sigma_sq <- var(data[[node]])
       }
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
-     if (length(bin.nodes)>0){
+      if (length(bin.nodes)>0){
         other.nodes <- parents[-which(parents %in% bin.nodes)]
       } else {
         other.nodes <- parents
@@ -779,42 +714,7 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#' graph <- igraph::graph_from_adjacency_matrix(t(dag))
-#'
-#' # infer the parameters of the network
-#' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
-#'
-#' node <- "b3"
-#' parents <- find_parents(graph,node)
-#'
-#' evidence <- list("g1" = 4, "b1" = "y", "b2" = "y")
-#'
-#' predictions <- predict_node_from_parent_binomial(data, mydists, myfit, node, evidence, parents)
-#' predictions  # the predicted distribution of b2
+#' @importFrom stats setNames
 #' @export
 #'
 predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
@@ -932,6 +832,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
 #' @param predictions The estimated predictions of the upstream nodes  (can be empty if the parents of the node to predict are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
+#' @importFrom stats setNames
 #' @export
 #'
 predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
@@ -1099,6 +1000,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
+#' @importFrom stats setNames
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data
@@ -1116,7 +1018,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -1132,11 +1034,13 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #' child <- find_children(graph, node)[2]
 #' parents <- find_parents(graph, child)
 #' evidence <- list("g2" = 3, "p1" = 3, "b2" = "y")
-#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+#' evidence <- check_evidence(data, mydists, 
+#'                     hypothesis = node, evidence) # check the format of the evidence
 #'
 #' predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 #'
-#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, evidence, child, parents, predictions)
+#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, 
+#'                     evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
@@ -1391,6 +1295,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
+#' @importFrom stats setNames integrate
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data
@@ -1408,7 +1313,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -1424,11 +1329,13 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 #' child <- find_children(graph, node)[1]
 #' parents <- find_parents(graph, child)
 #' evidence <- list("p1" = 3, "p2" = 4)
-#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+#' evidence <- check_evidence(data, mydists, 
+#'                    hypothesis = node, evidence) # check the format of the evidence
 #'
 #' predictions <- list("b1" = c(0.5,0.5)) # a first estimate of the node b1
 #'
-#' predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, evidence, child, parents, predictions)
+#' predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, 
+#'                     evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
@@ -1693,6 +1600,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
 #' @import igraph
+#' @importFrom stats setNames integrate
 #' @examples
 #' # load a data set
 #' data <- ex1.dag.data
@@ -1710,7 +1618,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
+#' max.par <- 2 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -1726,11 +1634,13 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 #' child <- find_children(graph, node)[1]
 #' parents <- find_parents(graph, child)
 #' evidence <- list("b3" = "y",  "b1" = "y", "b2" = "y")
-#' evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+#' evidence <- check_evidence(data, mydists, 
+#'                     hypothesis = node, evidence) # check the format of the evidence
 #'
 #' predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 #'
-#' predictions <- predict_node_from_children_binomial(data, mydists, myfit, node, evidence, child, parents, predictions)
+#' predictions <- predict_node_from_children_binomial(data, mydists, myfit, node, 
+#'                     evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
@@ -2022,6 +1932,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 #' @param parents The parents of the child.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the child and its parents are evidence).
 #' @return The predicted distribution of the node of interest.
+#' @importFrom stats setNames integrate
 #' @import igraph
 #' @export
 #'
@@ -2460,7 +2371,7 @@ find_parents <- function(graph,node){
     if (is.character(node)){
       stop("The graph is not labeled, provide a number corresponding to one node.")
     } else if (node > length(V(graph))){
-      stop(paste0("There are less than ", length(V(g)), " nodes in the graph."))
+      stop(paste0("There are less than ", length(V(graph)), " nodes in the graph."))
     }
     parents <- as.character(neighbors(graph, v= node,mode="in"))
   } else {
@@ -2470,7 +2381,7 @@ find_parents <- function(graph,node){
       }
     } else {
       if (node > length(V(graph))){
-        stop(paste0("There are less than ", length(V(g)), " nodes in the graph."))
+        stop(paste0("There are less than ", length(V(graph)), " nodes in the graph."))
       }
     }
     parents <- names(neighbors(graph, v= node,mode="in"))
@@ -2501,7 +2412,7 @@ find_children <- function(graph,node){
     if (is.character(node)){
       stop("The graph is not labeled, provide a number corresponding to one node.")
     } else if (node > length(V(graph))){
-      stop(paste0("There are less than ", length(V(g)), " nodes in the graph."))
+      stop(paste0("There are less than ", length(V(graph)), " nodes in the graph."))
     }
     children <- as.character(neighbors(graph, v= node,mode="out"))
   } else {
@@ -2511,7 +2422,7 @@ find_children <- function(graph,node){
       }
     } else {
       if (node > length(V(graph))){
-        stop(paste0("There are less than ", length(V(g)), " nodes in the graph."))
+        stop(paste0("There are less than ", length(V(graph)), " nodes in the graph."))
       }
     }
     children <- names(neighbors(graph, v= node,mode="out"))
@@ -2635,6 +2546,7 @@ prior_binomial <- function(x, p){
 #' @param coef The coefficient that links `y` to `x`.
 #' @param continuous_part The rest of the equation (intercept and links between the parents of the child and the child).
 #' @return The value of the log-likelihood.
+#' @importFrom stats plogis
 #' @export
 LogL_binomial <- function(y, x, coef, continuous_part) {
   # Calculate log-odds / linear predictor
@@ -2701,206 +2613,4 @@ logL_multinomial_vectorized <- function(y, x_vec, coef, continuous_part) {
   # Log-likelihood for the specific category y_cat across all x values
   log_lik <- eta[y, ] - log_denominator
   return(log_lik)
-}
-
-#' Plot ABN fitted network
-#'
-#' This function plots the ABN network with an emphasis on a specific node
-#'
-#' @param dag An adjacency matrix (can be the output of the function mostProbable()).
-#' @param dists A list containing the distributions of the nodes of the graph.
-#' @param node The node of interest.
-#' @param order up or down indicating whether we predict the node from upstream or downstream.
-#' @return A graph object.
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#'
-#' node <- "b4"
-#' order <- "up"
-#' plot_node <- plot_Abn(dag, mydists, node, order)
-#' plot_node
-#' @import igraph
-#' @export
-plot_Abn <- function (dag, dists, node, order){
-  if (!all(colnames(dag) %in% names(dists))){
-    stop("The names of the nodes in dag do not correspond to the ones in dists.")
-  }
-  if (!node %in% colnames(dag)){
-    stop("Choose a node that belongs to the network.")
-  }
-  if (! order %in% c("up","down")){
-    stop("Choose either up or down as an argument for order.")
-  }
-  dists <- dists[colnames(dag)]
-  name <- names(dists)
-
-  graph <- graph_from_adjacency_matrix(t(dag))
-
-  am.graph <- new(Class = "graphAM", adjMat = dag, edgemode = "directed")
-
-  node.shape <- rep(c("circle", "box","ellipse","diamond"), 4)
-  shape <- rep(node.shape[1], length(dists))
-  shape[dists == "binomial"] <- node.shape[2]
-  shape[dists == "poisson"] <- node.shape[3]
-  shape[dists == "multinomial"] <- node.shape[4]
-  names(shape) <- names(dists)
-
-  node.fillcolor = c("lightblue", "brown3", "chartreuse3","chartreuse4")
-  fillcolor <- rep(node.fillcolor[1], length(dists))
-  names(fillcolor) <- names(dists)
-  if (!is.null(node)) {
-    markov.blanket <- abn::mb(dag, node = node,
-                         data.dists = dists)
-    fillcolor[names(dists) %in% node] <- node.fillcolor[2] # node in red
-
-    if (order == "up"){
-      parents <- find_parents(graph, node)
-      fillcolor[names(dists) %in% parents] <- node.fillcolor[3]
-    } else if (order == "down"){
-      children <- find_children(graph, node)
-      parents <- unique(unlist(sapply(children,function(l){find_parents(graph, l)})))
-      fillcolor[names(dists) %in% setdiff(parents,node)] <- node.fillcolor[4]
-      fillcolor[names(dists) %in% children] <- node.fillcolor[3]
-    }
-  }
-
-  names.edges <- names(Rgraphviz::buildEdgeList(am.graph))
-  edge.label <- rep(" ", length(names.edges))
-  names(edge.label) <- names.edges
-  edge.lwd <- rep(1, length(names.edges))
-  class(edge.lwd) <- "character"
-  names(edge.lwd) <- names.edges
-
-  attrs <- list(graph = list(rankdir = "BT"), node = list(fontsize = 12,
-                                                          fixedsize = FALSE), edge = list(arrowsize = 0.6,
-                                                                                          color = "black", lty = "solid", fontsize = 12))
-  nodeAttrs <- list(fillcolor = fillcolor, shape = shape)
-  edgeAttrs <- list(label = edge.label, lwd = edge.lwd)
-  am.graph <- layoutGraph(am.graph, attrs = attrs, nodeAttrs = nodeAttrs,
-                          edgeAttrs = edgeAttrs)
-
-  edgeRenderInfo(am.graph) <- list(arrowtail = "open")
-  edgeRenderInfo(am.graph) <- list(arrowhead = "none")
-  edgeRenderInfo(am.graph) <- list(lwd = edge.lwd)
-  return(graph=am.graph)
-}
-
-#' Plot the procedure's workflow
-#'
-#' This function plots and saves an animated gif that represents the procedure's workflow.
-#'
-#' @param dag An adjacency matrix (can be the output of the function mostProbable()).
-#' @param dists A list containing the distributions of the nodes of the graph.
-#' @param hypothesis Node to predict.
-#' @param path A valid path to save the plots
-#' @param directory.name The name of the directory that will be created to save the plots.
-#' @return An animated gif that represents the procedure's workflow.
-#' @import igraph
-#' @examples
-#' # load a data set
-#' data <- ex1.dag.data
-#'
-#' # define the distributions of the node
-#' mydists <- list(b1="binomial",
-#' p1="poisson",
-#' g1="gaussian",
-#' b2="binomial",
-#' p2="poisson",
-#' b3="binomial",
-#' g2="gaussian",
-#' b4="binomial",
-#' b5="binomial",
-#' g3="gaussian")
-#'
-#' # infer the graph using ABN
-#' max.par <- 4 # set the same max parents for all nodes
-#' mycache <- buildScoreCache(data.df = data,
-#'                           data.dists = mydists,
-#'                           method = "bayes",max.parents = max.par)
-#' mp.dag <- mostProbable(score.cache = mycache)
-#' dag <- mp.dag$dag
-#'
-#' hypothesis <- "g2"
-#' plot_workflow(dag, mydists, hypothesis)
-#' @export
-
-plot_workflow <- function(dag, dists, hypothesis, path = NULL, directory.name =NULL){
-  path <- createDirectory(path = path, directory.name = directory.name)
-
-  graph <- graph_from_adjacency_matrix(t(dag))
-  node_order <- names(topo_sort(graph, mode="out"))
-  node_max <- which(node_order == hypothesis)
-
-  for (i in (1:length(node_order))){
-    plots <- plot_Abn(dag, dists, node = node_order[i], "up")
-    png(paste0(path,"/graph",i,".png"), width = 800, height = 600)
-    renderGraph(plots)
-    title(main = paste0("Step ",i,", node ",node_order[i],", up"), cex.main = 1.5, font.main = 2)
-    dev.off()
-  }
-
-  counter <- length(node_order)
-  for (i in (length(node_order):node_max)){
-    counter <- counter + 1
-    plots <- plot_Abn(dag, dists, node = node_order[i], "down")
-    png(paste0(path,"/graph",counter,".png"), width = 800, height = 600)
-    renderGraph(plots)
-    title(main = paste0("Step ",counter,", node ",node_order[i],", down"), cex.main = 1.5, font.main = 2)
-    dev.off()
-  }
-
-  createAnimation(path)
-}
-
-#' Create a directory
-#'
-#' This function creates a directory situated in a particular path
-#'
-#' @param path A valid path.
-#' @param directory.name The name of the directory that will be created in this path.
-#' @return A path corresponding to this created repository
-#' @examples
-#' path <- createDirectory(path = NULL, directory.name = "test")
-#' @export
-createDirectory <- function(path = NULL, directory.name = NULL){
-  if (is.null(path)){
-    path <- getwd()
-  }
-  if (is.null(directory.name)){
-    if (file.exists("graphs")){
-      warning("No directory name was provided, we will use the repository graphs that is already existing. Consider cleaning it before running this code.")
-    } else {
-      dir.create(file.path(path, "graphs"))
-    }
-    path <- paste0(path,"/graphs")
-  } else {
-    if (file.exists(directory.name)){
-      warning("The repository already exists. Consider cleaning it before running this code.")
-    } else {
-      dir.create(file.path(path,directory.name))
-    }
-    path <- paste0(path,"/",directory.name)
-  }
-  return(path)
 }
