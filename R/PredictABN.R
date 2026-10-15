@@ -1155,6 +1155,9 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
       vec[as.character(val)] <- 1
       return(vec)
     }
+    if (dists[[node]]=="gaussian"){
+      val <- c(val, predictions[[node]][2])
+    }
     return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
@@ -1444,6 +1447,9 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
       vec <- setNames(rep(0, length(node_levels)), node_levels)
       vec[as.character(val)] <- 1
       return(vec)
+    }
+    if (dists[[node]]=="gaussian"){
+      val <- c(val, predictions[[node]][2])
     }
     return(val)
   }
@@ -1743,6 +1749,9 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
       vec[as.character(val)] <- 1
       return(vec)
     }
+    if (dists[[node]]=="gaussian"){
+      val <- c(val, predictions[[node]][2])
+    }
     return(val)
   }
   if (!all(c(child,parents) %in% names(predictions))){
@@ -2030,6 +2039,9 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
       vec <- setNames(rep(0, length(node_levels)), node_levels)
       vec[as.character(val)] <- 1
       return(vec)
+    }
+    if (dists[[node]]=="gaussian"){
+      val <- c(val, predictions[[node]][2])
     }
     return(val)
   }
