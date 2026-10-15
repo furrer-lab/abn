@@ -43,7 +43,7 @@
 #' str(predictions)
 #' @export
 #'
-predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
+predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
   fit <- object$modes
   #data <- object$abnDag$data.df
   dag <- object$abnDag$dag
@@ -123,12 +123,9 @@ predict.abnFit <- function(object, data, hypothesis = NULL, evidence = NULL){
   }
 }
 
-#' Print method for abnPrediction objects
-#'
-#' @param x An object of class \code{abnPrediction}.
-#' @param ... Further arguments passed to or from other methods.
+#' @rdname predictAbn
 #' @export
-predictAbn <- predict.abnFit
+predict.abnFit <- predictAbn
 
 #' Print method for abnPrediction objects
 #' 
@@ -371,7 +368,7 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 2 # set the same max parents for all nodes
+#' max.par <- 3 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
@@ -1018,7 +1015,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #' g3="gaussian")
 #'
 #' # infer the graph using ABN
-#' max.par <- 2 # set the same max parents for all nodes
+#' max.par <- 3 # set the same max parents for all nodes
 #' mycache <- buildScoreCache(data.df = data,
 #'                           data.dists = mydists,
 #'                           method = "bayes",max.parents = max.par)
