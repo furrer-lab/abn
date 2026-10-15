@@ -44,6 +44,7 @@ Imports:
     foreach,
     glmmTMB,
     graph,
+    igraph,
     jsonlite,
     lme4,
     mclogit,
@@ -58,7 +59,6 @@ Suggests:
     boot,
     brglm,
     devtools (>= 2.4.5),
-    ggplot2,
     gridExtra,
     INLA,
     knitr,
@@ -69,6 +69,7 @@ Suggests:
     RhpcBLASctl,
     rmarkdown,
     testthat (>= 3.0.0),
+    mockery,
     entropy,
     moments,
     R6
