@@ -71,10 +71,12 @@ node <- "b1"
 child <- find_children(graph, node)[1]
 parents <- find_parents(graph, child)
 evidence <- list("p1" = 3, "p2" = 4)
-evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+evidence <- check_evidence(data, mydists, 
+                   hypothesis = node, evidence) # check the format of the evidence
 
 predictions <- list("b1" = c(0.5,0.5)) # a first estimate of the node b1
 
-predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, evidence, child, parents, predictions)
+predictions <- predict_node_from_children_poisson(data, mydists, myfit, node, 
+                    evidence, child, parents, predictions)
 predictions  # the predicted distribution of g2
 }

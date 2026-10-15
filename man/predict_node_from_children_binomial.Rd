@@ -71,10 +71,12 @@ node <- "g1"
 child <- find_children(graph, node)[1]
 parents <- find_parents(graph, child)
 evidence <- list("b3" = "y",  "b1" = "y", "b2" = "y")
-evidence <- check_evidence(data, mydists, hypothesis = node,evidence) # check the format of the evidence
+evidence <- check_evidence(data, mydists, 
+                    hypothesis = node, evidence) # check the format of the evidence
 
 predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 
-predictions <- predict_node_from_children_binomial(data, mydists, myfit, node, evidence, child, parents, predictions)
+predictions <- predict_node_from_children_binomial(data, mydists, myfit, node, 
+                    evidence, child, parents, predictions)
 predictions  # the predicted distribution of g2
 }

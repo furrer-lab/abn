@@ -4,7 +4,7 @@
 \alias{print.abnPrediction}
 \title{Print method for abnPrediction objects}
 \usage{
-\method{print}{abnPrediction}(x)
+\method{print}{abnPrediction}(x, ...)
 }
 \arguments{
 \item{x}{An object of class \code{abnPrediction}.}

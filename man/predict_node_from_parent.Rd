@@ -67,6 +67,7 @@ myfit <- myfit$modes
 node <- "g2"
 
 evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
+evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 
 predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
 predictions  # the predicted distribution of g2

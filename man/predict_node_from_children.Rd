@@ -67,6 +67,7 @@ myfit <- myfit$modes
 node <- "g2"
 
 evidence <- list("g1" = 3, "b5" = "y")
+evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 
 predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
 
