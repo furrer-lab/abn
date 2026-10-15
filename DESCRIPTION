@@ -72,6 +72,7 @@ Suggests:
     RhpcBLASctl,
     rmarkdown,
     testthat (>= 3.0.0),
+    mockery,
     entropy,
     moments,
     R6
