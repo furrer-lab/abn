@@ -23,10 +23,9 @@ test_that("General behaviour of buildScoreCache.bayes()", {
   expect_equal(buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=3, which.nodes=1:5),
                buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=list(Ozone=3, Solar.R=3, Wind=3, Temp=3, Month=3), which.node=1:5))
   expect_no_error(buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=list(Ozone=2, Solar.R=4, Wind=4, Temp=4, Month=4), which.node=1:5))
-  expect_error(
+  expect_failure(
     expect_equal(buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=4, which.node=1:5),
-                 buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=list(Ozone=2, Solar.R=4, Wind=4, Temp=4, Month=4), which.node=1:5)),
-    regexp = "not equal")
+                 buildScoreCache(data.df=df, data.dists=dist, method = "bayes", max.parents=list(Ozone=2, Solar.R=4, Wind=4, Temp=4, Month=4), which.node=1:5)))
 })
 
 test_that("buildScoreCache.bayes() with Gaussian nodes", {

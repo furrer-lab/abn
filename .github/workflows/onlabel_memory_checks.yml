@@ -67,27 +67,28 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       REPO: ${{ github.event.repository.name }}
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     strategy:
       fail-fast: false
       matrix:
         testfile: ${{ fromJson(needs.gather_tests.outputs.testfiles) }}
+        container:
+          - 'valgrind-gcc-devel'
+          - 'debian-gcc-release'
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ matrix.container }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Installing valgrind
+        if: ${{ !startsWith(matrix.container, 'valgrind') }}
         run: |
-          apt-get install valgrind -y
+          apt-get update && apt-get install valgrind -y
         shell: bash
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Change permissions of configure
         run: |
             chmod +x configure
@@ -103,7 +104,7 @@ jobs:
         shell: bash
       - name: Install package
         run: |
-          devtools::install(upgrade='never')
+          devtools::install(upgrade=FALSE)
         shell: Rscript {0}
       - name: valgrind - memcheck for ${{ matrix.testfile }}
         run: |

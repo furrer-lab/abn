@@ -24,31 +24,38 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - name: prepare macos
         run: |
           brew install R
           brew install pkg-config
           brew install automake  # needed to run autoconf
+          brew install graphviz  # needed for Rgraphviz
 
       - name: install GSL
         run: |
           brew install gsl
 
-      - name: install JAGS
+      - name: install JAGS 4 (brew 'jags' is 5.x, unsupported by rjags 4-17)
         run: |
-          brew install jags
+          curl --fail -L -o /tmp/JAGS-4.3.2.pkg \
+            "https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Mac%20OS%20X/JAGS-4.3.2.pkg/download"
+          sudo installer -pkg /tmp/JAGS-4.3.2.pkg -target /
+          ls -l /usr/local/lib/libjags*.dylib
 
-      # - name: install rjags
-      #   run: |
-      #       install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
-      #       library("rjags")
-      #   shell: Rscript {0}
+      - name: install rjags
+        run: |
+            install.packages("rjags", type = "source",
+                             configure.args = "--with-jags-prefix=/usr/local",
+                             repos = c(CRAN = "https://cran.r-project.org"))
+            library("rjags")
+        shell: Rscript {0}
 
       - name: install INLA dependencies
         run: |
           brew install udunits 
-          brew install openssl@1.1  # s2 package
+          brew install openssl@3  # s2 package
           brew install gdal  # installs geos as dependency
                              # for s2 fmesher terra)
           brew install proj  # sf package
@@ -60,7 +67,19 @@ jobs:
 
       - name: install pak
         run: |
-          install.packages('pak', repos=c(CRAN="https://cran.r-project.org"))
+          install.packages(
+            c("pak", "BiocManager"),
+            repos = c(CRAN = "https://cran.r-project.org")
+          )
+        shell: Rscript {0}
+
+      - name: install Bioconductor dependencies
+        run: |
+          BiocManager::install(
+            c("graph", "Rgraphviz"),
+            ask = FALSE,
+            update = FALSE
+          )
         shell: Rscript {0}
 
       # - name: install from CRAN with pak
@@ -78,11 +97,6 @@ jobs:
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
-
-      - name: deactivate the renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
 
       - name: install from source
         run: |
