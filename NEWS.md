@@ -1,3 +1,86 @@
+# abn 3.2.0 (unreleased)
+
+## New features
+
+* JSON export and import of fitted models: `export_abnFit()` writes an
+  `abnFit` object as a `bayesian-network` JSON document whose generic core
+  (variables, groups, arcs, parameters, inference) fully describes the model
+  for exchange with other tools; abn-specific details are namespaced under
+  `metadata.extensions.abn`. `import_abnFit()` reconstructs the object, also
+  from documents produced by other tools, and can attach observations from a
+  `bn-data` document or data frame via `data =`.
+* JSON export and import of raw data: `export_abnData()` and
+  `import_abnData()` exchange observations in the columnar `bn-data` format,
+  with column descriptors, missing-value tokens, optional summary statistics
+  (checkable and refreshable via `validate_data_json_summary()` and
+  `repair_data_json_summary()`) and an R adapter for lossless round-trips.
+* Machine-readable format specification: JSON Schemas in
+  `inst/schemas/bayesian-network.schema.json` and
+  `inst/schemas/bn-data.schema.json`, documented in
+  `vignette("json-format")` with the fitAbn property mapping in
+  `vignette("fitabn-json-specification")` and the data format in
+  `vignette("bn-data-json-specification")`.
+
+## JSON import/export fixes and validation
+
+* Bayesian import reconstructs posterior quantiles independently of marginal
+  density grids; either optional representation can be supplied on its own.
+* The native `abnFit` adapter explicitly rejects multiple groups and unsupported
+  cross-scale estimates, rather than dropping groups or reinterpreting values.
+  MLE imports require variance/covariance scale; Bayesian imports require
+  precision scale. These limitations also apply with `validate = FALSE`.
+* Network validation checks required fields, scalar types, exact integer IDs,
+  state/group references, parameter semantics, duplicate arcs, acyclicity,
+  posterior data and recognized ABN-extension fields. Data validation checks
+  descriptors, values, categories, nullability and grouping consistency before
+  coercion. Optional JSON Schema validation is exercised by the test suite.
+* Collection fields remain JSON arrays with zero or one element. Zero-row and
+  all-missing categorical datasets are supported, including unknown category
+  domains; raw categorical samples need not contain every model category.
+  Zero-column datasets remain unsupported.
+* Raw-data round-trips distinguish missing JSON `null` from numeric `NaN` and
+  infinities using the documented special tokens. The adapter reserves these
+  token strings against use as ordinary category labels.
+* Generic data import works without R adapter metadata. When present, the
+  adapter preserves R storage types and records `row_names_type` explicitly;
+  numeric-looking string labels such as `"001"` are never used to infer a numeric
+  row-name type. Unused and ordered category levels are retained.
+* Model re-export preserves document identifiers and metadata where applicable,
+  but refreshes `metadata.created`; round-trip stability is checked excluding
+  that timestamp, not as unconditional byte identity.
+
+## Bug fixes in model fitting
+
+* Centred fits now record the applied `(center, scale)` per gaussian node
+  (`fit$centre`); previously the transformation was invisible in the fit.
+* `fitAbn()` now passes `centre` to Bayesian fits; previously
+  `method = "bayes"` always standardized gaussian nodes regardless of the
+  argument.
+* Grouped Bayesian fits now store `group.var`, `group.ids` and `grouped.vars`.
+* Bayesian fits now store the priors used (`fit$priors`).
+* Original factor levels of binomial and multinomial nodes are recorded
+  (`fit$levels`); they were previously destroyed by the internal recoding.
+* `fit$error.code.desc` keeps its node names (dropped by `ifelse()`).
+* Residual degrees of freedom (`df`, and hence `mse`) are computed from the
+  actual design matrix; nodes with a multinomial parent had an off-by-one `df`.
+* Coefficient names of multinomial children with several parents now follow
+  the order of the estimated values.
+* `modes2coefs()` correctly removes all precision entries from `coef` for
+  grouped gaussian nodes.
+* `buildScoreCache(method = "bayes")` no longer stores `grouped.vars` under
+  the name `group.vars`, which caused `fitAbn()` to partial-match a fake
+  `group.var` for ungrouped Bayesian caches (issue #272).
+
+## Internal changes
+
+* The package no longer uses `exportPattern("^[[:alpha:]]+")`, preventing
+  accidental export of JSON implementation helpers. Existing non-JSON exports,
+  including legacy helpers and native routine bindings, are preserved through
+  explicit compatibility declarations. The JSON API consists of the model/data
+  import and export functions and the data-summary validation/repair functions.
+* `jsonvalidate` added to Suggests (used by the JSON schema tests).
+
+
 
 # abn 3.1.13
 [diff](https://github.com/furrer-lab/abn/compare/3.1.12...3.1.13)

@@ -534,10 +534,11 @@ fitAbn <- function(object = NULL,
   if (!is.null(group.var) && !is.null(object)) {
     if (inherits(x = object, what = "abnLearned") || inherits(x = object, what = "abnCache")) {
       # object is provided in correct form.
-      if (group.var == object$score.cache$group.var) {
+      cache_group_var <- object[["score.cache"]][["group.var"]]
+      if (group.var == cache_group_var) {
         if (verbose) {message("Ok. 'group.var' in score.cache object equals 'group.var' argument provided to fitAbn().")}
-      } else if (group.var != object$score.cache$group.var) {
-        stop(paste("Fitting (", group.var, ") and learned (", object$score.cache$group.var, ") 'group.var' argument differ."))
+      } else if (group.var != cache_group_var) {
+        stop(paste("Fitting (", group.var, ") and learned (", cache_group_var, ") 'group.var' argument differ."))
       } else {
         stop("Checking coherence of 'group.var' argument failed with unknown error. I should never end up here.")
       }
@@ -561,15 +562,15 @@ fitAbn <- function(object = NULL,
       object <- dag
       message("Best practice with abn > 2.0 requires to pass 'dag' as 'object' parameter.")
 
-      dag <- object$dag
-      object <- object$score.cache
-      data.df <- object$data.df
-      data.dists <- object$data.dists
-      group.var <- object$group.var
-      cor.vars <- object$cor.vars
+      dag <- object[["dag"]]
+      object <- object[["score.cache"]]
+      data.df <- object[["data.df"]]
+      data.dists <- object[["data.dists"]]
+      group.var <- object[["group.var"]]
+      cor.vars <- object[["cor.vars"]]
       # adj.vars <- object$adj.vars
-      fitmethod <- object$method
-      mylist <- object$mylist
+      fitmethod <- object[["method"]]
+      mylist <- object[["mylist"]]
     } else {
       # Only formula DAGs are accepted otherwise
       validdag <- check.valid.dag(dag = dag, data.df = data.df, group.var = group.var)
@@ -584,15 +585,15 @@ fitAbn <- function(object = NULL,
     # only object provided
     if (inherits(x=object, what="abnLearned")) {
       # if object is of class "abnLearned" extract its stuff
-      dag <- object$dag
-      object <- object$score.cache
-      data.df <- object$data.df
-      data.dists <- object$data.dists
-      group.var <- object$group.var
-      cor.vars <- object$cor.vars
+      dag <- object[["dag"]]
+      object <- object[["score.cache"]]
+      data.df <- object[["data.df"]]
+      data.dists <- object[["data.dists"]]
+      group.var <- object[["group.var"]]
+      cor.vars <- object[["cor.vars"]]
       # adj.vars <- object$adj.vars
-      fitmethod <- object$method
-      mylist <- object$mylist
+      fitmethod <- object[["method"]]
+      mylist <- object[["mylist"]]
     } else {
       stop("Unknown type of 'object'. Must be of class 'abnLearned'.")
     }
@@ -636,8 +637,8 @@ fitAbn <- function(object = NULL,
     # we have grouping
     if (inherits(x=object, what="abnLearned") || inherits(x=object, what="abnCache")) {
       # grouping was checked before. Extract only the variables that were not already above.
-      grouped.vars <- object$grouped.vars
-      group.ids <- object$group.ids
+      grouped.vars <- object[["grouped.vars"]]
+      group.ids <- object[["group.ids"]]
     } else {
       # check grouping
       val_groups <- check.valid.groups(group.var = group.var, data.df = data.df, cor.vars = cor.vars, verbose = verbose)
@@ -652,8 +653,8 @@ fitAbn <- function(object = NULL,
     # no group.var provided to fitAbn(). Check if group.var is provided through object.
     if (inherits(x = object, what = "abnLearned") || inherits(x = object, what = "abnCache")) {
       # grouping was checked before. Extract only the variables that were not already above.
-      grouped.vars <- object$grouped.vars
-      group.ids <- object$group.ids
+      grouped.vars <- object[["grouped.vars"]]
+      group.ids <- object[["group.ids"]]
     } else {
       # we have really no grouping
       grouped.vars <- rep(0L, nrow(data.df))
@@ -724,8 +725,20 @@ fitAbn <- function(object = NULL,
                         grouped.vars = grouped.vars,
                         group.ids = group.ids,
                         force.method = force.method,
+                        centre = centre,
                         verbose = verbose,
                         debugging = debugging)
+    # Store the grouping (as for MLE) and the priors used, so that the fit is
+    # self-describing (e.g. for export_abnFit()).
+    if (!is.null(group.var)) {
+      out[["group.var"]] <- group.var
+      out[["group.ids"]] <- group.ids
+      out[["grouped.vars"]] <- grouped.vars
+    }
+    out[["priors"]] <- list(mean = ctrl[["mean"]],
+                            prec = ctrl[["prec"]],
+                            loggam.shape = ctrl[["loggam.shape"]],
+                            loggam.inv.scale = ctrl[["loggam.inv.scale"]])
   } else if (method == "mle") {
     out <- fitAbn.mle(dag,
                       data.df = data.df,
@@ -741,6 +754,32 @@ fitAbn <- function(object = NULL,
                       debugging = debugging)
   } else {
     stop("'method' unknown.")
+  }
+  # Record the standardisation of gaussian nodes: the model works on
+  # (x - center) / scale. NULL when centre = FALSE or no gaussian node.
+  gaussian_nodes <- names(data.dists)[unlist(data.dists) == "gaussian"]
+  if (isTRUE(centre) && length(gaussian_nodes) > 0) {
+    out[["centre"]] <- stats::setNames(lapply(gaussian_nodes, function(node) {
+      c(center = mean(data.df[[node]]), scale = stats::sd(data.df[[node]]))
+    }), gaussian_nodes)
+  }
+  # Record the original factor levels of binomial and multinomial nodes. The
+  # fitting functions recode these columns (0/1 or numeric), so the labels are
+  # otherwise lost. First level = reference (binomial: coded 0).
+  categorical_nodes <- names(data.dists)[unlist(data.dists) %in% c("binomial", "multinomial")]
+  if (length(categorical_nodes) > 0) {
+    out[["levels"]] <- stats::setNames(lapply(categorical_nodes, function(node) {
+      x <- data.df[[node]]
+      if (method == "mle" && is.null(group.var) &&
+          identical(data.dists[[node]], "multinomial")) {
+        # Ungrouped MLE fits a multinomial child with nnet::multinom on
+        # data.matrix(<factor>), i.e. on character labels: the levels (and the
+        # reference category) are re-derived alphabetically.
+        levels(factor(as.character(x)))
+      } else {
+        levels(factor(x))
+      }
+    }), categorical_nodes)
   }
   class(out) <- c("abnFit")
   return(out)

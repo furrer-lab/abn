@@ -708,7 +708,17 @@ check.valid.buildControls <- function(control, method = "bayes", verbose = FALSE
   return(ctrl)
 }
 
-#' @inherit check.valid.buildControls
+#' Simple check on the fitting control parameters
+#'
+#' @param control list of control arguments with new parameters supplied to
+#'   \code{\link{fitAbn}}.
+#' @param method "bayes" or "mle" strategy from argument \code{method=...} in
+#'   \code{\link{fitAbn}}. Defaults to "bayes".
+#' @param verbose when TRUE additional information is printed. Defaults to FALSE.
+#'
+#' @return list with all control arguments with respect to the method but with
+#'   new values.
+#' @keywords internal
 check.valid.fitControls <- function(control, method = "bayes", verbose = FALSE) {
   ctrl.basic <- fit.control(method = method)
   if (is.null(control)) {

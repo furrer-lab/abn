@@ -823,3 +823,112 @@ testthat::test_that("Poisson nodes step into calling glmmTMB for the fitabn func
     testthat::skip("`forLoopContent()` is tested mainly on Unix-like systems.")
   }
 })
+
+# --- invariants the bayesian-network JSON format relies on ------------------
+
+test_that("binomial nodes model the second factor level with a logit link", {
+  spec <- jfx_spec("ex1_mle")
+  fit <- jfx_fit("ex1_mle")
+  ref <- stats::glm(b3 ~ b1 + g1 + b2, family = stats::binomial(), data = spec$data)
+  expect_equal(unname(fit$coef$b3[1, ]), unname(stats::coef(ref)), tolerance = 1e-4)
+})
+
+test_that("poisson nodes use a log link", {
+  spec <- jfx_spec("ex1_mle")
+  fit <- jfx_fit("ex1_mle")
+  ref <- stats::glm(p2 ~ b1 + p1, family = stats::poisson(), data = spec$data)
+  expect_equal(unname(fit$coef$p2[1, ]), unname(stats::coef(ref)), tolerance = 1e-4)
+})
+
+test_that("ungrouped gaussian mse is the unbiased residual variance", {
+  spec <- jfx_spec("ex1_mle")
+  fit <- jfx_fit("ex1_mle")
+  ref <- stats::lm(g2 ~ p1 + g1 + b2, data = spec$data)
+  expect_equal(unname(fit$mse[["g2"]]), stats::sigma(ref)^2, tolerance = 1e-6)
+})
+
+test_that("a multinomial parent is one-hot encoded over all levels without intercept", {
+  spec <- jfx_spec("fcv_mle")
+  fit <- jfx_fit("fcv_mle")
+  n_levels <- nlevels(spec$data$Sex)
+  expect_false(any(grepl("intercept", colnames(fit$coef$Outdoor))))
+  expect_equal(ncol(fit$coef$Outdoor), n_levels)
+  ref <- stats::glm(Outdoor ~ -1 + Sex, family = stats::binomial(), data = spec$data)
+  expect_equal(unname(fit$coef$Outdoor[1, ]), unname(stats::coef(ref)), tolerance = 1e-4)
+})
+
+test_that("a multinomial child uses the first level as baseline", {
+  spec <- jfx_spec("g2b2c_soft_mle")
+  fit <- jfx_fit("g2b2c_soft_mle")
+  ref <- nnet::multinom(C ~ B1 + B2, data = spec$data, trace = FALSE)
+  non_baseline <- levels(spec$data$C)[-1]
+  expect_equal(rownames(stats::coef(ref)), non_baseline)
+  intercepts <- fit$coef$C[1, paste0("C|intercept.", non_baseline)]
+  expect_equal(unname(intercepts), unname(stats::coef(ref)[, "(Intercept)"]),
+               tolerance = 1e-3)
+})
+
+test_that("grouped gaussian sigma and sigma_alpha are standard deviations", {
+  spec <- jfx_spec("adg_mle_grouped")
+  fit <- jfx_fit("adg_mle_grouped")
+  ref <- lme4::lmer(adg ~ age + wormCount + (1 | farm), data = spec$data)
+  vc <- as.data.frame(lme4::VarCorr(ref))
+  expect_equal(unname(fit$sigma_alpha$adg)^2, vc$vcov[vc$grp == "farm"],
+               tolerance = 1e-4)
+  expect_equal(unname(fit$sigma$adg)^2, vc$vcov[vc$grp == "Residual"],
+               tolerance = 1e-4)
+})
+
+test_that("grouped multinomial sigma_alpha is a covariance matrix", {
+  jfx_skip_unavailable("g2pbcgrp_mle_grouped")
+  fit <- jfx_fit("g2pbcgrp_mle_grouped")
+  spec <- jfx_spec("g2pbcgrp_mle_grouped")
+  k <- nlevels(spec$data$C) - 1
+  expect_true(is.matrix(fit$sigma_alpha$C))
+  expect_equal(dim(fit$sigma_alpha$C), c(k, k))
+  expect_equal(fit$sigma_alpha$C, t(fit$sigma_alpha$C))
+})
+
+test_that("gaussian mse uses the correct df with a multinomial parent", {
+  spec <- jfx_spec("g2b2c_mle")
+  fit <- jfx_fit("g2b2c_mle")
+  ref <- stats::lm(G2 ~ G1 + C, data = spec$data)
+  expect_equal(unname(fit$df[["G2"]]), stats::df.residual(ref))
+  expect_equal(unname(fit$mse[["G2"]]), stats::sigma(ref)^2, tolerance = 1e-6)
+})
+
+test_that("multinomial child coefficient names follow the value order", {
+  spec <- jfx_spec("g2b2c_soft_mle")
+  fit <- jfx_fit("g2b2c_soft_mle")
+  expect_equal(levels(spec$data$C), c("a", "b", "c"))
+  expect_equal(colnames(fit$coef$C),
+               c("C|intercept.b", "C|intercept.c", "B1b", "B1c", "B2b", "B2c"))
+  expect_equal(colnames(fit$Stderror$C), colnames(fit$coef$C))
+
+  ref <- nnet::multinom(C ~ B1 + B2, data = spec$data, trace = FALSE)
+  ref_coef <- stats::coef(ref)
+  for (state in c("b", "c")) {
+    expect_equal(unname(fit$coef$C[1, paste0("B1", state)]), unname(ref_coef[state, "B11"]),
+                 tolerance = 1e-3)
+    expect_equal(unname(fit$coef$C[1, paste0("B2", state)]), unname(ref_coef[state, "B21"]),
+                 tolerance = 1e-3)
+  }
+})
+
+test_that("separation fallback names coefficients correctly", {
+  set.seed(1)
+  n <- 200
+  x <- factor(rbinom(n, 1, 0.5))
+  y <- factor(ifelse(as.numeric(x) == 2, sample(c("a", "b"), n, TRUE), "c"))
+  dat <- data.frame(x = x, y = y)
+  dag <- matrix(0, 2, 2, dimnames = list(c("x", "y"), c("x", "y")))
+  dag["y", "x"] <- 1
+  expect_warning(
+    fit <- suppressMessages(fitAbn(dag = dag, data.df = dat,
+                                   data.dists = list(x = "binomial", y = "multinomial"),
+                                   method = "mle")),
+    "Separation"
+  )
+  expect_equal(colnames(fit$coef$y), paste0("y|intercept.", c("b", "c")))
+  expect_equal(ncol(fit$coef$y), 2L)
+})

@@ -411,14 +411,14 @@ Further information about \pkg{abn} can be found at: \href{https://r-bayesian-ne
 \seealso{
 \code{\link{buildScoreCache}}
 
-Other fitAbn: 
-\code{\link{fit.control}()}
+Other fitAbn:
+\code{\link[=fit.control]{fit.control()}}
 
-Other Bayes: 
-\code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glm}()},
-\code{\link{calc.node.inla.glmm}()},
-\code{\link{getmarginals}()}
+Other Bayes:
+\code{\link[=buildScoreCache]{buildScoreCache()}},
+\code{\link[=calc.node.inla.glm]{calc.node.inla.glm()}},
+\code{\link[=calc.node.inla.glmm]{calc.node.inla.glmm()}},
+\code{\link[=getmarginals]{getmarginals()}}
 }
 \author{
 Fraser Iain Lewis and Gilles Kratzer.

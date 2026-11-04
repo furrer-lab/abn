@@ -129,9 +129,6 @@ if (requireNamespace("microbenchmark", quietly = TRUE)) {
 } else {
   message("The microbenchmark package is not available. Skipping benchmarking.")
 }
-#> Registered S3 method overwritten by 'lme4':
-#>   method           from
-#>   na.action.merMod car
 ```
 
 

@@ -2,20 +2,24 @@
 % Please edit documentation in R/abn-internal.R
 \name{check.valid.fitControls}
 \alias{check.valid.fitControls}
-\title{Simple check on the control parameters}
+\title{Simple check on the fitting control parameters}
 \usage{
 check.valid.fitControls(control, method = "bayes", verbose = FALSE)
 }
 \arguments{
-\item{control}{list of control arguments with new parameters supplied to \code{\link{buildScoreCache}} or \code{\link{fitAbn}}.}
+\item{control}{list of control arguments with new parameters supplied to
+\code{\link{fitAbn}}.}
 
-\item{method}{"bayes" or "mle" strategy from argument \code{method=...} in \code{\link{buildScoreCache}} or \code{\link{fitAbn}}. Defaults to "bayes".}
+\item{method}{"bayes" or "mle" strategy from argument \code{method=...} in
+\code{\link{fitAbn}}. Defaults to "bayes".}
 
 \item{verbose}{when TRUE additional information is printed. Defaults to FALSE.}
 }
 \value{
-list with all control arguments with respect to the method but with new values.
+list with all control arguments with respect to the method but with
+new values.
 }
 \description{
-Simple check on the control parameters
+Simple check on the fitting control parameters
 }
+\keyword{internal}

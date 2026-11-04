@@ -1,7 +1,11 @@
-skip_on_cran() # Skipped on CRAN because it requires the INLA package
+test_that("coutput scratch benchmarks are manual-only", {
+  # Skipped on CRAN because it requires the INLA package
+  skip_on_cran()
+  skip("manual benchmarking scratch; the bodies below are disabled with if (F)")
 
-suppressPackageStartupMessages(require(testthat))
-suppressPackageStartupMessages(require(abn))
+  suppressPackageStartupMessages(require(testthat))
+  suppressPackageStartupMessages(require(abn))
+
 
 data("adg", package = "abn")
 dt <- adg[,c("AR","pneumS","female","livdam","eggs","wormCount","age","adg","farm")] #different order than original data
@@ -74,4 +78,4 @@ marg.f.grouped.fitabn <- fitAbn(dag = trim.dag, data.df = as.data.frame(abndata)
                                 compute.fixed = TRUE, n.grid = 1000)
 
 }
-
+})

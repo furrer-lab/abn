@@ -14,4 +14,6 @@ config.status
 *.code-workspace
 autom4te.cache
 *~
+.Rlibs-container/
+Rplots.pdf
 .positai

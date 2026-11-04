@@ -132,3 +132,20 @@ test_that("buildScoreCache.bayes() simple, historic numeric test", {
 
   expect_equal(mycache.test[1:3], mycache[1:3])
 })
+
+# --- invariants the bayesian-network JSON format relies on ------------------
+
+test_that("#272: ungrouped bayes fit from cache has no grouping fields", {
+  jfx_skip_if_no_bayes()
+  df <- FCV[, c(12, 14:15)]
+  mydists <- list(Outdoor = "binomial", GroupSize = "poisson", Age = "gaussian")
+  cache <- suppressWarnings(buildScoreCache(data.df = df, data.dists = mydists,
+                                            method = "bayes", max.parents = 1))
+  expect_true("group.var" %in% names(cache))
+  expect_null(cache[["group.var"]])
+  mp <- mostProbable(score.cache = cache, verbose = FALSE)
+  fit <- suppressWarnings(fitAbn(object = mp, method = "bayes", centre = FALSE))
+  expect_null(fit$group.var)
+  expect_null(fit$group.ids)
+  expect_null(fit$grouped.vars)
+})

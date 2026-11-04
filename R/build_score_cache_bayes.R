@@ -240,9 +240,11 @@ buildScoreCache.bayes <-
     out$max.parents <- max.parents
     out$dag.retained <- dag.retained
     out$dag.banned <- dag.banned
-    out$group.var <- group.var
-    out$group.ids <- group.ids
-    out$group.vars <- grouped.vars
+    ## keep the elements present even when NULL so $ cannot partial-match
+    ## the wrong name (#272); grouped.vars was previously stored as "group.vars"
+    out["group.var"] <- list(group.var)
+    out["group.ids"] <- list(group.ids)
+    out[["grouped.vars"]] <- grouped.vars
     out$cor.vars <- cor.vars
     out$mylist <- mylist
     out$method <- "bayes"
@@ -269,7 +271,6 @@ buildScoreCache.bayes <-
 #' \item{hessian.accuracy}{The accuracy of the Hessian matrix returned by \code{inla()}.}
 #' \item{used.INLA}{A logical value indicating whether \code{inla()} was used to fit the model.}
 #' }
-#' @export
 #' @keywords internal
 forLoopContentBayes <- function(row.no = NULL, # i
                                 children = NULL,

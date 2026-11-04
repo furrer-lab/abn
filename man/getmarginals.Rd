@@ -112,11 +112,11 @@ Function for computing marginal posterior densities using C and is called from f
 Only to be called internally.
 }
 \seealso{
-Other Bayes: 
-\code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glm}()},
-\code{\link{calc.node.inla.glmm}()},
-\code{\link{fitAbn}()}
+Other Bayes:
+\code{\link[=buildScoreCache]{buildScoreCache()}},
+\code{\link[=calc.node.inla.glm]{calc.node.inla.glm()}},
+\code{\link[=calc.node.inla.glmm]{calc.node.inla.glmm()}},
+\code{\link[=fitAbn]{fitAbn()}}
 }
 \concept{Bayes}
 \keyword{internal}
