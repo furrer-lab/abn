@@ -48,6 +48,73 @@
 #' @useDynLib abn, .registration=TRUE
 "_PACKAGE"
 
+# Preserve the non-JSON exports previously supplied by exportPattern. These
+# names come from the user's pre-change runtime export snapshot; this block is
+# compatibility bookkeeping, not a decision to privatize existing abn helpers.
+# JSON entry points have their own @export tags; JSON implementation helpers do
+# not belong here. Keep this block and the NAMESPACE block in sync via roxygen.
+#' @rawNamespace export(
+#'   AIC.abnFit,
+#'   BIC.abnFit,
+#'   as.data.frame.abnDag,
+#'   bern_bugsGroup,
+#'   buildScoreCache.bayes,
+#'   buildScoreCache.mle,
+#'   buildcachematrix,
+#'   calc.node.inla.glm,
+#'   calc.node.inla.glmm,
+#'   categorical_bugsGroup,
+#'   check.valid.buildControls,
+#'   check.valid.dag,
+#'   check.valid.data,
+#'   check.valid.fitControls,
+#'   check.valid.groups,
+#'   check.valid.parents,
+#'   check.which.valid.nodes,
+#'   checkforcycles,
+#'   coef.abnFit,
+#'   family.abnFit,
+#'   find.next.left.x,
+#'   find.next.right.x,
+#'   fitAbn.bayes,
+#'   fitAbn.mle,
+#'   fit_single_node,
+#'   fitabn_marginals,
+#'   forLoopContent,
+#'   forLoopContentBayes,
+#'   forLoopContentFitBayes,
+#'   gauss_bugsGroup,
+#'   get.ind.quantiles,
+#'   get.var.types,
+#'   getMSEfromModes,
+#'   getmarginals,
+#'   logLik.abnFit,
+#'   modes2coefs,
+#'   mostprobable_C,
+#'   nobs.abnFit,
+#'   plot.abnDag,
+#'   plot.abnFit,
+#'   plot.abnHeuristic,
+#'   plot.abnHillClimber,
+#'   plot.abnMostprobable,
+#'   pois_bugsGroup,
+#'   predict.abnFit,
+#'   print.abnCache,
+#'   print.abnDag,
+#'   print.abnFit,
+#'   print.abnHeuristic,
+#'   print.abnHillClimber,
+#'   print.abnMostprobable,
+#'   print.abnPrediction,
+#'   regressionLoop,
+#'   searchhill,
+#'   summary.abnDag,
+#'   summary.abnFit,
+#'   summary.abnMostprobable,
+#'   validate_dists
+#' )
+NULL
+
 ## usethis namespace: start
 ## usethis namespace: end
 NULL

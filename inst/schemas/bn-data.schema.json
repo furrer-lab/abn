@@ -9,18 +9,19 @@
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["schema_version", "orientation", "column_order", "columns"],
+      "required": ["schema_version", "orientation", "column_order", "columns", "data_dists"],
       "properties": {
         "schema_version": { "const": "bn-data" },
         "issuer": { "type": "string" },
         "orientation": { "const": "columnar" },
-        "column_order": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "column_order": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 }, "uniqueItems": true },
         "missing_values": { "type": "object" },
         "columns": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "object",
-            "required": ["name"],
+            "required": ["name", "role", "semantic_type", "value_encoding", "nullable"],
             "properties": {
               "name": { "type": "string", "minLength": 1 },
               "role": { "enum": ["node", "group"] },
@@ -28,9 +29,22 @@
               "model_distribution": { "enum": ["gaussian", "poisson", "binomial", "multinomial", null] },
               "value_encoding": { "enum": ["labels", "integer", "number", "boolean", "string"] },
               "nullable": { "type": "boolean" },
-              "categories": { "type": "array", "items": { "type": "string" } },
+              "categories": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
               "ordered": { "type": "boolean" }
-            }
+            },
+            "allOf": [
+              {
+                "if": { "properties": { "role": { "const": "node" } } },
+                "then": {
+                  "required": ["model_distribution"],
+                  "properties": { "model_distribution": { "enum": ["gaussian", "poisson", "binomial", "multinomial"] } }
+                }
+              },
+              {
+                "if": { "properties": { "value_encoding": { "const": "labels" } } },
+                "then": { "required": ["categories"] }
+              }
+            ]
           }
         },
         "data_dists": {
@@ -44,6 +58,7 @@
     },
     "data": {
       "type": "object",
+      "minProperties": 1,
       "additionalProperties": {
         "type": "array",
         "items": { "type": ["number", "string", "boolean", "null"] }

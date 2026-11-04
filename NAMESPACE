@@ -23,6 +23,66 @@ S3method(print,abnPrediction)
 S3method(summary,abnDag)
 S3method(summary,abnFit)
 S3method(summary,abnMostprobable)
+export(
+  AIC.abnFit,
+  BIC.abnFit,
+  as.data.frame.abnDag,
+  bern_bugsGroup,
+  buildScoreCache.bayes,
+  buildScoreCache.mle,
+  buildcachematrix,
+  calc.node.inla.glm,
+  calc.node.inla.glmm,
+  categorical_bugsGroup,
+  check.valid.buildControls,
+  check.valid.dag,
+  check.valid.data,
+  check.valid.fitControls,
+  check.valid.groups,
+  check.valid.parents,
+  check.which.valid.nodes,
+  checkforcycles,
+  coef.abnFit,
+  family.abnFit,
+  find.next.left.x,
+  find.next.right.x,
+  fitAbn.bayes,
+  fitAbn.mle,
+  fit_single_node,
+  fitabn_marginals,
+  forLoopContent,
+  forLoopContentBayes,
+  forLoopContentFitBayes,
+  gauss_bugsGroup,
+  get.ind.quantiles,
+  get.var.types,
+  getMSEfromModes,
+  getmarginals,
+  logLik.abnFit,
+  modes2coefs,
+  mostprobable_C,
+  nobs.abnFit,
+  plot.abnDag,
+  plot.abnFit,
+  plot.abnHeuristic,
+  plot.abnHillClimber,
+  plot.abnMostprobable,
+  pois_bugsGroup,
+  predict.abnFit,
+  print.abnCache,
+  print.abnDag,
+  print.abnFit,
+  print.abnHeuristic,
+  print.abnHillClimber,
+  print.abnMostprobable,
+  print.abnPrediction,
+  regressionLoop,
+  searchhill,
+  summary.abnDag,
+  summary.abnFit,
+  summary.abnMostprobable,
+  validate_dists
+)
 export(LogL_binomial)
 export(LogL_gaussian)
 export(LogL_poisson)
@@ -43,7 +103,6 @@ export(expit)
 export(expit_cpp)
 export(export_abnData)
 export(export_abnFit)
-export(find.next.left.x)
 export(find_MB)
 export(find_children)
 export(find_parents)
@@ -104,36 +163,25 @@ export(strsplits)
 export(tidy.cache)
 export(toGraphviz)
 export(validate_data_json_summary)
-exportPattern("^[[:alpha:]]+")
 import(igraph)
 importClassesFrom(graph,graphAM)
 importFrom(Rcpp,evalCpp)
-importFrom(Rgraphviz,
-  layoutGraph,
-  renderGraph
-)
+importFrom(Rgraphviz,layoutGraph)
+importFrom(Rgraphviz,renderGraph)
 importFrom(doParallel,registerDoParallel)
-importFrom(foreach,
-  "%do%",
-  "%dopar%",
-  foreach
-)
-importFrom(grDevices,
-  dev.flush,
-  dev.new,
-  rgb
-)
-importFrom(graph,
-  "edgeRenderInfo<-",
-  edgeRenderInfo
-)
-importFrom(graphics,
-  lines,
-  par,
-  plot,
-  points,
-  title
-)
+importFrom(foreach,"%do%")
+importFrom(foreach,"%dopar%")
+importFrom(foreach,foreach)
+importFrom(grDevices,dev.flush)
+importFrom(grDevices,dev.new)
+importFrom(grDevices,rgb)
+importFrom(graph,"edgeRenderInfo<-")
+importFrom(graph,edgeRenderInfo)
+importFrom(graphics,lines)
+importFrom(graphics,par)
+importFrom(graphics,plot)
+importFrom(graphics,points)
+importFrom(graphics,title)
 importFrom(jsonlite,fromJSON)
 importFrom(mclogit,mblogit)
 importFrom(methods,hasArg)
@@ -182,4 +230,4 @@ importFrom(stringi,stri_split_fixed)
 importFrom(utils,capture.output)
 importFrom(utils,combn)
 importFrom(utils,tail)
-hfrQlaYvo(noa, .ertvfgengvba=GEHR)
+useDynLib(abn, .registration=TRUE)

@@ -42,6 +42,9 @@ describes the model; abn-internal details are stored in
 The document format is specified by \code{inst/schemas/bayesian-network.schema.json}
 and described in the vignettes \code{vignette("fitabn-json-specification", package = "abn")}
 and \code{vignette("json-format", package = "abn")}.
+Re-export reuses stored document identifiers and metadata when available.
+Each export writes a new \code{metadata.created} timestamp, so exact byte
+identity is not guaranteed even for an otherwise unchanged model document.
 }
 \examples{
 mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")

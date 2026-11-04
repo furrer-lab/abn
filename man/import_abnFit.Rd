@@ -9,7 +9,8 @@ import_abnFit(file = NULL, json = NULL, data = NULL, validate = TRUE)
 \arguments{
 \item{file}{Optional path to a JSON file.}
 
-\item{json}{Optional JSON string. If both are given, \code{json} wins.}
+\item{json}{Optional JSON string. Supply exactly one of \code{file} or
+\code{json}; supplying both is an error.}
 
 \item{data}{Optional observations: a data frame, the path to a \code{bn-data}
 data document, or the result of \code{\link{import_abnData}}. The
@@ -34,6 +35,12 @@ The document format is specified by
 \code{inst/schemas/bayesian-network.schema.json} and described in the
 vignettes \code{vignette("fitabn-json-specification", package = "abn")} and
 \code{vignette("json-format", package = "abn")}.
+The native \code{abnFit} adapter supports at most one group. For variance
+parameters it requires \code{scale = "variance"} for MLE documents and
+\code{scale = "precision"} for Bayesian documents. Other scale representations
+are rejected rather than converted, including when \code{validate = FALSE}.
+Posterior quantiles and marginal-density grids are independent optional
+inputs: either is reconstructed when supplied, without requiring the other.
 }
 \examples{
 mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")

@@ -86,3 +86,4 @@ LazyData: TRUE
 Roxygen: list(markdown = TRUE)
 SystemRequirements: pkg-config, cmake, gsl, jpeg, gdal, geos, proj, udunits-2, openssl, libcurl, jags
 Config/roxygen2/version: 8.1.0
+RoxygenNote: 7.3.3

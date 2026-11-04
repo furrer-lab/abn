@@ -214,8 +214,15 @@ expect_data_json_values <- function(parsed, data.df) {
   for (column_name in colnames(data.df)) {
     values <- parsed$data[[column_name]]
     expect_equal(length(values), nrow(data.df), info = column_name)
+    column <- data_json_column_metadata(parsed, column_name)
     expected_values <- data.df[[column_name]]
-    if (is.factor(expected_values)) expected_values <- as.character(expected_values)
+    if (identical(column$value_encoding, "labels")) {
+      if (is.factor(expected_values)) {
+        expected_values <- as.character(expected_values)
+      } else {
+        expected_values <- as.character(expected_values)
+      }
+    }
     expected_values <- as.list(expected_values)
     expect_equal(values, expected_values, info = column_name)
   }

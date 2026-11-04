@@ -152,7 +152,7 @@
           "additionalProperties": false,
           "properties": {
             "standard_error": { "$ref": "#/definitions/number_or_null" },
-            "posterior_quantiles": { "type": "array", "items": { "$ref": "#/definitions/quantile" } }
+            "posterior_quantiles": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/quantile" } }
           }
         }
       },
@@ -222,8 +222,8 @@
       "additionalProperties": false,
       "properties": {
         "parameter": { "$ref": "#/definitions/id" },
-        "x": { "type": "array", "items": { "type": "number" } },
-        "density": { "type": "array", "items": { "type": "number" } }
+        "x": { "type": "array", "minItems": 1, "items": { "type": "number" } },
+        "density": { "type": "array", "minItems": 1, "items": { "type": "number", "minimum": 0 } }
       }
     },
 

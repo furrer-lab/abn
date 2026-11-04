@@ -23,6 +23,9 @@
 #' The document format is specified by \code{inst/schemas/bayesian-network.schema.json}
 #' and described in the vignettes \code{vignette("fitabn-json-specification", package = "abn")}
 #' and \code{vignette("json-format", package = "abn")}.
+#' Re-export reuses stored document identifiers and metadata when available.
+#' Each export writes a new \code{metadata.created} timestamp, so exact byte
+#' identity is not guaranteed even for an otherwise unchanged model document.
 #' @examples
 #' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")
 #' mydag <- matrix(0, 4, 4, dimnames = list(names(mydists), names(mydists)))
@@ -520,72 +523,461 @@ abn_json_build_extension <- function(fit, ctx, params) {
 
 abn_json_check_document <- function(doc) {
   fail <- function(...) stop(..., call. = FALSE)
+  abn_json_assert_object(doc, "network document")
+  abn_json_assert_object(doc[["metadata"]], "metadata", c("schema_version", "issuer"))
+  abn_json_assert_string(doc[["metadata"]][["schema_version"]], "metadata.schema_version")
+  abn_json_assert_string(doc[["metadata"]][["issuer"]], "metadata.issuer", nonempty = TRUE)
+  if (is.null(doc[["metadata"]][["schema_version"]])) {
+    fail("Unsupported schema_version ''; expected 'bayesian-network'.")
+  }
   if (!identical(doc[["metadata"]][["schema_version"]], "bayesian-network")) {
-    fail("Unsupported schema_version '", doc[["metadata"]][["schema_version"]] %||% "",
+    fail("Unsupported schema_version '", doc[["metadata"]][["schema_version"]],
          "'; expected 'bayesian-network'.")
+  }
+  if (!is.character(doc[["metadata"]][["issuer"]]) ||
+      length(doc[["metadata"]][["issuer"]]) != 1L ||
+      !nzchar(doc[["metadata"]][["issuer"]])) {
+    fail("metadata.issuer must be a non-empty string.")
   }
   for (block in c("variables", "groups", "arcs", "parameters", "inference")) {
     if (is.null(doc[[block]])) fail("Missing block '", block, "'.")
+    if (block == "inference") {
+      abn_json_assert_object(doc[[block]], block, "type")
+    } else {
+      abn_json_assert_array(doc[[block]], block)
+    }
+  }
+
+  whole <- function(x) {
+    is.numeric(x) && length(x) == 1L && is.finite(x) &&
+      x >= 1 && x <= .Machine$integer.max && x == trunc(x)
   }
   ids <- function(rows, what) {
-    x <- vapply(rows, function(r) as.character(r[["_id"]] %||% NA), character(1))
-    if (anyNA(x) || anyDuplicated(x)) fail("Missing or duplicated _id in ", what, ".")
-    x
+    if (length(rows) == 0L) return(character(0))
+    out <- vapply(rows, function(r) {
+      if (!is.list(r)) fail("Every element of ", what, " must be a JSON object.")
+      if (!whole(r[["_id"]])) return(NA_character_)
+      as.character(round(r[["_id"]]))
+    }, character(1))
+    if (anyNA(out) || anyDuplicated(out)) {
+      fail("Missing, invalid or duplicated _id in ", what, ".")
+    }
+    out
   }
+
   var_ids <- ids(doc[["variables"]], "variables")
-  ids(doc[["parameters"]], "parameters")
+  param_ids <- ids(doc[["parameters"]], "parameters")
   group_ids <- ids(doc[["groups"]], "groups")
   vars <- stats::setNames(doc[["variables"]], var_ids)
+  var_names <- vapply(vars, function(v) {
+    if (!is.character(v[["name"]]) || length(v[["name"]]) != 1L ||
+        !nzchar(v[["name"]])) {
+      fail("Every variable needs a non-empty name.")
+    }
+    as.character(v[["name"]])
+  }, character(1))
+  if (anyDuplicated(var_names)) fail("Variable names must be unique.")
+
+  dist_map <- list(
+    gaussian = c(type = "continuous", distribution = "gaussian", link = "identity"),
+    bernoulli = c(type = "binary", distribution = "bernoulli", link = "logit"),
+    poisson = c(type = "count", distribution = "poisson", link = "log"),
+    categorical = c(type = "categorical", distribution = "categorical",
+                    link = "baseline_logit")
+  )
+  for (id in var_ids) {
+    v <- vars[[id]]
+    abn_json_assert_object(v, paste0("variable ", id),
+                            c("_id", "name", "type", "distribution", "link"))
+    for (field in c("name", "type", "distribution", "link")) {
+      abn_json_assert_string(v[[field]], paste0("variable ", id, " ", field), nonempty = TRUE)
+    }
+    distribution <- v[["distribution"]]
+    if (!is.character(distribution) || length(distribution) != 1L ||
+        !distribution %in% names(dist_map)) {
+      fail("Variable '", v[["name"]], "' has an unsupported distribution.")
+    }
+    expected <- dist_map[[distribution]]
+    observed <- c(type = as.character(v[["type"]]),
+                  distribution = distribution,
+                  link = as.character(v[["link"]]))
+    if (!identical(unname(observed), unname(expected))) {
+      fail("Variable '", v[["name"]], "' has incompatible type, distribution and link.")
+    }
+    states <- v[["states"]]
+    if (!is.null(states)) {
+      abn_json_assert_array(states, paste0("states of ", v[["name"]]))
+      for (state in states) {
+        abn_json_assert_object(state, "state", c("_id", "label", "baseline"))
+        abn_json_assert_string(state[["label"]], "state label")
+        abn_json_assert_boolean(state[["baseline"]], "state baseline")
+      }
+    }
+    if (distribution %in% c("bernoulli", "categorical")) {
+      if (!is.list(states) || length(states) < 2L ||
+          (distribution == "bernoulli" && length(states) != 2L)) {
+        fail("Variable '", v[["name"]], "' needs the correct number of categorical states.")
+      }
+    } else if (!is.null(states)) {
+      fail("Variable '", v[["name"]], "' must not declare states.")
+    }
+    if (!is.null(v[["transform"]])) {
+      if (distribution != "gaussian" || !is.list(v[["transform"]])) {
+        fail("Only gaussian variables may declare a transform.")
+      }
+      abn_json_assert_object(v[["transform"]], "transform", c("center", "scale"))
+      center <- v[["transform"]][["center"]]
+      scale <- v[["transform"]][["scale"]]
+      if (!is.numeric(center) || !is.numeric(scale)) fail("Transform values must be numeric.")
+      if (length(center) != 1L || length(scale) != 1L || !is.finite(center) ||
+          !is.finite(scale) || scale <= 0) {
+        fail("Transform of variable '", v[["name"]], "' needs a finite center and positive scale.")
+      }
+    }
+  }
+
   state_ids <- lapply(vars, function(v) {
     s <- v[["states"]]
     if (is.null(s)) return(character(0))
-    if (sum(vapply(s, function(x) isTRUE(x[["baseline"]]), logical(1))) != 1) {
+    baseline <- vapply(s, function(x) isTRUE(x[["baseline"]]), logical(1))
+    if (sum(baseline) != 1L) {
       fail("Variable '", v[["name"]], "' needs exactly one baseline state.")
     }
+    labels <- vapply(s, function(x) {
+      if (!is.character(x[["label"]]) || length(x[["label"]]) != 1L ||
+          is.na(x[["label"]])) {
+        fail("Every state of variable '", v[["name"]], "' needs a string label.")
+      }
+      as.character(x[["label"]])
+    }, character(1))
+    if (anyDuplicated(labels)) fail("State labels of variable '", v[["name"]], "' must be unique.")
     ids(s, paste0("states of ", v[["name"]]))
   })
+  baseline_id <- function(id) {
+    s <- vars[[id]][["states"]]
+    as.character(round(s[[which(vapply(s, function(x) isTRUE(x[["baseline"]]), logical(1)))]][["_id"]]))
+  }
+
+  group_names <- vapply(doc[["groups"]], function(g) {
+    if (!is.list(g)) fail("Every group must be a JSON object.")
+    if (!is.character(g[["name"]]) || length(g[["name"]]) != 1L ||
+        !nzchar(g[["name"]])) fail("Every group needs a non-empty name.")
+    as.character(g[["name"]])
+  }, character(1))
+  if (anyDuplicated(group_names)) fail("Duplicated group names.")
+  for (g in doc[["groups"]]) {
+    abn_json_assert_object(g, "group", c("_id", "name", "variables"))
+    members <- g[["variables"]]
+    abn_json_assert_array(members, "group variables")
+    if (!is.list(members) || length(members) == 0L) {
+      fail("Group '", g[["name"]], "' needs at least one variable.")
+    }
+    member_ids <- vapply(members, function(id) {
+      if (!whole(id)) fail("Group '", g[["name"]], "' has an invalid variable _id.")
+      variable <- as.character(round(id))
+      if (!variable %in% var_ids) {
+        fail("Group '", g[["name"]], "' references unknown variable _id ", id, ".")
+      }
+      variable
+    }, character(1))
+    if (anyDuplicated(member_ids)) fail("Group '", g[["name"]], "' has a duplicated variable.")
+  }
+
   ref <- function(id, what) {
-    id <- as.character(id)
-    if (!id %in% var_ids) fail("Unknown variable _id ", id, " referenced by ", what, ".")
-    id
+    if (!whole(id)) fail("Invalid variable _id referenced by ", what, ".")
+    variable <- as.character(round(id))
+    if (!variable %in% var_ids) {
+      fail("Unknown variable _id ", variable, " referenced by ", what, ".")
+    }
+    variable
   }
   arc_keys <- character(0)
   for (a in doc[["arcs"]]) {
-    arc_keys <- c(arc_keys, paste(ref(a[["source"]], "arc"), ref(a[["target"]], "arc")))
+    abn_json_assert_object(a, "arc", c("source", "target"))
+    source <- ref(a[["source"]], "arc")
+    target <- ref(a[["target"]], "arc")
+    if (identical(source, target)) fail("Arcs must not be self-links.")
+    key <- paste(source, target, sep = "->")
+    if (key %in% arc_keys) fail("Duplicate arc ", source, " -> ", target, ".")
+    arc_keys <- c(arc_keys, key)
   }
+
+  check_scalar <- function(value, what, allow_null = FALSE) {
+    if (allow_null && is.null(value)) return(TRUE)
+    if (!is.numeric(value) || length(value) != 1L || !is.finite(value)) {
+      fail(what, " must be a scalar number", if (allow_null) " or null" else "", ".")
+    }
+    TRUE
+  }
+  check_state_ref <- function(id, state_list, what) {
+    if (!whole(id)) fail("Invalid ", what, " _id.")
+    state <- as.character(round(id))
+    if (!state %in% state_list) fail("Unknown ", what, " ", state, ".")
+    state
+  }
+
+  allowed_kinds <- c("intercept", "coefficient", "residual_variance",
+                     "random_variance", "random_covariance")
+  variance_kinds <- c("residual_variance", "random_variance", "random_covariance")
+  seen_parameters <- character(0)
   for (p in doc[["parameters"]]) {
+    abn_json_assert_object(p, "parameter", c("_id", "target", "kind", "value"))
+    if (!"value" %in% names(p)) fail("Parameter ", p[["_id"]], " is missing required field 'value'.")
+    check_scalar(p[["value"]], "Parameter value", allow_null = TRUE)
+    kind <- p[["kind"]]
+    if (!is.character(kind) || length(kind) != 1L || !kind %in% allowed_kinds) {
+      fail("Unknown parameter kind '", kind %||% "", "' in parameter ", p[["_id"]], ".")
+    }
     target <- ref(p[["target"]], "parameter")
-    if (!is.null(p[["target_state"]]) &&
-        !as.character(p[["target_state"]]) %in% state_ids[[target]]) {
-      fail("Unknown target_state ", p[["target_state"]], " in parameter ", p[["_id"]], ".")
+    target_dist <- vars[[target]][["distribution"]]
+    if (kind == "intercept" && !is.null(p[["parent"]])) {
+      fail("Intercept parameter ", p[["_id"]], " must not have a parent.")
+    }
+    if (kind == "coefficient" && is.null(p[["parent"]])) {
+      fail("Coefficient parameter ", p[["_id"]], " needs a parent.")
+    }
+    if (kind != "coefficient" && kind != "intercept" && !is.null(p[["parent"]])) {
+      fail("Only coefficient parameters may have a parent.")
+    }
+    if (kind %in% variance_kinds &&
+        (!is.character(p[["scale"]]) || length(p[["scale"]]) != 1L ||
+         !p[["scale"]] %in% c("variance", "precision"))) {
+      fail("Parameter ", p[["_id"]], " needs scale 'variance' or 'precision'.")
+    }
+    if (kind %in% c("residual_variance", "random_variance") && !is.null(p[["value"]])) {
+      if (p[["value"]] < 0 || (identical(p[["scale"]], "precision") && p[["value"]] == 0)) {
+        fail("Parameter ", p[["_id"]], " needs non-negative variance or strictly positive precision.")
+      }
+    }
+    if (!kind %in% variance_kinds && !is.null(p[["scale"]])) {
+      fail("Parameter ", p[["_id"]], " must not have a scale.")
+    }
+    if (kind == "residual_variance" && !identical(target_dist, "gaussian")) {
+      fail("Residual variance parameter ", p[["_id"]], " must target a gaussian variable.")
+    }
+    if (kind %in% c("random_variance", "random_covariance")) {
+      if (!whole(p[["group"]])) fail("Parameter ", p[["_id"]], " needs a valid group _id.")
+      if (!as.character(round(p[["group"]])) %in% group_ids) {
+        fail("Unknown group ", p[["group"]], " in parameter ", p[["_id"]], ".")
+      }
+      group <- doc[["groups"]][[match(as.character(p[["group"]]), group_ids)]]
+      if (!target %in% vapply(group[["variables"]], as.character, character(1))) {
+        fail("Parameter ", p[["_id"]], " targets a variable outside its group.")
+      }
+    }
+
+    target_state <- NA_character_
+    if (!is.null(p[["target_state"]])) {
+      if (!target_dist %in% c("bernoulli", "categorical")) {
+        fail("Parameter ", p[["_id"]], " has target_state for a non-categorical target.")
+      }
+      target_state <- check_state_ref(p[["target_state"]], state_ids[[target]],
+                                      "target_state")
+      if (target_state == baseline_id(target)) {
+        fail("Parameter ", p[["_id"]], " uses the baseline target state.")
+      }
+    }
+    if (!is.null(p[["parent_state"]])) {
+      if (is.null(p[["parent"]])) fail("Parameter ", p[["_id"]], " needs a parent for parent_state.")
+      parent_tmp <- ref(p[["parent"]], "parameter")
+      if (!vars[[parent_tmp]][["distribution"]] %in% c("bernoulli", "categorical")) {
+        fail("Parameter ", p[["_id"]], " has parent_state for a non-categorical parent.")
+      }
+    }
+    parent <- NA_character_
+    parent_state <- NA_character_
+    if (!is.null(p[["parent_state"]])) {
+      parent_state <- p[["parent_state"]]
     }
     if (!is.null(p[["parent"]])) {
       parent <- ref(p[["parent"]], "parameter")
-      if (!paste(parent, target) %in% arc_keys) {
+      if (!paste(parent, target, sep = "->") %in% arc_keys) {
         fail("Parameter ", p[["_id"]], " has parent ", parent,
              " but there is no arc ", parent, " -> ", target, ".")
       }
-      if (!is.null(p[["parent_state"]]) &&
-          !as.character(p[["parent_state"]]) %in% state_ids[[parent]]) {
-        fail("Unknown parent_state ", p[["parent_state"]], " in parameter ", p[["_id"]], ".")
+      if (!is.null(p[["parent_state"]])) {
+        parent_state <- check_state_ref(p[["parent_state"]], state_ids[[parent]], "parent_state")
       }
     }
-    if (!is.null(p[["group"]]) && !as.character(p[["group"]]) %in% group_ids) {
-      fail("Unknown group ", p[["group"]], " in parameter ", p[["_id"]], ".")
+    if (kind == "random_covariance") {
+      if (!identical(target_dist, "categorical")) {
+        fail("Random covariance parameter ", p[["_id"]], " must target a categorical variable.")
+      }
+      if (!is.list(p[["states"]]) || length(p[["states"]]) != 2L) {
+        fail("Random covariance parameter ", p[["_id"]], " needs exactly two target states.")
+      }
+      cov_states <- vapply(p[["states"]], check_state_ref, character(1),
+                           state_list = state_ids[[target]], what = "random-covariance state")
+      if (anyDuplicated(cov_states) || any(cov_states == baseline_id(target))) {
+        fail("Random covariance parameter ", p[["_id"]], " needs distinct non-baseline states.")
+      }
+      if (!is.null(p[["target_state"]])) {
+        fail("Random covariance parameter ", p[["_id"]], " must not declare target_state.")
+      }
+    } else if (!is.null(p[["states"]])) {
+      fail("Only random_covariance parameters may declare states.")
+    }
+    if (!is.null(p[["group"]]) && !kind %in% c("random_variance", "random_covariance")) {
+      fail("Only random-effects parameters may declare a group.")
+    }
+    if (!is.null(p[["uncertainty"]])) {
+      abn_json_assert_object(p[["uncertainty"]], "parameter uncertainty")
+      se <- p[["uncertainty"]][["standard_error"]]
+      if (!is.null(se)) {
+        check_scalar(se, "Parameter standard_error")
+        if (se < 0) fail("Parameter standard_error must be non-negative.")
+      }
+      quantiles <- p[["uncertainty"]][["posterior_quantiles"]]
+      if (!is.null(quantiles)) {
+        abn_json_assert_array(quantiles, "posterior quantiles")
+        if (!is.list(quantiles) || length(quantiles) == 0L) {
+          fail("Posterior quantiles must be a non-empty JSON array.")
+        }
+        probabilities <- vapply(quantiles, function(q) {
+          abn_json_assert_object(q, "posterior quantile", c("probability", "value"))
+          check_scalar(q[["probability"]], "Posterior quantile probability")
+          check_scalar(q[["value"]], "Posterior quantile value")
+          q[["probability"]]
+        }, numeric(1))
+        if (any(probabilities < 0 | probabilities > 1) || anyDuplicated(probabilities)) {
+          fail("Posterior quantile probabilities must be unique and lie in [0, 1].")
+        }
+      }
+    }
+    state_key <- paste(vapply(p[["states"]] %||% list(), as.character, character(1)),
+                       collapse = ",")
+    key <- paste(target, kind, parent, parent_state, target_state, state_key, sep = "|")
+    if (key %in% seen_parameters) fail("Duplicated parameter semantics for target ", target, ".")
+    seen_parameters <- c(seen_parameters, key)
+  }
+
+  inference <- doc[["inference"]]
+  if (!is.list(inference)) fail("inference must be a JSON object.")
+  inference_type <- inference[["type"]]
+  if (!is.character(inference_type) || length(inference_type) != 1L ||
+      !inference_type %in% c("maximum_likelihood", "bayesian")) {
+    fail("inference.type must be 'maximum_likelihood' or 'bayesian'.")
+  }
+  diagnostics <- inference[["diagnostics"]]
+  if (!is.null(diagnostics)) {
+    abn_json_assert_object(diagnostics, "inference.diagnostics")
+    for (field in intersect(names(diagnostics), c("log_marginal_likelihood", "aic", "bic"))) {
+      check_scalar(diagnostics[[field]], paste0("Diagnostic field '", field, "'"))
+    }
+    diag_nodes <- diagnostics[["nodes"]]
+    if (!is.null(diag_nodes)) {
+      abn_json_assert_array(diag_nodes, "inference.diagnostics.nodes")
+      diag_refs <- character(0)
+      for (node in diag_nodes) {
+        abn_json_assert_object(node, "diagnostics entry", "variable")
+        variable <- ref(node[["variable"]], "diagnostics")
+        if (variable %in% diag_refs) fail("Duplicated diagnostics variable ", variable, ".")
+        diag_refs <- c(diag_refs, variable)
+        for (field in intersect(names(node), c("log_marginal_likelihood", "aic", "bic",
+                                                "mdl", "df", "sse", "mse"))) {
+          check_scalar(node[[field]], paste0("Diagnostic field '", field, "'"))
+        }
+      }
     }
   }
+  posterior <- inference[["posterior"]]
+  if (!is.null(posterior)) {
+    abn_json_assert_object(posterior, "inference.posterior")
+    marginals <- posterior[["marginals"]]
+    if (!is.null(marginals)) {
+      abn_json_assert_array(marginals, "inference.posterior.marginals")
+      marginal_refs <- character(0)
+      for (marginal in marginals) {
+        abn_json_assert_object(marginal, "posterior marginal", c("parameter", "x", "density"))
+        if (!whole(marginal[["parameter"]])) fail("Invalid posterior parameter _id.")
+        parameter <- as.character(marginal[["parameter"]])
+        if (length(parameter) != 1L || is.na(parameter) || !parameter %in% param_ids) {
+          fail("Unknown parameter _id ", marginal[["parameter"]], " in posterior marginals.")
+        }
+        if (parameter %in% marginal_refs) {
+          fail("Duplicated posterior marginal for parameter ", parameter, ".")
+        }
+        marginal_refs <- c(marginal_refs, parameter)
+        x <- marginal[["x"]]; density <- marginal[["density"]]
+        abn_json_assert_array(x, "posterior x")
+        abn_json_assert_array(density, "posterior density")
+        if (!is.list(x) || !is.list(density) || length(x) == 0L ||
+            length(x) != length(density)) {
+          fail("Posterior marginal ", parameter,
+               " needs x and density arrays of equal, non-zero length.")
+        }
+        for (value in x) check_scalar(value, "Posterior x value")
+        density_values <- vapply(density, function(value) {
+          check_scalar(value, "Posterior density value")
+          value
+        }, numeric(1))
+        if (any(density_values < 0)) fail("Posterior density values must be non-negative.")
+      }
+    }
+  }
+
+  extensions <- doc[["metadata"]][["extensions"]]
+  if (!is.null(extensions)) {
+    abn_json_assert_object(extensions, "metadata.extensions")
+    ext <- extensions[["abn"]]
+    if (!is.null(ext)) {
+      abn_json_assert_object(ext, "metadata.extensions.abn")
+      parameter_names <- ext[["parameter_names"]]
+      if (!is.null(parameter_names)) {
+        abn_json_assert_array(parameter_names, "metadata.extensions.abn.parameter_names")
+        parameter_refs <- character(0)
+        for (entry in parameter_names) {
+          abn_json_assert_object(entry, "parameter_names entry", c("parameter", "field", "name"))
+          if (!whole(entry[["parameter"]])) fail("Invalid abn extension parameter _id.")
+          parameter <- as.character(entry[["parameter"]])
+          if (length(parameter) != 1L || is.na(parameter) || !parameter %in% param_ids) {
+            fail("Unknown parameter _id ", entry[["parameter"]], " in abn extension.")
+          }
+          if (parameter %in% parameter_refs) {
+            fail("Duplicated parameter_names entry for parameter ", parameter, ".")
+          }
+          parameter_refs <- c(parameter_refs, parameter)
+          for (field in c("field", "name")) {
+            if (!is.character(entry[[field]]) || length(entry[[field]]) != 1L ||
+                !nzchar(entry[[field]])) {
+              fail("metadata.extensions.abn.parameter_names entries need a non-empty ", field, ".")
+            }
+          }
+        }
+      }
+      nodes <- ext[["nodes"]]
+      if (!is.null(nodes)) {
+        abn_json_assert_array(nodes, "metadata.extensions.abn.nodes")
+        node_refs <- character(0)
+        for (node in nodes) {
+          abn_json_assert_object(node, "abn nodes extension entry", "variable")
+          if (!is.null(node[["used_inla"]])) abn_json_assert_boolean(node[["used_inla"]], "used_inla")
+          if (!is.null(node[["error_code_desc"]])) abn_json_assert_string(node[["error_code_desc"]], "error_code_desc")
+          for (field in intersect(names(node), c("error_code", "hessian_accuracy"))) {
+            check_scalar(node[[field]], field)
+          }
+          variable <- ref(node[["variable"]], "abn extension")
+          if (variable %in% node_refs) {
+            fail("Duplicated nodes extension entry for variable ", variable, ".")
+          }
+          node_refs <- c(node_refs, variable)
+        }
+      }
+    }
+  }
+
   # acyclicity (Kahn)
   edges <- do.call(rbind, lapply(doc[["arcs"]], function(a) {
-    c(as.character(a[["source"]]), as.character(a[["target"]]))
+    c(as.character(round(a[["source"]])), as.character(round(a[["target"]])))
   }))
   if (!is.null(edges)) {
     remaining <- var_ids
     repeat {
       roots <- remaining[!remaining %in% edges[edges[, 1] %in% remaining, 2]]
-      if (length(roots) == 0) break
+      if (length(roots) == 0L) break
       remaining <- setdiff(remaining, roots)
     }
-    if (length(remaining) > 0) fail("The arcs contain a cycle.")
+    if (length(remaining) > 0L) fail("The arcs contain a cycle.")
   }
   invisible(TRUE)
 }

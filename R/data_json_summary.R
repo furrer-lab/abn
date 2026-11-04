@@ -168,12 +168,19 @@ validate_data_json_shape <- function(x) {
     stop("metadata.column_order is required", call. = FALSE)
   }
   column_order <- data_json_as_character_vector(x$metadata$column_order)
+  if (length(column_order) == 0L) {
+    stop("data JSON must describe at least one column", call. = FALSE)
+  }
   if (anyDuplicated(column_order)) {
     stop("metadata.column_order must not contain duplicate columns", call. = FALSE)
   }
   data_names <- names(x$data)
   if (!setequal(column_order, data_names)) {
     stop("metadata.column_order and data column names must match", call. = FALSE)
+  }
+  column_lengths <- vapply(x$data[column_order], length, integer(1))
+  if (length(unique(column_lengths)) != 1L) {
+    stop("data columns must all have the same length", call. = FALSE)
   }
   invisible(TRUE)
 }

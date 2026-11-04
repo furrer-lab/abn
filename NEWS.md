@@ -21,6 +21,34 @@
   `vignette("fitabn-json-specification")` and the data format in
   `vignette("bn-data-json-specification")`.
 
+## JSON import/export fixes and validation
+
+* Bayesian import reconstructs posterior quantiles independently of marginal
+  density grids; either optional representation can be supplied on its own.
+* The native `abnFit` adapter explicitly rejects multiple groups and unsupported
+  cross-scale estimates, rather than dropping groups or reinterpreting values.
+  MLE imports require variance/covariance scale; Bayesian imports require
+  precision scale. These limitations also apply with `validate = FALSE`.
+* Network validation checks required fields, scalar types, exact integer IDs,
+  state/group references, parameter semantics, duplicate arcs, acyclicity,
+  posterior data and recognized ABN-extension fields. Data validation checks
+  descriptors, values, categories, nullability and grouping consistency before
+  coercion. Optional JSON Schema validation is exercised by the test suite.
+* Collection fields remain JSON arrays with zero or one element. Zero-row and
+  all-missing categorical datasets are supported, including unknown category
+  domains; raw categorical samples need not contain every model category.
+  Zero-column datasets remain unsupported.
+* Raw-data round-trips distinguish missing JSON `null` from numeric `NaN` and
+  infinities using the documented special tokens. The adapter reserves these
+  token strings against use as ordinary category labels.
+* Generic data import works without R adapter metadata. When present, the
+  adapter preserves R storage types and records `row_names_type` explicitly;
+  numeric-looking string labels such as `"001"` are never used to infer a numeric
+  row-name type. Unused and ordered category levels are retained.
+* Model re-export preserves document identifiers and metadata where applicable,
+  but refreshes `metadata.created`; round-trip stability is checked excluding
+  that timestamp, not as unconditional byte identity.
+
 ## Bug fixes in model fitting
 
 * Centred fits now record the applied `(center, scale)` per gaussian node
@@ -45,11 +73,11 @@
 
 ## Internal changes
 
-* The package no longer uses `exportPattern("^[[:alpha:]]+")`; the exported
-  functions are those with roxygen `@export` tags. Helpers that were only
-  visible through the blanket pattern (e.g. `check.valid.*`, `modes2coefs`,
-  `forLoopContentBayes`) are now internal. If you relied on one of them,
-  please open an issue.
+* The package no longer uses `exportPattern("^[[:alpha:]]+")`, preventing
+  accidental export of JSON implementation helpers. Existing non-JSON exports,
+  including legacy helpers and native routine bindings, are preserved through
+  explicit compatibility declarations. The JSON API consists of the model/data
+  import and export functions and the data-summary validation/repair functions.
 * `jsonvalidate` added to Suggests (used by the JSON schema tests).
 
 

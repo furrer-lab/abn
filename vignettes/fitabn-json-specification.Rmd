@@ -64,7 +64,10 @@ dropped, all of it part of the generic core:
 The document uses `_id` values for internal references, and `label`,
 `scenario_id` and `data_reference` are document metadata. On import these are
 kept in `attr(fit, "abn_json")`, never as fields of the fit, and re-export
-reuses them so that export -> import -> export is byte-identical.
+reuses them. For unchanged abn-generated models, export -> import -> export
+preserves the document content apart from the regenerated `metadata.created`
+timestamp. Exact byte identity is not guaranteed; the round-trip tests compare
+parsed documents with that timestamp omitted.
 
 # Single source of truth
 
@@ -96,6 +99,20 @@ from `parameter_names` when present and are derived from the structure
 otherwise. Documents from other issuers import without any extension.
 Dangling references, duplicate `_id`s, missing baselines, and cyclic arcs
 are rejected with informative errors.
+
+The generic format and the native adapter have different scopes. An `abnFit`
+can represent at most one grouping variable, so import rejects documents with
+multiple groups rather than silently selecting the first. MLE imports require
+variance/covariance parameters on the `variance` scale; Bayesian imports require
+precision parameters on the `precision` scale. Cross-scale conversion is not
+implemented. In particular, reciprocating a posterior mode is not generally
+equivalent to finding the mode of the transformed posterior, and correlated
+precision matrices cannot be converted element by element. These native-adapter
+limitations are checked even with `validate = FALSE`; the generic schema is not
+restricted to the adapter's supported scale conventions.
+
+Posterior quantiles and marginal-density grids are independent optional inputs.
+Import reconstructs either when supplied, without requiring the other.
 
 # The property table
 

@@ -278,7 +278,9 @@ details. `metadata.issuer` provides provenance, `metadata.label` and
 `metadata.extensions` provides namespaced ABN annotations and engine
 diagnostics. Document-local `_id` values are JSON bookkeeping; they make
 references and overlays safe to join. `abn` keeps them stable across a
-round-trip so that re-export is idempotent.
+round-trip. Each export regenerates `metadata.created`; round-trip stability
+of an unchanged abn-generated model is checked with that timestamp omitted,
+not as an unconditional byte-identical JSON string.
 
 See `export_abnData()`, `import_abnData()`, `export_abnFit()`, and
 `import_abnFit()` for the `abn` adapters.

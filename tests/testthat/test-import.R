@@ -145,12 +145,21 @@ test_that("import rejects data documents with mismatching distributions", {
   obj <- jsonlite::fromJSON(export_abnData(spec$data, spec$dists,
                                            include_summary = FALSE),
                              simplifyVector = FALSE)
-  obj$metadata$data_dists$g1 <- "poisson"
+  obj$metadata$data_dists$p1 <- "gaussian"
+  for (i in seq_along(obj$metadata$columns)) {
+    if (identical(obj$metadata$columns[[i]]$name, "p1")) {
+      obj$metadata$columns[[i]]$model_distribution <- "gaussian"
+      obj$metadata$columns[[i]]$semantic_type <- "continuous"
+      obj$metadata$columns[[i]]$value_encoding <- "number"
+      obj$metadata$columns[[i]]$categories <- NULL
+      obj$metadata$columns[[i]]$ordered <- NULL
+    }
+  }
   data_file <- tempfile(fileext = ".json")
   on.exit(unlink(data_file))
   writeLines(jsonlite::toJSON(obj, auto_unbox = TRUE, null = "null", digits = NA),
              data_file)
-  expect_error(import_abnFit(json = jfx_json("ex1_mle"), data = data_file), "g1")
+  expect_error(import_abnFit(json = jfx_json("ex1_mle"), data = data_file), "p1")
 })
 
 # ---------------------------------------------------------------------------

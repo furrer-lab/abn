@@ -69,6 +69,10 @@ The normative schema is `inst/schemas/bn-data.schema.json`.
 
 The canonical data representation is columnar. Every column must have the
 same number of observations; `metadata.column_order` fixes the order.
+Collection fields remain JSON arrays even when they have zero or one element.
+This includes `column_order`, column `categories`, each data column and the
+R-adapter class, level and row-label arrays. A document must describe at least
+one column; zero-row datasets are supported, but zero-column datasets are not.
 
 # Generic core
 
@@ -100,6 +104,15 @@ Distribution and category information belongs to the core because another
 tool needs it to interpret the observations and construct a Bayesian-network
 model.
 
+Raw observations do not have the state-cardinality requirements of a fitted
+model. A binary or multinomial sample may contain a single observed category.
+Declared factor levels, including unused levels, are retained. For an empty or
+all-missing label column whose categories are unknown, `categories: []` is
+valid; the exporter does not invent an unobserved category. Every non-missing
+observation must still belong to the declared categories. Binary columns may
+declare at most two categories. A fitted-network document continues to require
+enough states to describe its Bernoulli or categorical conditional model.
+
 ## Data
 
 `data` holds one array per column, keyed by column name. JSON has no native
@@ -107,12 +120,16 @@ representation for `NaN` or infinite values, so the `missing_values` block
 declares the tokens used: JSON `null` for missing, and the strings `"NaN"`,
 `"Infinity"`, `"-Infinity"` for the special numerics. Consumers must not
 silently reinterpret a declared token as an ordinary categorical label.
+The abn adapter reserves these three special-numeric token strings and rejects
+them as ordinary labels. It encodes and decodes them for number columns;
+JSON `null` remains distinct from numeric `NaN`.
 
 ## Summary
 
 `export_abnData()` optionally appends a `metadata.summary` block with
-recomputed, purely descriptive statistics (`row_count`, per-column counts,
-missing counts, and numeric or level summaries). The summary is derived data:
+recomputed descriptive counts: `row_count`, `column_count`, total
+`missing_count`, and per-column `missing_count` and `unique_count`. Numeric
+moments and frequency tables are not currently included. The summary is derived data:
 `validate_data_json_summary()` detects stale summaries and
 `repair_data_json_summary()` recomputes them.
 
@@ -122,6 +139,15 @@ missing counts, and numeric or level summaries). The summary is derived data:
 names so that `import_abnData()` can reconstruct an R-native data frame
 exactly. Other Bayesian-network tools may ignore this block; the generic
 column descriptors remain the source of truth for interpretation.
+
+Row labels in `metadata.adapters.r.row_names` are always strings, including
+labels such as `"001"`. The optional `row_names_type` records the R-specific
+representation: `"character"`, `"integer"`, or `"automatic"` (default R row
+names). Import restores integer or automatic row names only when explicitly
+requested by this marker. Without the marker, supplied row labels remain
+strings; their spelling is never used to infer a numeric type. When the R
+adapter is absent, custom row labels are not available in the document and R
+generates default row names for the imported observations.
 
 # Exporting `abn` data
 

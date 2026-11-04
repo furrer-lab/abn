@@ -1,5 +1,5 @@
 # Import of bayesian-network JSON documents into abnFit objects.
-# See json_plan.md and inst/schemas/bayesian-network.schema.json.
+# See inst/schemas/bayesian-network.schema.json and the JSON format vignettes.
 
 #' Import an abnFit object from a bayesian-network JSON document
 #'
@@ -9,7 +9,8 @@
 #' \code{metadata.extensions.abn} when present.
 #'
 #' @param file Optional path to a JSON file.
-#' @param json Optional JSON string. If both are given, \code{json} wins.
+#' @param json Optional JSON string. Supply exactly one of \code{file} or
+#'   \code{json}; supplying both is an error.
 #' @param data Optional observations: a data frame, the path to a \code{bn-data}
 #'   data document, or the result of \code{\link{import_abnData}}. The
 #'   observations are transformed exactly as
@@ -23,6 +24,12 @@
 #' \code{inst/schemas/bayesian-network.schema.json} and described in the
 #' vignettes \code{vignette("fitabn-json-specification", package = "abn")} and
 #' \code{vignette("json-format", package = "abn")}.
+#' The native \code{abnFit} adapter supports at most one group. For variance
+#' parameters it requires \code{scale = "variance"} for MLE documents and
+#' \code{scale = "precision"} for Bayesian documents. Other scale representations
+#' are rejected rather than converted, including when \code{validate = FALSE}.
+#' Posterior quantiles and marginal-density grids are independent optional
+#' inputs: either is reconstructed when supplied, without requiring the other.
 #' @examples
 #' mydists <- list(b1 = "binomial", p1 = "poisson", g1 = "gaussian", b3 = "binomial")
 #' mydag <- matrix(0, 4, 4, dimnames = list(names(mydists), names(mydists)))
@@ -51,6 +58,7 @@ import_abnFit <- function(file = NULL, json = NULL, data = NULL, validate = TRUE
                               simplifyVector = FALSE)
   }
   if (isTRUE(validate)) abn_json_check_document(doc)
+  abn_json_check_adapter_support(doc)
 
   ctx <- abn_json_import_context(doc)
   is_abn <- identical(doc[["metadata"]][["issuer"]], "abn::export_abnFit")
@@ -69,6 +77,27 @@ import_abnFit <- function(file = NULL, json = NULL, data = NULL, validate = TRUE
   attr(fit, "abn_json") <- abn_json_import_attr(doc, natives)
   class(fit) <- c("abnFit")
   fit
+}
+
+# These are native abnFit limitations, not restrictions on the generic schema.
+# Check them even with validate = FALSE: silently discarding groups or changing
+# the statistical meaning of an estimate is never a supported import operation.
+abn_json_check_adapter_support <- function(doc) {
+  if (length(doc[["groups"]]) > 1L) {
+    stop("The abnFit adapter supports at most one group; this document has ",
+         length(doc[["groups"]]), ".", call. = FALSE)
+  }
+  inference <- doc[["inference"]][["type"]]
+  expected <- switch(inference, maximum_likelihood = "variance", bayesian = "precision")
+  for (p in doc[["parameters"]]) {
+    if (p[["kind"]] %in% c("residual_variance", "random_variance", "random_covariance") &&
+        !identical(p[["scale"]], expected)) {
+      stop("Parameter ", p[["_id"]], ": the abnFit adapter requires scale '",
+           expected, "' for ", inference, " imports; cross-scale conversion is unsupported.",
+           call. = FALSE)
+    }
+  }
+  invisible(TRUE)
 }
 
 # ---------------------------------------------------------------------------
@@ -429,8 +458,12 @@ abn_json_reconstruct_bayes <- function(doc, ctx, natives) {
   }
 
   marginals <- doc[["inference"]][["posterior"]][["marginals"]]
-  if (!is.null(marginals)) {
-    by_id <- stats::setNames(marginals, vapply(marginals, function(m) {
+  has_quantiles <- any(vapply(doc[["parameters"]], function(p) {
+    !is.null(p[["uncertainty"]][["posterior_quantiles"]])
+  }, logical(1)))
+  if (!is.null(marginals) || has_quantiles) {
+    density_entries <- marginals %||% list()
+    by_id <- stats::setNames(density_entries, vapply(density_entries, function(m) {
       as.character(m[["parameter"]])
     }, character(1)))
     mout <- stats::setNames(vector("list", length(ctx$names)), ctx$names)
@@ -457,7 +490,7 @@ abn_json_reconstruct_bayes <- function(doc, ctx, natives) {
       mout[[node]] <- inner_m
       qout[[node]] <- inner_q
     }
-    fit[["marginals"]] <- mout
+    if (!is.null(marginals)) fit[["marginals"]] <- mout
     if (any_q) fit[["marginal.quantiles"]] <- qout
   }
 

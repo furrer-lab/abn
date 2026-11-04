@@ -20,3 +20,23 @@ test_that("JSON internals are not exported", {
                  "export_to_json", "compute_data_json_summary")
   expect_equal(intersect(internals, exports), character(0))
 })
+
+test_that("JSON privacy preserves the exact pre-change non-JSON export set", {
+  # Captured with load_all(export_all = FALSE) before replacing exportPattern.
+  # This pins all legacy names, including helpers, S3 methods and C bindings.
+  legacy <- readLines(test_path("testdata", "non-json-exports.txt"))
+  json_api <- c("export_abnFit", "import_abnFit", "export_abnData", "import_abnData",
+                "validate_data_json_summary", "repair_data_json_summary")
+  expect_setequal(getNamespaceExports("abn"), c(legacy, json_api))
+})
+
+test_that("all current JSON helper families stay private", {
+  exports <- getNamespaceExports("abn")
+  json_helpers <- c("compare_data_json_summary", "compute_data_json_summary",
+                    "parse_data_json_input", "validate_abn_data_inputs",
+                    "validate_abn_data_json_object", "validate_data_json_document_semantics",
+                    "validate_data_json_shape", "validate_data_json_type",
+                    "validate_data_json_values")
+  expect_false(any(grepl("^(abn_json_|data_json_)", exports)))
+  expect_length(intersect(json_helpers, exports), 0L)
+})

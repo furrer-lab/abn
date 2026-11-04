@@ -3,7 +3,7 @@
 # jfx_*  : fixture specifications and cached fits
 # jdoc_* : accessors for parsed JSON documents
 #
-# See json_plan.md for the format definition these tests pin down.
+# See inst/schemas/ and the JSON format vignettes for the format definition.
 
 JDOC_SCHEMA_VERSION <- "bayesian-network"
 JDOC_ISSUER <- "abn::export_abnFit"

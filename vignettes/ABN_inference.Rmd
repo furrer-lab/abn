@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
   eval = TRUE
 )
 
-source("/Users/mchampion/Documents/GitHub/abn_public/R/PredictABN.R")
+library(abn)
 ```
 
 This vignette provides an overview of how to perform inference with `ABN` across mixed-distribution DAGs.

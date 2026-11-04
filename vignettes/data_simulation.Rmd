@@ -46,7 +46,7 @@ mycache <- buildScoreCache(data.df = mydat,
                            method = "bayes",
                            max.parents = 4)
 #> Loading required package: Matrix
-#> 
+#>
 
 # Structure learning
 mp.dag <- mostProbable(score.cache = mycache)

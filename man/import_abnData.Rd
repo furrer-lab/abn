@@ -12,8 +12,10 @@ import_abnData(file = NULL, json = NULL, validate = TRUE)
 \item{json}{Optional JSON string. If both \code{file} and \code{json} are supplied,
 \code{json} is used.}
 
-\item{validate}{If \code{TRUE}, validate schema shape and optional summary
-metadata before reconstruction.}
+\item{validate}{If \code{TRUE}, check document structure, column descriptors,
+distribution/encoding consistency, category membership, values, nullability,
+and optional summary metadata before reconstruction. Runtime checks do not
+require the optional \code{jsonvalidate} package.}
 }
 \value{
 A list with \code{data.df}, \code{data.dists}, \code{group.var}, and \code{metadata}.
@@ -21,4 +23,21 @@ A list with \code{data.df}, \code{data.dists}, \code{group.var}, and \code{metad
 \description{
 Reconstructs a data frame and associated ABN metadata from a data JSON
 document produced by \code{\link[=export_abnData]{export_abnData()}}.
+}
+\details{
+Numeric, integer, boolean and categorical columns are reconstructed using
+generic column descriptors. Ordered and unused categories are retained.
+An optional \code{metadata.adapters.r} block restores R-specific column storage
+and row-name types. Without it, label columns become factors using their
+declared categories, and custom row names are unavailable, so R generates
+default row names.
+
+Supplied row labels remain strings unless \code{metadata.adapters.r.row_names_type}
+explicitly requests integer or automatic R row names. For legacy adapters
+without this marker, labels such as \code{"001"} are preserved as strings.
+The abn adapter supports the documented \code{NaN} and infinity tokens for number
+columns and reserves them against use as ordinary labels.
+Zero-row and all-missing categorical datasets are supported; zero-column
+datasets are rejected. See
+\code{vignette("bn-data-json-specification", package = "abn")} for the format.
 }

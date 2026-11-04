@@ -38,3 +38,20 @@ Serializes a data frame plus ABN distribution metadata into the data JSON
 structure. The payload is column-oriented: \code{metadata} describes how to
 interpret the values, while \code{data} contains only scalar values.
 }
+\details{
+The columnar \code{bn-data} format is specified by
+\code{inst/schemas/bn-data.schema.json} and described in
+\code{vignette("bn-data-json-specification", package = "abn")}.
+Zero-row datasets are supported; zero-column datasets are rejected.
+Raw categorical samples may have one observed category. Declared factor
+levels, including unused levels, are preserved; unknown category domains in
+empty or all-missing label columns are represented by an empty array.
+Collection fields remain arrays even when they contain zero or one element.
+
+Missing observations are JSON \code{null}; numeric \code{NaN}, \code{Inf} and \code{-Inf} use
+the strings \code{"NaN"}, \code{"Infinity"} and \code{"-Infinity"}. The abn adapter reserves
+these strings and rejects them as ordinary category labels.
+R classes, storage types and row names are recorded in \code{metadata.adapters.r}.
+Row labels are always strings; \code{row_names_type} explicitly distinguishes
+character, integer and automatic R row names without guessing from labels.
+}
