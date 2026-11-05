@@ -493,7 +493,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
     node_hat <- evidence[[node]]
   } else {
     if (length(parents)==0){
-      node_hat <- predict_root(data, dists, node)
+      node_hat <- predict_root(fit, data, dists, node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -543,6 +543,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ .+0, data = df_multi)
           mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+          mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -596,11 +597,11 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
   }
   if (node %in% names(evidence)){
     # node is an evidence
-    node_hat <- c(evidence[[node]],var(data[[node]]))
+    node_hat <- c(evidence[[node]],1)
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(data, dists, node)
+      node_hat <- predict_root(fit, data, dists, node)
       if (length(fit[[node]])>1){
         node_hat <- c(node_hat,1/fit[[node]][2])
       } else {
@@ -627,10 +628,10 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
       predictions_tmp <- lapply(predictions_tmp,function(l){
         l[1]
       })
-      if (length(grep("intercept",names(eq)))>0){
+      if (length(grep("intercept",names(eq),ignore.case=TRUE))>0){
         continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp)) # only if intercept!
       } else {
-        continuous_part <- sum(eq[other.nodes]*unlist(predictions_tmp)) # only if intercept!
+        continuous_part <- sum(eq[other.nodes]*unlist(predictions_tmp)) 
       }
       names(continuous_part) <- c()
 
@@ -668,6 +669,7 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ . +0, data = df_multi) # 0 makes the baseline appear
           mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+          mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -725,7 +727,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(data, dists, node)
+      node_hat <- predict_root(fit,data, dists, node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -783,6 +785,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ .+0, data = df_multi)
           mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+          mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -843,7 +846,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(data, dists, node)
+      node_hat <- predict_root(fit,data, dists, node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -918,6 +921,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ ., data = df_multi)
           mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+          mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
         }
@@ -1241,6 +1245,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
       mat_multi <- model.matrix(~ .+0, data = df_multi)
       mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+      mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1548,6 +1553,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
       mat_multi <- model.matrix(~ .+0, data = df_multi)
       mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+      mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -1875,6 +1881,7 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
       mat_multi <- model.matrix(~ .+0, data = df_multi)
       mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+      mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -2288,6 +2295,7 @@ predict_node_from_children_multinomial <- function(data, dists, fit, node, evide
       for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
       mat_multi <- model.matrix(~ . +0, data = df_multi)
       mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
+      mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
     } else {
       mat_multi <- NULL
     }
@@ -2432,6 +2440,7 @@ find_children <- function(graph,node){
 #'
 #' Predict a root node in the graph
 #'
+#' @param fit Parameters of the network (can be the output of the function fitAbn()).
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
 #' @param node Root node to predict.
@@ -2452,15 +2461,89 @@ find_children <- function(graph,node){
 #' b5="binomial",
 #' g3="gaussian")
 #'
-#' prediction <- predict_root(data, mydists, node = "g3")
+#' # infer the graph using ABN
+#' max.par <- 2 # set the same max parents for all nodes
+#' mycache <- buildScoreCache(data.df = data,
+#'                           data.dists = mydists,
+#'                           method = "bayes",max.parents = max.par)
+#' mp.dag <- mostProbable(score.cache = mycache)
+#'
+#' # infer the parameters of the network
+#' myfit <- fitAbn(object = mp.dag)
+#' prediction <- predict_root(myfit$modes, data, mydists, node = "g3")
 #' @export
-predict_root <- function(data, dists, node) {
-  switch(dists[[node]],
-         "gaussian"  = mean(data[[node]]),
-         "poisson"   = mean(data[[node]]),
-         "binomial"  = prop.table(table(data[[node]])),
-         "multinomial" = prop.table(table(data[[node]])),
-         stop("Unsupported distribution type for root node ", dists[[node]])
+predict_root <- function(fit, data, dists, node) {
+  node_fit <- fit[[node]]
+  dist <- dists[[node]]
+  node_data <- data[[node]]
+  
+  cols <- if (!is.null(colnames(node_fit))) {
+    colnames(node_fit)
+  } else {
+    names(node_fit)
+  }
+  
+  intercept_cols <- cols[
+    grepl(
+      paste0("^", node, "\\|\\(?intercept\\)?(\\.[0-9]+)?$"),
+      cols,
+      ignore.case = TRUE
+    )
+  ]
+  
+  intercepts <- if (is.matrix(node_fit) || is.data.frame(node_fit)) {
+    as.numeric(node_fit[1, intercept_cols, drop = TRUE])
+  } else {
+    as.numeric(node_fit[intercept_cols])
+  }
+  precision_col <- paste0(node, "|precision")
+  precision <- if (precision_col %in% cols) {
+    unname(node_fit[precision_col])
+  } else {
+    NULL
+  }
+  
+  switch(dist,
+         
+         gaussian = {
+           precision <- precision
+           
+           c(intercepts[1],1 / precision)
+         },
+         
+         poisson = {
+           exp(intercepts[1])
+         },
+         
+         binomial = {
+           node_levels <- levels(node_data)
+           prob_1 <- plogis(intercepts[1])
+           
+           setNames(
+             c(1 - prob_1, prob_1),
+             node_levels
+           )
+         },
+         
+         multinomial = {
+           node_levels <- levels(node_data)
+           n_levels <- length(node_levels)
+           category_idx <- as.integer(
+             sub(paste0("^", node, "\\|intercept\\."), "", intercept_cols)
+           )
+           
+           logits <- numeric(n_levels)
+           logits[category_idx] <- intercepts
+           
+           # Softmax including the reference category
+           all_logits <- c(0, logits[-1])
+           probs <- exp(all_logits - max(all_logits))
+           probs <- probs / sum(probs)
+           
+           setNames(probs, node_levels)
+         },
+         
+         stop("Unsupported distribution type for root node ", dist)
   )
 }
 
