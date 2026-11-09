@@ -148,9 +148,7 @@ The calculation depends on the parametric famility of $X$:
     - Mean:
 $\mathbb{E}(X \mid \mathscr{A}) = \beta_{0} + \beta_{1} A1 +  \beta_{2} A2.$ 
 
-    - Variance: $var(X \mid \mathscr{A}) = \frac{1}{\tau},$ where $\tau$ is the node's precision estimated during model fitting.
-
-*Remark: In practice, if the precision parameter $\tau$ is explicitly estimated during model fitting, the variance is computed as $var(X \mid \mathscr{A})= 1 / \tau$. Otherwise, if precision estimation is unavailable or omitted, the variance falls back to the empirical variance of the observed data for that node.*
+    - Variance: $var(X \mid \mathscr{A}) = \sigma^2,$ where $\sigma^2$ is the node's residual variance estimated during model fitting.
 
 - Poisson distribution:
 $\mathbb{E}(X \mid \mathscr{A}) = \exp \left( \beta_{0} + \beta_{1} A1 +  \beta_{2} A2 \right).$ 
@@ -209,12 +207,17 @@ In these expressions, the conditional distribution $\mathbb{P}(X\mid \mathscr{A}
 
 The conditional probability $\mathbb{P}(B =b \mid X, \mathscr{C})$ acts as the likelihood of $X$ given the observed value $b$ through the regression model of child $B$:
 
-- Binomial child: $B \sim B(p_B)$, with $p_B = \frac{1}{1+\exp \left( - (\beta_{B0} + \beta_{B1} X + \beta_{B2} C)\right)},$ 
-
-- Gaussian child: $B \sim N(\mu_B,\sigma_B^2)$, with $\mu_B = \beta_{B0} + \beta_{B1} X+ \beta_{B2} C$ and variance $\sigma_B = \frac{1}{\tau_B},$
-where $\tau_B$ is the precision parameter extracted directly from the ABN model fit.
+- Gaussian child: $B \sim N(\mu_B,\sigma_B^2)$, with $\mu_B = \beta_{B0} + \beta_{B1} X+ \beta_{B2} C$ and variance $\sigma_B^2$ is the residual variance extracted directly from the ABN model fit.
 
 - Poisson child: $B \sim P(\lambda_B)$, with $\lambda_B = \exp \left( \beta_{B0} + \beta_{B1} X + \beta_{B2} C \right)$.
+
+- Binomial child: $B \sim B(p_B)$, with $p_B = \frac{1}{1+\exp \left( - (\beta_{B0} + \beta_{B1} X + \beta_{B2} C)\right)},$ 
+
+- Multinomial child: $B \sim \operatorname{Categorical}({p}_B)$, with $p_{Bk} =
+  \frac{\exp(\beta_{B0k}+\beta_{B1k}X+\beta_{B2k}C)}
+  {1+\sum_{j=1}^{K-1}\exp(\beta_{B0j}+\beta_{B1j}X+\beta_{B2j}C)},$ for all $k\in \{1,...K-1\}$, and $p_{BK} =
+  \frac{1}
+  {1+\sum_{j=1}^{K-1}\exp(\beta_{B0j}+\beta_{B1j}X+\beta_{B2j}C)}.$
 
 Here, for simplicity, $C \in \mathscr{C}$ represents the co-parent of child $B$, aside from $X$. Known or observed values of $C$ are directly substituted into the linear predictor.
 
@@ -237,6 +240,10 @@ $\mathbb{E}(X \mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B
     
     - complementary probability: $\mathbb{P}(X=0 \mid \mathscr{A},\mathscr{B},\mathscr{C}) = 1-\mathbb{P}(X=1\mid \mathscr{A},\mathscr{B},\mathscr{C}),$
 
+- Multinomial:
+
+$\mathbb{P}(X=k \mid \mathscr{A},\mathscr{B},\mathscr{C}) = \frac{1}{\# \mathscr{B}} \sum_{B_j \in\mathscr{B}}  \mathbb{P}(X=k\mid \mathscr{A},B_j,\mathscr{C}_j),$ for all $k=1,...,K$,
+
 where $\mathscr{C}_j$ denotes the set of co-parents corresponding to child $B_j$. 
 
 
@@ -251,13 +258,15 @@ The general inference procedure follows three main steps:
 
 2. Upstream propagation: Following the topological order from roots to leaves, we iteratively estimate the distribution of each node given its parents (applying the logic from Step 1):
 
-- Root nodes (no parents): distributions are estimated directly from empirical data:
+- Root nodes (no parents): predictive distributions are obtained from the fitted intercept-only models:
 
-  - Gaussian: sample mean $\widehat{\mu}$ and variance $\widehat{\sigma}^2$ (derived from precision $\tau$ or empirical variance),
+  - Gaussian: the fitted intercept defines the mean, and the fitted residual variance defines the variance,
   
-  - Poisson: sample mean $\widehat{\lambda}$, 
+  - Poisson: the exponential of the fitted intercept defines the rate parameter,
   
-  - Binomial/Multinomial: sample class frequencies/proportions.
+  - Binomial: the logistic transformation of the fitted intercept defines the probability of the second category,
+  
+  - Multinomial: the fitted category-specific intercepts define the category probabilities through the softmax transformation, with the reference category assigned a zero logit.
 
 - Child nodes: distributions are computed using the current estimated distributions of their parents. If a parent node is observed (acts as an evidence), its fixed value is used directly. Otherwise:
 
@@ -341,7 +350,7 @@ graph <- graph_from_adjacency_matrix(t(mp.dag$dag))
 
 # Estimate E(g2|p1=3, b2=y, g1=2)
 prediction <- predict_node_from_parent(data = mydat, dists = mydists, graph, 
-                        fit = myfit$modes, node = "g2", evidence = evidence)
+                        fit = myfit$coef, var = myfit$var, node = "g2", evidence = evidence)
 ```
 
 ```{r print-prediction, echo=FALSE}
@@ -357,7 +366,7 @@ evidence <- list("p1"=3, "b2"=factor("y",levels = c("n","y")),"g1"=2,
 
 # Update the estimated value using the children
 prediction_updated <- predict_node_from_children(data = mydat, dists = mydists, graph, 
-                            fit = myfit$modes, node = "g2", evidence, 
+                            fit = myfit$coef, var = myfit$mse, node = "g2", evidence, 
                             predictions = c(evidence,list("g2"=prediction)))
 ```
 
