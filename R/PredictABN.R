@@ -1093,7 +1093,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   if (length(predictions[[child]])>1){
     y_var <- predictions[[child]][2]
   } else {
-    y_var = 1
+    y_var = 1 # here maybe use the precision from the fitted model
   }
 
   compute_update <- function(intercept_tmp, node_type){
