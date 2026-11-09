@@ -103,67 +103,91 @@ exportPattern("^[[:alpha:]]+")
 import(igraph)
 importClassesFrom(graph,graphAM)
 importFrom(Rcpp,evalCpp)
-importFrom(Rgraphviz,layoutGraph)
-importFrom(Rgraphviz,renderGraph)
+importFrom(Rgraphviz,
+  layoutGraph,
+  renderGraph
+)
 importFrom(doParallel,registerDoParallel)
-importFrom(foreach,"%do%")
-importFrom(foreach,"%dopar%")
-importFrom(foreach,foreach)
-importFrom(grDevices,dev.flush)
-importFrom(grDevices,dev.new)
-importFrom(grDevices,rgb)
-importFrom(graph,"edgeRenderInfo<-")
-importFrom(graph,edgeRenderInfo)
-importFrom(graphics,lines)
-importFrom(graphics,par)
-importFrom(graphics,plot)
-importFrom(graphics,points)
-importFrom(graphics,title)
+importFrom(foreach,
+  "%do%",
+  "%dopar%",
+  foreach
+)
+importFrom(grDevices,
+  dev.flush,
+  dev.new,
+  rgb
+)
+importFrom(graph,
+  "edgeRenderInfo<-",
+  edgeRenderInfo
+)
+importFrom(graphics,
+  lines,
+  par,
+  plot,
+  points,
+  title
+)
 importFrom(mclogit,mblogit)
-importFrom(methods,hasArg)
-importFrom(methods,is)
-importFrom(methods,new)
-importFrom(nnet,multinom)
-importFrom(nnet,nnet.default)
-importFrom(parallel,makeCluster)
-importFrom(parallel,stopCluster)
-importFrom(rjags,coda.samples)
-importFrom(rjags,jags.model)
-importFrom(stats,AIC)
-importFrom(stats,BIC)
-importFrom(stats,IQR)
-importFrom(stats,as.formula)
-importFrom(stats,coef)
-importFrom(stats,coefficients)
-importFrom(stats,complete.cases)
-importFrom(stats,cor)
-importFrom(stats,dbinom)
-importFrom(stats,df.residual)
-importFrom(stats,dnorm)
-importFrom(stats,dpois)
-importFrom(stats,family)
-importFrom(stats,fitted.values)
-importFrom(stats,glm)
-importFrom(stats,hatvalues)
-importFrom(stats,integrate)
-importFrom(stats,lm)
-importFrom(stats,logLik)
-importFrom(stats,model.matrix)
-importFrom(stats,nobs)
-importFrom(stats,plogis)
-importFrom(stats,predict.glm)
-importFrom(stats,rbinom)
-importFrom(stats,residuals)
-importFrom(stats,sd)
-importFrom(stats,setNames)
-importFrom(stats,sigma)
-importFrom(stats,spline)
-importFrom(stats,var)
-importFrom(stats,vcov)
-importFrom(stringi,stri_detect_fixed)
-importFrom(stringi,stri_flatten)
-importFrom(stringi,stri_split_fixed)
-importFrom(utils,capture.output)
-importFrom(utils,combn)
-importFrom(utils,tail)
+importFrom(methods,
+  hasArg,
+  is,
+  new
+)
+importFrom(nnet,
+  multinom,
+  nnet.default
+)
+importFrom(parallel,
+  makeCluster,
+  stopCluster
+)
+importFrom(rjags,
+  coda.samples,
+  jags.model
+)
+importFrom(stats,
+  AIC,
+  BIC,
+  IQR,
+  as.formula,
+  coef,
+  coefficients,
+  complete.cases,
+  cor,
+  dbinom,
+  df.residual,
+  dnorm,
+  dpois,
+  family,
+  fitted.values,
+  glm,
+  hatvalues,
+  integrate,
+  lm,
+  logLik,
+  model.matrix,
+  nobs,
+  plogis,
+  predict.glm,
+  rbinom,
+  residuals,
+  sd,
+  setNames,
+  sigma,
+  spline,
+  var,
+  vcov
+)
+importFrom(stringi,
+  stri_detect_fixed,
+  stri_flatten,
+  stri_split_fixed
+)
+importFrom(utils,
+  capture.output,
+  combn,
+  tail
+)
 useDynLib(abn, .registration=TRUE)

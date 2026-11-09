@@ -69,6 +69,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Matteo Delucchi \email{matteo.delucchi@math.uzh.ch} (\href{https://orcid.org/0000-0002-9327-1496}{ORCID})
   \item Reinhard Furrer \email{reinhard.furrer@math.uzh.ch} (\href{https://orcid.org/0000-0002-6319-2332}{ORCID})
   \item Gilles Kratzer \email{gilles.kratzer@gmail.com} (\href{https://orcid.org/0000-0002-5929-8935}{ORCID})
   \item Fraser Iain Lewis \email{fraser.iain.lewis@gmail.com} (\href{https://orcid.org/0000-0003-4580-2712}{ORCID})
