@@ -19,7 +19,8 @@ predict_node_from_parent_multinomial(
 
 \item{dists}{A list containing the distributions of the nodes of the graph.}
 
-\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
 
 \item{node}{Temporary node to predict.}
 

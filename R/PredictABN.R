@@ -44,8 +44,8 @@
 #' @export
 #'
 predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
-  fit <- object$modes
-  #data <- object$abnDag$data.df
+  fit <- object$coef
+  var <- object$mse
   dag <- object$abnDag$dag
   dists <- object$abnDag$data.dists  
   
@@ -78,10 +78,10 @@ predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
   }
   if (all(mb %in% names(evidence)) && !is.null(hypothesis)){
     message("The Markov blanket of the node to infer is enterily known.")
-    prediction <- predict_node_from_parent(data, dists, graph, fit, node = hypothesis, evidence)
+    prediction <- predict_node_from_parent(data, dists, graph, fit, var, node = hypothesis, evidence)
     predictions <- list(prediction)
     names(predictions) <- hypothesis
-    prediction_updated <- predict_node_from_children(data, dists, graph, fit, node = hypothesis, evidence, predictions = predictions)
+    prediction_updated <- predict_node_from_children(data, dists, graph, fit, var, node = hypothesis, evidence, predictions = predictions)
     
     results <- list(
       prediction_hypothesis = prediction_updated, 
@@ -96,7 +96,7 @@ predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
     predictions <- list()
     predictions_names <- c()
     for (i in (1:length(node_order))){
-      prediction <- predict_node_from_parent(data, dists, graph, fit, node = node_order[i], evidence, predictions)
+      prediction <- predict_node_from_parent(data, dists, graph, fit, var, node = node_order[i], evidence, predictions)
       predictions <- c(predictions, list(prediction))
       predictions_names <- c(predictions_names, node_order[i])
       names(predictions) <- predictions_names
@@ -109,7 +109,7 @@ predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
       node_max <- 1
     }
     for (i in (length(node_order):node_max)){
-      prediction <- predict_node_from_children(data, dists, graph, fit, node = node_order[i], evidence, predictions)
+      prediction <- predict_node_from_children(data, dists, graph, fit, var, node = node_order[i], evidence, predictions)
       predictions[[i]] <- prediction
     }
 
@@ -276,7 +276,10 @@ find_MB <- function(graph, hypothesis){
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
 #' @param graph A dag (igraph object).
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
+#' @param var A named vector of node-specific mean squared errors, e.g. extracted
+#' from the `$mse` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param predictions The estimated predictions of the upstream nodes (can be empty if the parents of the node to predict are evidence).
@@ -309,18 +312,19 @@ find_MB <- function(graph, hypothesis){
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
+#' myvar <- myfit$mse
+#' myfit <- myfit$coef
 #'
 #' node <- "g2"
 #'
 #' evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
 #' evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 #'
-#' predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
+#' predictions <- predict_node_from_parent(data, mydists, graph, myfit, myvar, node, evidence)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, predictions = NULL){
+predict_node_from_parent <- function(data, dists, graph, fit, var, node, evidence, predictions = NULL){
   parents <- find_parents(graph, node)
   if (is.null(predictions)){
     if (!all(parents %in% names(evidence))){
@@ -331,7 +335,7 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
   }
   results <- switch(dists[[node]],
                     "poisson"  = predict_node_from_parent_poisson(data, dists, fit, node, evidence, parents, predictions),
-                    "gaussian" = predict_node_from_parent_gaussian(data, dists, fit, node, evidence, parents, predictions),
+                    "gaussian" = predict_node_from_parent_gaussian(data, dists, fit, var, node, evidence, parents, predictions),
                     "binomial" = predict_node_from_parent_binomial(data, dists, fit, node, evidence, parents, predictions),
                     "multinomial" = predict_node_from_parent_multinomial(data, dists, fit, node, evidence, parents, predictions),
                     stop("Unknown node distribution type: ", dists[[node]]) # Error handling
@@ -346,7 +350,10 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
 #' @param graph A dag (igraph object).
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
+#' @param var A named vector of node-specific mean squared errors, e.g. extracted
+#' from the `$mse` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param predictions The estimated predictions of the downstream nodes (must contain at least a first prediction of the node to predict if the children and the children's parents are evidence).
@@ -379,7 +386,8 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
+#' myvar <- myfit$mse
+#' myfit <- myfit$coef
 #'
 #' node <- "g2"
 #'
@@ -388,11 +396,11 @@ predict_node_from_parent <- function(data, dists, graph, fit, node, evidence, pr
 #'
 #' predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
 #'
-#' predictions <- predict_node_from_children(data, mydists, graph, myfit, node, evidence, predictions)
+#' predictions <- predict_node_from_children(data, mydists, graph, myfit, myvar, node, evidence, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children <- function(data, dists, graph, fit, node, evidence, predictions){
+predict_node_from_children <- function(data, dists, graph, fit, var, node, evidence, predictions){
   if (!node %in% names(predictions)){
     stop("Predictions must contain at least a first prediction of the node to predict.")
   }
@@ -420,7 +428,7 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
     dist_type <- dists[[child]]
 
     switch(dist_type,
-           "gaussian"  = predict_node_from_children_gaussian(data, dists, fit, node, evidence, child, parents, predictions),
+           "gaussian"  = predict_node_from_children_gaussian(data, dists, fit, var, node, evidence, child, parents, predictions),
            "poisson"   = predict_node_from_children_poisson(data, dists, fit, node, evidence, child, parents, predictions),
            "binomial"  = predict_node_from_children_binomial(data, dists, fit, node, evidence, child, parents, predictions),
            "multinomial" = predict_node_from_children_multinomial(data, dists, fit, node, evidence, child, parents, predictions),
@@ -473,7 +481,8 @@ predict_node_from_children <- function(data, dists, graph, fit, node, evidence, 
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
@@ -493,7 +502,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
     node_hat <- evidence[[node]]
   } else {
     if (length(parents)==0){
-      node_hat <- predict_root(fit, data, dists, node)
+      node_hat <- predict_root(fit, data = data, dists = dists, node = node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -508,7 +517,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 
       predictions_tmp <- predictions[other.nodes]
       predictions_tmp <- lapply(predictions_tmp, function(l){ l[1] })
-      continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
+      continuous_part <- eq["intercept"] + sum(eq[other.nodes]*unlist(predictions_tmp))
       names(continuous_part) <- c()
 
       if (length(bin.nodes)>0){
@@ -542,7 +551,6 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ .+0, data = df_multi)
-          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
           mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
@@ -581,7 +589,10 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
+#' @param var A named vector of node-specific mean squared errors, e.g. extracted
+#' from the `$mse` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
@@ -591,7 +602,7 @@ predict_node_from_parent_poisson <- function(data, dists, fit, node, evidence, p
 #' @importFrom stats setNames var
 #' @export
 #'
-predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, parents, predictions = NULL){
+predict_node_from_parent_gaussian <- function(data, dists, fit, var, node, evidence, parents, predictions = NULL){
   if (dists[[node]] != "gaussian"){
     stop("The node to predict should follow a Gaussian distribution.")
   }
@@ -601,21 +612,16 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(fit, data, dists, node)
-      if (length(fit[[node]])>1){
-        node_hat <- c(node_hat,1/fit[[node]][2])
-      } else {
-        node_hat <- c(node_hat,var(data[[node]]))
-      }
+      node_hat <- predict_root(fit, var, data, dists, node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
       eq <- setNames(as.vector(eq), gsub(".*\\|", "", eq_names))
 
-      if (length(grep("precision",names(eq)))>0){
-        node_sigma_sq <- 1 / eq["precision"]
+      node_var <- if (node %in% names(var)) {
+        var[[node]]
       } else {
-        node_sigma_sq <- var(data[[node]])
+        1
       }
       bin.nodes <- intersect(names(dists)[which(dists %in% c("binomial","multinomial"))],parents)
       if (length(bin.nodes)>0){
@@ -629,7 +635,7 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         l[1]
       })
       if (length(grep("intercept",names(eq),ignore.case=TRUE))>0){
-        continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp)) # only if intercept!
+        continuous_part <- eq["intercept"] + sum(eq[other.nodes]*unlist(predictions_tmp))
       } else {
         continuous_part <- sum(eq[other.nodes]*unlist(predictions_tmp)) 
       }
@@ -692,9 +698,9 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
         prob_grid <- expand.grid(probabilities)
         combination_probabilities <- apply(prob_grid, 1, prod)
 
-        node_hat <- c(sum(proba_cond_values * combination_probabilities),node_sigma_sq)
+        node_hat <- c(sum(proba_cond_values * combination_probabilities),node_var)
       } else {
-        node_hat <- c(continuous_part,node_sigma_sq)
+        node_hat <- c(continuous_part,node_var)
       }
     }
   }
@@ -707,7 +713,8 @@ predict_node_from_parent_gaussian <- function(data, dists, fit, node, evidence, 
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
@@ -727,7 +734,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(fit,data, dists, node)
+      node_hat <- predict_root(fit, data = data, dists = dists, node = node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -744,7 +751,7 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
       predictions_tmp <- lapply(predictions_tmp, function(l){
         l[1]
       })
-      continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
+      continuous_part <- eq["intercept"] + sum(eq[other.nodes]*unlist(predictions_tmp))
       names(continuous_part) <- c()
 
       if (length(bin.nodes)>0){
@@ -826,7 +833,8 @@ predict_node_from_parent_binomial <- function(data, dists, fit, node, evidence, 
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param parents The parents of the node to predict.
@@ -846,7 +854,7 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
   } else {
     if (length(parents)==0){
       # no parents
-      node_hat <- predict_root(fit,data, dists, node)
+      node_hat <- predict_root(fit, data = data, dists = dists, node = node)
     } else {
       eq <- fit[[node]]
       eq_names <- colnames(eq) %||% names(eq)
@@ -920,7 +928,6 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
           df_multi <- combinations[multi_parents]
           for(n in multi_parents) df_multi[[n]] <- factor(df_multi[[n]], levels = names(probabilities[[n]]))
           mat_multi <- model.matrix(~ ., data = df_multi)
-          mat_multi <- mat_multi[, colnames(mat_multi) != "(Intercept)", drop = FALSE]
           mat_multi <- mat_multi[, colnames(mat_multi) != "intercept", drop = FALSE]
         } else {
           mat_multi <- NULL
@@ -928,8 +935,6 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 
         dummy_matrix <- cbind(mat_bin, mat_multi)
 
-        #numerators_matrix <- matrix(0, nrow = nrow(combinations), ncol = length(levels.cat))
-        #colnames(numerators_matrix) <- levels.cat
         eta_matrix <- matrix(0, nrow = nrow(combinations), ncol = length(levels.cat))
         colnames(eta_matrix) <- levels.cat
         for (level in levels.cat) {
@@ -942,8 +947,6 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
           })
 
           # Linear predictor -> exp(eta)
-          #eta <- continuous_part[[level]] + as.vector(dummy_matrix %*% eq_tmp)
-          #numerators_matrix[, level] <- exp(eta)
           eta_matrix[, level] <- continuous_part[[level]] + as.vector(dummy_matrix %*% eq_tmp)
         }
         all_eta <- cbind(Baseline = 0, eta_matrix)
@@ -952,9 +955,6 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
           stabilized_exp <- exp(row - max_eta) # Shifting scale keeps exponent keys safely under 700
           return(stabilized_exp / sum(stabilized_exp)) # Clean probabilities that sum to 1
         }))
-
-        #scenario_denominators <- 1 + rowSums(numerators_matrix)
-        #proba_matrix <- numerators_matrix / scenario_denominators
 
         prob_grid <- expand.grid(probabilities)
         combination_probabilities <- apply(prob_grid, 1, prod)
@@ -966,9 +966,6 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
         node_hat_baseline <- sum(proba_baseline * combination_probabilities)
         node_hat <- c(node_hat_baseline, node_hat_others)
 
-        #node_hat_others <- colSums(proba_matrix * combination_probabilities)
-        #node_hat_baseline <- sum((1 / scenario_denominators) * combination_probabilities)
-        #node_hat <- c(node_hat_baseline, node_hat_others)
         names(node_hat) <- sort(levels.multi)
       } else {
         numerator <- sapply(continuous_part, function(continuous_part_tmp){
@@ -994,7 +991,8 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param child A child of the node to predict.
@@ -1030,7 +1028,8 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
+#' myvar <- myfit$mse
+#' myfit <- myfit$coef
 #'
 #' node <- "g1"
 #' child <- find_children(graph, node)[2]
@@ -1041,12 +1040,12 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #'
 #' predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 #'
-#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, 
+#' predictions <- predict_node_from_children_gaussian(data, mydists, myfit, myvar, node, 
 #'                     evidence, child, parents, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
-predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence, child, parents, predictions){
+predict_node_from_children_gaussian <- function(data, dists, fit, var, node, evidence, child, parents, predictions){
   if (dists[[child]] != "gaussian"){
     stop("The child should follow a Gaussian distribution.")
   }
@@ -1085,7 +1084,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 
   predictions_tmp <- predictions[other.nodes]
   predictions_tmp <- lapply(predictions_tmp, function(l){ l[1] })
-  continuous_part <- eq[1] + sum(eq[other.nodes]*unlist(predictions_tmp))
+  continuous_part <- eq["intercept"] + sum(eq[other.nodes]*unlist(predictions_tmp))
   names(continuous_part) <- c()
 
   y_val <- predictions[[child]][1]
@@ -1093,7 +1092,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
   if (length(predictions[[child]])>1){
     y_var <- predictions[[child]][2]
   } else {
-    y_var = 1 # here maybe use the precision from the fitted model
+    y_var = var[child]
   }
 
   compute_update <- function(intercept_tmp, node_type){
@@ -1290,7 +1289,8 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param child A child of the node to predict.
@@ -1326,7 +1326,7 @@ predict_node_from_children_gaussian <- function(data, dists, fit, node, evidence
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
+#' myfit <- myfit$coef
 #'
 #' node <- "b1"
 #' child <- find_children(graph, node)[1]
@@ -1596,7 +1596,8 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param child A child of the node to predict.
@@ -1632,7 +1633,7 @@ predict_node_from_children_poisson <- function(data, dists, fit, node, evidence,
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' myfit <- myfit$modes
+#' myfit <- myfit$coef
 #'
 #' node <- "g1"
 #' child <- find_children(graph, node)[1]
@@ -1930,7 +1931,8 @@ predict_node_from_children_binomial <- function(data, dists, fit, node, evidence
 #'
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param child A child of the node to predict.
@@ -2440,7 +2442,10 @@ find_children <- function(graph,node){
 #'
 #' Predict a root node in the graph
 #'
-#' @param fit Parameters of the network (can be the output of the function fitAbn()).
+#' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
+#' `$coef` component of a `fitAbn()` object.
+#' @param var A named vector of node-specific mean squared errors, e.g. extracted
+#' from the `$mse` component of a `fitAbn()` object.
 #' @param data A data frame containing the data (samples in rows, variables in columns).
 #' @param dists A list containing the distributions of the nodes of the graph.
 #' @param node Root node to predict.
@@ -2470,10 +2475,17 @@ find_children <- function(graph,node){
 #'
 #' # infer the parameters of the network
 #' myfit <- fitAbn(object = mp.dag)
-#' prediction <- predict_root(myfit$modes, data, mydists, node = "g3")
+#' prediction <- predict_root(myfit$coef, myfit$mse, data, mydists, node = "g3")
 #' @export
-predict_root <- function(fit, data, dists, node) {
+predict_root <- function(fit, var = NULL, data, dists, node) {
   node_fit <- fit[[node]]
+  if (!is.null(var)){
+    node_var <- if (node %in% names(var)) {
+      var[[node]]
+    } else {
+      NULL
+    }
+  }
   dist <- dists[[node]]
   node_data <- data[[node]]
   
@@ -2485,30 +2497,22 @@ predict_root <- function(fit, data, dists, node) {
   
   intercept_cols <- cols[
     grepl(
-      paste0("^", node, "\\|\\(?intercept\\)?(\\.[0-9]+)?$"),
+      paste0("^", node, "\\|\\(?intercepts?\\)?(\\.[0-9]+)?$"),
       cols,
       ignore.case = TRUE
     )
   ]
   
   intercepts <- if (is.matrix(node_fit) || is.data.frame(node_fit)) {
-    as.numeric(node_fit[1, intercept_cols, drop = TRUE])
+    node_fit[1, intercept_cols, drop = TRUE]
   } else {
-    as.numeric(node_fit[intercept_cols])
-  }
-  precision_col <- paste0(node, "|precision")
-  precision <- if (precision_col %in% cols) {
-    unname(node_fit[precision_col])
-  } else {
-    NULL
+    node_fit[intercept_cols]
   }
   
   switch(dist,
          
          gaussian = {
-           precision <- precision
-           
-           c(intercepts[1],1 / precision)
+           c(intercepts[1],node_var)
          },
          
          poisson = {
@@ -2516,7 +2520,12 @@ predict_root <- function(fit, data, dists, node) {
          },
          
          binomial = {
-           node_levels <- levels(node_data)
+           node_levels <- if (is.factor(node_data)) {
+             levels(node_data)
+           } else {
+             c("0", "1")
+           }
+           
            prob_1 <- plogis(intercepts[1])
            
            setNames(
@@ -2527,13 +2536,14 @@ predict_root <- function(fit, data, dists, node) {
          
          multinomial = {
            node_levels <- levels(node_data)
-           n_levels <- length(node_levels)
-           category_idx <- as.integer(
-             sub(paste0("^", node, "\\|intercept\\."), "", intercept_cols)
+           category_labels <- sub(
+             paste0("^", node, "\\|intercept\\."),
+             "",
+             intercept_cols
            )
            
-           logits <- numeric(n_levels)
-           logits[category_idx] <- intercepts
+           logits <- setNames(numeric(length(node_levels)), node_levels)
+           logits[category_labels] <- intercepts
            
            # Softmax including the reference category
            all_logits <- c(0, logits[-1])

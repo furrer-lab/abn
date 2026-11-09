@@ -20,7 +20,8 @@ predict_node_from_children_poisson(
 
 \item{dists}{A list containing the distributions of the nodes of the graph.}
 
-\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
 
 \item{node}{Temporary node to predict.}
 
@@ -65,7 +66,7 @@ graph <- igraph::graph_from_adjacency_matrix(t(dag))
 
 # infer the parameters of the network
 myfit <- fitAbn(object = mp.dag)
-myfit <- myfit$modes
+myfit <- myfit$coef
 
 node <- "b1"
 child <- find_children(graph, node)[1]
