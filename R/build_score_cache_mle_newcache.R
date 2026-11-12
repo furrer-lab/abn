@@ -342,10 +342,6 @@ forLoopContent_precomputedXY <-
 } # End of forLoopContent()
 
 
-bits_to_key <- function(x) {
-  as.character(sum(x * 2^seq.int(from = length(x) - 1, to = 0)))
-}
-
 
 compute_X <- function(row, adj.vars, multinomial, data.df.multi.num) {
   if (is.null(adj.vars)) {
@@ -623,7 +619,7 @@ newBuildScoreCache.mle <-
       }
 
       for (row.num in 1:rows){
-        key <- bits_to_key(mycache$node.defn.multi[row.num, ])
+        key <- paste(mycache$node.defn.multi[row.num, ], collapse = "")
         if (exists(key, envir = cache_X, inherits = FALSE)) {
           X <- get(key, envir = cache_X, inherits = FALSE)
         } else {
@@ -713,7 +709,7 @@ newBuildScoreCache.mle <-
           Y_list[[k]] <- data.df.num[, k, drop = FALSE]
         }
         for(row.num in 1:rows){
-          key <- bits_to_key(mycache$node.defn.multi[row.num, ])
+          key <- paste(mycache$node.defn.multi[row.num, ], collapse = "")
           if (exists(key, envir = cache_X, inherits = FALSE)) {
             X <- get(key, envir = cache_X, inherits = FALSE)
           } else {
