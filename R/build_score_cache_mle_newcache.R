@@ -436,15 +436,6 @@ newBuildScoreCache.mle <-
 
     } else {
         ## Computing the cache
-        fun.return <- function(x, n) {
-          # x: vector or single integer
-          # n: number of variables/columns in data.df
-          # returns: vector of size n-1 with 1 for all x and zeros otherwise
-            v <- rep(0, n - 1)
-            v[x] <- 1
-            return(v)
-        }
-
         for (j in 1:nvars) {
           if(is.list(max.parents)){
             stop("ISSUE: `max.parents` as list is not yet implemented further down here. Try with a single numeric value as max.parents instead.")
@@ -467,8 +458,14 @@ newBuildScoreCache.mle <-
 
         tmp.list <- vector('list', max.parents)
         for (i in 1:(max.parents)) {
-          tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i, FUN = fun.return, n = nvars, simplify = TRUE))
+            tmp.list[[i]] <- t(combn(x = (nvars - 1), m = i,
+                FUN = function(x, n) {
+                  v <- rep(0, n - 1)
+                  v[x] <- 1
+                  return(v)
+                }, n = nvars, simplify = TRUE))
         }
+
         combs <- do.call(rbind, tmp.list)
         storage.mode(combs) <- "integer"
 
