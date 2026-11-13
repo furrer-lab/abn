@@ -95,7 +95,10 @@ res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nv
                                                                      mleparams$data.df.multi, mleparams$data.df.lvl,
                                                                      params$max.parents,params$data.dists,cache_orig,
                                                                      params$control,params$verbose),
-
+		   ordered = call_forLoopContent_precomputedXY_ordered(params$adj.vars,mleparams$nvars,mleparams$data.df,
+                                                                 mleparams$data.df.multi, mleparams$data.df.lvl,
+                                                                 params$max.parents,params$data.dists,cache_orig,
+                                                                 params$control,params$verbose),
                     iterations = 5)
 # A tibble: 2 × 13
 # expression        min   median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result            memory                   time       gc
@@ -103,6 +106,11 @@ res <- bench::mark( orig = call_forLoopContent_orig(params$adj.vars,mleparams$nv
 #  1 orig              25s      25s    0.0400    1.84GB   0.408      5    51      2.08m <named list [14]> <Rprofmem [245,167 × 3]> <bench_tm> <tibble>
 #  2 precomputeXY      19s    19.1s    0.0525  911.79MB   0.0839     5     8      1.59m <named list [14]> <Rprofmem [84,834 × 3]>  <bench_tm> <tibble>
 
+# expression      min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time
+#  <bch:expr>   <bch:> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm>
+#1 orig            17s    17s    0.0585    1.83GB    1.31      5   112      1.42m
+#2 precomputeXY  12.6s  12.6s    0.0790  893.24MB    0.869     5    55      1.05m
+#3 ordered       12.6s  12.6s    0.0793  896.76MB    0.778     5    49      1.05m
 
 
 ##########

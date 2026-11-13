@@ -581,6 +581,94 @@ compute_X <- function(row, adj.vars, multinomial, data.df.multi) {
   X
 }
 
+# Modified function with pure matrix preallocation (no foreach)
+# Precompute X and Y
+# Order keys by parents combination as an alternative to cache_X
+# Note that: group.var is assumed to be NULL
+call_forLoopContent_precomputedXY_ordered <- function(adj.vars,
+                                          nvars,
+                                          data.df,
+                                          data.df.multi,
+                                          data.df.lvl,
+                                          max.parents,
+                                          data.dists,
+                                          mycache,
+                                          control,
+                                          verbose){
+
+  # ========= END CACHE CREATION ===========
+
+  ## EOF cache creation
+  row.num <- NULL   # To avoid check comment: 'no visible binding for global variable
+  out <- list()
+  rows <- length(mycache[["children"]])
+
+  ##-----------------------------
+  ##start loop for the regression
+  ##-----------------------------
+  if(verbose){cat("Start estimation loop.")}
+  {
+    res <- matrix(NA_real_, rows, 4)
+    data.df.multi.num <- data.matrix(data.df.multi)
+    data.df.num <- data.matrix(data.df)
+    Y_list <- vector("list", nvars)
+    for (k in 1:nvars){
+      Y_list[[k]] <- data.df.num[, k, drop = FALSE]
+    }
+    keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
+    grp <- split(seq_len(rows), keys)
+    for (k in 1:length(grp)){
+       if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])])
+	   multinomial = TRUE
+       else multinomial = FALSE
+       X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi.num)
+       for (row.num in grp[[k]]){
+           child <- mycache[["children"]][row.num]
+           Y <- Y_list[[child]]
+           res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
+                                                         X = X,
+                                                         Y = Y,
+                                                         mycache = mycache,
+                                                         data.dists = data.dists,
+                                                         data.df.multi = data.df.multi.num,
+                                                         adj.vars = NULL, #adj.vars,
+                                                         data.df = data.df.num,
+                                                         data.df.lvl = data.df.lvl,
+                                                         group.var = NULL, #group.var,
+                                                         group.ids = NULL, #group.ids,
+                                                         control = control,
+                                                         n = nvars,
+                                                         verbose = FALSE)
+       }
+    }
+
+  }
+
+  out[["children"]] <- mycache[["children"]]
+  out[["node.defn"]] <- mycache$node.defn
+  out[["mlik"]] <- as.numeric( res[,1] )
+  out[["error.code"]] <- list()
+  out[["hessian.accuracy"]] <- list()
+  out[["used.INLA"]] <- list()
+  out[["error.code.desc"]] <- list()
+  out[["data.df"]] <- data.df.lvl
+  out[["data.dists"]] <- data.dists
+  out[["max.parents"]] <- max.parents
+  out[["dag.retained"]] <- NULL #dag.retained
+  out[["dag.banned"]] <- NULL #dag.banned
+  out[["group.var"]] <- NULL #group.var
+  out[["group.ids"]] <- NULL #group.ids
+  out[["grouped.vars"]] <- NULL #grouped.vars
+  out[["aic"]] <- as.numeric( res[,2] )
+  out[["bic"]] <- as.numeric( res[,3] )
+  out[["mdl"]] <- as.numeric( res[,4] )
+
+  out[["method"]] <- "mle"
+
+  return(out)
+}
+
+
 
 # Modified function with pure matrix preallocation (no foreach)
 # Precompute X and Y
