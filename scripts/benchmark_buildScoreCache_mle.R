@@ -7,7 +7,7 @@ params$max.parents <- unique(params$max.parents)
 testthat::test_file("tests/testthat/test-build_score_cache_mle_newcache.R")
 
 # Microbenchmarking
-(lb <- bench::mark(
+lb <- bench::mark(
     bsc.mle.orig = buildScoreCache.mle(data.df = params$data.df,
                                  data.dists = params$data.dists,
                                  adj.vars = params$adj.vars,
@@ -45,7 +45,7 @@ testthat::test_file("tests/testthat/test-build_score_cache_mle_newcache.R")
                                  group.ids = params$group.ids,
                                  control = params$control),
     iterations = 5)
-		   )
+
 # Results of the benchmarking:
 # A tibble: 2 × 13
 #   expression    min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time result       memory     time       gc
@@ -63,6 +63,16 @@ testthat::test_file("tests/testthat/test-build_score_cache_mle_newcache.R")
 #  <bch:expr>   <bch:tm> <bch:tm>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm> <list>            <list>                   <list>         <list>
 #  1 bsc.mle.orig    26.8s    26.9s    0.0372    1.88GB   0.372      5    50      2.24m <named list [18]> <Rprofmem [241,086 × 3]> <bench_tm [5]> <tibble [5 × 3]>
 #  2 bsc.mle.new     19.1s    19.2s    0.0521  903.91MB   0.0834     5     8       1.6m <named list [18]> <Rprofmem [84,050 × 3]>  <bench_tm [5]> <tibble [5 × 3]>
+#
+# Comparison after the following changes:
+# - mycache$node.defn gets ordered by parents combinations
+# - consecutive lines have the same X values, so there is no need to have a cache_X anymore
+#
+#  expression      min median `itr/sec` mem_alloc `gc/sec` n_itr  n_gc total_time
+#  <bch:expr>   <bch:> <bch:>     <dbl> <bch:byt>    <dbl> <int> <dbl>   <bch:tm>
+# 1 bsc.mle.orig  17.4s  17.4s    0.0573    1.88GB    1.27      5   111      1.46m
+# 2 bsc.mle.new   12.6s  12.6s    0.0787  898.37MB    0.913     5    58      1.06m
+
 
 # Profiling
 library(profvis)
