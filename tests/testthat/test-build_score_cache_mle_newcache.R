@@ -56,6 +56,55 @@ test_that("Full output of the buildScoreCache.mle()", {
   })
 })
 
+test_that("Full output of the buildScoreCache.mle() - with group.var and g2pbcgrp dataset", {
+  # With group.var, binomial, gaussian, poisson, multinomial distributions
+  # Built-in toy data set
+  str(g2pbcgrp)
+
+  # Define the distributions of the variables
+  dists <- list(G1 = "gaussian",
+                P = "poisson",
+                B = "binomial",
+                C = "multinomial",
+                G2 = "gaussian") # group is not among the list of variable distributions
+
+  # Ban arcs such that C has only B and P as parents
+  ban.mat <- matrix(0, nrow = 5, ncol = 5, dimnames = list(names(dists), names(dists)))
+  ban.mat[4, 1] <- 1
+  ban.mat[4, 4] <- 1
+  ban.mat[4, 5] <- 1
+
+  suppressMessages({
+    suppressWarnings({
+      if(.Platform$OS.type == "unix") {
+        capture.output({
+          expect_no_error(
+	    newBuildScoreCache(data.df = g2pbcgrp,
+                         data.dists = dists,
+                         group.var = "group",
+                         dag.banned = ban.mat,
+                         method = "mle",
+                         max.parents = 2))
+          expect_equal(
+	    newBuildScoreCache(data.df = g2pbcgrp,
+                         data.dists = dists,
+                         group.var = "group",
+                         dag.banned = ban.mat,
+                         method = "mle",
+                         max.parents = 2),
+             buildScoreCache(data.df = g2pbcgrp,
+                         data.dists = dists,
+                         group.var = "group",
+                         dag.banned = ban.mat,
+                         method = "mle",
+                         max.parents = 2))
+        },
+        file = "/dev/null")
+      }
+    })
+  })
+})
+
 
 test_that("General behaviour of buildScoreCache.mle()", {
   if(.Platform$OS.type == "unix") {

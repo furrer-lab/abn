@@ -607,43 +607,39 @@ newBuildScoreCache.mle <-
     if(verbose){cat("Start estimation loop.")}
     if(debugging){
       res <- matrix(NA_real_, rows, 4)
-      data.df.multi.num <- data.matrix(data.df.multi)
-      data.df.num <- data.matrix(data.df)
-      cache_X <- new.env(hash = TRUE, parent = emptyenv())
-      Y_list <- vector("list", nvars)
-      for (k in 1:nvars){
-        Y_list[[k]] <- data.df.num[, k, drop = FALSE]
+      if(is.null(group.var)){
+              data.df.multi <- data.matrix(data.df.multi)
+              data.df <- data.matrix(data.df)
+              Y_list <- vector("list", nvars)
+              for (k in 1:nvars){
+                Y_list[[k]] <- data.df[, k, drop = FALSE]
+              }
       }
-
-      for (row.num in 1:rows){
-        key <- paste(mycache$node.defn.multi[row.num, ], collapse = "")
-        if (exists(key, envir = cache_X, inherits = FALSE)) {
-          X <- get(key, envir = cache_X, inherits = FALSE)
-        } else {
-          if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[row.num, ])])
-            multinomial = TRUE
-          else multinomial = FALSE
-          obj <- compute_X(mycache$node.defn.multi[row.num, ], adj.vars, multinomial, data.df.multi.num)
-          assign(key, obj, envir = cache_X)
-          X <- obj
+      keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
+      grp <- split(seq_len(rows), keys)
+      for (k in 1:length(grp)){
+          X <- NULL
+          if(is.null(group.var)){
+              multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])]
+              X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi)
+          }
+          for (row.num in grp[[k]]){
+              Y <- if (is.null(group.var)) Y_list[[mycache[["children"]][row.num]]] else NULL
+              res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
+                                                      X = X,
+                                                      Y = Y,
+                                                      mycache = mycache,
+                                                      data.dists = data.dists,
+                                                      data.df.multi = data.df.multi,
+                                                      adj.vars = adj.vars,
+                                                      data.df = data.df,
+                                                      data.df.lvl = data.df.lvl,
+                                                      group.var = group.var,
+                                                      group.ids = group.ids,
+                                                      control = control,
+                                                      n = nvars,
+                                                      verbose = verbose)
         }
-        child <- mycache[["children"]][row.num]
-        Y <- Y_list[[child]]
-        # for each child ~ parents fit regression model
-        res[row.num, ] <- forLoopContent_precomputedXY(row.num = row.num,
-                                   X = X,
-                                   Y = Y,
-                                   mycache = mycache,
-                                   data.dists = data.dists,
-                                   data.df.multi = data.df.multi.num,
-                                   adj.vars = adj.vars,
-                                   data.df = data.df.num,
-                                   data.df.lvl = data.df.lvl,
-                                   group.var = group.var,
-                                   group.ids = group.ids,
-                                   control = control,
-                                   n = nvars,
-                                   verbose = verbose)
       }
     } else {
       # no debugging
@@ -698,30 +694,32 @@ newBuildScoreCache.mle <-
 
       } else {
         res <- matrix(NA_real_, rows, 4)
-        data.df.multi.num <- data.matrix(data.df.multi)
-        data.df.num <- data.matrix(data.df)
-        Y_list <- vector("list", nvars)
-        for (k in 1:nvars){
-          Y_list[[k]] <- data.df.num[, k, drop = FALSE]
-        }
+        if(is.null(group.var)){
+                data.df.multi <- data.matrix(data.df.multi)
+                data.df <- data.matrix(data.df)
+                Y_list <- vector("list", nvars)
+                for (k in 1:nvars){
+                  Y_list[[k]] <- data.df[, k, drop = FALSE]
+                }
+	}
 	keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
         grp <- split(seq_len(rows), keys)
         for (k in 1:length(grp)){
-            if ("multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])])
-                multinomial = TRUE
-            else multinomial = FALSE
-            X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi.num)
+	    X <- NULL
+	    if(is.null(group.var)){
+		multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])]
+                X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi)
+	    }
             for (row.num in grp[[k]]){
-                child <- mycache[["children"]][row.num]
-                Y <- Y_list[[child]]
+		Y <- if (is.null(group.var)) Y_list[[mycache[["children"]][row.num]]] else NULL
                 res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
                                                         X = X,
                                                         Y = Y,
                                                         mycache = mycache,
                                                         data.dists = data.dists,
-                                                        data.df.multi = data.df.multi.num,
+                                                        data.df.multi = data.df.multi,
                                                         adj.vars = adj.vars,
-                                                        data.df = data.df.num,
+                                                        data.df = data.df,
                                                         data.df.lvl = data.df.lvl,
                                                         group.var = group.var,
                                                         group.ids = group.ids,
@@ -730,6 +728,7 @@ newBuildScoreCache.mle <-
                                                         verbose = verbose)
           }
       }
+    }
     }
     out[["children"]] <- mycache[["children"]]
     out[["node.defn"]] <- mycache$node.defn
@@ -754,4 +753,5 @@ newBuildScoreCache.mle <-
 
     return(out)
 }
+
 
