@@ -646,9 +646,20 @@ newBuildScoreCache.mle <-
 
       # Prepare multithreading
       ncores <- control[["ncores"]]
+      res <- matrix(NA_real_, rows, 4)
+      if(is.null(group.var)){
+              data.df.multi <- data.matrix(data.df.multi)
+              data.df <- data.matrix(data.df)
+              Y_list <- vector("list", nvars)
+              for (k in 1:nvars){
+                Y_list[[k]] <- data.df[, k, drop = FALSE]
+              }
+      }
+      keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
+      grp <- split(seq_len(rows), keys)
 
       if (ncores > 1) {
-        if (verbose){
+	if (verbose){
           path <- path.expand(paste0(getwd(), "/build_score_cache_mle.out"))
           message(paste("Writing cluster output to: ", path))
           if(file.exists(path)){
@@ -671,39 +682,39 @@ newBuildScoreCache.mle <-
         registerDoParallel(cl)
 
         # NOTE for development: Make sure the recent package version is installed in the .libPath() available to the nodes.
-        res <- foreach(row.num = 1:rows,
+        res <- foreach(k = 1:length(grp),
                        .combine='rbind',
                        .packages = c("stats", "lme4", "mclogit", "nnet"),
-                       .export = 'forLoopContent',
+                       .export = 'forLoopContent_precomputedXY',
                        .verbose = verbose) %dopar% {
-                         forLoopContent(row.num = row.num,
-                                        mycache = mycache,
-                                        data.dists = data.dists,
-                                        data.df.multi = data.df.multi,
-                                        adj.vars = adj.vars,
-                                        data.df = data.df,
-                                        data.df.lvl = data.df.lvl,
-                                        group.var = group.var,
-                                        group.ids = group.ids,
-                                        control = control,
-                                        n = nvars,
-                                        verbose = verbose)
+                       X <- NULL
+                       if(is.null(group.var)){
+                           multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])]
+                           X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi)
                        }
+                       for (row.num in grp[[k]]){
+                           Y <- if (is.null(group.var)) Y_list[[mycache[["children"]][row.num]]] else NULL
+                           res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
+                                                                   X = X,
+                                                                   Y = Y,
+                                                                   mycache = mycache,
+                                                                   data.dists = data.dists,
+                                                                   data.df.multi = data.df.multi,
+                                                                   adj.vars = adj.vars,
+                                                                   data.df = data.df,
+                                                                   data.df.lvl = data.df.lvl,
+                                                                   group.var = group.var,
+                                                                   group.ids = group.ids,
+                                                                   control = control,
+                                                                   n = nvars,
+                                                                   verbose = verbose)
+		       }
+	}
+
         # clean up multithreading
         stopCluster(cl)
 
       } else {
-        res <- matrix(NA_real_, rows, 4)
-        if(is.null(group.var)){
-                data.df.multi <- data.matrix(data.df.multi)
-                data.df <- data.matrix(data.df)
-                Y_list <- vector("list", nvars)
-                for (k in 1:nvars){
-                  Y_list[[k]] <- data.df[, k, drop = FALSE]
-                }
-	}
-	keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
-        grp <- split(seq_len(rows), keys)
         for (k in 1:length(grp)){
 	    X <- NULL
 	    if(is.null(group.var)){
@@ -727,8 +738,8 @@ newBuildScoreCache.mle <-
                                                         n = nvars,
                                                         verbose = verbose)
           }
+	}
       }
-    }
     }
     out[["children"]] <- mycache[["children"]]
     out[["node.defn"]] <- mycache$node.defn
