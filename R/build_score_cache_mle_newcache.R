@@ -367,7 +367,7 @@ compute_X <- function(row, adj.vars, multinomial, data.df.multi.num) {
 #' @describeIn buildScoreCache Fit a given DAG to data with method="mle".
 #' @param force.method "notset", "INLA" or "C". This is specified in \code{\link{buildScoreCache}(control=list(max.mode.error=...))}.
 #' @importFrom foreach foreach %do% %dopar%
-#' @importFrom parallel makeCluster stopCluster
+#' @importFrom parallel makeCluster stopCluster clusterExport
 #' @importFrom utils combn
 #' @importFrom doParallel registerDoParallel
 newBuildScoreCache.mle <-
@@ -659,6 +659,7 @@ newBuildScoreCache.mle <-
       grp <- split(seq_len(rows), keys)
 
       if (ncores > 1) {
+	varenv <- c("mycache", "data.df.multi", "data.df", "data.df.lvl")
 	if (verbose){
           path <- path.expand(paste0(getwd(), "/build_score_cache_mle.out"))
           message(paste("Writing cluster output to: ", path))
@@ -666,35 +667,44 @@ newBuildScoreCache.mle <-
             file.remove(path)
             message(paste("File exists and will be overwritten:", path))
           }
+	  if (control[["cluster.type"]] == "PSOCK") {
+              cl <- makeCluster(ncores,
+				type = "PSOCK",
+				rscript_args = "--no-environ",
+				path)
+              on.exit(stopCluster(cl), add = TRUE)
+              clusterExport(cl, varlist = varenv, envir = environment())
+          } else {
+              registerDoParallel(cores = ncores)
+          }
 
-          cl <- makeCluster(ncores,
-                            type = control[["cluster.type"]],
-                            rscript_args = "--no-environ", # only available for "FORK"
-                            outfile=path)
         } else {
-          # no redirection
-          cl <- makeCluster(ncores,
-                            type = control[["cluster.type"]],
-                            rscript_args = "--no-environ" # only available for "FORK"
-                            )
-        }
-
-        registerDoParallel(cl)
-
-        # NOTE for development: Make sure the recent package version is installed in the .libPath() available to the nodes.
-        res <- foreach(k = 1:length(grp),
-                       .combine='rbind',
+	  if (control[["cluster.type"]] == "PSOCK") {
+              cl <- makeCluster(ncores,
+				type = "PSOCK",
+				rscript_args = "--no-environ")
+              on.exit(stopCluster(cl), add = TRUE)
+              clusterExport(cl, varlist = varenv, envir = environment())
+              registerDoParallel(cl)
+          } else {
+              registerDoParallel(cores = ncores)
+          }
+	  nc <- ncol(res)
+	  parts <- foreach(g = grp,
                        .packages = c("stats", "lme4", "mclogit", "nnet"),
-                       .export = 'forLoopContent_precomputedXY',
+		       .noexport = varenv,
                        .verbose = verbose) %dopar% {
                        X <- NULL
                        if(is.null(group.var)){
-                           multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])]
-                           X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi)
+			   first <- g[1]
+                           multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[first, ])]
+                           X <- compute_X(mycache$node.defn.multi[first, ], adj.vars, multinomial, data.df.multi)
                        }
-                       for (row.num in grp[[k]]){
+		       local_res <- matrix(NA_real_, length(g), nc)
+		       for (idx in 1:length(g)){
+			   row.num <- g[idx]
                            Y <- if (is.null(group.var)) Y_list[[mycache[["children"]][row.num]]] else NULL
-                           res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
+		           local_res[idx, ] <- forLoopContent_precomputedXY(row.num = row.num,
                                                                    X = X,
                                                                    Y = Y,
                                                                    mycache = mycache,
@@ -709,11 +719,10 @@ newBuildScoreCache.mle <-
                                                                    n = nvars,
                                                                    verbose = verbose)
 		       }
+		       list(idx = g, val = local_res)
+	  }
+	  for (p in parts) res[p$idx, ] <- p$val
 	}
-
-        # clean up multithreading
-        stopCluster(cl)
-
       } else {
         for (k in 1:length(grp)){
 	    X <- NULL
