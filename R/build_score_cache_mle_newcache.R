@@ -17,6 +17,7 @@ forLoopContent_precomputedXY <-
            mycache,
            data.dists,
            data.df.multi,
+	   data.df.grouping,
            adj.vars,
            data.df,
            data.df.lvl,
@@ -39,9 +40,6 @@ forLoopContent_precomputedXY <-
     parents.names <- names(which(mycache[["node.defn"]][row.num,] != 0))
     # current node's distribution
     child.dist <- data.dists[child] #       distribution <- data.dists[child]
-    # data.df including group.var=group.ids
-    data.df.grouping <- data.frame(data.df, grp = factor(group.ids))
-    names(data.df.grouping) <- c(names(data.df), group.var)
 
     ###
     # Beginn of GLMM
@@ -57,23 +55,33 @@ forLoopContent_precomputedXY <-
     }
 
     # Main part: Depending on child's distribution, call the appropriate modelling function
+    fit <- NULL
     switch (as.character(child.dist),
             gaussian = {
               if (verbose) {message(paste("using lmer with model:", deparse1(model)))} else NA
-                tryCatch({
-                  fit <- lme4::lmer(model, data = data.df.grouping)
+                fit <- tryCatch({
+			withCallingHandlers(lme4::lmer(model, data = data.df.grouping),
+					    warning = function(w) {
+                                                  if (verbose) message("lmer warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                 }, error=function(e)NULL)
 
                 if (is.null(fit)){
                   # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::lmer(model, data = data.df.grouping,
+                  fit <- tryCatch({
+			  withCallingHandlers(lme4::lmer(model, data = data.df.grouping,
                                               control = lme4::lmerControl(check.rankX = control[["check.rankX"]],
                                                                           check.scaleX = control[["check.scaleX"]],
                                                                           check.conv.grad = lme4::.makeCC(action = control[["check.conv.grad"]]),
                                                                           check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                           check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                           optCtrl = list(xtol_abs = control[["xtol_abs"]],
-                                                                                         ftol = control[["ftol_abs"]])))
+                                                                                         ftol = control[["ftol_abs"]]))),
+					      warning = function(w) {
+                                                  if (verbose) message("lmer with relaxed tolerances warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                   }, error=function(e)NULL)
                 }
 
@@ -81,13 +89,18 @@ forLoopContent_precomputedXY <-
             },
             binomial = {
                 if (verbose) {message(paste("using glmer with model:", deparse1(model)))} else NA
-                tryCatch({
-                  fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial")
+                fit <- tryCatch({
+			withCallingHandlers(lme4::glmer(model, data = data.df.grouping, family = "binomial"),
+					    warning = function(w) {
+                                                  if (verbose) message("glmer binomial warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                 }, error=function(e)NULL)
 
                 if (is.null(fit)){
                   # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::glmer(model, data = data.df.grouping, family = "binomial",
+                  fit <- tryCatch({
+			  withCallingHandlers(lme4::glmer(model, data = data.df.grouping, family = "binomial",
                                                control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
                                                                             check.rankX = control[["check.rankX"]],
                                                                             check.scaleX = control[["check.scaleX"]],
@@ -95,7 +108,11 @@ forLoopContent_precomputedXY <-
                                                                             check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                             check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                             optCtrl = list(xtol_abs = control[["xtol_abs"]],
-                                                                                           ftol = control[["ftol_abs"]])))
+                                                                                           ftol = control[["ftol_abs"]]))),
+					      warning = function(w) {
+                                                  if (verbose) message("glmer with relaxed tolerances warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                   }, error=function(e)NULL)
                 }
 
@@ -106,13 +123,18 @@ forLoopContent_precomputedXY <-
 
               fit <- NULL
               if(control[["only_glmmTMB_poisson"]] == FALSE) {
-                tryCatch({
-                  fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson")
+                fit <- tryCatch({
+			withCallingHandlers(lme4::glmer(model, data = data.df.grouping, family = "poisson"),
+					    warning = function(w) {
+                                                  if (verbose) message("glmer poisson warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                 }, error=function(e)NULL)
 
                 if (is.null(fit)){
                   # relax tolerances for change in parameter values and objective function.
-                  tryCatch({fit <- lme4::glmer(model, data = data.df.grouping, family = "poisson",
+                  fit <- tryCatch({
+			  withCallingHandlers(lme4::glmer(model, data = data.df.grouping, family = "poisson",
                                                control = lme4::glmerControl(tolPwrss = control[["tolPwrss"]],
                                                                             check.rankX = control[["check.rankX"]],
                                                                             check.scaleX = control[["check.scaleX"]],
@@ -120,15 +142,23 @@ forLoopContent_precomputedXY <-
                                                                             check.conv.singular = lme4::.makeCC(action = control[["check.conv.singular"]]),
                                                                             check.conv.hess = lme4::.makeCC(action = control[["check.conv.hess"]]),
                                                                             optCtrl = list(xtol_abs = control[["xtol_abs"]],
-                                                                                           ftol = control[["ftol_abs"]])))
+                                                                                           ftol = control[["ftol_abs"]]))),
+					      warning = function(w) {
+                                                  if (verbose) message("glmer poisson with relaxed tolerances warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                   }, error=function(e)NULL)
                 }
               } else if(control[["only_glmmTMB_poisson"]] == TRUE) {
                 if (is.null(fit)){
                   # try glmmTMB as alternative
                   if (verbose) {message(paste("trying glmmTMB with model:", deparse1(model)))} else NA
-                  tryCatch({
-                    fit <- glmmTMB::glmmTMB(model, data = data.df.grouping, family = "poisson")
+                  fit <- tryCatch({
+                    withCallingHandlers(glmmTMB::glmmTMB(model, data = data.df.grouping, family = "poisson"),
+					warning = function(w) {
+                                                  if (verbose) message("glmmTMB warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                   }, error=function(e)NULL)
                 }
               } else {
@@ -148,12 +178,20 @@ forLoopContent_precomputedXY <-
               if(verbose) message(paste("using mblogit with fixed term:", deparse1(model_basic), "and random term:", deparse1(model_random))) else NA
 
               if (control[["catcov.mblogit"]] == "free"){
-                tryCatch({
-                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free")
+                fit <- tryCatch({
+                  withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free"), 
+				    warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit free warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                 }, error=function(e) NULL)
               } else if (control[["catcov.mblogit"]] == "diagonal"){
-                tryCatch({
-                  fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal")
+                fit <- tryCatch({
+                  withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal"),
+				      warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit diagonal warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                   # manipulate VarCov to bring in correct shape
                   fit_vcov <- matrix(0, nrow = length(fit$VarCov), ncol = length(fit$VarCov))
                   diag(fit_vcov) <- unlist(fit$VarCov, use.names = FALSE)
@@ -173,7 +211,13 @@ forLoopContent_precomputedXY <-
                 }, error=function(e) NULL)
               } else if (control[["catcov.mblogit"]] == "single"){
                 stop("'catcov.mblogit' == 'single' is not yet implemented.")
-                fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single")
+                fit <- tryCatch({
+			withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single"),
+					    warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit single warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
+                }, error=function(e) NULL)
                 # manipulate VarCov to bring in correct shape
               } else {
                 stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
@@ -186,16 +230,24 @@ forLoopContent_precomputedXY <-
                                                     #                                    trace = control[["trace.mblogit"]]))
                   # }, error=function(e)NULL)
                   if (control[["catcov.mblogit"]] == "free"){
-                    tryCatch({
-                      fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free",
+                    fit <- tryCatch({
+                      withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "free",
                                               control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
-                                                                                 trace = control[["trace.mblogit"]]))
+                                                                                 trace = control[["trace.mblogit"]])),
+					  warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit free warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                     }, error=function(e) NULL)
                   } else if (control[["catcov.mblogit"]] == "diagonal"){
-                    tryCatch({
-                      fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal",
+                    fit <- tryCatch({
+                        withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "diagonal",
                                               control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
-                                                                                 trace = control[["trace.mblogit"]]))
+                                                                                 trace = control[["trace.mblogit"]])),
+					    warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit diagonal warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
                       # manipulate VarCov to bring in correct shape
                       fit_vcov <- matrix(0, nrow = length(fit$VarCov), ncol = length(fit$VarCov))
                       diag(fit_vcov) <- unlist(fit$VarCov, use.names = FALSE)
@@ -215,9 +267,15 @@ forLoopContent_precomputedXY <-
                     }, error=function(e) NULL)
                   } else if (control[["catcov.mblogit"]] == "single"){
                     stop("'catcov.mblogit' == 'single' is not yet implemented.")
-                    fit <- mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single",
+                    fit <- tryCatch({
+                        withCallingHandlers(mclogit::mblogit(formula = model_basic, random = model_random, data = data.df.grouping, catCov = "single",
                                             control = mclogit::mclogit.control(epsilon = control[["epsilon"]],
-                                                                               trace = control[["trace.mblogit"]]))
+                                                                               trace = control[["trace.mblogit"]])),
+					    warning = function(w) {
+                                                  if (verbose) message("catcov.mblogit single warning: ", conditionMessage(w))
+                                                  invokeRestart("muffleWarning")
+                                                })
+                    }, error=function(e) NULL)
                     # manipulate VarCov to bring in correct shape
                   } else {
                     stop("invalid 'catcov.mblogit' argument. Must be one of 'free', 'diagonal' or 'single'.")
@@ -605,24 +663,29 @@ newBuildScoreCache.mle <-
     ##start loop for the regression
     ##-----------------------------
     if(verbose){cat("Start estimation loop.")}
+    res <- matrix(NA_real_, rows, 4)
+    data.df.grouping <- NULL
+    if(is.null(group.var)){
+            data.df.multi <- data.matrix(data.df.multi)
+            data.df <- data.matrix(data.df)
+            Y_list <- vector("list", nvars)
+            for (k in 1:nvars){
+              Y_list[[k]] <- data.df[, k, drop = FALSE]
+            }
+    } else {
+            data.df.grouping <- data.frame(data.df, grp = factor(group.ids))
+            names(data.df.grouping) <- c(names(data.df), group.var)
+    }
+    keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
+    grp <- split(seq_len(rows), keys)
+
     if(debugging){
-      res <- matrix(NA_real_, rows, 4)
-      if(is.null(group.var)){
-              data.df.multi <- data.matrix(data.df.multi)
-              data.df <- data.matrix(data.df)
-              Y_list <- vector("list", nvars)
-              for (k in 1:nvars){
-                Y_list[[k]] <- data.df[, k, drop = FALSE]
-              }
-      }
-      keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
-      grp <- split(seq_len(rows), keys)
       for (k in 1:length(grp)){
           X <- NULL
           if(is.null(group.var)){
               multinomial <- "multinomial" %in% data.dists[as.logical(mycache$node.defn[grp[[k]][1], ])]
               X <- compute_X(mycache$node.defn.multi[grp[[k]][1], ], adj.vars, multinomial, data.df.multi)
-          }
+	  }
           for (row.num in grp[[k]]){
               Y <- if (is.null(group.var)) Y_list[[mycache[["children"]][row.num]]] else NULL
               res[row.num,] <- forLoopContent_precomputedXY(row.num = row.num,
@@ -631,6 +694,7 @@ newBuildScoreCache.mle <-
                                                       mycache = mycache,
                                                       data.dists = data.dists,
                                                       data.df.multi = data.df.multi,
+						      data.df.grouping = data.df.grouping,
                                                       adj.vars = adj.vars,
                                                       data.df = data.df,
                                                       data.df.lvl = data.df.lvl,
@@ -646,18 +710,6 @@ newBuildScoreCache.mle <-
 
       # Prepare multithreading
       ncores <- control[["ncores"]]
-      res <- matrix(NA_real_, rows, 4)
-      if(is.null(group.var)){
-              data.df.multi <- data.matrix(data.df.multi)
-              data.df <- data.matrix(data.df)
-              Y_list <- vector("list", nvars)
-              for (k in 1:nvars){
-                Y_list[[k]] <- data.df[, k, drop = FALSE]
-              }
-      }
-      keys <- apply(mycache$node.defn.multi, 1, function(x)  paste(x, collapse = "") )
-      grp <- split(seq_len(rows), keys)
-
       if (ncores > 1) {
 	varenv <- c("mycache", "data.df.multi", "data.df", "data.df.lvl")
 	if (verbose){
@@ -710,6 +762,7 @@ newBuildScoreCache.mle <-
                                                                    mycache = mycache,
                                                                    data.dists = data.dists,
                                                                    data.df.multi = data.df.multi,
+								   data.df.grouping = data.df.grouping,
                                                                    adj.vars = adj.vars,
                                                                    data.df = data.df,
                                                                    data.df.lvl = data.df.lvl,
@@ -738,6 +791,7 @@ newBuildScoreCache.mle <-
                                                         mycache = mycache,
                                                         data.dists = data.dists,
                                                         data.df.multi = data.df.multi,
+							data.df.grouping = data.df.grouping,
                                                         adj.vars = adj.vars,
                                                         data.df = data.df,
                                                         data.df.lvl = data.df.lvl,
