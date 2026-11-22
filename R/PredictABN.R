@@ -2483,12 +2483,10 @@ find_children <- function(graph,node){
 #' @export
 predict_root <- function(fit, var = NULL, data, dists, node) {
   node_fit <- fit[[node]]
-  if (!is.null(var)){
-    node_var <- if (node %in% names(var)) {
-      var[[node]]
-    } else {
-      NULL
-    }
+  node_var <- if (node %in% names(var)) {
+    var[[node]]
+  } else {
+    1
   }
   dist <- dists[[node]]
   node_data <- data[[node]]
