@@ -124,8 +124,9 @@ predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
 }
 
 #' @rdname predictAbn
+#' @param ... Further arguments passed to \code{predictAbn}.
 #' @export
-predict.abnFit <- predictAbn
+predict.abnFit <- function(object, ...) predictAbn(object, ...)
 
 #' Print method for abnPrediction objects
 #' 

@@ -7,7 +7,7 @@
 \usage{
 predictAbn(object, data, hypothesis = NULL, evidence = NULL)
 
-\method{predict}{abnFit}(object, data, hypothesis = NULL, evidence = NULL)
+\method{predict}{abnFit}(object, ...)
 }
 \arguments{
 \item{object}{An object of class \code{abnFit} produced by \code{\link{fitAbn}}.}
@@ -17,6 +17,8 @@ predictAbn(object, data, hypothesis = NULL, evidence = NULL)
 \item{hypothesis}{Node to predict.}
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}
+
+\item{...}{Further arguments passed to \code{predictAbn}.}
 }
 \value{
 An object of class \code{abnPrediction} that contains the predicted distribution of the hypothesis, predicted distributions of the upstream nodes, the hypothesis and the evidence.
