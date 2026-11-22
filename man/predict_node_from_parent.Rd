@@ -9,6 +9,7 @@ predict_node_from_parent(
   dists,
   graph,
   fit,
+  var,
   node,
   evidence,
   predictions = NULL
@@ -21,7 +22,11 @@ predict_node_from_parent(
 
 \item{graph}{A dag (igraph object).}
 
-\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
+
+\item{var}{A named vector of node-specific mean squared errors, e.g. extracted
+from the \verb{$mse} component of a \code{fitAbn()} object.}
 
 \item{node}{Temporary node to predict.}
 
@@ -62,13 +67,14 @@ graph <- igraph::graph_from_adjacency_matrix(t(dag))
 
 # infer the parameters of the network
 myfit <- fitAbn(object = mp.dag)
-myfit <- myfit$modes
+myvar <- myfit$mse
+myfit <- myfit$coef
 
 node <- "g2"
 
 evidence <- list("p1" = 3, "g1" = 5, "b2" = "y")
 evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evidence = evidence)
 
-predictions <- predict_node_from_parent(data, mydists, graph, myfit, node, evidence)
+predictions <- predict_node_from_parent(data, mydists, graph, myfit, myvar, node, evidence)
 predictions  # the predicted distribution of g2
 }

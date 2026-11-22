@@ -8,6 +8,7 @@ predict_node_from_parent_gaussian(
   data,
   dists,
   fit,
+  var,
   node,
   evidence,
   parents,
@@ -19,7 +20,11 @@ predict_node_from_parent_gaussian(
 
 \item{dists}{A list containing the distributions of the nodes of the graph.}
 
-\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
+
+\item{var}{A named vector of node-specific mean squared errors, e.g. extracted
+from the \verb{$mse} component of a \code{fitAbn()} object.}
 
 \item{node}{Temporary node to predict.}
 

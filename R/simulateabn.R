@@ -7,7 +7,8 @@
 #' @param parentnames single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.
 #' @param nodesintercept numeric intercept value for current response variable.
 #' @param parentcoefs list named with parent node names of numeric vectors with coefficient values.
-#' @param std integer with standard deviation of response variable that will be
+#' @param data.dists list named with node names of distribution types.
+#' @param variance integer with variance of response variable that will be
 #' converted to precision (see Details).
 #'
 #' @details
@@ -21,21 +22,21 @@
 #'            nodesintercept = c(0.318077),
 #'            parentcoefs = list("b"=c(b=0.3059395),
 #'                               "c"=c(c=0.5555)),
-#'            std = c(0.05773503))
+#'            data.dists = list("a = "gaussian",
+#'                              "b" = "gaussian",
+#'                              "c" = "gaussian"),
+#'            variance = c(0.05773503))
 #' @importFrom stringi stri_flatten
 #' @seealso [makebugs] [simulateAbn]
 #' @export
 #' @keywords utilities internal
-gauss_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs, std){
+gauss_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists, variance){
   cat(nodename, " ~ dnorm(mu.", nodename, ", precision.", nodename, ") # Gaussian response", sep = "", fill = TRUE)
   # mu
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", names(parentcoefs[[i]][j])))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat("mu.", nodename, " <- ", nodesintercept, " + ", flatpredictors, " # Linear regression", sep = "", fill = TRUE)
@@ -44,24 +45,23 @@ gauss_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs, std){
   }
 
   # tau (precision)
-  cat("precision.", nodename, " <- inverse(", std, ") # precision tau = 1/standard_dev", sep = "", fill = TRUE)
+  cat("precision.", nodename, " <- 1/", variance, " # precision tau = 1/variance",
+      sep = "", fill = TRUE)
 }
 
 #' @describeIn gauss_bugs Bugs code for Gaussian response with varying intercept
 #' @param nodesintercept overall mean of response. Parameter from fixed-effects intercept.
 #' @param parentcoefs overall slope for each predictor (parent node) variable (fixed-effects).
+#' @param data.dists list named with node names of distribution types
 #' @param sigma within-group variance. Parameter from random-effects residual.
 #' @param sigma_alpha between-group variance. Parameter from random-effects intercept.
-gauss_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, sigma, sigma_alpha){
+gauss_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists, sigma, sigma_alpha){
   ## Node as response
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
     # With parent nodes
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", parentnames[i]))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat(nodename, " <- mu_", nodename, " + ", flatpredictors, " + alpha_", nodename, " + e_", nodename, sep = "", fill = TRUE)
@@ -90,7 +90,7 @@ gauss_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, 
 #' @param parentnames single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.
 #' @param nodesintercept numeric intercept value for current response variable.
 #' @param parentcoefs list named with parent node names of numeric vectors with coefficient values.
-#'
+#' @param data.dists list named with node names of distribution types.
 #' @return Bugs model returned as stdout.
 #'
 #' @examples
@@ -98,20 +98,20 @@ gauss_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, 
 #'           parentnames = c("b", "c"),
 #'           nodesintercept = c(0.318077),
 #'           parentcoefs = list("b"=c(b=0.3059395),
-#'                              "c"=c(c=0.5555)))
+#'                              "c"=c(c=0.5555)),
+#'           data.dists = c("a" = "binomial",
+#'                         "b" = "binomial",
+#'                         "c" = "binomial"))
 #' @importFrom stringi stri_flatten
 #' @seealso [makebugs] [simulateAbn]
 #' @export
 #' @keywords utilities internal
-bern_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs){
+bern_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists){
   cat(nodename, " ~ dbern(p.", nodename, ") # Bernoulli response", sep = "", fill = TRUE)
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", names(parentcoefs[[i]][j])))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat("logit(p.", nodename, ") <- ", nodesintercept, " + ", flatpredictors, " # logistic regression", sep = "", fill = TRUE)
@@ -123,18 +123,16 @@ bern_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs){
 #' @describeIn bern_bugs Bugs code for Bernoulli response with varying intercept
 #' @param nodesintercept overall mean of response. Parameter from fixed-effects intercept.
 #' @param parentcoefs overall slope for each predictor (parent node) variable (fixed-effects).
+#' @param data.dists list named with node names of distribution types
 #' @param sigma_alpha between-group variance. Parameter from random-effects intercept.
-bern_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, sigma_alpha){
+bern_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists, sigma_alpha){
   ## Node as response
   cat(nodename, " ~ dbern(p_", nodename, ")", sep = "", fill = TRUE)
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
     # With parent nodes
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", parentnames[i]))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat("logit(p_", nodename, ") <- mu_", nodename, " + ", flatpredictors, " + alpha_", nodename, sep = "", fill = TRUE)
@@ -157,7 +155,7 @@ bern_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, s
 #' @param parentnames single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.
 #' @param nodesintercepts numeric vector with the intercept value for each category (see Details).
 #' @param parentcoefs list named with parent node names of numeric vectors with coefficient values for each category (see Details).
-#'
+#' @param data.dists list named with node names of distribution types.
 #' @details
 #' The output of \code{\link[abn]{fitAbn}} with \code{method = "mle"} is based on
 #' the output of logistic regression models fit with either \code{\link[stats]{lm}},
@@ -178,12 +176,14 @@ bern_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, s
 #'                  nodesCatIdx = c(2, 3, 4),
 #'                  parentnames = "a",
 #'                  nodesintercepts = c(2.188650, 3.133928, 3.138531),
-#'                  parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104)))
+#'                  parentcoefs = list("a"=c(a=1.686432, a=3.134161, a=5.052104)),
+#'                  data.dists = list("a" = "gaussian", 
+#'                                     "b" = "multinomial"))
 #' @importFrom stringi stri_flatten
 #' @seealso [makebugs] [simulateAbn]
 #' @export
 #' @keywords utilities internal
-categorical_bugs <- function(nodename, nodesCatIdx, parentnames, nodesintercepts, parentcoefs){
+categorical_bugs <- function(nodename, nodesCatIdx, parentnames, nodesintercepts, parentcoefs, data.dists){
   cat(nodename, " ~ dcat(p.", nodename, ") # Categorical response", sep = "", fill = TRUE)
   cat("p.", nodename, "[1] <- phi.", nodename, "[1]/sum(phi.", nodename, ") # soft-max", sep = "", fill = TRUE)
   cat("log(phi.", nodename, "[1]) <- 0 # Reference category", sep = "", fill = TRUE)
@@ -191,10 +191,10 @@ categorical_bugs <- function(nodename, nodesCatIdx, parentnames, nodesintercepts
   for(i in 1:length(nodesCatIdx)){
     cat("p.", nodename, "[", nodesCatIdx[i], "] <- phi.", nodename, "[", nodesCatIdx[i], "]/sum(phi.", nodename, ") # soft-max", sep = "", fill = TRUE)
     if (!any(is.na(parentnames)) && length(parentnames) >0){
-      predictors <- c()
-      for (j in 1:length(parentnames)){
-        predictors[j] <- paste0(parentcoefs[[j]][i], "*", parentnames[j])
-      }
+      predictors <- vapply(parentnames, function(pname) {
+        build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists,
+                              child_cat_i = i)
+      }, character(1))
       flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
       cat("log(phi.", nodename, "[", nodesCatIdx[i], "]) <- ", nodesintercepts[i], " + ", flatpredictors, sep = "", fill = TRUE)
@@ -208,9 +208,10 @@ categorical_bugs <- function(nodename, nodesCatIdx, parentnames, nodesintercepts
 #' @describeIn categorical_bugs Bugs code for Categorical response with varying intercept
 #' @param nodesintercepts overall mean of response. Parameter from fixed-effects intercept.
 #' @param parentcoefs overall slope for each predictor (parent node) variable (fixed-effects).
+#' @param data.dists list named with node names of distribution types
 #' @param sigma within-group variance. Parameter from random-effects residual.
 #' @param sigma_alpha between-group variance-covariance matrix. Parameters from random-effects intercept.
-categorical_bugsGroup <- function(nodename, nodesCatIdx, nodesintercepts, parentnames, parentcoefs, sigma, sigma_alpha){
+categorical_bugsGroup <- function(nodename, nodesCatIdx, nodesintercepts, parentnames, parentcoefs, data.dists, sigma, sigma_alpha){
   cat(nodename, " ~ dcat(p_", nodename, ")", sep = "", fill = TRUE)
   cat("p_", nodename, "[1] <- phi_", nodename, "[1]/sum(phi_", nodename, ")", sep = "", fill = TRUE)
   cat("log(phi_", nodename, "[1]) <- 0 + alpha_", nodename, "[1]", sep = "", fill = TRUE)
@@ -218,10 +219,10 @@ categorical_bugsGroup <- function(nodename, nodesCatIdx, nodesintercepts, parent
   for(i in 1:length(nodesCatIdx)){
     cat("p_", nodename, "[", nodesCatIdx[i], "] <- phi_", nodename, "[", nodesCatIdx[i], "]/sum(phi_", nodename, ")", sep = "", fill = TRUE)
     if (!any(is.na(parentnames)) && length(parentnames) >0){
-      predictors <- c()
-      for (j in 1:length(parentnames)){
-        predictors[j] <- paste0(parentcoefs[i,j], "*", parentnames[j])
-      }
+      predictors <- vapply(parentnames, function(pname) {
+        build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists,
+                              child_cat_i = i)
+      }, character(1))
       flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
       cat("log(phi_", nodename, "[", nodesCatIdx[i], "]) <- ", nodesintercepts[i], " + ", flatpredictors, " + alpha_", nodename, "[", nodesCatIdx[i]-1, "]", sep = "", fill = TRUE)
@@ -249,7 +250,7 @@ categorical_bugsGroup <- function(nodename, nodesCatIdx, nodesintercepts, parent
 #' @param parentnames single character string (for one parent) or vector of characters (for multiple parent nodes) with parent node (predictor variables) names.
 #' @param nodesintercept numeric intercept value for current response variable.
 #' @param parentcoefs list named with parent node names of numeric vectors with coefficient values.
-#'
+#' @param data.dists list named with node names of distribution types.
 #' @return Bugs model returned as stdout.
 #'
 #' @examples
@@ -257,20 +258,20 @@ categorical_bugsGroup <- function(nodename, nodesCatIdx, nodesintercepts, parent
 #'           parentnames = c("b", "c"),
 #'           nodesintercept = c(0.318077),
 #'           parentcoefs = list("b"=c(b=0.3059395),
-#'                              "c"=c(c=0.5555)))
+#'                              "c"=c(c=0.5555)),
+#'           data.dists = list("a" = "poisson",
+#'                              "b" = "poisson", 
+#'                              "c" = "poisson"))
 #' @importFrom stringi stri_flatten
 #' @seealso [makebugs] [simulateAbn]
 #' @export
 #' @keywords utilities internal
-pois_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs){
+pois_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists){
   cat(nodename, " ~ dpois(lambda.", nodename, ") # Poisson response", sep = "", fill = TRUE)
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", names(parentcoefs[[i]][j])))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat("log(lambda.", nodename, ") <- ", nodesintercept, " + ", flatpredictors, " # logistic regression", sep = "", fill = TRUE)
@@ -282,19 +283,17 @@ pois_bugs <- function(nodename, nodesintercept, parentnames, parentcoefs){
 #' @describeIn pois_bugs Bugs code for Poisson response with varying intercept
 #' @param nodesintercept overall mean of response. Parameter from fixed-effects intercept.
 #' @param parentcoefs overall slope for each predictor (parent node) variable (fixed-effects).
+#' @param data.dists list named with node names of distribution types.
 #' @param sigma_alpha between-group variance. Parameter from random-effects intercept.
-pois_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, sigma_alpha){
+pois_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, data.dists, sigma_alpha){
   ## Node as response
   cat(nodename, " ~ dpois(lambda_", nodename, ")", sep = "", fill = TRUE)
 
   if (!any(is.na(parentnames)) && length(parentnames > 0)){
     # With parent nodes
-    predictors <- c()
-    for (i in 1:length(parentnames)){
-      for (j in 1:length(parentcoefs[[i]])){
-        predictors <- append(predictors, paste0(parentcoefs[[i]][j], "*", parentnames[i]))
-      }
-    }
+    predictors <- vapply(parentnames, function(pname) {
+      build_predictor_terms(nodename, pname, parentcoefs[[pname]], data.dists)
+    }, character(1))
     flatpredictors <- stringi::stri_flatten(predictors, collapse = " + ")
 
     cat("log(lambda_", nodename, ") <- mu_", nodename, " + ", flatpredictors, " + alpha_", nodename, sep = "", fill = TRUE)
@@ -308,6 +307,31 @@ pois_bugsGroup <- function(nodename, nodesintercept, parentnames, parentcoefs, s
   cat("mu_alpha_", nodename, " <- 0", sep = "", fill = TRUE)
   cat("tau_alpha_", nodename, " <- inverse(sigma_alpha_", nodename, ")", sep = "", fill = TRUE)
   cat("sigma_alpha_", nodename, " <- ", sigma_alpha, sep = "", fill = TRUE)
+}
+
+build_predictor_terms <- function(nodename, pname, pcoef, data.dists, child_cat_i = NULL) {
+  if (data.dists[[pname]] == "multinomial") {
+    if (data.dists[[nodename]] == "multinomial") {
+      # multinomial child of multinomial parent:
+      # pcoef[i, k] = coef for child cat i, parent level k (all levels, 1-indexed)
+      n.parent.cats <- ncol(pcoef)
+      paste0(pcoef[child_cat_i, ], "*equals(", pname, ",",
+             seq(2, n.parent.cats+1), ")", collapse = " + ")
+    } else {
+      # non-multinomial child of multinomial parent:
+      # flat vector, one coef per parent level
+      n.parent.cats <- length(pcoef)
+      paste0(pcoef, "*equals(", pname, ",",
+             seq(2, n.parent.cats+1), ")", collapse = " + ")
+    }
+  } else {
+    # continuous/binomial/poisson parent: single coefficient
+    if (!is.null(child_cat_i)) {
+      paste0(pcoef[child_cat_i], "*", pname)
+    } else {
+      paste0(pcoef, "*", pname)
+    }
+  }
 }
 
 #' Make BUGS model from fitted DAG
@@ -360,64 +384,50 @@ makebugs <- function(dag, data.dists, coefs, stderrors){
   for (n in 1:length(data.dists)){
     nodename <- names(data.dists[n])
     nodedist <- data.dists[[n]]
-    nodesintercepts <- coefs[[nodename]][stringi::stri_detect_fixed(str = colnames(coefs[[nodename]]), pattern = "|intercept")]
-    if (length(nodesintercepts) == 0){
+    
+    intercept_cols <- colnames(coefs[[nodename]])[
+      stringi::stri_detect_fixed(
+        str     = colnames(coefs[[nodename]]),
+        pattern = "|intercept"
+      )
+    ]
+    if (length(intercept_cols) > 0) {
+      nodesintercepts <- coefs[[nodename]][, intercept_cols, drop = TRUE]
+    } else {
       nodesintercepts <- 0
     }
+    
     parentnames <- colnames(dag)[which(dag[nodename, ] == 1)]
     if (length(parentnames) < 1) {
       parentnames <- NA
     }
 
     parentcoefs <- list()
-    for (p in 1:length(parentnames)){
-      # iterate through all parent nodes
-      pname <- parentnames[p]
-      if(!is.na(pname) && pname != nodename){
-        if (data.dists[[pname]] == "multinomial"){
-          # if parent is multinomial we need a different coefficient extraction pipeline.
-          # This is because of the different variable naming in fitAbn results and data.df.mult.
-          parentsCatNames <- sapply(X = colnames(coefs[[nodename]]),
-                                    FUN = function(x){
-                                      lookup <- stringi::stri_detect_regex(str = x, pattern = paste0(pname))
-                                      if(lookup){
-                                        if(stringi::stri_length(x[lookup])>length(pname)){
-                                          stringi::stri_split_fixed(str = x, pattern = paste0(pname), omit_empty = TRUE, simplify = TRUE, tokens_only = FALSE)
-                                        } else if(stringi::stri_length(x[lookup])==length(pname)){
-                                          pname
-                                        }
-                                      }
-                                    })
-          parentsCatNames <- stringi::stri_omit_empty(unlist(parentsCatNames))
-
-          parentsCatIdx <- c()
-          for (i in 1:length(parentsCatNames)) {
-            parentsCatIdx[i] <- i
+    if (any(!is.na(parentnames))){
+      parentnames <- parentnames[parentnames != nodename]
+      
+      if (length(parentnames) > 0) {
+        parentnames <- parentnames[order(nchar(parentnames), decreasing = TRUE)]
+        
+        for (pname in parentnames){
+          # iterate through all parent nodes
+          p_dist <- data.dists[[pname]]
+          all_cols <- colnames(coefs[[nodename]])
+          
+          pattern <- paste0("^", pname)
+          matched_cols <- all_cols[stringi::stri_detect_regex(all_cols, pattern)]
+          if (length(matched_cols) > 0) {
+            other_parents <- setdiff(parentnames, pname)
+            longer_parents <- other_parents[startsWith(other_parents, pname) & nchar(other_parents) > nchar(pname)]
+            
+            for (lp in longer_parents) {
+              matched_cols <- matched_cols[!startsWith(matched_cols, lp)]
+            }
           }
+          coef_subset <- coefs[[nodename]][, matched_cols, drop = FALSE]
 
-          pcoefs <- coefs[[nodename]][stringi::stri_detect_regex(str = colnames(coefs[[nodename]]), pattern = paste0("^", pname))]
-          pcoefs <- exp(pcoefs)/sum(exp(pcoefs)) # from log-odds to probability
-          names(pcoefs) <- rep(pname, length(parentsCatNames))
-
-        } else {
-          # parent is not multinomial we have a slightly different extraction pipeline
-          parentsCatNames <- sapply(X = colnames(coefs[[nodename]]),
-                                    FUN = function(x){
-                                      lookup <- stringi::stri_detect_regex(str = x, pattern = paste0("^", pname))
-                                      if(lookup){
-                                        if(stringi::stri_length(x[lookup])>length(pname)){
-                                          stringi::stri_split_fixed(str = x, pattern = paste0("^", pname), omit_empty = TRUE, simplify = TRUE, tokens_only = FALSE)
-                                        } else if(stringi::stri_length(x[lookup])==length(pname)){
-                                          pname
-                                        }
-                                      }
-                                    })
-          parentsCatNames <- stringi::stri_omit_empty(unlist(parentsCatNames))
-
-          pcoefs <- coefs[[nodename]][stringi::stri_detect_regex(str = colnames(coefs[[nodename]]), pattern = paste0("^", pname))]
-          names(pcoefs) <- rep(pname, length(parentsCatNames))
+          parentcoefs[[pname]] <- coef_subset
         }
-        parentcoefs[[pname]] <- pcoefs
       }
     }
 
@@ -428,38 +438,85 @@ makebugs <- function(dag, data.dists, coefs, stderrors){
                          nodesintercept = nodesintercepts,
                          parentnames = parentnames,
                          parentcoefs = parentcoefs,
-                         std = nodestderror)
+                         variance = nodestderror,
+                         data.dists = data.dists)
             },
             multinomial = {
-              nodesCatNames <- sapply(X = colnames(coefs[[nodename]]),
-                                      FUN = function(x){
-                                        if(stringi::stri_detect_fixed(str = x, pattern = "intercept")){
-                                          stringi::stri_split_fixed(str = x, pattern = "|intercept.")
-                                        }
-                                      }
-              )
-              nodesCatNames <- unlist(nodesCatNames, use.names = FALSE)[which(unlist(nodesCatNames) != nodename)]
-              nodesCatIdx <- 0L
-              for (i in 1:length(nodesCatNames)) {
-                nodesCatIdx[i] <- i+1 # +1 because reference category is not among the nodesCatnames
+              if (length(intercept_cols) > 0) {
+                # root multinomial: child category indices from intercept col names
+                # e.g. "AGE|intercept.2", "AGE|intercept.3" -> c(2L, 3L)
+                raw_cats <- stringi::stri_replace_first_regex(
+                  str         = intercept_cols,
+                  pattern     = paste0("^", nodename, "\\|intercept\\."),
+                  replacement = ""
+                )
+                
+                # Check if they are numeric digits or text labels
+                if (all(grepl("^[0-9]+$", raw_cats))) {
+                  nodesCatIdx <- as.integer(raw_cats)
+                } else {
+                  # BUGS requires integer indices. Map text factor levels to sequential integers (2, 3, 4...)
+                  nodesCatIdx <- seq_len(length(raw_cats)) + 1 
+                  
+                  # Save the original text labels as an attribute so they are never lost
+                  attr(nodesCatIdx, "level_names") <- raw_cats
+                }
+              } else {
+                # multinomial child of multinomial parent: no intercept columns.
+                # Child categories are encoded as the trailing digit of coef names,
+                # e.g. "AGE12","AGE13" -> child cats 2, 3.
+                all_col_names <- colnames(coefs[[nodename]])
+                extracted_suffixes <- sub("^.*\\.", "", all_col_names) # if dot-separated
+                
+                if (all(grepl("^[0-9]+$", extracted_suffixes))) {
+                  nodesCatIdx <- sort(unique(as.integer(extracted_suffixes)))
+                } else {
+                  unique_sufs <- sort(unique(extracted_suffixes))
+                  nodesCatIdx <- seq_len(length(unique_sufs)) + 1
+                  attr(nodesCatIdx, "level_names") <- unique_sufs
+                }
+                nodesintercepts <- rep(0, length(nodesCatIdx))
+              }
+              n.child.cats <- length(nodesCatIdx)
+              
+              # Reshape parentcoefs into matrix only for multinomial parents.
+              # Multinomial parent coef names: {pname}{parent_cat}{child_cat}
+              #   -> n.child.cats blocks of n.parent.cats coefficients -> matrix.
+              # Non-multinomial parent coef names: {pname}{parent_cat}
+              #   -> flat vector used directly with equals() in BUGS.
+              for (pname in names(parentcoefs)) {
+                if (data.dists[[pname]] == "multinomial") {
+                  flat <- parentcoefs[[pname]]
+                  n.coefs.per.child.cat <- length(flat) / n.child.cats
+                  parentcoefs[[pname]] <- matrix(
+                    flat,
+                    nrow  = n.child.cats,
+                    ncol  = n.coefs.per.child.cat,
+                    byrow = TRUE
+                  )
+                }
+                # non-multinomial parents: leave as flat vector
               }
               categorical_bugs(nodename = nodename,
                                nodesCatIdx = nodesCatIdx,
                                parentnames = parentnames,
                                nodesintercepts = nodesintercepts,
-                               parentcoefs = parentcoefs)
+                               parentcoefs = parentcoefs,
+                               data.dists = data.dists)
             },
             binomial = {
               bern_bugs(nodename = nodename,
                         nodesintercept = nodesintercepts,
                         parentnames = parentnames,
-                        parentcoefs = parentcoefs)
+                        parentcoefs = parentcoefs,
+                        data.dists = data.dists)
             },
             poisson = {
               pois_bugs(nodename = nodename,
                         nodesintercept = nodesintercepts,
                         parentnames = parentnames,
-                        parentcoefs = parentcoefs)
+                        parentcoefs = parentcoefs,
+                        data.dists = data.dists)
             }
     )
   }
@@ -534,6 +591,7 @@ makebugsGroup <- function(dag,
                               nodesintercept = nodesintercepts, # fixed-effect intercept (fit@beta[1])
                               parentnames = parentnames, # predictor(s)
                               parentcoefs = parentcoefs, # predictor(s) coefficients: fixed-effects (fit@beta[>1])
+                              data.dists = data.dists,
                               sigma = sig, # random-effect residual (fit@theta[>1])
                               sigma_alpha = sig_alpha) # random-effect group intercept (fit@theta[1])
             },
@@ -555,6 +613,7 @@ makebugsGroup <- function(dag,
                                     parentnames = parentnames,
                                     nodesintercepts = nodesintercepts,
                                     parentcoefs = parentcoefs,
+                                    data.dists = data.dists,
                                     sigma = sig,
                                     sigma_alpha = sig_alpha)
             },
@@ -563,6 +622,7 @@ makebugsGroup <- function(dag,
                              nodesintercept = nodesintercepts,
                              parentnames = parentnames,
                              parentcoefs = parentcoefs,
+                             data.dists = data.dists,
                              sigma_alpha = sig_alpha)
             },
             poisson = {
@@ -570,6 +630,7 @@ makebugsGroup <- function(dag,
                              nodesintercept = nodesintercepts,
                              parentnames = parentnames,
                              parentcoefs = parentcoefs,
+                             data.dists = data.dists,
                              sigma_alpha = sig_alpha)
             }
     )
@@ -587,6 +648,7 @@ makebugsGroup <- function(dag,
 #' @param n.adapt number of iteration for adaptation. If \code{n.adapt} is set to zero, then no adaptation takes place.
 #' @param n.thin thinning interval for monitors.
 #' @param n.iter number of iteration to monitor.
+#' @param n number of samples to generate. If \code{NULL} (default), n=n.iter/(n.chains*n.thin). 
 #' @param seed by default set to 42.
 #' @param verbose if TRUE prints additional output
 #' @param debug if TRUE prints bug file content to stdout and does not run simulations.
@@ -630,6 +692,7 @@ simulateAbn <- function(object = NULL,
                         n.adapt = 1000L,
                         n.thin = 100L,
                         n.iter = 10000L,
+                        n = NULL,
                         seed = 42L,
                         verbose = FALSE,
                         debug = FALSE){
@@ -657,6 +720,9 @@ simulateAbn <- function(object = NULL,
     stop("'n.iter' must be a non-negative integer")
   }
 
+  if (!is.null(n)){
+    n.iter = n/n.chains*n.thin
+  }
   if(!is.null(bugsfile)){
     if(file.exists(bugsfile) && verbose){
       warning("'bugs.file' already exists and will be overwritten.")
@@ -672,10 +738,12 @@ simulateAbn <- function(object = NULL,
 
   if (!is.null(object)){
     # Check object
-    if(!inherits(object, "abnFit")){
-      stop("'object' is not of class 'abnFit'.")
+    if (!is.list(object) || !all(c("abnDag", "mse", "coef") %in% names(object))) {
+      stop("'object' must be a list containing at least 'abnDag', 'mse', and 'coef'.")
     }
-
+    if (!is.list(object$abnDag) || !all(c("dag", "data.dists") %in% names(object$abnDag))) {
+      stop("'object$abnDag' must be a list containing 'dag' and 'data.dists'.")
+    }
     # extract relevant stuff
     dag <- object$abnDag$dag
     data.dists <- object$abnDag$data.dists
@@ -787,6 +855,57 @@ simulateAbn <- function(object = NULL,
     res <- do.call(rbind.data.frame, res)
 
     # format output
+    # get back factors
+    for (nodename in names(data.dists)) {
+      if (data.dists[[nodename]] == "multinomial" && nodename %in% names(res)) {
+        
+        # Find the intercept columns in your coefs object for this node
+        intercept_cols <- grep(paste0("^", nodename, "\\|intercept\\."), colnames(coefs[[nodename]]), value = TRUE)
+        
+        if (length(intercept_cols) > 0) {
+          # Extract the text suffixes (e.g. "fc", "m", "mc")
+          raw_cats <- stringi::stri_replace_first_regex(
+            str         = intercept_cols,
+            pattern     = paste0("^", nodename, "\\|intercept\\."),
+            replacement = ""
+          )
+          
+          if (!all(grepl("^[0-9]+$", raw_cats))) {
+            if (!is.null(object$abnDag$data.df) && nodename %in% names(object$abnDag$data.df)) {
+              df_levels <- levels(object$abnDag$data.df[[nodename]])
+              
+              # Find which level in the dataframe is the reference (the one NOT in raw_cats)
+              ref_level <- setdiff(df_levels, raw_cats)
+              
+              # Reconstruct the exact order: Reference category is index 1, followed by raw_cats
+              all_levels <- c(ref_level, raw_cats)
+            } else {
+              # Fallback if no dataset is present
+              all_levels <- c("reference", raw_cats)
+            }
+            
+            # Convert sampled integers to factors using the extracted names
+            res[[nodename]] <- factor(
+              res[[nodename]],
+              levels = seq_along(all_levels),
+              labels = all_levels
+            )
+          }
+        }
+      } else if (data.dists[[nodename]] %in% "binomial" && nodename %in% names(res)) {
+        if (!is.null(object$abnDag$data.df) && nodename %in% names(object$abnDag$data.df)) {
+          if (length(bin_levels) == 2){
+            bin_levels <- levels(object$abnDag$data.df[[nodename]])
+            res[[nodename]] <- factor(
+               res[[nodename]],
+               levels = c(0, 1),
+               labels = bin_levels
+            )
+          }
+        }
+      }
+    }
+    
     # make factor if binomial and multinomial
     for (i in 1:length(data.dists)) {
       if (data.dists[i] %in% c("binomial", "multinomial")) {
@@ -801,4 +920,146 @@ simulateAbn <- function(object = NULL,
     }
     return(NULL)
   }
+}
+
+#' Generate random Directed Acyclic Graphs (DAGs) with specified density, number of nodes, and max number of parents
+#'
+#' This function generates a list of random DAG adjacency matrices based on the
+#' node distribution and desired number of nodes, density level, and max number of parents
+#'
+#' @param p_distrib List specifying the number of nodes per distribution
+#'    and multinomial levels.
+#' @param max_parents. Numeric. Maximal number of parents in the graph.
+#' @param d Numeric. Density level (proportion of edges to keep in the graph, between 0 and 1).
+#' @param nbr_graphs Integer. Number of random DAGs to generate.
+#' @param MB List. Contains `node` the name of the node which Markov blanket size should be controlled and `MB_size` the desired size of the Markov blanket.
+#'
+#' @return A list of adjacency matrices, each representing a DAG. Each matrix has
+#'   dimension equal to the total number of nodes.
+#'
+#' @examples
+#' p_distrib <- list(distrib = c(3, 3, 2, 2), levels_multi = c(3, 4))
+#' names(p_distrib$distrib) <- c("gaussian","poisson","binomial","multinomial")
+#' density <- 0.3
+#' n_graphs <- 5
+#' max_parents <- 2
+#' dags <- generate_RandomDAGs(p_distrib, max_parents, d = density, n_graphs)
+#' length(dags)  # Should be 5
+#' sapply(dags, dim)  # Dimensions of adjacency matrices
+#'
+#' @importFrom igraph graph_from_adjacency_matrix is_connected
+#' @export
+generate_RandomDAGs <- function(p_distrib, max_parents, d, nbr_graphs, MB = list(MB_size = NULL, node = NULL)){
+  if (!is.list(p_distrib) || length(p_distrib) != 2 || length(p_distrib$levels_multi) != p_distrib$distrib["multinomial"] || length(p_distrib$distrib) <= 0 || !all(names(p_distrib$distrib) %in% c("gaussian","binomial","multinomial","poisson"))) {
+    stop("'p_distrib' should be a list containing two elements: number of nodes per distribution (only Gaussian, binomial, multinomial and Poisson are supported) and multinomial levels for multinomial nodes.")
+  }
+  
+  if (!is.numeric(d) || length(d) != 1 || d <= 0 || d >= 1) {
+    stop("'d' must be a numeric value strictly between 0 and 1.")
+  }
+  
+  if (!is.numeric(max_parents) || length(max_parents) != 1 || max_parents < 0 || max_parents > (sum(p_distrib$distrib)-1)) {
+    stop(paste0("'max_parents' must be a numeric value between 0 and ",(sum(p_distrib$distrib)-1),"."))
+  }
+  
+  if (!is.numeric(nbr_graphs) || nbr_graphs <= 0 || floor(nbr_graphs) != nbr_graphs) {
+    stop("'nbr_graphs' must be a positive integer.")
+  }
+  
+  p <- sum(p_distrib$distrib)
+  node_names <- paste0(substr(rep(names(p_distrib$distrib), p_distrib$distrib), 1, 1), # First letter of each distribution name
+                       sequence(p_distrib$distrib))     # Sequence of numbers for each distribution
+  node_names_short <- substr(rep(names(p_distrib$distrib), p_distrib$distrib), 1, 1)
+  
+  adj_matrices <- list()
+  count <- 1
+  
+  T <- matrix(0, ncol=p, nrow=p)
+  T[lower.tri(T, diag = TRUE)] <- 1
+  T <- T-diag(diag(T))
+  
+  target_edges <- round(p * (p - 1) / 2 * d)
+  
+  while (length(adj_matrices)<nbr_graphs && count < 1e5){
+    T_tmp <- T
+    
+    for (j in 1:p) {
+      potential_parents <- which(T_tmp[, j] == 1)
+      
+      if (length(potential_parents) > max_parents) {
+        drop_rows <- sample(potential_parents, length(potential_parents) - max_parents)
+        T_tmp[drop_rows, j] <- 0
+      }
+    }
+    current_edges <- sum(T_tmp)
+    
+    if (current_edges > target_edges) {
+      # --- CASE 1: Too many edges, trim excess ---
+      active_edges <- which(T_tmp == 1, arr.ind = TRUE)
+      num_to_drop <- current_edges - target_edges
+      drop_indices <- sample(nrow(active_edges), num_to_drop)
+      
+      for (k in drop_indices) {
+        T_tmp[active_edges[k, 1], active_edges[k, 2]] <- 0
+      }
+      
+    } else if (current_edges < target_edges) {
+      # --- CASE 2: Too few edges, add missing ones safely ---
+      while (sum(T_tmp) < target_edges) {
+        # Find all inactive slots in the lower triangle
+        inactive_edges <- which(T_tmp == 0 & lower.tri(T_tmp), arr.ind = TRUE)
+        if (nrow(inactive_edges) == 0) break # Safety check if grid is full
+        
+        # Filter to only keep slots whose target column hasn't hit max_parents yet
+        col_sums <- colSums(T_tmp)
+        valid_slots <- inactive_edges[col_sums[inactive_edges[, 2]] < max_parents, , drop = FALSE]
+        
+        if (nrow(valid_slots) == 0) break # No more slots can accept parents without breaking max_parents
+        
+        # Randomly pick one valid slot and turn it on
+        add_idx <- sample(nrow(valid_slots), 1)
+        T_tmp[valid_slots[add_idx, 1], valid_slots[add_idx, 2]] <- 1
+      }
+    }
+    
+    if (sum(T_tmp) != target_edges) {
+      count <- count + 1
+      next
+    }
+    
+    #edges_to_remove <- sample(which(T==1),round(p*(p-1)/2 - p*(p-1)/2*d))
+    #T_tmp[edges_to_remove] <- 0
+    perm <- sample(1:p)
+    perm <- node_names[perm]
+    perm_matrix <- matrix(0, ncol=p, nrow=p)
+    colnames(perm_matrix) <- node_names
+    row_indices <- seq_along(perm)
+    col_indices <- match(colnames(perm_matrix), perm)
+    perm_matrix[cbind(row_indices, col_indices)] <- 1
+    adj_matrix <- perm_matrix %*% T_tmp %*% t(perm_matrix)
+    rownames(adj_matrix) = colnames(adj_matrix) <- node_names
+    graph <- graph_from_adjacency_matrix(adj_matrix)
+    
+    is_valid <- (length(which(rowSums(adj_matrix) + colSums(adj_matrix) == 0)) == 0 && 
+                   igraph::is_connected(graph, mode = "weak"))
+    
+    if (is_valid && !is.null(max_parents)) {
+      if (max(colSums(adj_matrix)) > max_parents) {
+        is_valid <- FALSE
+      }
+    }
+    
+    if (is_valid && !is.null(MB$MB_size)) {
+      mb_nodes <- find_MB(graph, MB$node)
+      if (length(mb_nodes) != MB$MB_size) {
+        is_valid <- FALSE
+      }
+    }
+    
+    if (is_valid) {
+      adj_matrices <- c(adj_matrices, list(adj_matrix))
+    }
+    count <- count +1
+  }
+  return(adj_matrices)
 }

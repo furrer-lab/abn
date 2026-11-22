@@ -8,6 +8,7 @@ predict_node_from_children_gaussian(
   data,
   dists,
   fit,
+  var,
   node,
   evidence,
   child,
@@ -20,7 +21,8 @@ predict_node_from_children_gaussian(
 
 \item{dists}{A list containing the distributions of the nodes of the graph.}
 
-\item{fit}{Parameters of the network (can be the output of the function fitAbn()).}
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
 
 \item{node}{Temporary node to predict.}
 
@@ -65,7 +67,8 @@ graph <- igraph::graph_from_adjacency_matrix(t(dag))
 
 # infer the parameters of the network
 myfit <- fitAbn(object = mp.dag)
-myfit <- myfit$modes
+myvar <- myfit$mse
+myfit <- myfit$coef
 
 node <- "g1"
 child <- find_children(graph, node)[2]
@@ -76,7 +79,7 @@ evidence <- check_evidence(data, mydists,
 
 predictions <- list("g1" = c(0,1)) # a first estimate of the node g1
 
-predictions <- predict_node_from_children_gaussian(data, mydists, myfit, node, 
+predictions <- predict_node_from_children_gaussian(data, mydists, myfit, myvar, node, 
                     evidence, child, parents, predictions)
 predictions  # the predicted distribution of g2
 }

@@ -4,9 +4,15 @@
 \alias{predict_root}
 \title{Predict a root node}
 \usage{
-predict_root(data, dists, node)
+predict_root(fit, var = NULL, data, dists, node)
 }
 \arguments{
+\item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
+\verb{$coef} component of a \code{fitAbn()} object.}
+
+\item{var}{A named vector of node-specific mean squared errors, e.g. extracted
+from the \verb{$mse} component of a \code{fitAbn()} object.}
+
 \item{data}{A data frame containing the data (samples in rows, variables in columns).}
 
 \item{dists}{A list containing the distributions of the nodes of the graph.}
@@ -35,5 +41,14 @@ b4="binomial",
 b5="binomial",
 g3="gaussian")
 
-prediction <- predict_root(data, mydists, node = "g3")
+# infer the graph using ABN
+max.par <- 2 # set the same max parents for all nodes
+mycache <- buildScoreCache(data.df = data,
+                          data.dists = mydists,
+                          method = "bayes",max.parents = max.par)
+mp.dag <- mostProbable(score.cache = mycache)
+
+# infer the parameters of the network
+myfit <- fitAbn(object = mp.dag)
+prediction <- predict_root(myfit$coef, myfit$mse, data, mydists, node = "g3")
 }
