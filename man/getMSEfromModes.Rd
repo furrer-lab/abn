@@ -17,3 +17,4 @@ named numeric vector. Names correspond to node name. Value to standard deviation
 \description{
 Extract Standard Deviations from all Gaussian Nodes
 }
+\keyword{internal}

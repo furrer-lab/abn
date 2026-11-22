@@ -174,6 +174,9 @@ fitAbn.bayes <- function(dag=NULL,
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==1,"warning: mode results may be unreliable (optimiser terminated unusually)",res.list[["error.code.desc"]])
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==2,"error - logscore is NA - model could not be fitted",res.list[["error.code.desc"]])
   res.list[["error.code.desc"]] <- ifelse(res.list[["error.code.desc"]]==4,"warning: fin.diff hessian estimation terminated unusually ",res.list[["error.code.desc"]])
+  ## as.character()/ifelse() drop names; restore them so lookups by node work
+  res.list[["error.code.desc"]] <- stats::setNames(res.list[["error.code.desc"]],
+                                                   names(res.list[["error.code"]]))
 
   res.list[["mliknode"]] <- unlist(lapply(out, function(x){return(x$child.mlik)}))
   res.list[["mlik"]] <- sum(res.list[["mliknode"]]) ## overall mlik
@@ -787,8 +790,6 @@ get.ind.quantiles <- function(outmat,inmat){
     row <- row+1
   }
 
-  class(outmat) <- c("abnFit")
-
   return(outmat)
 }
 
@@ -798,6 +799,7 @@ get.ind.quantiles <- function(outmat,inmat){
 #' @param dists list of distributions.
 #'
 #' @return named numeric vector. Names correspond to node name. Value to standard deviations.
+#' @keywords internal
 getMSEfromModes <- function(modes, dists){
   modes_gaus <- unlist(unname(modes[unname(which(dists == "gaussian"))]), use.names = TRUE)
   if (!is.null(modes_gaus)){
@@ -818,6 +820,7 @@ getMSEfromModes <- function(modes, dists){
 #' @param modes list of modes.
 #'
 #' @return list of matrix arrays.
+#' @keywords internal
 modes2coefs <- function(modes){
   newmodes <- modes
   for (child in names(newmodes)){
@@ -832,12 +835,10 @@ modes2coefs <- function(modes){
     }
     names(newmodes[[child]]) <- childnames
 
-    # Remove Precision items from gaussians
-    for (childcoefi in seq(1:length(childnames))) {
-      if (stringi::stri_detect_fixed(str = childnames[childcoefi], pattern = "precision", negate = FALSE)){
-        newmodes[[child]] <- newmodes[[child]][-childcoefi]
-      }
-    }
+    # Remove all precision items (residual and group precision) at once;
+    # removing them index by index shifted the remaining indices.
+    is_precision <- stringi::stri_detect_fixed(str = childnames, pattern = "precision")
+    newmodes[[child]] <- newmodes[[child]][!is_precision]
 
     # Convert to list of matrix arrays
     newmodes[[child]] <- as.array(t(as.matrix(newmodes[[child]])))
