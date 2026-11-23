@@ -758,26 +758,17 @@ test_that("simulateAbn() simulation works with method 'mle'", {
                  tolerance = 0.05)
 
     ## with group.var
+    dat.grp <- make_grouped_test_data()
+    df <- dat.grp$data
+    mydists <- dat.grp$dists
+
     suppressWarnings({
       suppressMessages({
         capture.output({
-          df <- FCV[, c(11:15)]
-          mydists <- list(Pedigree="binomial",
-                          Outdoor="binomial",
-                          Sex="multinomial",
-                          GroupSize="poisson",
-                          Age="gaussian")
-          mydists <- mydists[-1] # remove grouping variable from distribution list
-          retaindag <- matrix(0, nrow = length(mydists), ncol = length(mydists), dimnames = list(names(mydists), names(mydists)))
-          retaindag[3, 1] <- retaindag[4,3] <- retaindag[2,4] <- 1
-          mycache.mle.grp <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                             group.var = "Pedigree", adj.vars = NULL, cor.vars = NULL,
-                                             dag.banned = NULL, dag.retained = retaindag,
-                                             max.parents = 3,
-                                             which.nodes = NULL, defn.res = NULL)
-          mp.dag.mle.grp <- mostProbable(score.cache = mycache.mle.grp, verbose = FALSE)
           expect_no_error({
-            myres.mle.grp <- fitAbn(object = mp.dag.mle.grp, method = "mle", group.var = "Pedigree")
+            myres.mle.grp <- fitAbn(dag = dat.grp$dag, data.df = df,
+                                    data.dists = mydists, method = "mle",
+                                    group.var = dat.grp$group.var)
           })
           expect_no_error({
             mysim.grp <- simulateAbn(object = myres.mle.grp,
@@ -791,15 +782,15 @@ test_that("simulateAbn() simulation works with method 'mle'", {
         )
       })
     })
-    act <- as.numeric(round(prop.table(table(mysim.grp$Outdoor)), 2))
-    expected <- as.numeric(round(prop.table(table(df$Outdoor)), 2))
+    act <- as.numeric(round(prop.table(table(mysim.grp$b)), 2))
+    expected <- as.numeric(round(prop.table(table(df$b)), 2))
     expect_equal(act[order(act)],
                  expected[order(expected)],
-                 tolerance = 0.1) # quite high tolerance because the actual data has no grouping...
+                 tolerance = 0.1)
 
     # Correct number of categories simulated for categorical/multinomial variables?
-    act <- as.numeric(round(prop.table(table(mysim.grp$Sex)), 2))
-    expected <- as.numeric(round(prop.table(table(df$Sex)), 2))
+    act <- as.numeric(round(prop.table(table(mysim.grp$m)), 2))
+    expected <- as.numeric(round(prop.table(table(df$m)), 2))
     expect_equal(length(act), length(expected))
   } else {
     skip("simulateAbn() is tested mainly on Unix-like systems")
