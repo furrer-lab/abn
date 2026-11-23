@@ -57,9 +57,11 @@ test_that("toGraphviz() works with all distributions.", {
   expect_no_error({
     suppressWarnings({
       suppressMessages({
-        myres.mle <- fitAbn(dag = dat$dag, data.df = df,
-                            data.dists = mydists, method = "mle",
-                            group.var = dat$group.var)
+        capture.output({
+          myres.mle <- fitAbn(dag = dat$dag, data.df = df,
+                              data.dists = mydists, method = "mle",
+                              group.var = dat$group.var)
+        }, file = "/dev/null")
       })
     })
   })
