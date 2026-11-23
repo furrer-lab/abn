@@ -55,6 +55,8 @@ forLoopContent <-
     }
 
     # Main part: Depending on child's distribution, call the appropriate modelling function
+    # A failed local model must leave `fit` as NULL so the fallback below works.
+    fit <- NULL
     switch (as.character(child.dist),
             gaussian = {
               if (verbose) {message(paste("using lmer with model:", deparse1(model)))} else NA
