@@ -409,14 +409,14 @@ Further information about \pkg{abn} can be found at: \href{https://r-bayesian-ne
 \seealso{
 \code{\link{fitAbn}}
 
-Other buildScoreCache: 
-\code{\link{build.control}()}
+Other buildScoreCache:
+\code{\link[=build.control]{build.control()}}
 
-Other Bayes: 
-\code{\link{calc.node.inla.glm}()},
-\code{\link{calc.node.inla.glmm}()},
-\code{\link{fitAbn}()},
-\code{\link{getmarginals}()}
+Other Bayes:
+\code{\link[=calc.node.inla.glm]{calc.node.inla.glm()}},
+\code{\link[=calc.node.inla.glmm]{calc.node.inla.glmm()}},
+\code{\link[=fitAbn]{fitAbn()}},
+\code{\link[=getmarginals]{getmarginals()}}
 }
 \concept{Bayes}
 \concept{abn}

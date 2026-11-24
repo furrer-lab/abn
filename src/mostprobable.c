@@ -1,6 +1,5 @@
 #include <R.h>
 #include <Rdefines.h>
-#include <R_ext/PrtUtil.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "structs.h"

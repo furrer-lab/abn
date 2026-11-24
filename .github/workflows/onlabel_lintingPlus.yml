@@ -85,7 +85,7 @@ jobs:
         shell: Rscript {0}
 
       - name: Lint root directory
-        run: lintr::lint_dir(linters=lintr::with_defaults(line_length_linter=NULL, infix_spaces_linter=NULL, trailing_whitespace_linter=NULL))
+        run: lintr::lint_dir(linters=lintr::linters_with_defaults(line_length_linter=NULL, infix_spaces_linter=NULL, trailing_whitespace_linter=NULL))
         shell: Rscript {0}
         env:
           LINTR_ERROR_ON_LINT: true
@@ -137,16 +137,14 @@ jobs:
     name: Run URL checks
     # runs-on: ubuntu-latest
     container:
-      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ vars.CONTAINER_RELEASE || 'debian/gcc/release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
+      image: ${{ vars.CONTAINER_SOURCE || 'ghcr.io/furrer-lab/r-containers' }}/${{ vars.CONTAINER_RELEASE || 'debian-gcc-release' }}/abn:${{ vars.CONTAINER_VERSION || 'latest' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+    env:
+      RENV_CONFIG_AUTOLOADER_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v4
-      - name: Disable renv
-        run: |
-            renv::deactivate()
-        shell: Rscript {0}
       - name: Check for broken urls and redirects
         run: |
             library(urlchecker)

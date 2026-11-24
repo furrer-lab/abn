@@ -179,24 +179,28 @@ test_that("essentialGraph() works", {
 })
 
 test_that("scoreContribution() works", {
-  mydat <- ex1.dag.data[,c("b1","g1","p1")]
-  ## take a subset of cols
+  suppressMessages({
+    suppressWarnings({
+      mydat <- ex1.dag.data[,c("b1","g1","p1")]
+      ## take a subset of cols
 
-  ## setup distribution list for each node
-  mydists <- list(b1="binomial",
-                  g1="gaussian",
-                  p1="poisson"
-  )
+      ## setup distribution list for each node
+      mydists <- list(b1="binomial",
+                      g1="gaussian",
+                      p1="poisson"
+      )
 
-  ## now build cache
-  mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,max.parents=1, method="mle")
+      ## now build cache
+      mycache <- buildScoreCache(data.df=mydat,data.dists=mydists,max.parents=1, method="mle")
 
-  #now find the globally best DAG
-  mp.dag <- mostProbable(score.cache=mycache, score="bic", verbose=FALSE)
+      #now find the globally best DAG
+      mp.dag <- mostProbable(score.cache=mycache, score="bic", verbose=FALSE)
 
-  out <- scoreContribution(object=mp.dag)
+      out <- scoreContribution(object=mp.dag)
 
-  out.fit <- fitAbn(object=mp.dag, method="mle")
+      out.fit <- fitAbn(object=mp.dag, method="mle")
 
-  expect_equal(unname(colSums(out$mlik))/1000, unname(unlist(out.fit$mliknode))/1000,tolerance=1e-2)
+      expect_equal(unname(colSums(out$mlik))/1000, unname(unlist(out.fit$mliknode))/1000,tolerance=1e-2)
+    })
+  })
 })

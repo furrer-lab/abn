@@ -14,6 +14,7 @@ articles:
   - mixed_effect_BN_model
   - data_simulation
   - multiprocessing
+  - ABN_inference
 - title: Archive
   desc: >
     Articles that are no longer maintained, but may still be useful.
@@ -39,6 +40,9 @@ reference:
   contents:
   - simulateAbn
   - simulateDag
+- title: "Import / Export"
+  contents:
+  - export_abnFit
 - title: "Plotting"
   contents:
   - plotAbn
@@ -65,6 +69,7 @@ reference:
   - summary.abnMostprobable
   - AIC.abnFit
   - BIC.abnFit
+  - as.data.frame.abnDag
 - title: internal
   contents:
   - Cfunctions

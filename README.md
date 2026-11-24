@@ -5,7 +5,7 @@
 <!-- WARNING: -->
 <!-- The ?branch=release-x.y.y is updated automatically by the initiate_version_release workflow -->
 [![status](https://joss.theoj.org/papers/1bbc43a2be86f5d3f831cedb5cf81812/status.svg)](https://joss.theoj.org/papers/10.21105/joss.06822)
-[![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg?branch=release-3.1.11)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
+[![On Label CRAN Checks](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml/badge.svg?branch=release-3.1.13)](https://github.com/furrer-lab/abn/actions/workflows/onlabel_CRAN_checks.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/furrer-lab/abn)](https://app.codecov.io/gh/furrer-lab/abn)
 [![GitHub R package version](https://img.shields.io/github/r-package/v/furrer-lab/abn)](https://github.com/furrer-lab/abn/tags)
 ![cran](https://www.r-pkg.org/badges/version-ago/abn) 
@@ -154,11 +154,10 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
   brew install automake  # needed to run autoconf
   ```
   
-  We will use `wget` to download `JAGS` later, as well as, the development headers `openssl`:
+  We will use `curl` (shipped with macOS) to download `JAGS` later, as well as, the development headers `openssl`:
  
   ```bash
-  brew install wget
-  brew install openssl@1.1
+  brew install openssl@3
   ```
 
   <ins>**Dependencies**</ins>
@@ -182,16 +181,21 @@ All you need for the installation is to have the R-package [pak](https://pak.r-l
     [JAGS](https://mcmc-jags.sourceforge.io/), _Just Another Gibbs Sampler_, is a program for analyzing Bayesian hierarchical models using Markov Chain Monte Carlo (MCMC) simulation. [rjags](https://cran.r-project.org/package=rjags) is R's interface to the `JAGS` library.
     `JAGS` is required in some simulations `abn` can perform.
   
-    With Homebrew you can install the `JAGS` binaries directly:
+    Homebrew only ships `JAGS` 5.x, which `rjags` 4-17 does not support, so use the official
+    `JAGS` 4.3.2 installer (it installs to `/usr/local` and provides both `x86_64` and `arm64`):
     
-    ```
-    brew install jags
+    ```bash
+    curl --fail -L -o /tmp/JAGS-4.3.2.pkg \
+      "https://sourceforge.net/projects/mcmc-jags/files/JAGS/4.x/Mac%20OS%20X/JAGS-4.3.2.pkg/download"
+    sudo installer -pkg /tmp/JAGS-4.3.2.pkg -target /
     ```
     
     And now to install `rjags`, open an R session and type:
     
     ```R
-    install.packages("rjags", type="source", repos=c(CRAN="https://cran.r-project.org"))
+    install.packages("rjags", type="source",
+                     configure.args="--with-jags-prefix=/usr/local",
+                     repos=c(CRAN="https://cran.r-project.org"))
     library("rjags")
     ```
   
