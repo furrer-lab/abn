@@ -280,7 +280,7 @@ build.control <-
 #' @examples
 #' ## Simple example
 #' # Generate data
-#' N <- 1e6
+#' N <- 100
 #' mydists <- list(a="gaussian",
 #'                 b="gaussian",
 #'                 c="gaussian")
