@@ -60,11 +60,11 @@ If INLA failed, FALSE or an error is returned. Otherwise, the direct output from
 Internal wrapper to INLA and are called from \code{fitAbn.bayes} and \code{buildScoreCache.bayes}.
 }
 \seealso{
-Other Bayes: 
-\code{\link{buildScoreCache}()},
-\code{\link{calc.node.inla.glmm}()},
-\code{\link{fitAbn}()},
-\code{\link{getmarginals}()}
+Other Bayes:
+\code{\link[=buildScoreCache]{buildScoreCache()}},
+\code{\link[=calc.node.inla.glmm]{calc.node.inla.glmm()}},
+\code{\link[=fitAbn]{fitAbn()}},
+\code{\link[=getmarginals]{getmarginals()}}
 }
 \concept{Bayes}
 \keyword{internal}

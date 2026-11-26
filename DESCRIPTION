@@ -44,6 +44,7 @@ Imports:
     foreach,
     glmmTMB,
     graph,
+    igraph,
     jsonlite,
     lme4,
     mclogit,
@@ -58,7 +59,6 @@ Suggests:
     boot,
     brglm,
     devtools (>= 2.4.5),
-    ggplot2,
     gridExtra,
     INLA,
     knitr,
@@ -69,6 +69,7 @@ Suggests:
     RhpcBLASctl,
     rmarkdown,
     testthat (>= 3.0.0),
+    mockery,
     entropy,
     moments,
     R6
@@ -82,5 +83,5 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: TRUE
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 SystemRequirements: pkg-config, cmake, gsl, jpeg, gdal, geos, proj, udunits-2, openssl, libcurl, jags
+Config/roxygen2/version: 8.1.1
