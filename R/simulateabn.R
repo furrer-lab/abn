@@ -721,6 +721,9 @@ simulateAbn <- function(object = NULL,
   }
 
   if (!is.null(n)){
+    n.chains = 1L
+    n.adapt = 1000L
+    n.thin = 1L
     n.iter = n/n.chains*n.thin
   }
   if(!is.null(bugsfile)){
