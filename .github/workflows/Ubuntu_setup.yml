@@ -6,6 +6,7 @@ on:
   push:
     branches:
       - "main"
+      - "fix-ubuntu-install"
 
 env:
   BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -65,12 +66,31 @@ jobs:
       #   shell: Rscript {0}
 
 
+      - name: show R and pak repository configuration
+        run: |
+          cat("R version:\n"); print(R.version.string)
+          cat("session info:\n"); print(sessionInfo())
+          cat("repos option:\n"); print(getOption("repos"))
+          cat("RSPM env:\n"); print(Sys.getenv(c("RSPM", "RENV_CONFIG_REPOS_OVERRIDE")))
+          cat("pak cache env:\n"); print(Sys.getenv(c("R_PKG_CACHE_DIR", "R_USER_CACHE_DIR")))
+          cat("pak version:\n"); print(packageVersion("pak"))
+          cat("pak repos:\n"); print(pak::repo_get())
+        shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
           pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
           library('abn')
         shell: Rscript {0}
+
+      - name: inspect pak metadata cache
+        if: failure()
+        run: |
+          root="${R_PKG_CACHE_DIR:-$HOME/.cache/R}"
+          find "$root" -type f -name 'PACKAGES*' \
+            -print -exec sh -c 'echo "--- $(head -n 1 "$1")"' _ {} \; || true
+        shell: bash
 
       - name: fetch the repository from GitHub
         uses: actions/checkout@v4
