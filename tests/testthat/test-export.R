@@ -230,8 +230,6 @@ test_that("export_abnFit works for MLE method with group.var", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE
-      # create_test_abnfit_mle_groups() # Uncomment to regenerate the test object
-      # load(file = "tests/testthat/testdata/abnfit_mle_groups.Rdata") # Load pre-saved fitted object
       load(file = "testdata/abnfit_mle_groups.Rdata") # Load pre-saved fitted object
 
       # ACT
@@ -248,7 +246,6 @@ test_that("grouped model export has variance parameters", {
   suppressMessages({
     suppressWarnings({
       # ARRANGE
-      # load(file = "tests/testthat/testdata/abnfit_mle_groups.Rdata")
       load(file = "testdata/abnfit_mle_groups.Rdata")
 
       # ACT

@@ -77,6 +77,7 @@ evidence <- check_evidence(data = data, dists = mydists, hypothesis = node, evid
 
 predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
 
-predictions <- predict_node_from_children(data, mydists, graph, myfit, myvar, node, evidence, predictions)
+predictions <- predict_node_from_children(
+  data, mydists, graph, myfit, myvar, node, evidence, predictions)
 predictions  # the predicted distribution of g2
 }

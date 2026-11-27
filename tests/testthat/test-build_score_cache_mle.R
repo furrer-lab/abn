@@ -449,3 +449,35 @@ test_that("Poisson nodes step into calling glmmTMB.", {
     skip("`forLoopContent()` is tested mainly on Unix-like systems.")
   }
 })
+
+test_that("buildScoreCache.mle() handles a failed grouped mblogit fit", {
+  skip_if_not_installed("mclogit")
+
+  df <- FCV[, c(11:15)]
+  mydists <- list(Outdoor = "binomial", Sex = "multinomial",
+                  GroupSize = "poisson", Age = "gaussian")
+
+  run <- function() {
+    capture.output(
+      trace(mclogit::mblogit,
+            tracer = quote(stop("forced mblogit failure")),
+            print = FALSE)
+    )
+    on.exit(capture.output(untrace(mclogit::mblogit)), add = TRUE)
+
+    suppressWarnings(
+      buildScoreCache(
+        data.df = df, data.dists = mydists, method = "mle",
+        group.var = "Pedigree", max.parents = 1,
+        control = build.control(method = "mle", ncores = 1)
+      )
+    )
+  }
+
+  res <- run()
+
+  expect_s3_class(res, "abnCache")
+  sex_scores <- as.numeric(res$mlik)[res$children == 2]  # Sex is node 2
+  expect_gt(length(sex_scores), 0)
+  expect_true(all(!is.finite(sex_scores)))
+})

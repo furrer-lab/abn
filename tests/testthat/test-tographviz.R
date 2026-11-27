@@ -50,38 +50,24 @@ test_that("toGraphviz() is backwards compatible.", {
 })
 
 test_that("toGraphviz() works with all distributions.", {
-  capture.output({
-    suppressMessages({
+  dat <- make_grouped_test_data()
+  df <- dat$data
+  mydists <- dat$dists
 
-      df <- FCV[, c(11:15)]
-      mydists <- list(Pedigree="binomial",
-                      Outdoor="binomial",
-                      Sex="multinomial",
-                      GroupSize="poisson",
-                      Age="gaussian")
-      mydists <- mydists[-1] # remove grouping variable from distribution list
-
-      ## buildScoreCache -> mostProbable() -> fitAbn()
-      expect_no_error({
-        suppressWarnings({
-          mycache.mle <- buildScoreCache(data.df = df, data.dists = mydists, method = "mle",
-                                         group.var = "Pedigree",
-                                         adj.vars = NULL, cor.vars = NULL,
-                                         dag.banned = NULL, dag.retained = NULL,
-                                         max.parents = 3,
-                                         which.nodes = NULL, defn.res = NULL)
-        }) # ignore non-convergence warnings
-      })
-      expect_no_error({
-        mp.dag.mle <- mostProbable(score.cache = mycache.mle, verbose = FALSE)
-      })
-      expect_no_error({
-        suppressWarnings({
-          myres.mle <- fitAbn(object = mp.dag.mle, method = "mle")
-        })
+  expect_no_error({
+    suppressWarnings({
+      suppressMessages({
+        capture.output({
+          myres.mle <- fitAbn(dag = dat$dag, data.df = df,
+                              data.dists = mydists, method = "mle",
+                              group.var = dat$group.var)
+        }, file = "/dev/null")
       })
     })
   })
+
+  # toGraphviz() only needs `dag$dag` for an abnLearned object.
+  mp.dag.mle <- structure(list(dag = dat$dag), class = "abnLearned")
 
   # Check if works as it should
   # ...with dag as "abnFit"
@@ -89,7 +75,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=myres.mle,
                # data.df=df,
                # data.dists=mydists,
-               # group.var = "Pedigree",
+               # group.var = "group",
                outfile=NULL)
   })
   # ...with dag as matrix
@@ -105,7 +91,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=mp.dag.mle,
                data.df=df,
                data.dists=mydists,
-               group.var = "Pedigree",
+               group.var = "group",
                outfile=NULL)
   })
 
@@ -134,7 +120,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=myres.mle,
                data.df=df,
                data.dists=mydists,
-               group.var = "Pedigree",
+               group.var = "group",
                outfile=NULL)
   })
 
@@ -154,7 +140,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=mp.dag.mle,
                data.df=df,
                data.dists=wrong_dists,
-               group.var = "Pedigree",
+               group.var = "group",
                outfile=NULL)
   })
 
@@ -168,7 +154,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=myres.mle,
                # data.df=df,
                # data.dists=mydists,
-               # group.var = "Pedigree",
+               # group.var = "group",
                outfile=outfile_abnFit)
   })
   expect_snapshot_file(outfile_abnFit, "graph.dot")
@@ -188,7 +174,7 @@ test_that("toGraphviz() works with all distributions.", {
     toGraphviz(dag=mp.dag.mle,
                data.df=df,
                data.dists=mydists,
-               group.var = "Pedigree",
+               group.var = "group",
                outfile=outfile_abnLearned)
   })
   expect_equal(readLines(outfile_abnLearned), readLines(outfile_abnFit))

@@ -124,8 +124,9 @@ predictAbn <- function(object, data, hypothesis = NULL, evidence = NULL){
 }
 
 #' @rdname predictAbn
+#' @param ... Further arguments passed to \code{predictAbn}.
 #' @export
-predict.abnFit <- predictAbn
+predict.abnFit <- function(object, ...) predictAbn(object, ...)
 
 #' Print method for abnPrediction objects
 #' 
@@ -396,7 +397,8 @@ predict_node_from_parent <- function(data, dists, graph, fit, var, node, evidenc
 #'
 #' predictions <- list("g2" = c(0,1)) # a first estimate of the node g2
 #'
-#' predictions <- predict_node_from_children(data, mydists, graph, myfit, myvar, node, evidence, predictions)
+#' predictions <- predict_node_from_children(
+#'   data, mydists, graph, myfit, myvar, node, evidence, predictions)
 #' predictions  # the predicted distribution of g2
 #' @export
 #'
@@ -993,6 +995,8 @@ predict_node_from_parent_multinomial <- function(data, dists, fit, node, evidenc
 #' @param dists A list containing the distributions of the nodes of the graph.
 #' @param fit A list of node-specific coefficient matrices, e.g. extracted from the
 #' `$coef` component of a `fitAbn()` object.
+#' @param var A named vector of node-specific mean squared errors, e.g. extracted
+#' from the `$mse` component of a `fitAbn()` object.
 #' @param node Temporary node to predict.
 #' @param evidence Known nodes that are used to predict the hypothesis.
 #' @param child A child of the node to predict.
@@ -2479,12 +2483,10 @@ find_children <- function(graph,node){
 #' @export
 predict_root <- function(fit, var = NULL, data, dists, node) {
   node_fit <- fit[[node]]
-  if (!is.null(var)){
-    node_var <- if (node %in% names(var)) {
-      var[[node]]
-    } else {
-      NULL
-    }
+  node_var <- if (node %in% names(var)) {
+    var[[node]]
+  } else {
+    1
   }
   dist <- dists[[node]]
   node_data <- data[[node]]

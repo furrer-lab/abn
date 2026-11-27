@@ -24,6 +24,9 @@ predict_node_from_children_gaussian(
 \item{fit}{A list of node-specific coefficient matrices, e.g. extracted from the
 \verb{$coef} component of a \code{fitAbn()} object.}
 
+\item{var}{A named vector of node-specific mean squared errors, e.g. extracted
+from the \verb{$mse} component of a \code{fitAbn()} object.}
+
 \item{node}{Temporary node to predict.}
 
 \item{evidence}{Known nodes that are used to predict the hypothesis.}

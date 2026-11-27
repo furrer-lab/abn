@@ -30,7 +30,14 @@ setup_abn_test_environment <- function() {
                     "p1.2", "p1.3",
                     "b1.2", "b1.3"))
   )
-  return(list(data = mock_data, abnFit = list(abnDag = list(dag = mock_dag, data.dists = mock_dists), modes = mock_fit)))
+  return(list(
+    data = mock_data,
+    abnFit = list(
+      abnDag = list(dag = mock_dag, data.dists = mock_dists),
+      coef = mock_fit,
+      mse = c(g1 = 1)
+    )
+  ))
 }
 
 test_that("predictABN handles prediction with no hypothesis and no evidence", {
@@ -293,7 +300,7 @@ test_that("predict_node_from_children aggregates continuous Gaussian node output
   mockery::stub(predict_node_from_children, "predict_node_from_children_gaussian", mock_child_calc)
 
   res <- predict_node_from_children(
-    data = data.frame(), dists = dists, graph = g, fit = list(),
+    data = data.frame(), dists = dists, graph = g, fit = list(), var = list(),
     node = "A", evidence = list(), predictions = list(A = 5, B = 2, C = 3)
   )
 
