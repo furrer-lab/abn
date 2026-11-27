@@ -110,8 +110,15 @@ jobs:
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
-          pak::pkg_install("furrer-lab/abn@${{ env.BRANCH }}", dependencies=TRUE)
-          library('abn')
+          options(pkg.metadata_cache_dir = "/tmp/pak-metadata")
+          pak::pkg_install(
+            c(
+              "furrer-lab/abn@${{ env.BRANCH }}",
+              "cran::rjags@4-17"
+            ),
+            dependencies = TRUE
+          )
+          library("abn")
         shell: Rscript {0}
 
       - name: inspect pak metadata cache
