@@ -70,10 +70,9 @@ jobs:
       fail-fast: false
       matrix:
         container:
-          - 'debian-gcc-devel'
           - 'debian-gcc-release'
-          - 'debian-gcc-patched'
           - 'debian-clang-devel'
+          - 'fedora-gcc-devel'
     steps:
       - uses: actions/checkout@v4
 
