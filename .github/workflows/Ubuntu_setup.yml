@@ -77,6 +77,36 @@ jobs:
           cat("pak repos:\n"); print(pak::repo_get())
         shell: Rscript {0}
 
+      - name: update pak metadata with low concurrency
+        run: |
+          pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+          options(
+            async_http_total_con = 1,
+            async_http_host_con = 1,
+            async_http_multiplex = FALSE
+          )
+
+          ok <- FALSE
+          for (i in 1:3) {
+            ok <- tryCatch(
+              {
+                pak::meta_update()
+                TRUE
+              },
+              error = function(e) {
+                cat(
+                  "metadata update attempt", i, "failed:",
+                  conditionMessage(e), "\n"
+                )
+                FALSE
+              }
+            )
+            if (ok) break
+            if (i < 3) Sys.sleep(30 * i)
+          }
+          if (!ok) stop("pak metadata update failed after 3 attempts")
+        shell: Rscript {0}
+
       - name: pak install from GitHub
         run: |
           pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
@@ -147,5 +177,7 @@ jobs:
 
       - name: install from source
         run: |
-            pak::local_install(dependencies=TRUE)
+            pak::repo_add(INLA = "https://inla.r-inla-download.org/R/stable/")
+            options(pkg.metadata_cache_dir = "/tmp/pak-metadata")
+            pak::local_install(dependencies=TRUE, upgrade=FALSE)
         shell: Rscript {0}
