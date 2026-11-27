@@ -775,6 +775,7 @@ test_that("simulateAbn() simulation works with method 'mle'", {
                                      run.simulation = TRUE,
                                      bugsfile = NULL,
                                      verbose = FALSE,
+                                     n.iter = 50000L,
                                      debug = FALSE)
           })
         },
